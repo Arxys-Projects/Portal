@@ -1,0 +1,551 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2868
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\margl1440\margr1440\vieww11520\viewh8400\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 <!DOCTYPE html>\
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">\
+<title>Arxys Video Storage & Bandwidth Calculator</title>\
+<style>\
+/* BULLETPROOF CSS - Using #arxys-calc-root prefix for all selectors */\
+#arxys-calc-root,\
+#arxys-calc-root *,\
+#arxys-calc-root *::before,\
+#arxys-calc-root *::after \{\
+  margin: 0;\
+  box-sizing: border-box;\
+\}\
+\
+#arxys-calc-root \{\
+  --bg:#fff;--cd:#f8fafc;--ip:#f1f5f9;--hv:#e8edf4;--bd:#c1c9d6;--tp:#0f172a;--ts:#334155;--td:#475569;--tl:#94a3b8;--ac:#2563eb;--al:#dbeafe;--ag:rgba(37,99,235,.08);--gn:#16a34a;--am:#d97706;--cy:#0891b2;--rd:#dc2626;--pu:#7c3aed;--r:12px;--ss:0 1px 3px rgba(0,0,0,.06);--sm:0 4px 12px rgba(0,0,0,.08);\
+  font-family: inherit, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;\
+  background: var(--bg);\
+  color: var(--tp);\
+  line-height: 1.2;\
+  width: 100%;\
+  padding: 5px 5px 5px;\
+  font-size: 15px;\
+\}\
+\
+/* Header */\
+#arxys-calc-root .ax-hdr \{ text-align:center; margin-bottom:20px; padding-bottom:20px; position:relative; \}\
+#arxys-calc-root .ax-hdr::after \{ content:''; position:absolute; bottom:0; left:50%; transform:translateX(-50%); width:80px; height:3px; background:linear-gradient(90deg,#fbb040,#f59e0b); border-radius:2px; \}\
+#arxys-calc-root .ax-t \{ font-size:clamp(29px,5.2vw,39px); font-weight:800; letter-spacing:-.5px; color:#fbb040; \}\
+#arxys-calc-root .ax-st \{ color:var(--td); font-size:clamp(10px,2vw,20px); margin-top:6px; \}\
+\
+/* Summary Cards - AX-SUM */\
+#arxys-calc-root .ax-sum \{ display:grid; grid-template-columns:repeat(3,1fr); gap:25px; margin-bottom:10px; \}\
+#arxys-calc-root .ax-s \{ background:var(--cd); border:4px solid var(--bd); border-radius:var(--r); padding:3px 2px; text-align:center; overflow:hidden; position:relative; box-shadow:var(--ss); \}\
+#arxys-calc-root .ax-s::before \{ content:''; position:absolute; top:0; left:0; right:0; height:5px; border-radius:var(--r) var(--r) 0 0; \}\
+#arxys-calc-root .ax-s.bl::before \{ background:linear-gradient(90deg,#2563eb,#60a5fa); \}\
+#arxys-calc-root .ax-s.gn::before \{ background:linear-gradient(90deg,#16a34a,#4ade80); \}\
+#arxys-calc-root .ax-s.cy::before \{ background:linear-gradient(90deg,#0891b2,#22d3ee); \}\
+#arxys-calc-root .ax-sl \{ font-size:13px; color:var(--ts); text-transform:uppercase; letter-spacing:1.2px; font-weight:800; margin-top:2px; \}\
+#arxys-calc-root .ax-sv \{ font-family:'JetBrains Mono',Consolas,monospace; font-size:clamp(30px,3.5vw,35px); font-weight:700; margin-top:8px; \}\
+#arxys-calc-root .ax-sv.bl \{ color:var(--ac); \}\
+#arxys-calc-root .ax-sv.gn \{ color:var(--gn); \}\
+#arxys-calc-root .ax-sv.cy \{ color:var(--cy); \}\
+\
+/* Tabs - AX-TABS */\
+#arxys-calc-root .ax-tabs \{ display:flex; gap:25px; margin:5px 0; padding:0; \}\
+#arxys-calc-root .ax-tb \{ flex:1; padding:14px 10px; border:5px solid var(--bd); border-radius:10px; background:var(--bg); color:var(--ts); font-family:inherit; font-size:15px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; transition:all .2s; box-shadow:0 2px 4px rgba(0,0,0,.05); \}\
+#arxys-calc-root .ax-tb:hover \{ color:var(--ac); background:var(--al); border-color:var(--ac); \}\
+#arxys-calc-root .ax-tb.on \{ background:var(--ac); color:#fff;; border-color:var(--ac); box-shadow:0 4px 12px rgba(37,99,235,.3); \}\
+\
+/* Global Settings - AX-GL */\
+#arxys-calc-root .ax-gl \{ background:var(--cd); border:3px solid var(--bd); border-radius:var(--r); padding:10px 15px; margin-bottom:15px; display:flex; flex-wrap:wrap; align-items:flex-end; gap:25px; box-shadow:var(--ss); \}\
+\
+/* Form Fields */\
+#arxys-calc-root .ax-f \{ display:flex; flex-direction:column; gap:6px; \}\
+#arxys-calc-root .ax-fl \{ font-size:12px; color:var(--ts); text-transform:uppercase; letter-spacing:.7px; font-weight:700; display:flex; align-items:center; white-space:nowrap; \}\
+#arxys-calc-root .ax-f select,\
+#arxys-calc-root .ax-f input[type="number"],\
+#arxys-calc-root .ax-f input[type="text"],\
+#arxys-calc-root .ax-f input[type="email"] \{ background:var(--bg); border:1px solid var(--bd); border-radius:8px; color:var(--tp); font-family:inherit; font-size:14px; padding:10px 5px; outline:none; transition:border-color .2s,box-shadow .2s; width:100%; \}\
+#arxys-calc-root .ax-f select:focus,\
+#arxys-calc-root .ax-f input:focus \{ border-color:var(--ac); box-shadow:0 0 0 3px var(--ag); \}\
+#arxys-calc-root .ax-f select option \{ background:#fff; color:var(--tp); \}\
+\
+/* Range Slider */\
+#arxys-calc-root .ax-sr \{ display:flex; align-items:center; gap:8px; \}\
+#arxys-calc-root .ax-svl \{ font-family:'JetBrains Mono',Consolas,monospace; font-size:13px; color:var(--ac); min-width:38px; text-align:right; font-weight:600; \}\
+#arxys-calc-root input[type="range"] \{ -webkit-appearance:none; width:100%; height:5px; border-radius:3px; background:var(--bd); outline:none; \}\
+#arxys-calc-root input[type="range"]::-webkit-slider-thumb \{ -webkit-appearance:none; width:16px; height:16px; border-radius:50%; background:var(--ac); cursor:pointer; box-shadow:0 1px 5px rgba(37,99,235,.35); border:2px solid #fff; \}\
+\
+/* Camera Cards - AX-CAM */\
+#arxys-calc-root .ax-cam \{ background:var(--cd); border:2px solid var(--bd); border-radius:var(--r); margin-bottom:10px; overflow:hidden; box-shadow:var(--ss); transition:border-color .2s; \}\
+#arxys-calc-root .ax-cam:hover \{ border-color:#8898b0; box-shadow:var(--sm); \}\
+#arxys-calc-root .ax-ch \{ display:flex; align-items:center; justify-content:space-between; padding:3px 10px; background:var(--ip); border-bottom:1px solid var(--bd); \}\
+#arxys-calc-root .ax-chl \{ display:flex; align-items:center; gap:5px; \}\
+#arxys-calc-root .ax-cn \{ background:var(--bg); border:1px solid var(--bd); border-radius:6px; color:var(--tp); font-family:inherit; font-size:14px; font-weight:600; outline:none; width:200px; padding:8px 12px; transition:border-color .2s; \}\
+#arxys-calc-root .ax-cn:focus \{ border-color:var(--ac); box-shadow:0 0 0 3px var(--ag); \}\
+#arxys-calc-root .ax-cn::placeholder \{ color:var(--tl); \}\
+#arxys-calc-root .ax-ca \{ display:flex; gap:8px; \}\
+#arxys-calc-root .ax-ib \{ background:var(--bg); border:2px solid var(--bd); border-radius:8px; color:var(--ts); cursor:pointer; padding:8px 12px; display:flex; align-items:center; justify-content:center; gap:5px; transition:all .15s; font-family:inherit; font-size:12px; font-weight:600; \}\
+#arxys-calc-root .ax-ib:hover \{ color:var(--ac); border-color:var(--ac); background:var(--al); \}\
+#arxys-calc-root .ax-ib.dng:hover \{ color:var(--rd); border-color:#fca5a5; background:#fef2f2; \}\
+\
+/* Camera Body */\
+#arxys-calc-root .ax-cb \{ padding:10px 40px; display:flex; flex-wrap:wrap; gap:12px 16px; align-items:flex-end; \}\
+#arxys-calc-root .ax-cb .ax-f.wc \{ width:110px; flex-shrink:0; \}\
+#arxys-calc-root .ax-cb .ax-f.wr \{ width:200px; flex-shrink:0; \}\
+#arxys-calc-root .ax-cb .ax-f.wk \{ width:180px; flex-shrink:0; \}\
+#arxys-calc-root .ax-cb .ax-f.wf \{ width:70px; flex-shrink:0; \}\
+#arxys-calc-root .ax-cb .ax-f.wx \{ width:170px; flex-shrink:0; \}\
+#arxys-calc-root .ax-cb .ax-f.wh \{ width:100px; flex-shrink:0; \}\
+#arxys-calc-root .ax-cb .ax-f.wm \{ width:150px; flex-shrink:0; \}\
+#arxys-calc-root .ax-cb input[type="number"] \{ padding:10px 8px; \}\
+\
+/* Camera Results Row */\
+#arxys-calc-root .ax-cr \{ padding:8px 40px; background:var(--ag); border-top:1px solid var(--bd); display:flex; gap:30px; flex-wrap:wrap; \}\
+#arxys-calc-root .ax-ci \{ display:flex; align-items:baseline; gap:6px; \}\
+#arxys-calc-root .ax-cil \{ font-size:11px; color:var(--td); text-transform:uppercase; letter-spacing:.4px; font-weight:600; \}\
+#arxys-calc-root .ax-civ \{ font-family:'JetBrains Mono',Consolas,monospace; font-size:13px; font-weight:600; \}\
+\
+/* Add Button */\
+#arxys-calc-root .ax-add \{ width:100%; padding:10px; border:2px dashed #93a8c9; border-radius:var(--r); background:var(--ag); color:var(--ac); font-family:inherit; font-size:16px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; transition:all .2s; margin-top:20px; \}\
+#arxys-calc-root .ax-add:hover \{ border-color:var(--ac); background:#dbeafe; box-shadow:0 2px 8px rgba(37,99,235,.15); \}\
+\
+/* Results Table */\
+#arxys-calc-root .ax-tw \{ overflow-x:auto; border-radius:var(--r); border:1px solid var(--bd); box-shadow:var(--ss); \}\
+#arxys-calc-root .ax-tbl \{ width:100%; border-collapse:collapse; font-size:13px; \}\
+#arxys-calc-root .ax-tbl th \{ background:var(--ip); color:var(--ts); font-size:11px; text-transform:uppercase; letter-spacing:.7px; font-weight:700; padding:14px; text-align:left; white-space:nowrap; border-bottom:1px solid var(--bd); \}\
+#arxys-calc-root .ax-tbl td \{ padding:12px 14px; border-bottom:1px solid #e8edf3; color:var(--ts); white-space:nowrap; font-size:13px; \}\
+#arxys-calc-root .ax-tbl tr:last-child td \{ border-bottom:none; \}\
+#arxys-calc-root .ax-tbl tr:hover td \{ background:#f0f4fa; \}\
+#arxys-calc-root .ax-tbl .m \{ font-family:'JetBrains Mono',Consolas,monospace; font-weight:600; color:var(--tp); \}\
+#arxys-calc-root .ax-tbl tfoot td \{ background:var(--ip); font-weight:700; color:var(--tp); border-top:2px solid var(--bd); \}\
+\
+/* Charts */\
+#arxys-calc-root .ax-cht \{ background:var(--cd); border:1px solid var(--bd); border-radius:var(--r); padding:24px; margin-top:20px; box-shadow:var(--ss); \}\
+#arxys-calc-root .ax-cht-t \{ font-size:15px; font-weight:700; margin-bottom:16px; display:flex; align-items:center; gap:8px; color:var(--tp); \}\
+#arxys-calc-root .ax-br \{ display:flex; align-items:center; gap:10px; margin-bottom:8px; \}\
+#arxys-calc-root .ax-bl \{ width:130px; font-size:12px; color:var(--ts); text-align:right; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex-shrink:0; \}\
+#arxys-calc-root .ax-bt \{ flex:1; height:24px; background:var(--ip); border-radius:5px; overflow:hidden; border:1px solid var(--bd); position:relative; \}\
+#arxys-calc-root .ax-bf \{ height:100%; border-radius:4px; transition:width .5s ease; min-width:2px; \}\
+#arxys-calc-root .ax-bf.bw \{ background:linear-gradient(90deg,#2563eb,#60a5fa); \}\
+#arxys-calc-root .ax-bf.st \{ background:linear-gradient(90deg,#16a34a,#4ade80); \}\
+#arxys-calc-root .ax-bv \{ font-family:'JetBrains Mono',Consolas,monospace; font-size:11px; font-weight:600; min-width:90px; color:var(--td); flex-shrink:0; \}\
+#arxys-calc-root .ax-bpct \{ position:absolute; right:6px; top:50%; transform:translateY(-50%); font-family:'JetBrains Mono',Consolas,monospace; font-size:9px; color:rgba(0,0,0,.35); font-weight:700; \}\
+\
+/* CTA Box */\
+#arxys-calc-root .ax-cta \{ background:linear-gradient(135deg,#1e293b 0%,#334155 100%); border:2px solid #fbb040; border-radius:var(--r); padding:32px; margin-bottom:32px; box-shadow:0 8px 32px rgba(0,0,0,.18); position:relative; overflow:hidden; \}\
+#arxys-calc-root .ax-cta::before \{ content:''; position:absolute; top:-50%; right:-50%; width:100%; height:200%; background:radial-gradient(circle,rgba(251,176,64,.1) 0%,transparent 70%); pointer-events:none; \}\
+#arxys-calc-root .ax-cta-t \{ font-size:22px; font-weight:800; color:#fbb040; margin-bottom:8px; display:flex; align-items:center; gap:10px; \}\
+#arxys-calc-root .ax-cta-d \{ font-size:15px; color:#cbd5e1; margin-bottom:22px; line-height:1.6; \}\
+#arxys-calc-root .ax-cta-r \{ display:flex; gap:12px; flex-wrap:wrap; align-items:stretch; \}\
+#arxys-calc-root .ax-cta-i \{ flex:1; min-width:180px; background:rgba(255,255,255,.95); border:2px solid transparent; border-radius:10px; color:var(--tp); font-family:inherit; font-size:15px; padding:14px 18px; outline:none; transition:all .2s; \}\
+#arxys-calc-root .ax-cta-i:focus \{ border-color:#fbb040; box-shadow:0 0 0 4px rgba(251,176,64,.25); \}\
+#arxys-calc-root .ax-cta-i::placeholder \{ color:#94a3b8; \}\
+#arxys-calc-root .ax-cta-b \{ background:linear-gradient(135deg,#fbb040 0%,#f59e0b 100%); color:#1e293b; border:none; border-radius:10px; font-family:inherit; font-size:16px; font-weight:700; padding:14px 32px; cursor:pointer; transition:all .2s; white-space:nowrap; display:flex; align-items:center; gap:8px; text-transform:uppercase; letter-spacing:.5px; \}\
+#arxys-calc-root .ax-cta-b:hover \{ transform:translateY(-2px); box-shadow:0 6px 20px rgba(251,176,64,.4); \}\
+#arxys-calc-root .ax-cta-b:disabled \{ opacity:.6; cursor:not-allowed; transform:none; \}\
+#arxys-calc-root .ax-msg \{ margin-top:14px; font-size:14px; padding:12px 16px; border-radius:8px; font-weight:500; \}\
+#arxys-calc-root .ax-msg.ok \{ background:#dcfce7; color:#166534; border:1px solid #86efac; \}\
+#arxys-calc-root .ax-msg.err \{ background:#fef2f2; color:#991b1b; border:1px solid #fca5a5; \}\
+#arxys-calc-root .ax-msg.wait \{ background:rgba(251,176,64,.15); color:#fbb040; border:1px solid rgba(251,176,64,.3); \}\
+\
+/* Footer Notes */\
+#arxys-calc-root .ax-fn \{ margin-top:60px; padding:18px 22px; background:var(--cd); border:1px solid var(--bd); border-radius:var(--r); font-size:13px; color:var(--td); line-height:1.7; box-shadow:var(--ss); \}\
+#arxys-calc-root .ax-fn strong \{ color:var(--ts); \}\
+#arxys-calc-root .ax-fn a \{ color:var(--ac); text-decoration:none; \}\
+#arxys-calc-root .ax-fn a:hover \{ text-decoration:underline; \}\
+\
+/* Tooltips */\
+#arxys-calc-root .ax-tip \{ position:relative; display:inline-flex; align-items:center; cursor:help; margin-left:5px; z-index:1; \}\
+#arxys-calc-root .ax-tip svg \{ color:var(--ac); opacity:.75; \}\
+#arxys-calc-root .ax-tip:hover svg \{ opacity:1; \}\
+#arxys-calc-root .ax-tt \{ visibility:hidden; opacity:0; position:absolute; bottom:calc(100% + 10px); left:50%; transform:translateX(-50%); background:#1e293b; color:#e2e8f0; padding:12px 16px; border-radius:10px; font-size:13px; font-weight:400; white-space:normal; width:320px; max-width:90vw; text-transform:none; letter-spacing:0; line-height:1.55; box-shadow:0 8px 24px rgba(0,0,0,.25); z-index:99999; transition:all .15s; pointer-events:none; \}\
+#arxys-calc-root .ax-tt::after \{ content:''; position:absolute; top:100%; left:50%; transform:translateX(-50%); border:6px solid transparent; border-top-color:#1e293b; \}\
+#arxys-calc-root .ax-tip:hover .ax-tt \{ visibility:visible; opacity:1; \}\
+#arxys-calc-root .ax-tip-r .ax-tt \{ left:auto; right:0; transform:none; \}\
+#arxys-calc-root .ax-tip-r .ax-tt::after \{ left:auto; right:14px; transform:none; \}\
+\
+/* Checkbox */\
+#arxys-calc-root .ax-chk \{ display:flex; align-items:center; gap:8px; cursor:pointer; \}\
+#arxys-calc-root .ax-chk input \{ accent-color:var(--ac); width:16px; height:16px; cursor:pointer; \}\
+#arxys-calc-root .ax-chk label \{ font-size:13px; color:var(--ts); cursor:pointer; font-weight:500; \}\
+\
+/* Responsive - Tablet */\
+@media(max-width:1024px) \{\
+  #arxys-calc-root .ax-cb \{ flex-wrap:wrap; \}\
+  #arxys-calc-root .ax-cb .ax-f \{ width:auto !important; flex:1; min-width:140px; \}\
+\}\
+\
+/* Responsive - Mobile */\
+@media(max-width:768px) \{\
+  #arxys-calc-root \{ padding:20px 16px 40px; \}\
+  #arxys-calc-root .ax-sum \{ grid-template-columns:1fr; gap:12px; \}\
+  #arxys-calc-root .ax-gl \{ flex-direction:column; gap:16px; padding:20px 24px; align-items:stretch; \}\
+  #arxys-calc-root .ax-gl .ax-f \{ width:100% !important; \}\
+  #arxys-calc-root .ax-tabs \{ flex-direction:column; gap:10px; \}\
+  #arxys-calc-root .ax-tb \{ font-size:14px; padding:12px; \}\
+  #arxys-calc-root .ax-sv \{ font-size:22px; \}\
+  #arxys-calc-root .ax-bl \{ width:80px; font-size:10px; \}\
+  #arxys-calc-root .ax-bv \{ min-width:70px; font-size:10px; \}\
+  #arxys-calc-root .ax-ch \{ padding:14px 20px; flex-wrap:wrap; gap:12px; \}\
+  #arxys-calc-root .ax-cn \{ width:100%; \}\
+  #arxys-calc-root .ax-ca \{ width:100%; justify-content:flex-end; \}\
+  #arxys-calc-root .ax-cb \{ padding:16px 20px; \}\
+  #arxys-calc-root .ax-cr \{ padding:12px 20px; gap:16px; \}\
+  #arxys-calc-root .ax-cta \{ padding:24px; \}\
+  #arxys-calc-root .ax-cta-t \{ font-size:18px; \}\
+  #arxys-calc-root .ax-cta-b \{ width:100%; justify-content:center; \}\
+\}\
+\
+@media(max-width:540px) \{\
+  #arxys-calc-root .ax-cb .ax-f \{ min-width:100% !important; \}\
+  #arxys-calc-root .ax-cn \{ font-size:13px; \}\
+  #arxys-calc-root .ax-cr \{ flex-direction:column; gap:10px; \}\
+  #arxys-calc-root .ax-br \{ flex-wrap:wrap; \}\
+  #arxys-calc-root .ax-bl \{ width:100%; text-align:left; \}\
+  #arxys-calc-root .ax-bv \{ width:100%; text-align:right; \}\
+  #arxys-calc-root .ax-cta-r \{ flex-direction:column; \}\
+  #arxys-calc-root .ax-tbl \{ font-size:12px; \}\
+  #arxys-calc-root .ax-tbl th,\
+  #arxys-calc-root .ax-tbl td \{ padding:10px 8px; \}\
+\}\
+</style></head><body><div id="arxys-calc-root"></div>\
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>\
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>\
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>\
+<script type="text/babel">\
+const\{useState,useCallback,useMemo\}=React;\
+\
+const RES=[\
+  \{l:"QVGA (320\'d7240)",w:320,h:240\},\
+  \{l:"CIF PAL (352\'d7288)",w:352,h:288\},\
+  \{l:"CIF NTSC (352\'d7240)",w:352,h:240\},\
+  \{l:"2CIF (704\'d7288)",w:704,h:288\},\
+  \{l:"4CIF PAL (704\'d7576)",w:704,h:576\},\
+  \{l:"VGA (640\'d7480)",w:640,h:480\},\
+  \{l:"SVGA (800\'d7600)",w:800,h:600\},\
+  \{l:"960H (960\'d7576)",w:960,h:576\},\
+  \{l:"720p HD (1280\'d7720)",w:1280,h:720\},\
+  \{l:"960p (1280\'d7960)",w:1280,h:960\},\
+  \{l:"1.3MP (1280\'d71024)",w:1280,h:1024\},\
+  \{l:"1080p Full HD (1920\'d71080)",w:1920,h:1080\},\
+  \{l:"2MP (1600\'d71200)",w:1600,h:1200\},\
+  \{l:"3MP (2048\'d71536)",w:2048,h:1536\},\
+  \{l:"4MP (2560\'d71440)",w:2560,h:1440\},\
+  \{l:"4MP (2688\'d71520)",w:2688,h:1520\},\
+  \{l:"5MP (2592\'d71944)",w:2592,h:1944\},\
+  \{l:"5MP (3072\'d71728)",w:3072,h:1728\},\
+  \{l:"6MP (3072\'d72048)",w:3072,h:2048\},\
+  \{l:"4K/8MP (3840\'d72160)",w:3840,h:2160\},\
+  \{l:"8MP (3296\'d72472)",w:3296,h:2472\},\
+  \{l:"10MP (3648\'d72752)",w:3648,h:2752\},\
+  \{l:"12MP (4000\'d73000)",w:4000,h:3000\},\
+  \{l:"16MP (4864\'d73248)",w:4864,h:3248\},\
+  \{l:"20MP (5120\'d73840)",w:5120,h:3840\},\
+  \{l:"29MP (6576\'d74384)",w:6576,h:4384\}\
+];\
+\
+const COD=[\
+  \{l:"H.265 (HEVC)",v:"h265",t:"30-50% more efficient"\},\
+  \{l:"H.264 (AVC)",v:"h264",t:"Standard codec"\},\
+  \{l:"H.264-Smart",v:"smart",t:"Axis Zipstream / Avigilon HDSM"\}\
+];\
+const CX=[\
+  \{l:"Low (office)",v:.5\},\
+  \{l:"Medium (retail)",v:1\},\
+  \{l:"High (outdoor)",v:1.5\}\
+];\
+const VL=["Milestone","Avigilon","Genetec","Hanwha","NX Witness","Other"];\
+const OH=1.20;\
+\
+function eFK(r,c,cx)\{const p=r.w*r.h;const b=\{h265:.07,h264:.12,smart:.084\};return(p*(b[c]||.12)*cx)/8/1024;\}\
+function cBW(f,fps,n)\{return(f*1024*8*fps*n)/1e6;\}\
+function cST(f,fps,n,d,r)\{return(f*1024*fps*n*d*24*3600*(r/100))/1e9;\}\
+const fm=(n,d=2)=>n>=1e3?(n).toFixed(1).replace(/\\B(?=(\\d\{3\})+(?!\\d))/g,","):n.toFixed(d);\
+const fS=g=>g>=1e3?fm(g/1e3)+" TB":fm(g)+" GB";\
+const fB=m=>m>=1e3?fm(m/1e3)+" Gbps":fm(m)+" Mbps";\
+\
+const CI=()=><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>;\
+const PI=()=><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>;\
+const TI=()=><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>;\
+const DpI=()=><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>;\
+const GI=()=><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>;\
+const HI=()=><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="22" y1="12" x2="2" y2="12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>;\
+const II=()=><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>;\
+const RI=()=><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>;\
+const SI=()=><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M22 2L11 13"/><path d="M22 2L15 22L11 13L2 9L22 2Z"/></svg>;\
+const Tp=(\{t,a\})=><span className=\{"ax-tip "+(a==="r"?"ax-tip-r":"")\}><II/><span className="ax-tt">\{t\}</span></span>;\
+\
+const mk=(i=1)=>(\{id:Date.now()+Math.random(),nm:"Camera Group "+i,n:1,ri:14,ci:0,fps:15,rec:100,mot:50,cx:1\});\
+\
+function App()\{\
+const[cs,setCs]=useState([mk(1)]);\
+const[ret,setRet]=useState(30);\
+const[vms,setVms]=useState("");\
+const[proj,setProj]=useState("");\
+const[fo,setFo]=useState(false);\
+const[tab,setTab]=useState("cameras");\
+const[em,setEm]=useState("");\
+const[nm,setNm]=useState("");\
+const[co,setCo]=useState("");  // NEW: Company field state\
+const[ss,setSs]=useState(null);\
+const[msg,setMsg]=useState("");\
+\
+const add=()=>setCs(p=>[...p,mk(p.length+1)]);\
+const dup=id=>setCs(p=>\{const s=p.find(c=>c.id===id);return s?[...p,\{...s,id:Date.now()+Math.random(),nm:s.nm+" (copy)"\}]:p;\});\
+const rm=id=>setCs(p=>p.length>1?p.filter(c=>c.id!==id):p);\
+const up=useCallback((id,f,v)=>setCs(p=>p.map(c=>c.id===id?\{...c,[f]:v\}:c)),[]);\
+const reset=()=>\{setCs([mk(1)]);setRet(30);setVms("");setProj("");setFo(false);\};\
+\
+const res=useMemo(()=>cs.map(c=>\{\
+  const r=RES[c.ri],cod=COD[c.ci].v,cx=CX[c.cx].v;\
+  let fk=eFK(r,cod,cx);\
+  if(["h264","h265","smart"].includes(cod))fk*=.3+.7*(c.mot/100);\
+  const bw=cBW(fk,c.fps,c.n),raw=cST(fk,c.fps,c.n,ret,c.rec),st=raw*OH;\
+  return\{...c,rl:r.l,cl:COD[c.ci].l,fk,bw,st,br:fk*8*c.fps\};\
+\}),[cs,ret]);\
+\
+const tot=useMemo(()=>\{\
+  const bw=res.reduce((s,r)=>s+r.bw,0);\
+  const st=res.reduce((s,r)=>s+r.st,0);\
+  const nc=res.reduce((s,r)=>s+r.n,0);\
+  return\{bw,st,nc,dy:st/Math.max(ret,1)\};\
+\},[res,ret]);\
+\
+const sendEmail=async()=>\{\
+  if(!em||!em.includes("@"))\{setSs("err");setMsg("Please enter a valid email.");return;\}\
+  setSs("wait");setMsg("Sending your report...");\
+  try\{\
+    const groups=res.map(r=>(\{\
+      name:r.nm,\
+      qty:r.n,\
+      resolution:r.rl,\
+      codec:r.cl,\
+      fps:r.fps,\
+      scene_complexity:CX[r.cx].l,\
+      hrs_per_day:Math.round(r.rec/100*24),\
+      motion_percent:r.mot,\
+      bandwidth:fB(r.bw),\
+      storage:fS(r.st)\
+    \}));\
+    const url="https://www.arxys.com/wp-admin/admin-ajax.php";\
+    const fd=new FormData();\
+    fd.append("action","arxys_calc_send");\
+    fd.append("email",em);\
+    fd.append("name",nm);\
+    fd.append("company",co);  // NEW: Send company to PHP\
+    fd.append("project",proj);\
+    fd.append("vms",vms);\
+    fd.append("retention",String(ret));\
+    fd.append("failover",fo?"Yes":"No");\
+    fd.append("total_cameras",String(tot.nc));\
+    fd.append("total_bandwidth",fB(tot.bw));\
+    fd.append("total_storage",fS(tot.st));\
+    fd.append("daily_storage",fS(tot.dy));\
+    fd.append("camera_groups",JSON.stringify(groups));\
+    const resp=await fetch(url,\{method:"POST",body:fd\});\
+    const text=await resp.text();\
+    let result;\
+    try\{result=JSON.parse(text);\}catch(e)\{throw new Error("Invalid response: "+text.substring(0,100));\}\
+    if(result.success)\{\
+      setSs("ok");\
+      setMsg("Success! Check your inbox for the full report with PDF.");\
+      setEm("");\
+      setNm("");\
+      setCo("");  // NEW: Clear company field on success\
+    \}else\{\
+      throw new Error(result.data?.message||"Send failed");\
+    \}\
+  \}catch(err)\{\
+    console.error("Send error:",err);\
+    setSs("err");\
+    setMsg(err.message||"Failed to send");\
+  \}\
+\};\
+\
+return(<div>\
+<header className="ax-hdr">\
+  <div className="ax-t">Arxys Video Storage &amp; Bandwidth Calculator</div>\
+  <div className="ax-st">IP Surveillance System Estimator</div>\
+</header>\
+\
+<div className="ax-sum">\
+  <div className="ax-s bl">\
+    <div className="ax-sl">Total Cameras</div>\
+    <div className="ax-sv bl">\{tot.nc\}</div>\
+  </div>\
+  <div className="ax-s cy">\
+    <div className="ax-sl">Total Bandwidth</div>\
+    <div className="ax-sv cy">\{fB(tot.bw)\}</div>\
+  </div>\
+  <div className="ax-s gn">\
+    <div className="ax-sl">Total Storage</div>\
+    <div className="ax-sv gn">\{fS(tot.st)\}</div>\
+    <div style=\{\{fontSize:11,color:"var(--td)",marginTop:4\}\}>(includes 20% overhead)</div>\
+  </div>\
+</div>\
+\
+<div className="ax-tabs">\
+  <button className=\{"ax-tb "+(tab==="cameras"?"on":"")\} onClick=\{()=>setTab("cameras")\}>\
+    <CI/> Camera Groups\
+  </button>\
+  <button className=\{"ax-tb "+(tab==="results"?"on":"")\} onClick=\{()=>setTab("results")\}>\
+    <GI/> See The Report\
+  </button>\
+</div>\
+\
+<div className="ax-gl">\
+  <div className="ax-f" style=\{\{minWidth:160\}\}>\
+    <label className="ax-fl">Project Name</label>\
+    <input type="text" maxLength="50" placeholder="e.g. Main Campus" value=\{proj\} onChange=\{e=>setProj(e.target.value)\}/>\
+  </div>\
+  <div className="ax-f" style=\{\{minWidth:160\}\}>\
+    <label className="ax-fl">Which VMS?</label>\
+    <select value=\{vms\} onChange=\{e=>setVms(e.target.value)\}>\
+      <option value="">\'97 Select \'97</option>\
+      \{VL.map(v=><option key=\{v\} value=\{v\}>\{v\}</option>)\}\
+    </select>\
+  </div>\
+  <div className="ax-f" style=\{\{minWidth:130\}\}>\
+    <label className="ax-fl">Retention<Tp t="Days of footage to store."/></label>\
+    <div style=\{\{display:"flex",alignItems:"center",gap:8\}\}>\
+      <input type="number" min="1" max="730" value=\{ret\} onChange=\{e=>setRet(Math.max(1,Math.min(730,+e.target.value||1)))\} style=\{\{width:80\}\}/>\
+      <span style=\{\{color:"var(--td)",fontSize:13\}\}>days</span>\
+    </div>\
+  </div>\
+  <div className="ax-chk">\
+    <input type="checkbox" id="fo" checked=\{fo\} onChange=\{e=>setFo(e.target.checked)\}/>\
+    <label htmlFor="fo">Add Failover Recorder?</label>\
+  </div>\
+  <div style=\{\{marginLeft:"auto"\}\}>\
+    <button className="ax-ib" onClick=\{reset\} style=\{\{gap:6\}\}>\
+      <RI/> Reset\
+    </button>\
+  </div>\
+</div>\
+\
+\{tab==="cameras"&&<div>\
+\{cs.map((c,i)=>\{const r=res[i];return(\
+<div key=\{c.id\} className="ax-cam">\
+  <div className="ax-ch">\
+    <div className="ax-chl">\
+      <CI/>\
+      <input className="ax-cn" value=\{c.nm\} onChange=\{e=>up(c.id,"nm",e.target.value)\} placeholder="Enter group name..."/>\
+    </div>\
+    <div className="ax-ca">\
+      <button className="ax-ib" title="Copy this group" onClick=\{()=>dup(c.id)\}><DpI/> Copy</button>\
+      <button className="ax-ib dng" title="Delete this group" onClick=\{()=>rm(c.id)\} disabled=\{cs.length<=1\} style=\{\{opacity:cs.length<=1?.4:1\}\}><TI/> Delete</button>\
+    </div>\
+  </div>\
+  <div className="ax-cb">\
+    <div className="ax-f wc">\
+      <label className="ax-fl">Video Streams</label>\
+      <input type="number" min="1" max="9999" value=\{c.n\} onChange=\{e=>up(c.id,"n",Math.max(1,Math.min(9999,+e.target.value||1)))\} style=\{\{textAlign:"center"\}\}/>\
+    </div>\
+    <div className="ax-f wr">\
+      <label className="ax-fl">Resolution</label>\
+      <select value=\{c.ri\} onChange=\{e=>up(c.id,"ri",+e.target.value)\}>\
+        \{RES.map((r,j)=><option key=\{j\} value=\{j\}>\{r.l\}</option>)\}\
+      </select>\
+    </div>\
+    <div className="ax-f wk">\
+      <label className="ax-fl">Codec<Tp t=\{COD[c.ci].t\}/></label>\
+      <select value=\{c.ci\} onChange=\{e=>up(c.id,"ci",+e.target.value)\}>\
+        \{COD.map((x,j)=><option key=\{j\} value=\{j\}>\{x.l\}</option>)\}\
+      </select>\
+    </div>\
+    <div className="ax-f wf">\
+      <label className="ax-fl">FPS</label>\
+      <input type="number" min="1" max="60" value=\{c.fps\} onChange=\{e=>up(c.id,"fps",Math.max(1,Math.min(60,+e.target.value||1)))\} style=\{\{textAlign:"center"\}\}/>\
+    </div>\
+    <div className="ax-f wx">\
+      <label className="ax-fl">Complexity</label>\
+      <select value=\{c.cx\} onChange=\{e=>up(c.id,"cx",+e.target.value)\}>\
+        \{CX.map((o,j)=><option key=\{j\} value=\{j\}>\{o.l\}</option>)\}\
+      </select>\
+    </div>\
+    <div className="ax-f wh">\
+      <label className="ax-fl">Hrs/Day<Tp t="Hours per day cameras record." a="r"/></label>\
+      <div style=\{\{display:"flex",alignItems:"center",gap:6\}\}>\
+        <input type="number" min="1" max="24" value=\{Math.round(c.rec/100*24)\} onChange=\{e=>\{const h=Math.max(1,Math.min(24,+e.target.value||1));up(c.id,"rec",Math.round(h/24*100));\}\} style=\{\{width:56,textAlign:"center"\}\}/>\
+        <span style=\{\{fontSize:12,color:"var(--td)"\}\}>hrs</span>\
+      </div>\
+    </div>\
+    <div className="ax-f wm">\
+      <label className="ax-fl">Motion<Tp t="Scene motion level" a="r"/></label>\
+      <div className="ax-sr">\
+        <input type="range" min="1" max="100" value=\{c.mot\} onChange=\{e=>up(c.id,"mot",+e.target.value)\} style=\{\{maxWidth:80\}\}/>\
+        <span className="ax-svl">\{c.mot\}%</span>\
+      </div>\
+    </div>\
+  </div>\
+  \{r&&<div className="ax-cr">\
+    <div className="ax-ci"><span className="ax-cil">Bitrate:</span><span className="ax-civ" style=\{\{color:"var(--pu)"\}\}>\{r.br>=1e3?fm(r.br/1e3)+" Mbps":Math.round(r.br)+" Kbps"\}</span></div>\
+    <div className="ax-ci"><span className="ax-cil">Bandwidth:</span><span className="ax-civ" style=\{\{color:"var(--cy)"\}\}>\{fB(r.bw)\}</span></div>\
+    <div className="ax-ci"><span className="ax-cil">Storage:</span><span className="ax-civ" style=\{\{color:"var(--gn)"\}\}>\{fS(r.st)\}</span></div>\
+    <div className="ax-ci"><span className="ax-cil">Daily:</span><span className="ax-civ" style=\{\{color:"var(--am)"\}\}>\{fS(r.st/Math.max(ret,1))\}/day</span></div>\
+  </div>\}\
+</div>);\})\}\
+<button className="ax-add" onClick=\{add\}><PI/> Add Camera Group</button>\
+</div>\}\
+\
+\{tab==="results"&&<div>\
+<div className="ax-cta">\
+  <div className="ax-cta-t"><SI/> Get Your Full Report</div>\
+  <div className="ax-cta-d">Enter your details below and we'll send you a complete PDF report with your storage calculations. Our team will also follow up to help you find the perfect solution.</div>\
+  <div className="ax-cta-r">\
+    <input type="text" className="ax-cta-i" placeholder="Your Name" value=\{nm\} onChange=\{e=>\{setNm(e.target.value);setSs(null);\}\} style=\{\{flex:"0 1 200px"\}\}/>\
+    <input type="text" className="ax-cta-i" placeholder="Company Name (optional)" value=\{co\} onChange=\{e=>\{setCo(e.target.value);setSs(null);\}\} style=\{\{flex:"0 1 200px"\}\}/>\
+    <input type="email" className="ax-cta-i" placeholder="your@email.com" value=\{em\} onChange=\{e=>\{setEm(e.target.value);setSs(null);\}\}/>\
+    <button className="ax-cta-b" onClick=\{sendEmail\} disabled=\{ss==="wait"\}><SI/>\{ss==="wait"?"Sending...":"Send My Report"\}</button>\
+  </div>\
+  \{ss&&<div className=\{"ax-msg "+(ss==="ok"?"ok":ss==="err"?"err":"wait")\}>\{msg\}</div>\}\
+</div>\
+\
+<div className="ax-tw">\
+  <table className="ax-tbl">\
+    <thead><tr><th>Camera Group</th><th>Qty</th><th>Resolution</th><th>Codec</th><th>FPS</th><th>Rec</th><th>Bandwidth</th><th>Storage</th><th>Daily</th></tr></thead>\
+    <tbody>\{res.map(r=>(<tr key=\{r.id\}><td style=\{\{color:"var(--tp)",fontWeight:600\}\}>\{r.nm\}</td><td className="m">\{r.n\}</td><td>\{r.rl\}</td><td>\{r.cl\}</td><td className="m">\{r.fps\}</td><td className="m">\{r.rec\}%</td><td className="m" style=\{\{color:"var(--cy)"\}\}>\{fB(r.bw)\}</td><td className="m" style=\{\{color:"var(--gn)"\}\}>\{fS(r.st)\}</td><td className="m" style=\{\{color:"var(--am)"\}\}>\{fS(r.st/Math.max(ret,1))\}</td></tr>))\}</tbody>\
+    <tfoot><tr><td>Total</td><td className="m">\{tot.nc\}</td><td colSpan=\{4\}></td><td className="m" style=\{\{color:"var(--cy)"\}\}>\{fB(tot.bw)\}</td><td className="m" style=\{\{color:"var(--gn)"\}\}>\{fS(tot.st)\}</td><td className="m" style=\{\{color:"var(--am)"\}\}>\{fS(tot.dy)\}</td></tr></tfoot>\
+  </table>\
+</div>\
+\
+<div className="ax-cht">\
+  <div className="ax-cht-t"><GI/> Bandwidth by Group</div>\
+  \{res.map(r=>\{const pct=tot.bw>0?(r.bw/tot.bw)*100:0;return(<div key=\{r.id\} className="ax-br"><div className="ax-bl">\{r.nm\}</div><div className="ax-bt"><div className="ax-bf bw" style=\{\{width:pct+"%"\}\}/><span className="ax-bpct">\{pct.toFixed(0)\}%</span></div><div className="ax-bv">\{fB(r.bw)\}</div></div>);\})\}\
+</div>\
+\
+<div className="ax-cht">\
+  <div className="ax-cht-t"><HI/> Storage by Group</div>\
+  \{res.map(r=>\{const pct=tot.st>0?(r.st/tot.st)*100:0;return(<div key=\{r.id\} className="ax-br"><div className="ax-bl">\{r.nm\}</div><div className="ax-bt"><div className="ax-bf st" style=\{\{width:pct+"%"\}\}/><span className="ax-bpct">\{pct.toFixed(0)\}%</span></div><div className="ax-bv">\{fS(r.st)\}</div></div>);\})\}\
+</div>\
+</div>\}\
+\
+<div className="ax-fn">\
+  <strong>Note:</strong> Storage includes ~20% overhead for VMS best practices.\
+  <a href="https://www.arxys.com/contact/"> Contact Arxys</a> for a personalized recommendation.\
+</div>\
+</div>);\}\
+\
+ReactDOM.createRoot(document.getElementById("arxys-calc-root")).render(<App/>);\
+\
+// Fetch server data\
+let videoxServers = [];\
+\
+fetch('/wp-json/videox/v1/servers')\
+    .then(response => response.json())\
+    .then(data => \{\
+        videoxServers = data;\
+        console.log('Loaded ' + videoxServers.length + ' servers');\
+    \});\
+\
+function findRecommendedServer(totalCameras, totalBandwidth, totalStorage) \{\
+    const suitable = videoxServers.filter(server =>\
+        server.max_cameras >= totalCameras &&\
+        server.max_bandwidth >= totalBandwidth &&\
+        server.storage_max >= totalStorage &&\
+        server.storage_min <= totalStorage\
+    );\
+    return suitable.sort((a, b) => a.max_cameras - b.max_cameras)[0];\
+\}\
+\
+</script></body></html>\
+}
