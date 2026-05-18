@@ -143,6 +143,14 @@ Sign in at `http://localhost:3000/login` (dev) or `https://portal-arxys.vercel.a
 5. **Settings → Environment Variables** — add the 10 keys from `.env.local`. Service-role key marked Sensitive. Apply to Production + Preview + Development.
 6. Trigger a deploy (push to `main` or click *Redeploy* on the latest commit).
 7. Visit the production alias (e.g. `portal-arxys.vercel.app`). It's protected by Vercel SSO; auth with your Vercel account, then the Next.js default landing page should render.
+8. **Link this working copy to the `portal` project so the CLI is unambiguous:**
+
+   ```bash
+   vercel link --yes --project=portal
+   ```
+
+   This writes `.vercel/project.json` (already gitignored). Without it, `vercel deploy` from this folder will prompt to pick a project — and if you (or another tool, including another Claude Code session) accept the first option, an unrelated codebase can land on `portal-arxys.vercel.app` as a manual production deploy. See the recovery procedure in §13.
+9. **Keep a separate placeholder project per sibling app** (e.g. `forecast`, `arxys-com`). When unrelated repos on the same Mac run `vercel deploy`, the CLI's "link to existing project?" prompt should have a clear correct destination. With only one project in the org, the prompt's only suggestion is `portal`, which is exactly how the Portal got clobbered once. Create empty projects in the Vercel dashboard — no GitHub connection needed.
 
 ## 11. GitHub SSH multi-account setup
 
@@ -193,3 +201,13 @@ Always use the alias in remote URLs: `git@github.com-arxys:Arxys-Projects/Portal
 - **`source .env.local` in bash fails on `SMTP_PASS`**: Gmail app passwords contain spaces. Use `node --env-file=.env.local` instead of sourcing.
 - **`supabase login` errors with "Could not create the CLI sign-in session"**: use a PAT — `supabase login --token sbp_...`. Browser flow is unreliable.
 - **`supabase db dump` complains about Docker**: install Docker Desktop, or skip — `db dump` is for local-dev workflows. Cloud verification is `db push` + the test-rls script.
+- **`portal-arxys.vercel.app` is serving a different app** (e.g. shows "Arxys Forecast" or any non-Portal content): another `vercel deploy` was promoted to production from the wrong folder — typically a sibling Claude Code session that ran `vercel deploy` via Terminal.app, hit the "link to existing project?" prompt, and accepted `portal` because no other project existed in the org. Recovery:
+  1. Confirm: `vercel inspect https://portal-arxys.vercel.app` — the `target=production` deployment will be from an unexpected commit/source.
+  2. Force the GitHub webhook to redeploy `main`:
+     ```bash
+     git commit --allow-empty -m "chore: redeploy"
+     git push
+     ```
+     Vercel auto-promotes the resulting build because `main` is the Production Branch.
+  3. Verify: `vercel inspect https://portal-arxys.vercel.app` shows the new deployment Ready and `curl -sI https://portal-arxys.vercel.app/login` returns the Portal.
+  4. Prevention: do §10 step 8 (`vercel link`) in this folder and §10 step 9 (create sibling Vercel projects) so the next stray `vercel deploy` has somewhere else to land.
