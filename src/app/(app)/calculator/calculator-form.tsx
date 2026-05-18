@@ -168,7 +168,7 @@ export function CalculatorForm() {
                 onChange={(e) =>
                   updateGroup(group.id, { name: e.target.value })
                 }
-                className="w-full max-w-xs rounded border border-transparent px-1 text-sm font-medium text-neutral-900 hover:border-neutral-300 focus:border-blue-500 focus:outline-none"
+                className="w-full max-w-xs rounded border border-transparent bg-white px-1 text-sm font-medium text-neutral-900 hover:border-neutral-300 focus:border-blue-500 focus:outline-none"
               />
               <div className="flex gap-1 text-xs text-neutral-500">
                 <button
@@ -340,7 +340,7 @@ export function CalculatorForm() {
 }
 
 const inputClass =
-  "block w-full rounded border border-neutral-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500";
+  "block w-full rounded border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 placeholder:text-neutral-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500";
 
 function clampPct(n: number): number {
   if (!Number.isFinite(n)) return 0;
