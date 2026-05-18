@@ -109,7 +109,32 @@ Expected output ends with `All authenticated RLS tests passed.` and zero failure
 
 If you don't have `tsx` installed yet: `npm install --save-dev tsx`.
 
-## 8. Vercel: connect & deploy
+## 8. Supabase: configure auth URLs
+
+In the dashboard at **Authentication → URL Configuration**:
+
+- **Site URL**: `https://portal-arxys.vercel.app` (swap to `https://portal.arxys.com` once the custom domain is wired)
+- **Redirect URLs** (Allow List):
+  - `http://localhost:3000/**`
+  - `https://portal-arxys.vercel.app/**`
+  - `https://*.vercel.app/**` (covers preview deployments)
+
+These control which URLs Supabase will redirect to from email links (invites, password resets). Save before bootstrapping any users — otherwise the email links will refuse to land on the portal.
+
+## 9. Create the first admin user
+
+```bash
+node --env-file=.env.local --import tsx scripts/bootstrap-admin.ts \
+  --email you@arxys.com --name "Your Name" --company Arxys
+```
+
+Prints a generated password once. Save it to your password manager **immediately** — the script does not store it. The user is created with `email_confirm: true` (no verification email needed) and `partners.role = 'admin'`.
+
+Idempotent: re-running for the same email upserts the partner row without recreating the auth user.
+
+Sign in at `http://localhost:3000/login` (dev) or `https://portal-arxys.vercel.app/login` (prod). Land at `/dashboard`.
+
+## 10. Vercel: connect & deploy
 
 1. In the Vercel dashboard, import the GitHub repo `Arxys-Projects/Portal`.
 2. **Settings → General → Framework Preset** = **Next.js** (essential — without this, App Router routes won't be served, you'll see a 404 on `/`).
@@ -119,7 +144,7 @@ If you don't have `tsx` installed yet: `npm install --save-dev tsx`.
 6. Trigger a deploy (push to `main` or click *Redeploy* on the latest commit).
 7. Visit the production alias (e.g. `portal-arxys.vercel.app`). It's protected by Vercel SSO; auth with your Vercel account, then the Next.js default landing page should render.
 
-## 9. GitHub SSH multi-account setup
+## 11. GitHub SSH multi-account setup
 
 If your default GitHub identity is for a different organization and you need a dedicated key for the `Arxys-Projects` org, do this once:
 
@@ -145,7 +170,7 @@ Add `~/.ssh/id_ed25519_arxys.pub` to your Arxys-Projects GitHub account at `http
 
 Always use the alias in remote URLs: `git@github.com-arxys:Arxys-Projects/Portal.git` (not plain `github.com:`). See [`decisions/0007-ssh-multi-account-github.md`](./decisions/0007-ssh-multi-account-github.md).
 
-## 10. Day-to-day commands
+## 12. Day-to-day commands
 
 | Task | Command |
 |---|---|
@@ -154,12 +179,13 @@ Always use the alias in remote URLs: `git@github.com-arxys:Arxys-Projects/Portal
 | Lint | `npm run lint` |
 | Direct TypeScript check (faster than `next build`'s in-process check) | `npx tsc --noEmit` |
 | Run RLS regression suite | `node --env-file=.env.local --import tsx scripts/test-rls.ts` |
+| Create a new admin user | `node --env-file=.env.local --import tsx scripts/bootstrap-admin.ts --email ... --name ... --company ...` |
 | New migration | `supabase migration new <name>` (creates a timestamped empty SQL file) |
 | Apply pending migrations | `SUPABASE_DB_PASSWORD='...' supabase db push` |
 | Read cloud schema | curl PostgREST: `curl -H "apikey: $SERVICE_KEY" $SUPABASE_URL/rest/v1/` |
 | Patch cloud auth config | `curl -X PATCH -H "Authorization: Bearer $PAT" -d '{...}' https://api.supabase.com/v1/projects/<ref>/config/auth` |
 
-## 11. Troubleshooting
+## 13. Troubleshooting
 
 - **`next build` fails with `Cannot find module 'next/types.js'`**: stale `node_modules`. `rm -rf node_modules .next && npm ci && npm run build`.
 - **`git push` returns 403**: macOS Keychain has a cached identity from a different GitHub account. Check `git remote -v` uses `github.com-arxys:...`, not `github.com:...`.
