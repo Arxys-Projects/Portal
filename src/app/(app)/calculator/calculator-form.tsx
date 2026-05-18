@@ -10,9 +10,20 @@ import {
 import {
   computeGroup,
   formatBandwidthMbps,
+  formatNumber,
   formatStorageGb,
   type GroupInput,
 } from "@/lib/calculator/compute";
+import {
+  BarsIcon,
+  CameraIcon,
+  DuplicateIcon,
+  InfoIcon,
+  PlusIcon,
+  ResetIcon,
+  StorageIcon,
+  TrashIcon,
+} from "./icons";
 
 type Group = {
   id: string;
@@ -40,6 +51,15 @@ function newGroup(seqNumber: number): Group {
   };
 }
 
+function Tooltip({ text, side = "l" }: { text: string; side?: "l" | "r" }) {
+  return (
+    <span className={"ax-tip" + (side === "r" ? " ax-tip-r" : "")}>
+      <InfoIcon />
+      <span className="ax-tt">{text}</span>
+    </span>
+  );
+}
+
 export function CalculatorForm() {
   const [groups, setGroups] = useState<Group[]>([newGroup(1)]);
   const [retentionDays, setRetentionDays] = useState(30);
@@ -65,6 +85,12 @@ export function CalculatorForm() {
     });
   const updateGroup = (id: string, patch: Partial<Group>) =>
     setGroups((p) => p.map((g) => (g.id === id ? { ...g, ...patch } : g)));
+  const reset = () => {
+    setGroups([newGroup(1)]);
+    setRetentionDays(30);
+    setVms("");
+    setProjectName("");
+  };
 
   const groupResults = useMemo(
     () =>
@@ -93,134 +119,145 @@ export function CalculatorForm() {
       0,
     );
     const cameras = groupResults.reduce((s, r) => s + r.group.cameras, 0);
-    return { bandwidthMbps, storageGb, cameras };
-  }, [groupResults]);
+    const dailyGb = storageGb / Math.max(retentionDays, 1);
+    return { bandwidthMbps, storageGb, cameras, dailyGb };
+  }, [groupResults, retentionDays]);
 
   return (
-    <div className="space-y-6">
-      {/* Project metadata */}
-      <section className="rounded-lg border border-neutral-200 bg-white p-5">
-        <h2 className="mb-4 text-sm font-semibold text-neutral-900">
-          Project details
-        </h2>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <Field label="Project name">
-            <input
-              type="text"
-              value={projectName}
-              onChange={(e) => setProjectName(e.target.value)}
-              placeholder="Customer site"
-              className={inputClass}
-            />
-          </Field>
-          <Field label="Retention (days)">
+    <div id="arxys-calc-root">
+      {/* Summary cards */}
+      <div className="ax-sum">
+        <div className="ax-s bl">
+          <div className="ax-sl">Total Cameras</div>
+          <div className="ax-sv bl">{totals.cameras}</div>
+        </div>
+        <div className="ax-s cy">
+          <div className="ax-sl">Total Bandwidth</div>
+          <div className="ax-sv cy">{formatBandwidthMbps(totals.bandwidthMbps)}</div>
+        </div>
+        <div className="ax-s gn">
+          <div className="ax-sl">Total Storage</div>
+          <div className="ax-sv gn">{formatStorageGb(totals.storageGb)}</div>
+          <div style={{ fontSize: 11, color: "var(--td)", marginTop: 4 }}>
+            (includes 20% overhead)
+          </div>
+        </div>
+      </div>
+
+      {/* Global settings */}
+      <div className="ax-gl">
+        <div className="ax-f" style={{ minWidth: 160 }}>
+          <label className="ax-fl">Project Name</label>
+          <input
+            type="text"
+            maxLength={50}
+            placeholder="e.g. Main Campus"
+            value={projectName}
+            onChange={(e) => setProjectName(e.target.value)}
+          />
+        </div>
+        <div className="ax-f" style={{ minWidth: 160 }}>
+          <label className="ax-fl">Which VMS?</label>
+          <select value={vms} onChange={(e) => setVms(e.target.value)}>
+            <option value="">— Select —</option>
+            {VMS_OPTIONS.map((v) => (
+              <option key={v} value={v}>
+                {v}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="ax-f" style={{ minWidth: 130 }}>
+          <label className="ax-fl">
+            Retention
+            <Tooltip text="Days of footage to store." />
+          </label>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <input
               type="number"
               min={1}
-              max={3650}
+              max={730}
               value={retentionDays}
               onChange={(e) =>
-                setRetentionDays(Math.max(1, parseInt(e.target.value || "0", 10)))
+                setRetentionDays(
+                  Math.max(1, Math.min(730, parseInt(e.target.value || "1", 10))),
+                )
               }
-              className={inputClass}
+              style={{ width: 80 }}
             />
-          </Field>
-          <Field label="VMS">
-            <select
-              value={vms}
-              onChange={(e) => setVms(e.target.value)}
-              className={inputClass}
-            >
-              <option value="">— Select —</option>
-              {VMS_OPTIONS.map((v) => (
-                <option key={v} value={v}>
-                  {v}
-                </option>
-              ))}
-            </select>
-          </Field>
+            <span style={{ color: "var(--td)", fontSize: 13 }}>days</span>
+          </div>
         </div>
-      </section>
-
-      {/* Camera groups */}
-      <section className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-neutral-900">
-            Camera groups
-          </h2>
+        <div style={{ marginLeft: "auto" }}>
           <button
             type="button"
-            onClick={addGroup}
-            className="rounded border border-blue-600 px-3 py-1.5 text-sm font-medium text-blue-600 hover:bg-blue-50"
+            className="ax-ib"
+            onClick={reset}
+            style={{ gap: 6 }}
           >
-            + Add group
+            <ResetIcon /> Reset
           </button>
         </div>
-        {groupResults.map(({ group, computed }, idx) => (
-          <article
-            key={group.id}
-            className="rounded-lg border border-neutral-200 bg-white p-5"
-          >
-            <header className="mb-4 flex items-center justify-between">
-              <input
-                type="text"
-                value={group.name}
-                onChange={(e) =>
-                  updateGroup(group.id, { name: e.target.value })
-                }
-                className="w-full max-w-xs rounded border border-transparent bg-white px-1 text-sm font-medium text-neutral-900 hover:border-neutral-300 focus:border-blue-500 focus:outline-none"
-              />
-              <div className="flex gap-1 text-xs text-neutral-500">
+      </div>
+
+      {/* Camera groups */}
+      <div>
+        {groupResults.map(({ group, computed }) => (
+          <div key={group.id} className="ax-cam">
+            <div className="ax-ch">
+              <div className="ax-chl">
+                <CameraIcon />
+                <input
+                  className="ax-cn"
+                  value={group.name}
+                  onChange={(e) =>
+                    updateGroup(group.id, { name: e.target.value })
+                  }
+                  placeholder="Enter group name..."
+                />
+              </div>
+              <div className="ax-ca">
                 <button
                   type="button"
+                  className="ax-ib"
+                  title="Copy this group"
                   onClick={() => duplicateGroup(group.id)}
-                  className="rounded px-2 py-1 hover:bg-neutral-100"
-                  title="Duplicate"
                 >
-                  Duplicate
+                  <DuplicateIcon /> Copy
                 </button>
-                {groups.length > 1 ? (
-                  <button
-                    type="button"
-                    onClick={() => removeGroup(group.id)}
-                    className="rounded px-2 py-1 text-red-600 hover:bg-red-50"
-                    title="Remove"
-                  >
-                    Remove
-                  </button>
-                ) : null}
+                <button
+                  type="button"
+                  className="ax-ib dng"
+                  title="Delete this group"
+                  onClick={() => removeGroup(group.id)}
+                  disabled={groups.length <= 1}
+                >
+                  <TrashIcon /> Delete
+                </button>
               </div>
-            </header>
+            </div>
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <Field label="Cameras">
+            <div className="ax-cb">
+              <div className="ax-f wc">
+                <label className="ax-fl">Video Streams</label>
                 <input
                   type="number"
                   min={1}
+                  max={9999}
                   value={group.cameras}
                   onChange={(e) =>
                     updateGroup(group.id, {
-                      cameras: Math.max(1, parseInt(e.target.value || "0", 10)),
+                      cameras: Math.max(
+                        1,
+                        Math.min(9999, parseInt(e.target.value || "1", 10)),
+                      ),
                     })
                   }
-                  className={inputClass}
+                  style={{ textAlign: "center" }}
                 />
-              </Field>
-              <Field label="FPS">
-                <input
-                  type="number"
-                  min={1}
-                  max={60}
-                  value={group.fps}
-                  onChange={(e) =>
-                    updateGroup(group.id, {
-                      fps: Math.max(1, Math.min(60, parseInt(e.target.value || "0", 10))),
-                    })
-                  }
-                  className={inputClass}
-                />
-              </Field>
-              <Field label="Resolution">
+              </div>
+              <div className="ax-f wr">
+                <label className="ax-fl">Resolution</label>
                 <select
                   value={group.resolutionIdx}
                   onChange={(e) =>
@@ -228,7 +265,6 @@ export function CalculatorForm() {
                       resolutionIdx: parseInt(e.target.value, 10),
                     })
                   }
-                  className={inputClass}
                 >
                   {RESOLUTIONS.map((r, i) => (
                     <option key={r.label} value={i}>
@@ -236,14 +272,19 @@ export function CalculatorForm() {
                     </option>
                   ))}
                 </select>
-              </Field>
-              <Field label="Codec">
+              </div>
+              <div className="ax-f wk">
+                <label className="ax-fl">
+                  Codec
+                  <Tooltip text={CODECS[group.codecIdx].note} />
+                </label>
                 <select
                   value={group.codecIdx}
                   onChange={(e) =>
-                    updateGroup(group.id, { codecIdx: parseInt(e.target.value, 10) })
+                    updateGroup(group.id, {
+                      codecIdx: parseInt(e.target.value, 10),
+                    })
                   }
-                  className={inputClass}
                 >
                   {CODECS.map((c, i) => (
                     <option key={c.value} value={i}>
@@ -251,8 +292,27 @@ export function CalculatorForm() {
                     </option>
                   ))}
                 </select>
-              </Field>
-              <Field label="Scene complexity">
+              </div>
+              <div className="ax-f wf">
+                <label className="ax-fl">FPS</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={60}
+                  value={group.fps}
+                  onChange={(e) =>
+                    updateGroup(group.id, {
+                      fps: Math.max(
+                        1,
+                        Math.min(60, parseInt(e.target.value || "1", 10)),
+                      ),
+                    })
+                  }
+                  style={{ textAlign: "center" }}
+                />
+              </div>
+              <div className="ax-f wx">
+                <label className="ax-fl">Complexity</label>
                 <select
                   value={group.complexityIdx}
                   onChange={(e) =>
@@ -260,7 +320,6 @@ export function CalculatorForm() {
                       complexityIdx: parseInt(e.target.value, 10),
                     })
                   }
-                  className={inputClass}
                 >
                   {COMPLEXITIES.map((c, i) => (
                     <option key={c.label} value={i}>
@@ -268,131 +327,202 @@ export function CalculatorForm() {
                     </option>
                   ))}
                 </select>
-              </Field>
-              <Field label="Recording (% of day)">
-                <input
-                  type="number"
-                  min={1}
-                  max={100}
-                  value={group.recordingPercent}
-                  onChange={(e) =>
-                    updateGroup(group.id, {
-                      recordingPercent: clampPct(parseInt(e.target.value || "0", 10)),
-                    })
-                  }
-                  className={inputClass}
-                />
-              </Field>
-              <Field label="Motion (% activity)">
-                <input
-                  type="number"
-                  min={0}
-                  max={100}
-                  value={group.motionPercent}
-                  onChange={(e) =>
-                    updateGroup(group.id, {
-                      motionPercent: clampPct(parseInt(e.target.value || "0", 10)),
-                    })
-                  }
-                  className={inputClass}
-                />
-              </Field>
-              <Field label="Per-camera bitrate">
-                <div className="px-3 py-2 text-sm text-neutral-700">
-                  {formatBandwidthMbps(computed.bitrateMbps)}
+              </div>
+              <div className="ax-f wh">
+                <label className="ax-fl">
+                  Hrs/Day
+                  <Tooltip text="Hours per day cameras record." side="r" />
+                </label>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <input
+                    type="number"
+                    min={1}
+                    max={24}
+                    value={Math.round((group.recordingPercent / 100) * 24)}
+                    onChange={(e) => {
+                      const h = Math.max(
+                        1,
+                        Math.min(24, parseInt(e.target.value || "1", 10)),
+                      );
+                      updateGroup(group.id, {
+                        recordingPercent: Math.round((h / 24) * 100),
+                      });
+                    }}
+                    style={{ width: 56, textAlign: "center" }}
+                  />
+                  <span style={{ fontSize: 12, color: "var(--td)" }}>hrs</span>
                 </div>
-              </Field>
+              </div>
+              <div className="ax-f wm">
+                <label className="ax-fl">
+                  Motion
+                  <Tooltip text="Scene motion level" side="r" />
+                </label>
+                <div className="ax-sr">
+                  <input
+                    type="range"
+                    min={1}
+                    max={100}
+                    value={group.motionPercent}
+                    onChange={(e) =>
+                      updateGroup(group.id, {
+                        motionPercent: parseInt(e.target.value, 10),
+                      })
+                    }
+                    style={{ maxWidth: 80 }}
+                  />
+                  <span className="ax-svl">{group.motionPercent}%</span>
+                </div>
+              </div>
             </div>
 
-            <div className="mt-4 grid grid-cols-2 gap-3 border-t border-neutral-100 pt-4 text-sm sm:grid-cols-3">
-              <Metric label="Group bandwidth" value={formatBandwidthMbps(computed.bandwidthMbps)} />
-              <Metric label="Group storage" value={formatStorageGb(computed.storageGb)} />
-              <Metric
-                label="Group raw storage"
-                value={formatStorageGb(computed.rawStorageGb)}
-                hint="before overhead"
-              />
+            <div className="ax-cr">
+              <div className="ax-ci">
+                <span className="ax-cil">Bitrate:</span>
+                <span className="ax-civ" style={{ color: "var(--pu)" }}>
+                  {computed.bitrateMbps >= 1
+                    ? `${formatNumber(computed.bitrateMbps)} Mbps`
+                    : `${Math.round(computed.bitrateMbps * 1000)} Kbps`}
+                </span>
+              </div>
+              <div className="ax-ci">
+                <span className="ax-cil">Bandwidth:</span>
+                <span className="ax-civ" style={{ color: "var(--cy)" }}>
+                  {formatBandwidthMbps(computed.bandwidthMbps)}
+                </span>
+              </div>
+              <div className="ax-ci">
+                <span className="ax-cil">Storage:</span>
+                <span className="ax-civ" style={{ color: "var(--gn)" }}>
+                  {formatStorageGb(computed.storageGb)}
+                </span>
+              </div>
+              <div className="ax-ci">
+                <span className="ax-cil">Daily:</span>
+                <span className="ax-civ" style={{ color: "var(--am)" }}>
+                  {formatStorageGb(computed.storageGb / Math.max(retentionDays, 1))}/day
+                </span>
+              </div>
             </div>
-          </article>
+          </div>
         ))}
-      </section>
+        <button type="button" className="ax-add" onClick={addGroup}>
+          <PlusIcon /> Add Camera Group
+        </button>
+      </div>
 
-      {/* Totals */}
-      <section className="rounded-lg border-2 border-blue-200 bg-blue-50 p-5">
-        <h2 className="mb-4 text-sm font-semibold text-blue-900">Project totals</h2>
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-          <Metric label="Total cameras" value={String(totals.cameras)} accent />
-          <Metric
-            label="Total bandwidth"
-            value={formatBandwidthMbps(totals.bandwidthMbps)}
-            accent
-          />
-          <Metric
-            label="Total storage"
-            value={formatStorageGb(totals.storageGb)}
-            hint={`over ${retentionDays} days`}
-            accent
-          />
+      {/* Results table */}
+      <div className="ax-tw">
+        <table className="ax-tbl">
+          <thead>
+            <tr>
+              <th>Camera Group</th>
+              <th>Qty</th>
+              <th>Resolution</th>
+              <th>Codec</th>
+              <th>FPS</th>
+              <th>Rec</th>
+              <th>Bandwidth</th>
+              <th>Storage</th>
+              <th>Daily</th>
+            </tr>
+          </thead>
+          <tbody>
+            {groupResults.map(({ group, computed }) => (
+              <tr key={group.id}>
+                <td style={{ color: "var(--tp)", fontWeight: 600 }}>
+                  {group.name}
+                </td>
+                <td className="m">{group.cameras}</td>
+                <td>{RESOLUTIONS[group.resolutionIdx].label}</td>
+                <td>{CODECS[group.codecIdx].label}</td>
+                <td className="m">{group.fps}</td>
+                <td className="m">{group.recordingPercent}%</td>
+                <td className="m" style={{ color: "var(--cy)" }}>
+                  {formatBandwidthMbps(computed.bandwidthMbps)}
+                </td>
+                <td className="m" style={{ color: "var(--gn)" }}>
+                  {formatStorageGb(computed.storageGb)}
+                </td>
+                <td className="m" style={{ color: "var(--am)" }}>
+                  {formatStorageGb(computed.storageGb / Math.max(retentionDays, 1))}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr>
+              <td>Total</td>
+              <td className="m">{totals.cameras}</td>
+              <td colSpan={4}></td>
+              <td className="m" style={{ color: "var(--cy)" }}>
+                {formatBandwidthMbps(totals.bandwidthMbps)}
+              </td>
+              <td className="m" style={{ color: "var(--gn)" }}>
+                {formatStorageGb(totals.storageGb)}
+              </td>
+              <td className="m" style={{ color: "var(--am)" }}>
+                {formatStorageGb(totals.dailyGb)}
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      {/* Bandwidth bar chart */}
+      <div className="ax-cht">
+        <div className="ax-cht-t">
+          <BarsIcon /> Bandwidth by Group
         </div>
-      </section>
-    </div>
-  );
-}
-
-const inputClass =
-  "block w-full rounded border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 placeholder:text-neutral-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500";
-
-function clampPct(n: number): number {
-  if (!Number.isFinite(n)) return 0;
-  return Math.max(0, Math.min(100, n));
-}
-
-function Field({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className="block">
-      <span className="mb-1 block text-xs font-medium text-neutral-600">{label}</span>
-      {children}
-    </label>
-  );
-}
-
-function Metric({
-  label,
-  value,
-  hint,
-  accent,
-}: {
-  label: string;
-  value: string;
-  hint?: string;
-  accent?: boolean;
-}) {
-  return (
-    <div>
-      <div
-        className={
-          "text-xs font-medium " + (accent ? "text-blue-700" : "text-neutral-500")
-        }
-      >
-        {label}
+        {groupResults.map(({ group, computed }) => {
+          const pct =
+            totals.bandwidthMbps > 0
+              ? (computed.bandwidthMbps / totals.bandwidthMbps) * 100
+              : 0;
+          return (
+            <div key={group.id} className="ax-br">
+              <div className="ax-bl">{group.name}</div>
+              <div className="ax-bt">
+                <div className="ax-bf bw" style={{ width: `${pct}%` }} />
+                <span className="ax-bpct">{pct.toFixed(0)}%</span>
+              </div>
+              <div className="ax-bv">
+                {formatBandwidthMbps(computed.bandwidthMbps)}
+              </div>
+            </div>
+          );
+        })}
       </div>
-      <div
-        className={
-          "text-lg font-semibold " +
-          (accent ? "text-blue-900" : "text-neutral-900")
-        }
-      >
-        {value}
+
+      {/* Storage bar chart */}
+      <div className="ax-cht">
+        <div className="ax-cht-t">
+          <StorageIcon /> Storage by Group
+        </div>
+        {groupResults.map(({ group, computed }) => {
+          const pct =
+            totals.storageGb > 0
+              ? (computed.storageGb / totals.storageGb) * 100
+              : 0;
+          return (
+            <div key={group.id} className="ax-br">
+              <div className="ax-bl">{group.name}</div>
+              <div className="ax-bt">
+                <div className="ax-bf st" style={{ width: `${pct}%` }} />
+                <span className="ax-bpct">{pct.toFixed(0)}%</span>
+              </div>
+              <div className="ax-bv">
+                {formatStorageGb(computed.storageGb)}
+              </div>
+            </div>
+          );
+        })}
       </div>
-      {hint ? (
-        <div className="text-xs text-neutral-500">{hint}</div>
-      ) : null}
+
+      <div className="ax-fn">
+        <strong>Note:</strong> Storage includes ~20% overhead for VMS best practices.
+        Server recommendation and save-to-history will land in Step 5.
+      </div>
     </div>
   );
 }
