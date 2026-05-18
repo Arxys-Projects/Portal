@@ -4,6 +4,37 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-05-18 — Step 4: Calculator UI
+
+### Work done
+
+- Extracted the lookup tables from `reference/Arxys-React-calculator.clean.html` into `src/lib/calculator/tables.ts`:
+  - 26 resolutions (QVGA through 29MP), exact widths/heights preserved
+  - 3 codecs (H.265, H.264, H.264-Smart) with per-codec bitrate factors
+  - 3 complexity tiers (Low office / Med retail / High outdoor)
+  - 6 VMS options
+  - `STORAGE_OVERHEAD = 1.20` as a named constant
+- Ported the four computation functions into `src/lib/calculator/compute.ts` as named, typed, pure functions: `estimateFrameKb`, `applyMotionAdjustment`, `computeBandwidthMbps`, `computeRawStorageGb`. Plus a `computeGroup` aggregator and three display formatters (`formatNumber`, `formatStorageGb`, `formatBandwidthMbps`).
+- Built the calculator page at `/calculator`:
+  - `page.tsx` is a Server Component shell.
+  - `calculator-form.tsx` is the Client Component holding all the state. Supports add / duplicate / remove on camera groups (legacy parity).
+  - Totals roll up live across groups as the user edits.
+  - Project-level fields: project name, retention days (1–3650), VMS dropdown.
+  - Per-group fields: cameras, fps, resolution, codec, scene complexity, recording %, motion %.
+  - Each group shows per-camera bitrate, group bandwidth, group storage (post-overhead), and raw group storage (for transparency).
+- Updated `/dashboard` to be a two-card grid: a live "Calculator" card linking to `/calculator`, and a stub "Submission history" card flagged "Coming in Step 5."
+
+### Detours & fixes
+
+- **The legacy calculator's per-group breakdown doesn't fit the current `submissions` schema.** The Step 2 migration designed `submissions` as a single-row aggregate (single `resolution_code`, single `codec`, etc.). Groups need to be persisted as child rows or as JSON. Decided to defer the schema change to Step 5 (when save lands anyway) and recorded the eventual choice in [`decisions/0011`](./decisions/0011-camera-groups-schema-tbd.md): a `submission_groups` child table. Step 4 has no save, so this isn't blocking.
+- **Motion adjustment applied to all three codecs**, not just `smart`. The legacy code does `["h264","h265","smart"].includes(cod)` to gate the adjustment, but every codec in `COD` matches that condition, so the gate is a no-op. Faithful port keeps the multiplier on all codecs. If we ever discover a codec that genuinely shouldn't motion-scale, we'll move the multiplier into a per-codec table.
+
+### Decisions captured
+
+- [`0011-camera-groups-schema-tbd.md`](./decisions/0011-camera-groups-schema-tbd.md) — defer to Step 5, but committing to `submission_groups` child table
+
+---
+
 ## 2026-05-15 — Step 3: Authentication (invite-only)
 
 ### Work done
