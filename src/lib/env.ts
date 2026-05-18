@@ -1,3 +1,12 @@
+// Centralized environment-variable accessor.
+//
+// Validation is *lazy* — each variable is checked the first time something
+// reads it, not at module load. This keeps unrelated build-time analysis
+// (e.g. Next.js collecting page data for /dashboard) from failing when a
+// variable owned by a different subsystem (e.g. Pipedrive, SMTP) hasn't
+// been provisioned yet. Code that actually needs a variable still fails
+// loudly and immediately when it tries to use it.
+
 const REQUIRED_VARS = [
   "NEXT_PUBLIC_SUPABASE_URL",
   "NEXT_PUBLIC_SUPABASE_ANON_KEY",
@@ -12,18 +21,26 @@ const REQUIRED_VARS = [
 ] as const;
 
 type RequiredVar = (typeof REQUIRED_VARS)[number];
-type Env = { readonly [K in RequiredVar]: string };
+export type Env = { readonly [K in RequiredVar]: string };
 
-function loadEnv(): Env {
-  const partial: Partial<Record<RequiredVar, string>> = {};
-  for (const name of REQUIRED_VARS) {
-    const value = process.env[name];
-    if (!value || value.length === 0) {
-      throw new Error(`Missing required environment variable: ${name}`);
-    }
-    partial[name] = value;
+function read(name: RequiredVar): string {
+  const value = process.env[name];
+  if (!value || value.length === 0) {
+    throw new Error(`Missing required environment variable: ${name}`);
   }
-  return partial as Env;
+  return value;
 }
 
-export const env: Env = loadEnv();
+function buildEnv(): Env {
+  const obj = {} as Record<RequiredVar, string>;
+  for (const name of REQUIRED_VARS) {
+    Object.defineProperty(obj, name, {
+      enumerable: true,
+      configurable: false,
+      get: () => read(name),
+    });
+  }
+  return obj as Env;
+}
+
+export const env: Env = buildEnv();
