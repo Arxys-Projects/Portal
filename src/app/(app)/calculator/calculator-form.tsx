@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useActionState, useMemo, useState } from "react";
 import {
   CODECS,
   COMPLEXITIES,
@@ -14,6 +14,7 @@ import {
   formatStorageGb,
   type GroupInput,
 } from "@/lib/calculator/compute";
+import { submitCalculation, type SubmissionState } from "./actions";
 import {
   BarsIcon,
   CameraIcon,
@@ -24,6 +25,8 @@ import {
   StorageIcon,
   TrashIcon,
 } from "./icons";
+
+const INITIAL_STATE: SubmissionState = { status: "idle" };
 
 type Group = {
   id: string;
@@ -65,6 +68,10 @@ export function CalculatorForm() {
   const [retentionDays, setRetentionDays] = useState(30);
   const [vms, setVms] = useState<string>("");
   const [projectName, setProjectName] = useState("");
+  const [submitState, submitAction, isSubmitting] = useActionState<SubmissionState, unknown>(
+    submitCalculation,
+    INITIAL_STATE,
+  );
 
   const addGroup = () =>
     setGroups((p) => [...p, newGroup(p.length + 1)]);
@@ -521,7 +528,91 @@ export function CalculatorForm() {
 
       <div className="ax-fn">
         <strong>Note:</strong> Storage includes ~20% overhead for VMS best practices.
-        Server recommendation and save-to-history will land in Step 5.
+      </div>
+
+      <div className="ax-save">
+        <button
+          type="button"
+          className="ax-save-btn"
+          disabled={isSubmitting || totals.cameras <= 0}
+          onClick={() =>
+            submitAction({
+              projectName: projectName.trim() || null,
+              vms: vms || null,
+              retentionDays,
+              groups: groups.map((g) => ({
+                name: g.name,
+                cameras: g.cameras,
+                resolutionIdx: g.resolutionIdx,
+                codecIdx: g.codecIdx,
+                complexityIdx: g.complexityIdx,
+                fps: g.fps,
+                recordingPercent: g.recordingPercent,
+                motionPercent: g.motionPercent,
+              })),
+            })
+          }
+        >
+          {isSubmitting ? "Saving…" : "Save & request quote"}
+        </button>
+        <span className="ax-save-hint">
+          We&apos;ll save this calculation and notify Arxys sales.
+        </span>
+      </div>
+
+      {submitState.status === "error" && (
+        <div className="ax-rec-err">{submitState.error}</div>
+      )}
+
+      {submitState.status === "ok" && (
+        <RecommendationPanel state={submitState} />
+      )}
+    </div>
+  );
+}
+
+function RecommendationPanel({
+  state,
+}: {
+  state: Extract<SubmissionState, { status: "ok" }>;
+}) {
+  const { recommendation } = state;
+  const { winner } = recommendation;
+  return (
+    <div className="ax-rec">
+      <div className="ax-rec-h">Recommended configuration</div>
+      <div className="ax-rec-w">
+        <span className="ax-rec-units">{winner.units} ×</span>
+        <span className="ax-rec-model">{winner.modelCode}</span>
+      </div>
+      <div className="ax-rec-cov">
+        <div>
+          <span className="ax-rec-l">Cameras covered</span>
+          <span className="ax-rec-v">
+            {winner.coveredCameras.toLocaleString()} (request {recommendation.totals.cameras.toLocaleString()})
+          </span>
+        </div>
+        <div>
+          <span className="ax-rec-l">Storage covered</span>
+          <span className="ax-rec-v">
+            {formatNumber(winner.coveredStorageTb)} TB (request {formatStorageGb(recommendation.totals.storageGb)})
+          </span>
+        </div>
+        <div>
+          <span className="ax-rec-l">Driving dimension</span>
+          <span className="ax-rec-v">{winner.driverDimension}</span>
+        </div>
+      </div>
+      {recommendation.warnings.length > 0 && (
+        <ul className="ax-rec-warn">
+          {recommendation.warnings.map((w, i) => (
+            <li key={i}>{w}</li>
+          ))}
+        </ul>
+      )}
+      <div className="ax-rec-conf">
+        Submitted to Arxys sales — they&apos;ll be in touch. Submission ID{" "}
+        <code>{state.submissionId}</code>.
       </div>
     </div>
   );

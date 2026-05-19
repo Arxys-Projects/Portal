@@ -1,6 +1,6 @@
 # 0006 — Bandwidth is a hard gate in the recommendation, not just an output
 
-- **Status**: Accepted
+- **Status**: Superseded by [0012](./0012-bandwidth-gate-resolution.md) on 2026-05-18
 - **Date**: 2026-05-14
 
 ## Context

@@ -185,6 +185,7 @@ Always use the alias in remote URLs: `git@github.com-arxys:Arxys-Projects/Portal
 | Start dev server | `npm run dev` |
 | Build + type-check | `npm run build` |
 | Lint | `npm run lint` |
+| Run unit tests (recommendation algorithm, etc.) | `npm test` |
 | Direct TypeScript check (faster than `next build`'s in-process check) | `npx tsc --noEmit` |
 | Run RLS regression suite | `node --env-file=.env.local --import tsx scripts/test-rls.ts` |
 | Create a new admin user | `node --env-file=.env.local --import tsx scripts/bootstrap-admin.ts --email ... --name ... --company ...` |
