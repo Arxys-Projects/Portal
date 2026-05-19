@@ -51,6 +51,40 @@ const CUSTOM_FIELD_KEYS: Record<string, string> = {
   arxys_portal_url: "key_url",
 };
 
+// Admin-curated calculator fields. Hashed keys match what `/v1/dealFields`
+// returns; the test asserts the deal payload uses these keys when populated.
+const CALC_FIELD_KEYS: Record<string, string> = {
+  "Project Name": "calc_project_name",
+  VMS: "calc_vms",
+  "Camera Streams": "calc_cams",
+  Recording: "calc_recording",
+  "Motion Activity Est. %": "calc_motion",
+  "Frame Rate": "calc_fps",
+  Resolution: "calc_resolution",
+  "Retention Days": "calc_retention",
+  CODEC: "calc_codec",
+  "Total Storage": "calc_storage",
+  "Scene Complexity": "calc_complexity",
+  "Recording hours": "calc_hours",
+  "Recommended Server": "calc_server",
+};
+
+function allDealFields(): Array<{ id: number; name: string; key: string; field_type: string }> {
+  const arxys = Object.entries(CUSTOM_FIELD_KEYS).map(([name, key], i) => ({
+    id: 1000 + i,
+    name,
+    key,
+    field_type: "varchar" as const,
+  }));
+  const calc = Object.entries(CALC_FIELD_KEYS).map(([name, key], i) => ({
+    id: 2000 + i,
+    name,
+    key,
+    field_type: "varchar" as const,
+  }));
+  return [...arxys, ...calc];
+}
+
 function defaultResponder(url: URL, method: string, body: unknown): unknown {
   const path = url.pathname;
   if (path === "/v1/pipelines" && method === "GET") {
@@ -69,12 +103,7 @@ function defaultResponder(url: URL, method: string, body: unknown): unknown {
     return [{ id: OWNER_ID, name: "Andy Newbom", email: "andy@arxys.com" }];
   }
   if (path === "/v1/dealFields" && method === "GET") {
-    return Object.entries(CUSTOM_FIELD_KEYS).map(([name, key], i) => ({
-      id: 1000 + i,
-      name,
-      key,
-      field_type: "varchar",
-    }));
+    return allDealFields();
   }
   if (path === "/v1/organizations/search" && method === "GET") {
     return { items: [{ item: { id: ORG_ID } }] };
@@ -111,7 +140,17 @@ function fixtureRecommendation(): RecommendationResult {
 const fixtureSubmission = {
   submissionId: "11111111-2222-3333-4444-555555555555",
   projectName: "Test Campus",
+  vms: "Milestone",
+  retentionDays: 30,
   totals: { cameras: 900, bandwidthMbps: 3240.5, storageGb: 1500000.789 },
+  primaryGroup: {
+    resolutionLabel: "4MP (2560×1440)",
+    codec: "h265",
+    complexity: "med",
+    fps: 15,
+    recordingPercent: 100,
+    motionPercent: 35,
+  },
 };
 
 const fixturePartner = {
@@ -276,6 +315,75 @@ describe("createDealFromSubmission", () => {
     assert.equal(personBody.name, "Jane Partner");
     assert.equal(personBody.email[0].value, "jane@acme.example.com");
     assert.equal(personBody.org_id, ORG_ID);
+  });
+
+  it("populates the admin-curated calculator fields with mapped option IDs and strings", async () => {
+    await createDealFromSubmission(
+      fixtureSubmission,
+      fixtureRecommendation(),
+      fixturePartner,
+    );
+    const dealCall = calls.find((c) => c.url.includes("/v1/deals") && c.method === "POST");
+    const body = dealCall!.body as Record<string, unknown>;
+
+    assert.equal(body[CALC_FIELD_KEYS["Project Name"]], "Test Campus");
+    // VMS "Milestone" → option id 14.
+    assert.equal(body[CALC_FIELD_KEYS.VMS], 14);
+    assert.equal(body[CALC_FIELD_KEYS["Camera Streams"]], 900);
+    // recordingPercent=100 → "24 Hour Continuous" (118).
+    assert.equal(body[CALC_FIELD_KEYS.Recording], 118);
+    assert.equal(body[CALC_FIELD_KEYS["Motion Activity Est. %"]], "35");
+    assert.equal(body[CALC_FIELD_KEYS["Frame Rate"]], "15");
+    assert.equal(body[CALC_FIELD_KEYS.Resolution], "4MP (2560×1440)");
+    assert.equal(body[CALC_FIELD_KEYS["Retention Days"]], "30");
+    // codec "h265" → option id 139.
+    assert.equal(body[CALC_FIELD_KEYS.CODEC], 139);
+    assert.equal(body[CALC_FIELD_KEYS["Total Storage"]], "1500.00 TB");
+    // complexity "med" → option id 288.
+    assert.equal(body[CALC_FIELD_KEYS["Scene Complexity"]], 288);
+    assert.equal(body[CALC_FIELD_KEYS["Recording hours"]], "24");
+    assert.equal(body[CALC_FIELD_KEYS["Recommended Server"]], "3 × V800");
+  });
+
+  it("flips Recording to 'On Motion' when recordingPercent < 100", async () => {
+    await createDealFromSubmission(
+      { ...fixtureSubmission, primaryGroup: { ...fixtureSubmission.primaryGroup, recordingPercent: 50 } },
+      fixtureRecommendation(),
+      fixturePartner,
+    );
+    const dealCall = calls.find((c) => c.url.includes("/v1/deals") && c.method === "POST");
+    const body = dealCall!.body as Record<string, unknown>;
+    assert.equal(body[CALC_FIELD_KEYS.Recording], 119);
+    // recordingPercent=50 → 12 hours.
+    assert.equal(body[CALC_FIELD_KEYS["Recording hours"]], "12");
+  });
+
+  it("skips calculator fields that aren't found in Pipedrive (rename tolerance)", async () => {
+    // Pipedrive returned only the arxys_* fields — no calculator fields exist.
+    responder = (url, method, body) => {
+      if (url.pathname === "/v1/dealFields" && method === "GET") {
+        return Object.entries(CUSTOM_FIELD_KEYS).map(([name, key], i) => ({
+          id: 1000 + i,
+          name,
+          key,
+          field_type: "varchar",
+        }));
+      }
+      return defaultResponder(url, method, body);
+    };
+    const result = await createDealFromSubmission(
+      fixtureSubmission,
+      fixtureRecommendation(),
+      fixturePartner,
+    );
+    assert.equal(result.dealId, DEAL_ID, "deal must still be created");
+    const dealCall = calls.find((c) => c.url.includes("/v1/deals") && c.method === "POST");
+    const body = dealCall!.body as Record<string, unknown>;
+    for (const key of Object.values(CALC_FIELD_KEYS)) {
+      assert.equal(body[key], undefined, `calc field key ${key} should not appear in payload`);
+    }
+    // arxys_* fields still set.
+    assert.equal(body[CUSTOM_FIELD_KEYS.arxys_total_cameras], 900);
   });
 
   it("creates any missing custom fields and uses the returned hashed key", async () => {

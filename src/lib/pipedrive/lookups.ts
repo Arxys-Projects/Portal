@@ -13,7 +13,8 @@ export const PIPELINE_NAME = "Project Pipeline";
 export const STAGE_NAME = "New Lead";
 export const OWNER_NAME = "Andy Newbom";
 
-// Custom field definitions, in display order.
+// `arxys_*` custom-field definitions, in display order. We own these — if
+// they're missing in Pipedrive we create them on first run.
 export const CUSTOM_FIELDS = [
   { name: "arxys_submission_id", field_type: "varchar" as const },
   { name: "arxys_total_cameras", field_type: "double" as const },
@@ -23,13 +24,36 @@ export const CUSTOM_FIELDS = [
   { name: "arxys_portal_url", field_type: "varchar" as const },
 ];
 
+// Pre-existing Pipedrive deal fields the calculator maps to. We do NOT create
+// these — they're admin-curated and have option taxonomies (set/enum) tied to
+// specific Pipedrive option IDs. If one is missing at lookup time we log and
+// skip it; the deal still saves with whatever fields we did resolve.
+export const CALCULATOR_FIELD_NAMES = [
+  "Project Name",
+  "VMS",
+  "Camera Streams",
+  "Recording",
+  "Motion Activity Est. %",
+  "Frame Rate",
+  "Resolution",
+  "Retention Days",
+  "CODEC",
+  "Total Storage",
+  "Scene Complexity",
+  "Recording hours",
+  "Recommended Server",
+] as const;
+
+export type CalculatorFieldName = (typeof CALCULATOR_FIELD_NAMES)[number];
 export type CustomFieldKeyMap = Record<string, string>;
 
 type Cache = {
   pipelineId?: Promise<number>;
   stageId?: Promise<number>;
   ownerId?: Promise<number>;
+  dealFields?: Promise<PdDealField[]>;
   customFieldKeys?: Promise<CustomFieldKeyMap>;
+  calculatorFieldKeys?: Promise<Partial<Record<CalculatorFieldName, string>>>;
 };
 
 const cache: Cache = {};
@@ -39,7 +63,9 @@ export function __resetLookupCache(): void {
   cache.pipelineId = undefined;
   cache.stageId = undefined;
   cache.ownerId = undefined;
+  cache.dealFields = undefined;
   cache.customFieldKeys = undefined;
+  cache.calculatorFieldKeys = undefined;
 }
 
 export function resolvePipelineId(): Promise<number> {
@@ -119,18 +145,31 @@ export function resolveOwnerId(): Promise<number> {
   return cache.ownerId;
 }
 
-// Reads the dealFields list, finds the six arxys_* fields by `name`, creates
-// any that are missing, and returns a map of friendly name → hashed Pipedrive
-// key. The hashed key is what /v1/deals expects on POST when writing a custom
-// value. Idempotent: subsequent calls return the cached map.
+// Shared single fetch of /dealFields so both `ensureCustomFields` (creates
+// missing arxys_* fields) and `resolveCalculatorFieldKeys` (read-only on the
+// admin-curated calculator fields) hit the API once.
+function getDealFieldsCached(): Promise<PdDealField[]> {
+  if (!cache.dealFields) {
+    cache.dealFields = pipedriveClient.getDealFields().catch((err) => {
+      cache.dealFields = undefined;
+      throw err;
+    });
+  }
+  return cache.dealFields;
+}
+
+// Reads dealFields, finds the six arxys_* fields by name, creates any that
+// are missing, and returns a map { friendly_name: hashed_key }. The hashed
+// key is what POST /deals expects when writing a custom value.
 export function ensureCustomFields(): Promise<CustomFieldKeyMap> {
   if (!cache.customFieldKeys) {
     cache.customFieldKeys = (async () => {
-      const existing = await pipedriveClient.getDealFields();
+      const existing = await getDealFieldsCached();
       const byName = new Map<string, PdDealField>();
       for (const f of existing) byName.set(f.name, f);
 
       const result: CustomFieldKeyMap = {};
+      let createdAny = false;
       for (const spec of CUSTOM_FIELDS) {
         const found = byName.get(spec.name);
         if (found) {
@@ -142,6 +181,13 @@ export function ensureCustomFields(): Promise<CustomFieldKeyMap> {
           field_type: spec.field_type,
         });
         result[spec.name] = created.key;
+        createdAny = true;
+      }
+      if (createdAny) {
+        // The dealFields list we cached is now stale relative to what we
+        // just created. Bust it so the next caller (e.g.
+        // resolveCalculatorFieldKeys in the same invocation) re-reads.
+        cache.dealFields = undefined;
       }
       return result;
     })().catch((err) => {
@@ -150,4 +196,38 @@ export function ensureCustomFields(): Promise<CustomFieldKeyMap> {
     });
   }
   return cache.customFieldKeys;
+}
+
+// Read-only lookup for the admin-curated calculator fields. Returns a partial
+// map — missing fields are logged but do not throw, so a Pipedrive admin
+// renaming one field doesn't block the deal create for everything else.
+export function resolveCalculatorFieldKeys(): Promise<
+  Partial<Record<CalculatorFieldName, string>>
+> {
+  if (!cache.calculatorFieldKeys) {
+    cache.calculatorFieldKeys = (async () => {
+      const existing = await getDealFieldsCached();
+      const byName = new Map<string, PdDealField>();
+      for (const f of existing) byName.set(f.name, f);
+
+      const result: Partial<Record<CalculatorFieldName, string>> = {};
+      const missing: string[] = [];
+      for (const name of CALCULATOR_FIELD_NAMES) {
+        const found = byName.get(name);
+        if (found) {
+          result[name] = found.key;
+        } else {
+          missing.push(name);
+        }
+      }
+      if (missing.length > 0) {
+        console.warn("pipedrive calculator field(s) not found by name", { missing });
+      }
+      return result;
+    })().catch((err) => {
+      cache.calculatorFieldKeys = undefined;
+      throw err;
+    });
+  }
+  return cache.calculatorFieldKeys;
 }

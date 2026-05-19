@@ -301,10 +301,20 @@ export async function submitCalculation(
       {
         submissionId: inserted.id,
         projectName: submissionRow.project_name,
+        vms: submissionRow.vms,
+        retentionDays: input.retentionDays,
         totals: {
           cameras: totals.cameras,
           bandwidthMbps: totals.bandwidthMbps,
           storageGb: totals.storageGb,
+        },
+        primaryGroup: {
+          resolutionLabel: RESOLUTIONS[primary.input.resolutionIdx].label,
+          codec: CODECS[primary.input.codecIdx].value,
+          complexity: COMPLEXITIES[primary.input.complexityIdx].tier,
+          fps: primary.input.fps,
+          recordingPercent: primary.input.recordingPercent,
+          motionPercent: primary.input.motionPercent,
         },
       },
       recommendation,

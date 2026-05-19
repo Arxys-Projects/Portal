@@ -4,6 +4,36 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-05-19 — Step 8 follow-up: populate admin-curated Pipedrive deal fields
+
+### Work done
+
+First production smoke test confirmed the Deal was created in the right pipeline/stage with the partner's Person + Org and the six `arxys_*` custom fields populated. But the admin-curated calculator fields that already existed in Pipedrive — `Project Name`, `VMS`, `Camera Streams`, `Recording`, `Motion Activity Est. %`, `Frame Rate`, `Resolution`, `Retention Days`, `CODEC`, `Total Storage`, `Scene Complexity`, `Recording hours`, `Recommended Server` — were all empty (screenshot from Andy). The Step 8 brief had locked the field set to only the six `arxys_*` fields, but the real Pipedrive tenant has a richer schema that the calculator inputs map onto directly. This entry adds that mapping.
+
+- **Hit `GET /v1/dealFields`** on the live Pipedrive tenant (via `curl` + the local `PIPEDRIVE_API_TOKEN`) to enumerate every existing deal field. Captured names, hashed keys, field types, and option IDs for the enum/set fields. The screenshot confirmed which ones the calculator should fill.
+- **`src/lib/pipedrive/lookups.ts` — added `resolveCalculatorFieldKeys()`** that reads `/dealFields` and returns a `Partial<Record<CalculatorFieldName, key>>`. Missing fields are logged via `console.warn` but do not throw — a Pipedrive admin renaming a single field shouldn't block the rest of the deal from saving. Refactored the dealFields fetch into a shared `getDealFieldsCached()` so this lookup and `ensureCustomFields()` share one HTTP call. `__resetLookupCache` extended to clear the new cache slots.
+- **`src/lib/pipedrive/deal.ts` — extended the input contract** with `vms`, `retentionDays`, and a `primaryGroup` object carrying `resolutionLabel`, `codec`, `complexity`, `fps`, `recordingPercent`, `motionPercent`. Added three option-ID maps (`VMS_OPTION_IDS`, `CODEC_OPTION_IDS`, `COMPLEXITY_OPTION_IDS`) keyed by the calculator's string values; values are the Pipedrive option IDs captured from the live tenant. Added the Recording-mode heuristic (recordingPercent ≥ 100 → "24 Hour Continuous" id 118, else "Record Only On Motion" id 119). Added the recording-hours derivation (`round(recordingPercent / 100 * 24)`). `Total Storage` formatted as `"X.XX TB"` (matches the calculator's storage_tb column and reads better than raw GB for humans). `Recommended Server` mirrors `arxys_recommended_models` (`"N × MODEL"`).
+- **`src/app/(app)/calculator/actions.ts`** — pass `vms`, `retentionDays`, and the primary-group characteristics (resolution label / codec / complexity tier / fps / recording% / motion%) from the existing `primary` variable into `createDealFromSubmission`.
+- **`src/lib/pipedrive/deal.test.ts`** — three new cases:
+  - Calculator fields are populated with mapped option IDs (`VMS=14` for Milestone, `Recording=118` for 100% continuous, `CODEC=139` for h265, `Scene Complexity=288` for medium) and string values (`Resolution="4MP (2560×1440)"`, `Total Storage="1500.00 TB"`, `Recording hours="24"`).
+  - `recordingPercent=50` flips `Recording` to `119` and `Recording hours` to `"12"`.
+  - When `/dealFields` doesn't expose the calculator field names (rename or admin tenant without them), the deal still saves with the arxys_* fields populated and the calculator-field keys absent from the payload.
+- Fixture data updated to include the new required `vms`, `retentionDays`, and `primaryGroup` inputs.
+- Test count: 19/19 (previously 16). Build + lint clean.
+
+### Detours & fixes
+
+- **The Step 8 brief was scoped too narrowly.** It locked the deal-field set to six `arxys_*` fields invented for the portal; the real Pipedrive tenant already had ~30 admin-curated fields that the calculator inputs map onto. Symptom: deal created successfully, every form field empty in the screenshot. Root cause: brief assumption rather than a code bug. Resolution: extend the deal builder with a separate `resolveCalculatorFieldKeys` path that reads (but never creates) the admin-curated fields, and populate them. The `arxys_*` fields are still useful — they encode the canonical/numeric values (camera count, bandwidth Mbps, storage GB) without going through Pipedrive's varchar formatting.
+- **Set vs. enum vs. varchar matters at write time.** The calculator-matching Pipedrive fields are a mix: `VMS` and `Scene Complexity` are *sets* (option IDs, comma-separated string for multi-select), `Recording`, `CODEC`, `Failover Recorder` are *enums* (single option ID), `Frame Rate`, `Motion Activity Est. %`, `Retention Days`, `Total Storage`, `Recording hours`, `Resolution` are *varchar* (free text). Wrote each value in the type Pipedrive expects — option ID number for enums/sets, string for varchars. Captured the option-ID maps in `deal.ts` so a rename in Pipedrive surfaces as a missing-key skip rather than a silent wrong-ID write.
+- **Three fields can't be populated yet.** `VMS Edition`, `Vms Key Features`, and `Failover Recorder` are admin-curated Pipedrive fields with no matching calculator input. Left them blank for now; if/when the calculator grows these inputs, the mapping is a one-line addition each.
+- **Hanwha → Wisenet mapping.** Calculator's `VMS_OPTIONS` includes "Hanwha"; Pipedrive's VMS set has "Wisenet" (Hanwha's security-product brand). Mapped Hanwha → Wisenet option id 169. Logged here for traceability.
+
+### Pending
+
+- Smoke test post-redeploy: save a new calculation, confirm all visible Pipedrive fields are now populated (not just the `arxys_*` ones). Expected populated fields on a typical submission: `Project Name`, `VMS`, `Camera Streams`, `Recording`, `Motion Activity Est. %`, `Frame Rate`, `Resolution`, `Retention Days`, `CODEC`, `Total Storage`, `Scene Complexity`, `Recording hours`, `Recommended Server`.
+
+---
+
 ## 2026-05-19 — Step 8: Pipedrive Deal creation per submission
 
 ### Work done

@@ -2,6 +2,7 @@ import { pipedriveClient } from "./client";
 import { upsertOrganization, upsertPerson } from "./contacts";
 import {
   ensureCustomFields,
+  resolveCalculatorFieldKeys,
   resolveOwnerId,
   resolvePipelineId,
   resolveStageId,
@@ -18,10 +19,64 @@ const PORTAL_URL_PLACEHOLDER = "https://portal-arxys.vercel.app/dashboard";
 const PHASE_1_PLACEHOLDER_NOTE =
   "Phase 1 placeholder — real pricing in Phase 2 (see ADR 0019). Deal value = 0 by design.";
 
+// ---------------------------------------------------------------------------
+// Calculator → Pipedrive option-ID maps
+//
+// These map our calculator's enum values to the admin-curated Pipedrive option
+// IDs on the matching fields. IDs are stable once created in Pipedrive; if an
+// admin recreates an option they'll get a new ID and this map will need an
+// update. Pulled from a live `/v1/dealFields` snapshot on 2026-05-19.
+// ---------------------------------------------------------------------------
+
+// VMS (set field) — calculator's VMS_OPTIONS → Pipedrive option ID.
+// "Hanwha" → Wisenet (Hanwha rebranded its security line; Wisenet is the
+// closest match in Pipedrive). Calculator "Other" maps to Pipedrive "Other".
+const VMS_OPTION_IDS: Record<string, number> = {
+  Milestone: 14,
+  Genetec: 15,
+  Avigilon: 16,
+  Hanwha: 169,
+  "NX Witness": 168,
+  Other: 18,
+};
+
+// CODEC (enum) — calculator codec value → Pipedrive option ID.
+const CODEC_OPTION_IDS: Record<string, number> = {
+  h265: 139,
+  h264: 138,
+  smart: 286,
+};
+
+// Scene Complexity (set) — calculator complexity tier → Pipedrive option ID.
+const COMPLEXITY_OPTION_IDS: Record<string, number> = {
+  low: 287,
+  med: 288,
+  high: 289,
+};
+
+// Recording (enum). Pipedrive options: 118 "24 Hour Continuous", 119 "Record
+// Only On Motion". Heuristic: 100% recording duty cycle → continuous, anything
+// less → motion.
+const RECORDING_CONTINUOUS_ID = 118;
+const RECORDING_ON_MOTION_ID = 119;
+
 export type DealSubmissionInput = {
   submissionId: string;
   projectName: string | null;
+  vms: string | null;
+  retentionDays: number;
   totals: { cameras: number; bandwidthMbps: number; storageGb: number };
+  // Primary group = the camera group with the most cameras. The calculator
+  // form accepts multiple groups; the Pipedrive Deal carries a single row, so
+  // we surface the primary group's characteristics on the per-stream fields.
+  primaryGroup: {
+    resolutionLabel: string;
+    codec: string;
+    complexity: string;
+    fps: number;
+    recordingPercent: number;
+    motionPercent: number;
+  };
 };
 
 export type DealPartnerInput = {
@@ -35,10 +90,11 @@ export async function createDealFromSubmission(
   recommendation: RecommendationResult,
   partner: DealPartnerInput,
 ): Promise<{ dealId: number }> {
-  const [pipelineId, ownerId, customFieldKeys] = await Promise.all([
+  const [pipelineId, ownerId, customFieldKeys, calcFieldKeys] = await Promise.all([
     resolvePipelineId(),
     resolveOwnerId(),
     ensureCustomFields(),
+    resolveCalculatorFieldKeys(),
   ]);
   const stageId = await resolveStageId(pipelineId);
 
@@ -55,7 +111,11 @@ export async function createDealFromSubmission(
     submission.projectName?.trim() ||
     `${partner.companyName} — submission ${submission.submissionId}`;
 
-  const payload = {
+  const totalStorageTb = (submission.totals.storageGb / 1000).toFixed(2);
+  const recordingHours = Math.round((submission.primaryGroup.recordingPercent / 100) * 24);
+
+  // Base payload: deal-level + arxys_* custom fields.
+  const payload: Record<string, string | number | undefined> = {
     title,
     value: 0,
     currency: "USD",
@@ -72,7 +132,45 @@ export async function createDealFromSubmission(
     [customFieldKeys["arxys_portal_url"]]: PORTAL_URL_PLACEHOLDER,
   };
 
-  const deal = await pipedriveClient.createDeal(payload);
+  // Calculator-matching admin fields. Each only set if the field still
+  // resolves by name in Pipedrive — a rename in the admin UI silently skips
+  // that field rather than blocking the whole deal create.
+  const set = (name: keyof typeof calcFieldKeys, value: string | number | undefined) => {
+    if (value === undefined || value === "") return;
+    const key = calcFieldKeys[name];
+    if (key) payload[key] = value;
+  };
+
+  set("Project Name", submission.projectName ?? undefined);
+  if (submission.vms) {
+    const vmsId = VMS_OPTION_IDS[submission.vms];
+    if (vmsId) set("VMS", vmsId);
+  }
+  set("Camera Streams", submission.totals.cameras);
+
+  const recordingId =
+    submission.primaryGroup.recordingPercent >= 100
+      ? RECORDING_CONTINUOUS_ID
+      : RECORDING_ON_MOTION_ID;
+  set("Recording", recordingId);
+
+  set("Motion Activity Est. %", String(submission.primaryGroup.motionPercent));
+  set("Frame Rate", String(submission.primaryGroup.fps));
+  set("Resolution", submission.primaryGroup.resolutionLabel);
+  set("Retention Days", String(submission.retentionDays));
+
+  const codecId = CODEC_OPTION_IDS[submission.primaryGroup.codec];
+  if (codecId) set("CODEC", codecId);
+
+  set("Total Storage", `${totalStorageTb} TB`);
+
+  const complexityId = COMPLEXITY_OPTION_IDS[submission.primaryGroup.complexity];
+  if (complexityId) set("Scene Complexity", complexityId);
+
+  set("Recording hours", String(recordingHours));
+  set("Recommended Server", recommendedModels);
+
+  const deal = await pipedriveClient.createDeal(payload as Parameters<typeof pipedriveClient.createDeal>[0]);
 
   // Pin a placeholder note explaining the $0 value. Pipedrive Deals have no
   // top-level description; Notes are the canonical "free text on a deal"
