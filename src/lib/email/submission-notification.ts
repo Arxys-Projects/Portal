@@ -56,9 +56,21 @@ function buildBody(input: SubmissionNotificationInput): string {
 export async function sendSubmissionNotification(input: SubmissionNotificationInput): Promise<void> {
   const mailer = getMailer();
   const subject = `Arxys Portal — new submission from ${input.partner.companyName}`;
+
+  // INTERNAL_NOTIFICATION_EMAIL is a Google Group (sales@arxys.com) and SMTP_USER
+  // is a member of that group. Google Groups suppresses delivery back to the
+  // sender, so SMTP_USER never receives the group fan-out. BCC SMTP_USER to give
+  // them a direct copy that bypasses the loopback rule. Skip when SMTP_USER is
+  // the same address as the To: target (otherwise the recipient gets two copies).
+  const bcc =
+    env.SMTP_USER.toLowerCase() !== env.INTERNAL_NOTIFICATION_EMAIL.toLowerCase()
+      ? env.SMTP_USER
+      : undefined;
+
   await mailer.sendMail({
     from: env.SMTP_FROM,
     to: env.INTERNAL_NOTIFICATION_EMAIL,
+    bcc,
     subject,
     text: buildBody(input),
   });
