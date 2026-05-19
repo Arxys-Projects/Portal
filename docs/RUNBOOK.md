@@ -15,9 +15,12 @@ Recreate this project from a blank Mac. No dead-ends, no detours — only the st
 
 ## 1. Clone & install
 
+Clone into `~/Developer/` — **not** into `~/Documents/` or any iCloud-synced path. iCloud Drive's per-file metadata sync turns `node_modules` and `.next/cache/` into a sustained I/O penalty (turbopack builds wedge at 0% CPU). The `~/Developer/` folder is Apple's canonical dev location and is auto-excluded from Spotlight.
+
 ```bash
-git clone git@github.com-arxys:Arxys-Projects/Portal.git "Arxys Portal"
-cd "Arxys Portal"
+mkdir -p ~/Developer
+git clone git@github.com-arxys:Arxys-Projects/Portal.git "$HOME/Developer/Arxys Portal"
+cd "$HOME/Developer/Arxys Portal"
 npm ci
 ```
 
