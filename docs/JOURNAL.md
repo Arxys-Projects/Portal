@@ -4,6 +4,20 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-05-18 — Planned: Step 5 scope locks (inline result on calculator page)
+
+### Work done
+
+- Confirmed Step 5 (submission save / recommendation algorithm) will display its result **inline on the calculator page** rather than redirect to a separate submission detail view. Saves design surface area and keeps the calculator → recommendation → "looks good, submit to sales" flow on one screen.
+- `server_specs` seed data confirmed to come from the **configurator data** (per-model capacity table: model, max_cameras, max_bandwidth_mbps, max_storage_tb, optional notes), not the price list. User to supply the sheet at the start of the Step 5 session.
+- Step 5 itself deferred to a future fresh Claude Code session. Estimated 3–5 hours focused work.
+
+### Decisions captured
+
+- ADR to author at Step 5 implementation: `NNNN-submission-result-inline.md` (Context: needs a result surface after Save; Options: dedicated `/submissions/[id]` page vs inline panel on `/calculator`; Decision: inline; Consequences: simpler routing, no shareable submission URL until later).
+
+---
+
 ## 2026-05-18 — Planned: VideoX Analytics Sizing Calculator (new step, scoped only)
 
 ### Work done
