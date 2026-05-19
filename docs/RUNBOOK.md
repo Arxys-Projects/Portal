@@ -47,7 +47,7 @@ SMTP_FROM=noreply@arxys.com
 INTERNAL_NOTIFICATION_EMAIL=sales@arxys.com
 ```
 
-The startup validator at [`src/lib/env.ts`](../src/lib/env.ts) will throw at boot if any of these are missing or empty. Add new vars to its `REQUIRED_VARS` array.
+The startup validator at [`src/lib/env.ts`](../src/lib/env.ts) is *lazy* — each variable is only read when something uses it, so a missing var doesn't crash the deploy but does crash the first request that touches it. **Every var above must also be set in Vercel** (Settings → Environment Variables → Production) — `.env.local` covers local dev only. Add new vars to env.ts's `REQUIRED_VARS` array.
 
 ## 3. Verify local build
 
