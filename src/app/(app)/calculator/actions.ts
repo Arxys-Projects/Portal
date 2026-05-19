@@ -15,6 +15,7 @@ import { GB_PER_TB, type ServerSpec, type RecommendationResult } from "@/lib/rec
 import { sendSubmissionNotification } from "@/lib/email/submission-notification";
 import { pdfFilename, renderSubmissionPdfBuffer } from "@/lib/pdf/render";
 import type { SubmissionPdfInput } from "@/lib/pdf/types";
+import { createDealFromSubmission } from "@/lib/pipedrive/deal";
 
 const groupSchema = z.object({
   name: z.string().trim().max(80).default(""),
@@ -290,6 +291,35 @@ export async function submitCalculation(
     // Sales notification failure is logged on the server but not surfaced to
     // the partner — their submission persisted and admins can re-send later.
     console.error("submission notification failed", err);
+  }
+
+  // Pipedrive Deal creation. Pipedrive failure must not regress submission
+  // persist, PDF render, or email send — submission success is already
+  // committed to the client by this point. ADR 0020.
+  try {
+    const { dealId } = await createDealFromSubmission(
+      {
+        submissionId: inserted.id,
+        projectName: submissionRow.project_name,
+        totals: {
+          cameras: totals.cameras,
+          bandwidthMbps: totals.bandwidthMbps,
+          storageGb: totals.storageGb,
+        },
+      },
+      recommendation,
+      {
+        companyName: partnerInfo.companyName,
+        contactName: partnerInfo.contactName,
+        email: user.email ?? "(no email on file)",
+      },
+    );
+    await supabase
+      .from("submissions")
+      .update({ pipedrive_deal_id: dealId })
+      .eq("id", inserted.id);
+  } catch (err) {
+    console.error("pipedrive deal creation failed", { submissionId: inserted.id, error: err });
   }
 
   return {

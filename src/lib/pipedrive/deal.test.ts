@@ -1,0 +1,317 @@
+import { describe, it, before, beforeEach } from "node:test";
+import assert from "node:assert/strict";
+
+// Env vars must exist before the env module materializes them.
+process.env.PIPEDRIVE_API_TOKEN ??= "test-token";
+
+// The Pipedrive modules import "server-only", which throws under plain Node.
+// `npm test` passes `--conditions=react-server` so the import resolves to the
+// empty module — matching the Next.js server runtime where this code actually
+// runs.
+
+import type { RecommendationResult } from "@/lib/recommend/types";
+
+type FetchCall = { url: string; method: string; body: unknown };
+
+const calls: FetchCall[] = [];
+
+type Responder = (url: URL, method: string, body: unknown) => unknown;
+
+let responder: Responder = () => ({ success: true, data: {} });
+
+function installFetchMock(): void {
+  globalThis.fetch = (async (input: Request | string | URL, init?: RequestInit) => {
+    const urlStr = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
+    const url = new URL(urlStr);
+    const method = init?.method ?? "GET";
+    const body = init?.body ? JSON.parse(String(init.body)) : undefined;
+    calls.push({ url: urlStr, method, body });
+    const data = responder(url, method, body);
+    return new Response(JSON.stringify({ success: true, data }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  }) as typeof fetch;
+}
+
+const PIPELINE_ID = 7;
+const STAGE_ID = 42;
+const OWNER_ID = 101;
+const ORG_ID = 555;
+const PERSON_ID = 777;
+const DEAL_ID = 9001;
+const NOTE_ID = 9101;
+
+const CUSTOM_FIELD_KEYS: Record<string, string> = {
+  arxys_submission_id: "key_subid",
+  arxys_total_cameras: "key_cams",
+  arxys_bandwidth_mbps: "key_bw",
+  arxys_storage_gb: "key_storage",
+  arxys_recommended_models: "key_models",
+  arxys_portal_url: "key_url",
+};
+
+function defaultResponder(url: URL, method: string, body: unknown): unknown {
+  const path = url.pathname;
+  if (path === "/v1/pipelines" && method === "GET") {
+    return [
+      { id: 1, name: "Other Pipeline" },
+      { id: PIPELINE_ID, name: "Project Pipeline" },
+    ];
+  }
+  if (path === "/v1/stages" && method === "GET") {
+    return [
+      { id: STAGE_ID, name: "New Lead", pipeline_id: PIPELINE_ID },
+      { id: 43, name: "Contacted", pipeline_id: PIPELINE_ID },
+    ];
+  }
+  if (path === "/v1/users" && method === "GET") {
+    return [{ id: OWNER_ID, name: "Andy Newbom", email: "andy@arxys.com" }];
+  }
+  if (path === "/v1/dealFields" && method === "GET") {
+    return Object.entries(CUSTOM_FIELD_KEYS).map(([name, key], i) => ({
+      id: 1000 + i,
+      name,
+      key,
+      field_type: "varchar",
+    }));
+  }
+  if (path === "/v1/organizations/search" && method === "GET") {
+    return { items: [{ item: { id: ORG_ID } }] };
+  }
+  if (path === "/v1/persons/search" && method === "GET") {
+    return { items: [{ item: { id: PERSON_ID } }] };
+  }
+  if (path === "/v1/deals" && method === "POST") {
+    const payload = body as { title: string; value: number };
+    return { id: DEAL_ID, title: payload.title, value: payload.value };
+  }
+  if (path === "/v1/notes" && method === "POST") {
+    return { id: NOTE_ID };
+  }
+  throw new Error(`Unmocked request: ${method} ${path}`);
+}
+
+function fixtureRecommendation(): RecommendationResult {
+  return {
+    winner: {
+      productId: "11111111-1111-1111-1111-000000000800",
+      modelCode: "V800",
+      units: 3,
+      totalCostUsd: 18,
+      coveredCameras: 975,
+      coveredStorageTb: 1920,
+      driverDimension: "cameras",
+    },
+    alternatives: [],
+    warnings: ["Solution stacks 3 units — verify rack space and power before quoting."],
+  };
+}
+
+const fixtureSubmission = {
+  submissionId: "11111111-2222-3333-4444-555555555555",
+  projectName: "Test Campus",
+  totals: { cameras: 900, bandwidthMbps: 3240.5, storageGb: 1500000.789 },
+};
+
+const fixturePartner = {
+  companyName: "Acme Integrators",
+  contactName: "Jane Partner",
+  email: "jane@acme.example.com",
+};
+
+let createDealFromSubmission: typeof import("./deal").createDealFromSubmission;
+let resetCache: typeof import("./lookups").__resetLookupCache;
+
+before(async () => {
+  installFetchMock();
+  ({ createDealFromSubmission } = await import("./deal"));
+  ({ __resetLookupCache: resetCache } = await import("./lookups"));
+});
+
+beforeEach(() => {
+  calls.length = 0;
+  responder = defaultResponder;
+  resetCache();
+});
+
+describe("createDealFromSubmission", () => {
+  it("builds the Deal payload with value=0 and the expected custom-field keys", async () => {
+    const result = await createDealFromSubmission(
+      fixtureSubmission,
+      fixtureRecommendation(),
+      fixturePartner,
+    );
+    assert.equal(result.dealId, DEAL_ID);
+
+    const dealCall = calls.find((c) => c.url.includes("/v1/deals") && c.method === "POST");
+    assert.ok(dealCall, "expected a POST /v1/deals call");
+    const body = dealCall.body as Record<string, unknown>;
+
+    assert.equal(body.title, "Test Campus");
+    assert.equal(body.value, 0);
+    assert.equal(body.currency, "USD");
+    assert.equal(body.pipeline_id, PIPELINE_ID);
+    assert.equal(body.stage_id, STAGE_ID);
+    assert.equal(body.user_id, OWNER_ID);
+    assert.equal(body.person_id, PERSON_ID);
+    assert.equal(body.org_id, ORG_ID);
+    assert.equal(body[CUSTOM_FIELD_KEYS.arxys_submission_id], fixtureSubmission.submissionId);
+    assert.equal(body[CUSTOM_FIELD_KEYS.arxys_total_cameras], 900);
+    assert.equal(body[CUSTOM_FIELD_KEYS.arxys_bandwidth_mbps], 3240.5);
+    assert.equal(body[CUSTOM_FIELD_KEYS.arxys_storage_gb], 1500000.79);
+    assert.equal(body[CUSTOM_FIELD_KEYS.arxys_recommended_models], "3 × V800");
+    assert.equal(
+      body[CUSTOM_FIELD_KEYS.arxys_portal_url],
+      "https://portal-arxys.vercel.app/dashboard",
+    );
+  });
+
+  it("falls back to a partner+submission title when projectName is blank", async () => {
+    await createDealFromSubmission(
+      { ...fixtureSubmission, projectName: null },
+      fixtureRecommendation(),
+      fixturePartner,
+    );
+    const dealCall = calls.find((c) => c.url.includes("/v1/deals") && c.method === "POST");
+    const body = dealCall!.body as Record<string, unknown>;
+    assert.equal(
+      body.title,
+      `Acme Integrators — submission ${fixtureSubmission.submissionId}`,
+    );
+  });
+
+  it("pins a Phase 1 placeholder note to the new deal", async () => {
+    await createDealFromSubmission(
+      fixtureSubmission,
+      fixtureRecommendation(),
+      fixturePartner,
+    );
+    const noteCall = calls.find((c) => c.url.includes("/v1/notes") && c.method === "POST");
+    assert.ok(noteCall, "expected a POST /v1/notes call");
+    const body = noteCall.body as Record<string, unknown>;
+    assert.equal(body.deal_id, DEAL_ID);
+    assert.equal(body.pinned_to_deal_flag, 1);
+    assert.match(String(body.content), /Phase 1 placeholder/);
+    assert.match(String(body.content), /ADR 0019/);
+  });
+
+  it("caches pipeline/stage/owner/dealFields across invocations", async () => {
+    await createDealFromSubmission(
+      fixtureSubmission,
+      fixtureRecommendation(),
+      fixturePartner,
+    );
+    const firstCallCount = calls.length;
+    await createDealFromSubmission(
+      fixtureSubmission,
+      fixtureRecommendation(),
+      fixturePartner,
+    );
+    const cachedEndpoints = ["/v1/pipelines", "/v1/stages", "/v1/users", "/v1/dealFields"];
+    for (const path of cachedEndpoints) {
+      const hits = calls.filter((c) => c.url.includes(path)).length;
+      assert.equal(hits, 1, `${path} should be called exactly once across both invocations`);
+    }
+    assert.ok(calls.length > firstCallCount, "second invocation still issued some calls");
+  });
+
+  it("reuses an existing Person and Organization via search (idempotent)", async () => {
+    await createDealFromSubmission(
+      fixtureSubmission,
+      fixtureRecommendation(),
+      fixturePartner,
+    );
+    const personSearches = calls.filter((c) => c.url.includes("/v1/persons/search"));
+    const orgSearches = calls.filter((c) => c.url.includes("/v1/organizations/search"));
+    assert.equal(personSearches.length, 1);
+    assert.equal(orgSearches.length, 1);
+    assert.equal(
+      calls.filter((c) => c.url.includes("/v1/persons") && c.method === "POST").length,
+      0,
+      "should not POST /v1/persons when search returns a hit",
+    );
+    assert.equal(
+      calls.filter((c) => c.url.includes("/v1/organizations") && c.method === "POST").length,
+      0,
+      "should not POST /v1/organizations when search returns a hit",
+    );
+  });
+
+  it("creates Person and Organization when search returns no hits", async () => {
+    responder = (url, method, body) => {
+      const path = url.pathname;
+      if (path === "/v1/persons/search") return { items: [] };
+      if (path === "/v1/organizations/search") return { items: [] };
+      if (path === "/v1/persons" && method === "POST") {
+        return { id: PERSON_ID, name: (body as { name: string }).name };
+      }
+      if (path === "/v1/organizations" && method === "POST") {
+        return { id: ORG_ID, name: (body as { name: string }).name };
+      }
+      return defaultResponder(url, method, body);
+    };
+
+    await createDealFromSubmission(
+      fixtureSubmission,
+      fixtureRecommendation(),
+      fixturePartner,
+    );
+
+    const orgCreate = calls.find(
+      (c) => c.url.includes("/v1/organizations") && c.method === "POST",
+    );
+    assert.ok(orgCreate, "expected a POST /v1/organizations");
+    assert.equal((orgCreate.body as { name: string }).name, "Acme Integrators");
+
+    const personCreate = calls.find(
+      (c) => c.url.includes("/v1/persons") && c.method === "POST",
+    );
+    assert.ok(personCreate, "expected a POST /v1/persons");
+    const personBody = personCreate.body as {
+      name: string;
+      email: Array<{ value: string }>;
+      org_id: number;
+    };
+    assert.equal(personBody.name, "Jane Partner");
+    assert.equal(personBody.email[0].value, "jane@acme.example.com");
+    assert.equal(personBody.org_id, ORG_ID);
+  });
+
+  it("creates any missing custom fields and uses the returned hashed key", async () => {
+    // Only the first three fields exist; the remaining three must be created.
+    const existing = Object.entries(CUSTOM_FIELD_KEYS).slice(0, 3);
+    responder = (url, method, body) => {
+      if (url.pathname === "/v1/dealFields" && method === "GET") {
+        return existing.map(([name, key], i) => ({
+          id: 1000 + i,
+          name,
+          key,
+          field_type: "varchar",
+        }));
+      }
+      if (url.pathname === "/v1/dealFields" && method === "POST") {
+        const payload = body as { name: string };
+        return { id: 2000, name: payload.name, key: `created_${payload.name}`, field_type: "varchar" };
+      }
+      return defaultResponder(url, method, body);
+    };
+
+    await createDealFromSubmission(
+      fixtureSubmission,
+      fixtureRecommendation(),
+      fixturePartner,
+    );
+
+    const creates = calls.filter(
+      (c) => c.url.includes("/v1/dealFields") && c.method === "POST",
+    );
+    assert.equal(creates.length, 3, "expected to create the three missing fields");
+
+    const dealCall = calls.find((c) => c.url.includes("/v1/deals") && c.method === "POST");
+    const body = dealCall!.body as Record<string, unknown>;
+    assert.equal(body["created_arxys_storage_gb"], 1500000.79);
+    assert.equal(body["created_arxys_recommended_models"], "3 × V800");
+    assert.equal(body["created_arxys_portal_url"], "https://portal-arxys.vercel.app/dashboard");
+  });
+});
