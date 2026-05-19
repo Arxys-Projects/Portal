@@ -4,6 +4,175 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-05-18 — Planned: VideoX Analytics Sizing Calculator (new step, scoped only)
+
+### Work done
+
+- Captured the scope for a new self-contained calculator page to be added to the Portal. **Not yet implemented** — recorded here so the next session has a clean handoff and the open questions don't rotate out of head.
+- Scope as provided:
+  - **Purpose:** size Avigilon NVR6 workloads (Appearance Search, Appearance Search + Facial Recognition, ALPR) and recommend a VideoX model.
+  - **Inputs:** AS-only streams (0–200, used raw), FR streams (0–50, buffered), ALPR lanes (0–60 nominal, real cap depends on FPS tier) + FPS tier selector (5/10/20/30), plus a read-only total stream count.
+  - **Buffer step (CONFIRMED 2026-05-18 after a clarification round):** tiered multiplier on FR and ALPR based on stream-count band. AS used raw. *An earlier exchange briefly recorded this as a flat ×1.10; that was wrong and has been reverted.* The authoritative tables:
+    - **FR** (max 50): 0–16 → ×1.05; 17–33 → ×1.10; 34–50 → ×1.15.
+    - **ALPR 5 FPS** (max 40): 0–13 → ×1.05; 14–26 → ×1.10; 27–40 → ×1.15.
+    - **ALPR 10 FPS** (max 20): 0–6 → ×1.05; 7–13 → ×1.10; 14–20 → ×1.15.
+    - **ALPR 20 FPS** (max 10): 0–3 → ×1.05; 4–6 → ×1.10; 7–10 → ×1.15.
+    - **ALPR 30 FPS** (max 6): 0–2 → ×1.05; 3–4 → ×1.10; 5–6 → ×1.15.
+    Integer bands are authoritative; the "% of max" wording in the original spec is rationale, not the implementation rule.
+  - **Budget formula:** `(AS/200) + (FR_buffered/50) + (ALPR_buffered/LPR_tier_max)` = single budget fraction.
+  - **Tier mapping:** ≤0.50 → NVR6 Standard, 0.51–0.75 → Premium, 0.76–1.00 → Premium Plus, >1.00 → multi-server warning.
+  - **VideoX recommendation (FINAL 2026-05-18):** the 20% rule is a per-model **headroom guarantee**, motivated by Arxys product economics (Arxys is ~½ Avigilon's price, so over-spec rather than under-spec). Mechanically: pick the smallest VideoX model whose capacity satisfies `budget ≤ 0.80 × model_capacity`. The "tier-boundary bump" language used earlier is just the visible behavior of this rule near tier ceilings. The Avigilon tier label (Standard / Premium / Premium Plus) is still shown to the user as context but is *not* what drives the model recommendation — the headroom rule does.
+  - **UI:** live recalc, visual budget bar (green→amber→red), Avigilon tier label, VideoX recommendation. Client-side only, no backend, no persistence. Match the Arxys Portal styling conventions established for the bandwidth calculator (`#arxys-calc-root` scoped CSS, gold accents).
+- Frontend-only. Sits under the protected `(app)/` route group like the existing calculator. No DB migrations, no Route Handlers, no email.
+
+### Open questions / problems flagged before coding
+
+**Resolved 2026-05-18:**
+- ~~Asymmetric buffering rationale~~ → AS load is less variable per stream than FR/ALPR. Capture in ADR when authored.
+- ~~Whether buffer is tiered or flat~~ → tiered, per the original spec table. The intermediate "flat ×1.10" exchange was a misunderstanding and is reverted.
+
+**Still open:**
+
+1. ~~Per-tier VideoX capacity values~~ → **CONFIRMED 2026-05-18**: V400=0.50, V500/V600=0.75, V700/V800=1.00. Compute tiers are three: {V400}, {V500, V600}, {V700, V800}. Storage choice within a paired tier is out of scope for this calculator.
+2. **Boundary comparators on the tier mapping.** Original spec: "≤ 0.50", "0.51–0.75", "0.76–1.00." With floats, 0.501 needs an explicit home. Confirm: `budget ≤ 0.50` → Standard, `0.50 < budget ≤ 0.75` → Premium, `0.75 < budget ≤ 1.00` → Premium Plus, `budget > 1.00` → multi-server.
+3. **Single-category overflow.** FR=50 buffered = 57.5 → contributes 1.15 alone. ALPR at tier max → 1.15 alone. So budget > 1.0 is reachable from a single maxed category. Multi-server warning every time, or is there a "V800 covers it" path?
+4. ~~V500 in two tier ranges~~ → resolved: V500/V600 are one compute tier; V500 reached from "Standard" workloads is just the headroom rule promoting from V400 to the V500/V600 pair.
+5. ~~Premium / Premium Plus showing one or two models~~ → resolved: always show the pair when the recommendation lands in the V500/V600 or V700/V800 compute tier. Note that storage choice within the pair is out of scope.
+6. **FPS tier change behavior.** ALPR lanes at 40 (valid for 5 FPS), user switches to 30 FPS (max 6). Clamp value, warn, or allow overflow into budget > 1.0?
+7. **ALPR input range 0–60 vs per-tier max of 40/20/10/6.** Clamp input to selected tier's max, or allow 0–60 nominal?
+8. **Total stream count.** Display-only, unused in calc. Keep as a sanity check? Label accordingly?
+9. **Routing + dashboard entry.** Route path (`/videox-calculator`? `/analytics-sizing`?) and whether the dashboard gets a third card.
+10. **Styling scope.** Recommendation: separate `videox-calculator.css` with `#arxys-videox-root` id-scope, share CSS variables via globals.
+11. **Input shape.** Recommendation: combined number-input + range-slider per input row.
+
+### Spec status (2026-05-18, post-clarification round)
+
+All blocking questions resolved. Calculator is ready to implement in a fresh Claude Code session. ADRs to author at implementation time:
+- One ADR for the buffer-rule rationale (asymmetric AS-no-buffer + tiered FR/ALPR multipliers)
+- One ADR for the 20% headroom selection rule + the three-compute-tier model (V400 / V500-V600 / V700-V800) and the capacity values 0.50 / 0.75 / 1.00
+- One ADR for the routing/dashboard integration (route name, dashboard card placement)
+
+### Implementation plan (for the fresh session)
+
+**File layout** (mirrors the existing bandwidth calculator under `src/app/(app)/calculator/`):
+
+```
+src/app/(app)/analytics-sizing/
+  page.tsx                  # server component, ↶ Back to dashboard link + <SizingForm />
+  sizing-form.tsx           # "use client" — form state, live recalc
+  sizing.css                # scoped to #arxys-videox-root, imports CSS vars from globals
+  icons.tsx                 # any new SVGs (or import from ../calculator/icons.tsx if reusable)
+src/lib/analytics-sizing/
+  tables.ts                 # buffer bands + capacity table, verbatim from JOURNAL spec
+  compute.ts                # pure functions, fully unit-testable
+  compute.test.ts           # vitest if present, else node:test
+```
+
+Dashboard card added in `src/app/(app)/dashboard/page.tsx` — third card alongside the existing Calculator + Submission History cards.
+
+**`tables.ts` shape:**
+
+```ts
+export const AS_MAX = 200;
+export const FR_MAX = 50;
+
+export const FR_BUFFER_BANDS: readonly { max: number; mult: number }[] = [
+  { max: 16, mult: 1.05 },
+  { max: 33, mult: 1.10 },
+  { max: 50, mult: 1.15 },
+];
+
+export const ALPR_FPS_TIERS = [
+  { fps: 5,  laneMax: 40, bands: [{ max: 13, mult: 1.05 }, { max: 26, mult: 1.10 }, { max: 40, mult: 1.15 }] },
+  { fps: 10, laneMax: 20, bands: [{ max: 6,  mult: 1.05 }, { max: 13, mult: 1.10 }, { max: 20, mult: 1.15 }] },
+  { fps: 20, laneMax: 10, bands: [{ max: 3,  mult: 1.05 }, { max: 6,  mult: 1.10 }, { max: 10, mult: 1.15 }] },
+  { fps: 30, laneMax: 6,  bands: [{ max: 2,  mult: 1.05 }, { max: 4,  mult: 1.10 }, { max: 6,  mult: 1.15 }] },
+] as const;
+
+export const COMPUTE_TIERS = [
+  { id: "small",  models: ["V400"],         capacity: 0.50 },
+  { id: "medium", models: ["V500", "V600"], capacity: 0.75 },
+  { id: "large",  models: ["V700", "V800"], capacity: 1.00 },
+] as const;
+
+export const HEADROOM_FACTOR = 0.80;  // budget must be ≤ 0.80 × capacity
+
+export const AVIGILON_TIERS = [
+  { id: "standard",     label: "NVR6 Standard",     max: 0.50 },
+  { id: "premium",      label: "NVR6 Premium",      max: 0.75 },
+  { id: "premiumPlus",  label: "NVR6 Premium Plus", max: 1.00 },
+] as const;
+```
+
+**`compute.ts` shape** — pure functions, no React:
+
+```ts
+export function bufferFor(count: number, bands: readonly { max: number; mult: number }[]): number;
+// returns the multiplier whose band the count falls in (count <= band.max)
+
+export function bufferedFr(count: number): number;            // count * bufferFor(count, FR_BUFFER_BANDS)
+export function bufferedAlpr(lanes: number, fps: 5|10|20|30): number;
+
+export interface SizingInputs {
+  asStreams: number;          // 0..200
+  frStreams: number;          // 0..50
+  alprLanes: number;          // 0..tier.laneMax
+  alprFps: 5 | 10 | 20 | 30;
+}
+
+export interface SizingResult {
+  budget: number;                       // raw fraction, can exceed 1.0
+  avigilonTier: "standard" | "premium" | "premiumPlus" | "overflow";
+  recommendation:
+    | { kind: "model"; tier: "small" | "medium" | "large"; models: readonly string[] }
+    | { kind: "multiServer" };
+  totalStreams: number;                 // as + fr + alpr (display only)
+  contributions: {                      // for the budget bar tooltip
+    as: number;
+    fr: number;
+    alpr: number;
+  };
+}
+
+export function computeSizing(inputs: SizingInputs): SizingResult;
+```
+
+`computeSizing` is the single entry point the form calls on every change. Selection rule: walk `COMPUTE_TIERS` in order; first tier where `budget <= HEADROOM_FACTOR * capacity` wins. None pass → `{ kind: "multiServer" }`.
+
+**`sizing-form.tsx` shape:**
+
+- `useState<SizingInputs>` with sensible defaults (e.g. `{ as: 0, fr: 0, alpr: 0, alprFps: 10 }`).
+- `useMemo` → `computeSizing(inputs)`.
+- Four input rows, each: label + tooltip + `<input type="number">` + `<input type="range">` synchronized via `onChange`. ALPR row also has a `<select>` for FPS tier; on FPS change, clamp `alprLanes` to the new tier's `laneMax`.
+- Output panel: budget bar (width: `min(100, budget*100)%`, color: green ≤0.66, amber ≤1.0, red >1.0), Avigilon tier label, VideoX recommendation (single model or pair, multi-server warning), total stream count as a small subdued line.
+- Reset button → restores defaults.
+
+**Styling:** wrap the form root in `<div id="arxys-videox-root" className="ax-root">`. Copy the relevant ax-* class structure from `src/app/(app)/calculator/calculator.css` for visual consistency (summary cards, body card, results panel) and add new id-prefixed selectors in `sizing.css` only where the new UI diverges (the budget bar, the FPS-tier selector, the model-pair badge). Share `--ac`, `--bg`, `--tp`, `--ts` etc. via the global stylesheet so theme drift can't happen.
+
+**Tests:**
+- `bufferFor` boundary cases: 0, 16, 17, 33, 34, 50 for FR.
+- `computeSizing` golden cases: pick 6–8 hand-calculated input combos covering each compute tier and the multi-server case. Numbers in the test should match the JOURNAL spec's worked examples.
+
+**ADRs to write at the start of implementation:**
+
+1. `NNNN-analytics-sizing-buffer-rule.md` — why AS uses raw streams while FR/ALPR get tiered buffers; alternatives considered (flat ×1.10, no buffer).
+2. `NNNN-analytics-sizing-headroom-and-tiers.md` — the 20% headroom rule, three-compute-tier model, V500=V600 and V700=V800 storage-only differentiation, capacity values 0.50/0.75/1.00.
+3. `NNNN-analytics-sizing-route-and-integration.md` — route at `/analytics-sizing` (product-name-neutral), dashboard third-card placement, scoped CSS pattern (`#arxys-videox-root`).
+
+**Definition of done:**
+
+- `/analytics-sizing` renders behind auth, shows the form, recalculates live with no submit button.
+- Compute tests pass.
+- Dashboard has a third card linking to the new route.
+- JOURNAL appended with an implementation entry; RUNBOOK unchanged (no setup-recipe change); three ADRs landed.
+- No `TODO` / placeholder values anywhere; no `any` types in compute.
+
+### Decisions captured
+
+- None yet — ADRs land with the implementation.
+
+---
+
 ## 2026-05-18 — Ops: stray `vercel deploy` clobbered prod, recovery + prevention
 
 ### Work done
