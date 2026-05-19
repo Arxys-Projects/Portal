@@ -1,6 +1,6 @@
 # 0014 — Step 5 ships with sales-only email notification, no partner-facing email
 
-- **Status**: Accepted
+- **Status**: Superseded by [0018](./0018-partner-email-on-submission.md) on 2026-05-19
 - **Date**: 2026-05-18
 
 ## Context

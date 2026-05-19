@@ -13,6 +13,8 @@ import { computeGroup, type GroupInput } from "@/lib/calculator/compute";
 import { recommend } from "@/lib/recommend/algorithm";
 import { GB_PER_TB, type ServerSpec, type RecommendationResult } from "@/lib/recommend/types";
 import { sendSubmissionNotification } from "@/lib/email/submission-notification";
+import { pdfFilename, renderSubmissionPdfBuffer } from "@/lib/pdf/render";
+import type { SubmissionPdfInput } from "@/lib/pdf/types";
 
 const groupSchema = z.object({
   name: z.string().trim().max(80).default(""),
@@ -99,7 +101,7 @@ export async function submitCalculation(
 
   const { data: specRows, error: specError } = await supabase
     .from("server_specs")
-    .select("product_id, model_code, max_cameras, max_storage_tb, products!inner(list_price_usd)")
+    .select("product_id, model_code, max_cameras, max_storage_tb, products!inner(name, description, list_price_usd)")
     .eq("active", true);
   if (specError) {
     return { status: "error", error: `Failed to load server specs: ${specError.message}` };
@@ -108,16 +110,27 @@ export async function submitCalculation(
     return { status: "error", error: "No active server specs are seeded. Contact an administrator." };
   }
 
-  const specs: ServerSpec[] = specRows.map((row) => {
-    const product = Array.isArray(row.products) ? row.products[0] : row.products;
-    return {
+  type ProductJoin = { name: string; description: string | null; list_price_usd: number };
+  const specs: ServerSpec[] = [];
+  const productByProductId = new Map<string, ProductJoin>();
+  const specByProductId = new Map<string, { maxCameras: number; maxStorageTb: number }>();
+  for (const row of specRows) {
+    const product = (Array.isArray(row.products) ? row.products[0] : row.products) as ProductJoin | null;
+    specs.push({
       productId: row.product_id,
       modelCode: row.model_code,
       maxCameras: row.max_cameras,
       maxStorageTb: Number(row.max_storage_tb),
       listPriceUsd: Number(product?.list_price_usd ?? 0),
-    };
-  });
+    });
+    if (product) {
+      productByProductId.set(row.product_id, product);
+      specByProductId.set(row.product_id, {
+        maxCameras: row.max_cameras,
+        maxStorageTb: Number(row.max_storage_tb),
+      });
+    }
+  }
 
   const recommendation = recommend(
     { totalCameras: totals.cameras, totalStorageGb: totals.storageGb },
@@ -190,6 +203,68 @@ export async function submitCalculation(
     // Notification lookup failure must not block the submission.
   }
 
+  // Render the PDF in-memory from the data we already have. The Route Handler
+  // re-derives this view model from the persisted row; here we skip the
+  // round-trip. A PDF render failure must not block submission or the email —
+  // sales still gets the plain-text notification, and the partner can fetch
+  // the PDF later from the Download button.
+  const partnerEmail = user.email ?? undefined;
+  const pdfInput: SubmissionPdfInput = {
+    generatedAt: new Date(),
+    submissionId: inserted.id,
+    partner: {
+      companyName: partnerInfo.companyName,
+      contactName: partnerInfo.contactName,
+      email: user.email ?? "(no email on file)",
+    },
+    projectName: submissionRow.project_name,
+    vms: submissionRow.vms,
+    retentionDays: input.retentionDays,
+    totals: {
+      cameras: totals.cameras,
+      bandwidthMbps: totals.bandwidthMbps,
+      storageGb: totals.storageGb,
+    },
+    groups: computed.map((r) => ({
+      name: r.input.name,
+      cameras: r.input.cameras,
+      resolutionLabel: RESOLUTIONS[r.input.resolutionIdx].label,
+      codec: CODECS[r.input.codecIdx].value,
+      complexity: COMPLEXITIES[r.input.complexityIdx].tier,
+      fps: r.input.fps,
+      hoursPerDay: Math.round((r.input.recordingPercent / 100) * 24),
+      motionPercent: r.input.motionPercent,
+      bandwidthMbps: r.computed.bandwidthMbps,
+      storageGb: r.computed.storageGb,
+    })),
+    recommendation: (() => {
+      const winnerProduct = productByProductId.get(recommendation.winner.productId);
+      const winnerSpec = specByProductId.get(recommendation.winner.productId);
+      const productDescription = winnerProduct?.description
+        ? `${winnerProduct.name} — ${winnerProduct.description}`
+        : winnerProduct?.name ?? recommendation.winner.modelCode;
+      return {
+        units: recommendation.winner.units,
+        modelCode: recommendation.winner.modelCode,
+        productDescription,
+        coveredCameras: winnerSpec
+          ? recommendation.winner.units * winnerSpec.maxCameras
+          : recommendation.winner.coveredCameras,
+        coveredStorageTb: winnerSpec
+          ? recommendation.winner.units * winnerSpec.maxStorageTb
+          : recommendation.winner.coveredStorageTb,
+        warnings: recommendation.warnings,
+      };
+    })(),
+  };
+
+  let pdfBuffer: Buffer | undefined;
+  try {
+    pdfBuffer = await renderSubmissionPdfBuffer(pdfInput);
+  } catch (err) {
+    console.error("submission PDF render failed", err);
+  }
+
   try {
     await sendSubmissionNotification({
       partner: { ...partnerInfo, email: user.email ?? "(no email on file)" },
@@ -203,6 +278,9 @@ export async function submitCalculation(
       vms: submissionRow.vms,
       recommendation,
       submissionId: inserted.id,
+      pdfBuffer,
+      pdfFilename: pdfBuffer ? pdfFilename(pdfInput) : undefined,
+      partnerEmail,
     });
     await supabase
       .from("submissions")

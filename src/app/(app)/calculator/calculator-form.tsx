@@ -610,6 +610,15 @@ function RecommendationPanel({
           ))}
         </ul>
       )}
+      <div className="ax-rec-actions">
+        <a
+          className="ax-pdf-btn"
+          href={`/api/submissions/${state.submissionId}/pdf`}
+          download
+        >
+          Download PDF
+        </a>
+      </div>
       <div className="ax-rec-conf">
         Submitted to Arxys sales — they&apos;ll be in touch. Submission ID{" "}
         <code>{state.submissionId}</code>.
