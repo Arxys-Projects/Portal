@@ -4,6 +4,49 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-05-19 — Planned: Step 8 (Pipedrive Deal creation) — scope locked
+
+### Work done
+
+Locked the inputs for the upcoming Step 8 implementation session. No code yet; values recorded here so they survive any session-compaction or context switch:
+
+- **Trigger:** every successful `submitCalculation` Server Action call creates a Pipedrive Deal after the existing sales + partner emails go out. Pipedrive failure must not block the submission, the emails, or the PDF download — same defensive pattern Steps 6+7 used for PDF.
+- **Pipedrive target:**
+  - Pipeline: **"Project Pipeline"** (resolved at runtime by name → ID lookup against `GET /v1/pipelines`)
+  - Initial stage: **"New Lead"** (resolved at runtime by name → ID against `GET /v1/stages?pipeline_id=N`)
+  - Owner: **"Andy Newbom"** (resolved at runtime via `GET /v1/users?term=Andy+Newbom`, cached; failure surfaces a clear error suggesting a `PIPEDRIVE_DEAL_OWNER_ID` env override)
+- **Custom fields:** implementation session creates them on first run if absent (idempotent — check by `key` then create). Fields:
+  - `arxys_submission_id` (varchar)
+  - `arxys_total_cameras` (double)
+  - `arxys_bandwidth_mbps` (double)
+  - `arxys_storage_gb` (double)
+  - `arxys_recommended_models` (varchar, e.g. "3 × V800")
+  - `arxys_portal_url` (varchar, URL back to portal — placeholder route for now, e.g. `https://portal-arxys.vercel.app/dashboard`)
+- **Field mapping (confirmed):**
+
+  | Submission field | Pipedrive Deal field |
+  |---|---|
+  | Project name | Deal title |
+  | (placeholder $0 — real pricing in Phase 2 per ADR 0019) | Deal value |
+  | Partner contact email | Person (lookup by email; create if missing) |
+  | Partner company | Organization (lookup by name; create if missing) |
+  | Submission ID | Custom `arxys_submission_id` |
+  | Total cameras | Custom `arxys_total_cameras` |
+  | Total bandwidth Mbps | Custom `arxys_bandwidth_mbps` |
+  | Total storage GB | Custom `arxys_storage_gb` |
+  | Recommended models | Custom `arxys_recommended_models` |
+  | Link to submission | Custom `arxys_portal_url` |
+
+- **Phase 1 placeholder rule (per ADR 0019):** Deal value = 0, with a `[Phase 1 placeholder — pricing in Phase 2]` note added to the Deal description so internal users browsing Pipedrive see the gap explicitly.
+- **Scope reaffirmed:** next session is **Step 8 only**. Step 9 (Admin) is a separate future session. Step 10 (real pricing) is removed from Phase 1, replaced by the Phase 2 Pricing Pipeline project (`docs/proposals/phase-2-pricing-pipeline.md`).
+
+### Decisions captured
+
+- ADRs to author at Step 8 implementation:
+  - `0020-pipedrive-deal-creation-on-submission.md` — Pipedrive Deal trigger, defensive failure path, runtime lookups (pipeline/stage/owner/custom-field IDs) over hardcoded constants.
+
+---
+
 ## 2026-05-19 — Planned: defer real pricing to Phase 2; Phase 1 uses placeholders
 
 ### Work done
