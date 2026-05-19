@@ -4,6 +4,16 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-05-19 — UI polish: widen app shell max-width from 1024 to 1280
+
+### Work done
+
+- `src/app/(app)/layout.tsx` line 50: `max-w-5xl` → `max-w-7xl` on `<main>` (1024 → 1280px). The 1024px cap squeezed the calculator's 3 KPI cards + bar charts on wide screens and forced needless vertical scroll. Dashboard at 1280px still reads cleanly. Header bar at line 24 stays `max-w-5xl` — the asymmetry is intentional, keeps the top nav compact while letting page content breathe.
+- Verified with `npm run build` — clean. No other layout changes needed.
+- Lands as its own commit before Step 9 (Admin) so the admin pages inherit the wider shell from day one.
+
+---
+
 ## 2026-05-19 — Step 8 follow-up: populate admin-curated Pipedrive deal fields
 
 ### Work done
