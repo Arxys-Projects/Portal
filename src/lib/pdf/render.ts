@@ -1,6 +1,6 @@
 import "server-only";
-import { renderToBuffer } from "@react-pdf/renderer";
-import { createElement } from "react";
+import { type DocumentProps, renderToBuffer } from "@react-pdf/renderer";
+import { type ReactElement, createElement } from "react";
 import { SubmissionPdf } from "./SubmissionPdf";
 import type { SubmissionPdfGroup, SubmissionPdfInput } from "./types";
 import { GB_PER_TB } from "@/lib/recommend/types";
@@ -9,7 +9,12 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 export async function renderSubmissionPdfBuffer(
   input: SubmissionPdfInput,
 ): Promise<Buffer> {
-  return renderToBuffer(createElement(SubmissionPdf, { data: input }));
+  // SubmissionPdf returns a <Document>, but the wrapper's component-level
+  // props type ({ data: SubmissionPdfInput }) does not unify with the
+  // DocumentProps signature renderToBuffer expects. Cast through unknown.
+  // Runtime is unaffected — react-pdf walks whatever element tree it gets.
+  const element = createElement(SubmissionPdf, { data: input }) as unknown as ReactElement<DocumentProps>;
+  return renderToBuffer(element);
 }
 
 export function pdfFilename(input: { generatedAt: Date; submissionId: string }): string {
