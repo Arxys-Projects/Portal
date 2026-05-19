@@ -4,6 +4,36 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-05-18 — Planned: Step 5 configurator data received + bandwidth-gate open question
+
+### Work done
+
+- User supplied the configurator capacity table for `server_specs` seed (six rows):
+
+  | model | description | max_cameras | storage_min_tb | storage_max_tb |
+  |---|---|---|---|---|
+  | V200 | VideoX V200 1U 4Bay Rack - V5 NVR Server | 100 | 10 | 64 |
+  | V400 | VideoX V400 2U 8Bay Rack - V5 Video & Analytics Server | 200 | 65 | 118 |
+  | V500 | VideoX V500 2U 12Bay Rack - V5 Video & Analytics Server | 275 | 119 | 210 |
+  | V600 | VideoX V600 3U 16Bay Rack - V5 Video & Analytics Server | 275 | 211 | 300 |
+  | V700 | VideoX V700 4U 24Bay Rack - V5 Video & Analytics Server | 325 | 301 | 430 |
+  | V800 | VideoX V800 4U 36Bay Rack - V5 Video & Analytics Server | 325 | 431 | 640 |
+
+  Notes:
+  - V500 / V600 are identical in camera capacity (275); they differ only in storage range — confirming the earlier "storage-only differentiation" given by the user.
+  - V700 / V800 likewise identical in cameras (325); storage-only differentiation.
+  - V200 is **NVR-only** (no analytics) — included in this table because Step 5 sizes a bandwidth + storage workload from the existing calculator and V200 is a legitimate cheapest-fit candidate. V200 is **excluded** from the future VideoX Analytics Sizing calculator (that calculator's recommendation set starts at V400).
+
+### Open question (BLOCKING for Step 5 implementation, not for scope)
+
+- **No bandwidth-cap column in the configurator.** ADR 0006 (bandwidth gate) presupposes per-model `max_bandwidth_mbps`. Three options to resolve before code lands:
+  - **A)** User supplies per-model bandwidth caps (preferred — keeps the gate as a real constraint).
+  - **B)** Derive bandwidth implicitly: `max_bandwidth_mbps = max_cameras × X` for some constant `X` per Mbps/camera. Requires `X` from user.
+  - **C)** Drop the bandwidth gate. Recommendation becomes camera-count + storage-only. ADR 0006 would be amended/superseded.
+  The implementation session must NOT proceed with the recommendation algorithm until this is answered.
+
+---
+
 ## 2026-05-18 — Planned: Step 5 scope locks (inline result on calculator page)
 
 ### Work done
