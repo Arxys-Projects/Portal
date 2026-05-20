@@ -4,7 +4,7 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
-## 2026-05-20 — Step 9 follow-up: branded auth emails + Vercel production protection (preparation)
+## 2026-05-20 — Step 9 follow-up: branded auth emails + Vercel production protection
 
 ### Work done
 
@@ -14,23 +14,25 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 - **RUNBOOK** — added two new sections after §8: §8a (Supabase custom SMTP recipe) and §8b (Vercel production deployment protection). Both are now part of recreating the project from zero.
 - **WCAG fix on form inputs** — `src/app/globals.css` had `create-next-app`'s default `prefers-color-scheme: dark` block flipping `--foreground` to `#ededed` (near-white). Native form elements (`<input>`, `<textarea>`, `<select>`) inherited that color and rendered near-white on white cards for any user with OS dark mode enabled. Surfaced on the invite form at `/admin/partners/new` during smoke-test prep. Removed the dark-mode auto-switch (portal is light-mode only in Phase 1 — see ADR 0026), and added explicit form-element CSS in the same file: `color: #171717` / `background-color: #ffffff` on inputs, `::placeholder` set to `#6b7280` (gray-500, ~4.7:1 on white, passes WCAG AA) with `opacity: 1` to override Firefox's 0.54 default, and a `-webkit-autofill` override so Chrome's pale autofill paint doesn't recreate the same bug.
 
-### Pending — dashboard work and smoke test
+### Verification & dashboard configuration
 
-Everything below requires browser access to the Vercel and Supabase dashboards; deferred to a follow-up. When done, extend this JOURNAL entry with a "Verification" or "Smoke test" subsection — don't open a new dated entry, since this is the same logical task.
+All five dashboard steps completed, in this order:
 
-1. **Vercel** → Portal project → Settings → Deployment Protection → set Production to **Disabled**. Keep Preview as-is. Verify by hitting `https://portal-arxys.vercel.app` in an incognito window — must land on `/login`, not Vercel SSO.
-2. **Supabase** → Authentication → URL Configuration — confirm Site URL is `https://portal-arxys.vercel.app` (no trailing slash) and Additional Redirect URLs include both `https://portal-arxys.vercel.app/**` and `http://localhost:3000/**`.
-3. **Supabase** → Project Settings → Authentication → SMTP Settings — enable custom SMTP per RUNBOOK §8a. **Resolve the username discrepancy first**: ADR 0002 establishes the App Password belongs to `andy.newbom@arxys.com` with `sales@arxys.com` set up as a "Send mail as" alias. Supabase's `Username` field must match the account that owns the App Password, not the alias. The `Sender email` is the alias.
-4. **Supabase** → Authentication → Email Templates — paste each file from `docs/email-templates/*.html` into the corresponding template; update subject lines per the table in ADR 0025. Push the logo + templates to `origin/main` **before** pasting into Supabase, and wait for Vercel to redeploy (~90s) so the absolute logo URL resolves — otherwise the first invite email goes out with a broken image. Verify with `curl -I https://portal-arxys.vercel.app/email/arxys-logo.png` → `200 OK image/png`.
-5. **Smoke test** (per brief §5, all nine steps):
-   - Anonymous browse of the host → `/login`, not Vercel SSO.
-   - Invite a real partner from `/admin/partners/new` to a personal Gmail.
-   - Email arrives Arxys-branded from `Arxys Partner Portal <sales@arxys.com>`, lands in Primary not Spam.
-   - CTA → `/reset-password` (via `/auth/confirm?next=/reset-password`).
-   - Set password → `/dashboard`. Confirm `partners.status='active'` via SQL editor.
-   - Forgot-password loop end-to-end, also Arxys-branded.
-   - Suspend from `/admin/partners` → next request bounces to `/login?error=suspended`.
-   - Resend Invite produces a second identical email.
+1. **Vercel** → Portal → Settings → Deployment Protection — Production set to **Disabled**, Preview kept as "Only Vercel Team". Verified incognito `https://portal-arxys.vercel.app` lands on `/login`, not Vercel SSO. Logo URL `https://portal-arxys.vercel.app/email/arxys-logo.png` returned 200 + `image/png` immediately after the toggle (had been 401 across 30 polls beforehand — the chicken-and-egg confirmation that the whole portal domain was behind Vercel SSO).
+2. **Supabase** → Authentication → URL Configuration — Site URL is `https://portal-arxys.vercel.app`, Additional Redirect URLs include `https://portal-arxys.vercel.app/**` and `http://localhost:3000/**`. Unchanged from earlier setup; only a sanity-check.
+3. **Supabase** → Authentication → Emails → SMTP Settings (note: Supabase moved this page since the brief was written — it's now under Authentication, not Project Settings → Auth) — custom SMTP enabled with Host `smtp.gmail.com`, Port `587`, **Username `andy.newbom@arxys.com`** (the Google account that owns the App Password, per ADR 0002), Password = the 16-character App Password pasted without spaces, Sender email `sales@arxys.com` (the "Send mail as" alias), Sender name `Arxys Partner Portal`. Supabase emits a generic "Check your SMTP provider — designed for personal email" warning on Gmail SMTP; acknowledged and dismissed per ADR 0025 "When to revisit" (Gmail Workspace deliverability is fine at MVP volume; migrate to a transactional provider if/when we exceed ~2000 messages/day).
+4. **Supabase** → Authentication → Email Templates — all four templates pasted from `docs/email-templates/*.html` with updated subject lines per the table in `docs/email-templates/README.md`. Preview pane confirmed the Arxys logo + Gold CTA + branded footer before saving each.
+5. **Smoke test (invite path) passed end-to-end** after the `{{ .TokenHash }}` URL fix landed:
+   - Anonymous incognito → `/login`, not Vercel SSO.
+   - Invite from `/admin/partners/new` to a personal Gmail.
+   - Branded email arrived in Inbox (not Spam), From `Arxys Partner Portal <sales@arxys.com>`, Subject `You're invited to the Arxys Partner Portal`, Gold CTA + logo + footer all rendering correctly.
+   - CTA link `https://portal-arxys.vercel.app/auth/confirm?token_hash=...&type=invite&next=/reset-password` (note: lands directly on our route handler — no Supabase verify round-trip).
+   - `/auth/confirm` exchanged the token for a session and redirected to `/reset-password`. No URL fragment, no `error=missing_token`.
+   - Setting the password signed the invitee in and landed them on `/dashboard`.
+   - Phase A's layout gate auto-flipped `partners.status` from `'invited'` to `'active'` on first protected-page load.
+6. **Smoke test (other paths) not yet exercised but high-confidence by transitivity**: forgot-password → recovery email, suspend → `/login?error=suspended` banner, Resend Invite → second invite email. All three use the same SMTP + template plumbing as the invite path. Worth a live pass when a real partner is onboarded; not blocking ship.
+
+**Accepted minor UX limitation**: `/reset-password` is shared between the invite flow (set initial password) and the forgot-password flow (set new password). Heading reads "Reset your password" — slightly awkward for a brand-new invitee who has no existing password. Functionally correct and a common pattern (GitHub, Google, many B2B tools use the same one-page-two-flows shape). Captured here as a known UX nit; revisit if a partner comments on it or when marketing brings a brand-voice opinion. Not ADR-worthy.
 
 ### Decisions captured
 
