@@ -4,6 +4,45 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-05-20 — Step 9 follow-up: branded auth emails + Vercel production protection (preparation)
+
+### Work done
+
+- **Logo asset** at [`public/email/arxys-logo.png`](../public/email/arxys-logo.png). Pulled the canonical Arxys gold wordmark from `https://www.arxys.com/wp-content/uploads/Arxys-logo-gold-e1503013560806.png` (the header logo on the marketing homepage). 250×43 RGBA PNG, transparent background, 6.5 KB. Smaller than the brief's recommended 400×120 source but renders at `width="140"` in the templates — slight downscale on retina, no upscaling, stays crisp.
+- **Four canonical email templates** in [`docs/email-templates/`](./email-templates/) — `invite.html`, `magic-link.html`, `reset-password.html`, `confirm-signup.html`, plus a [`README.md`](./email-templates/README.md) calling out the source-of-truth rule and the per-template subject lines. One Montserrat-based skeleton (700 heading / 400 body, with the `-apple-system, BlinkMacSystemFont, ...` fallback stack for clients that strip `<link>` to Google Fonts). Brand Gold `#fbb040` CTA with dark `#1a1a1a` text (WCAG AAA 9.5:1; white-on-Gold would fail AA at 2.0:1). Brand Grey `#d1d2d4` used only for the card border and the divider above the footer — too light for text per the `arxys-company` skill's usage notes.
+- **ADR** [`0025-supabase-custom-smtp-and-branded-templates.md`](./decisions/0025-supabase-custom-smtp-and-branded-templates.md) — custom SMTP + all four templates, with the reasoning for choosing this over template-only or generateLink+nodemailer.
+- **RUNBOOK** — added two new sections after §8: §8a (Supabase custom SMTP recipe) and §8b (Vercel production deployment protection). Both are now part of recreating the project from zero.
+
+### Pending — dashboard work and smoke test
+
+Everything below requires browser access to the Vercel and Supabase dashboards; deferred to a follow-up. When done, extend this JOURNAL entry with a "Verification" or "Smoke test" subsection — don't open a new dated entry, since this is the same logical task.
+
+1. **Vercel** → Portal project → Settings → Deployment Protection → set Production to **Disabled**. Keep Preview as-is. Verify by hitting `https://portal-arxys.vercel.app` in an incognito window — must land on `/login`, not Vercel SSO.
+2. **Supabase** → Authentication → URL Configuration — confirm Site URL is `https://portal-arxys.vercel.app` (no trailing slash) and Additional Redirect URLs include both `https://portal-arxys.vercel.app/**` and `http://localhost:3000/**`.
+3. **Supabase** → Project Settings → Authentication → SMTP Settings — enable custom SMTP per RUNBOOK §8a. **Resolve the username discrepancy first**: ADR 0002 establishes the App Password belongs to `andy.newbom@arxys.com` with `sales@arxys.com` set up as a "Send mail as" alias. Supabase's `Username` field must match the account that owns the App Password, not the alias. The `Sender email` is the alias.
+4. **Supabase** → Authentication → Email Templates — paste each file from `docs/email-templates/*.html` into the corresponding template; update subject lines per the table in ADR 0025. Push the logo + templates to `origin/main` **before** pasting into Supabase, and wait for Vercel to redeploy (~90s) so the absolute logo URL resolves — otherwise the first invite email goes out with a broken image. Verify with `curl -I https://portal-arxys.vercel.app/email/arxys-logo.png` → `200 OK image/png`.
+5. **Smoke test** (per brief §5, all nine steps):
+   - Anonymous browse of the host → `/login`, not Vercel SSO.
+   - Invite a real partner from `/admin/partners/new` to a personal Gmail.
+   - Email arrives Arxys-branded from `Arxys Partner Portal <sales@arxys.com>`, lands in Primary not Spam.
+   - CTA → `/reset-password` (via `/auth/confirm?next=/reset-password`).
+   - Set password → `/dashboard`. Confirm `partners.status='active'` via SQL editor.
+   - Forgot-password loop end-to-end, also Arxys-branded.
+   - Suspend from `/admin/partners` → next request bounces to `/login?error=suspended`.
+   - Resend Invite produces a second identical email.
+
+### Decisions captured
+
+- [`0025-supabase-custom-smtp-and-branded-templates.md`](./decisions/0025-supabase-custom-smtp-and-branded-templates.md)
+
+### Detours & fixes
+
+- **Brief said Port 587, ADR 0002 / RUNBOOK §2 establish 465.** Both work against Gmail (587 = STARTTLS, 465 = SSL). The nodemailer transport at runtime uses 465; the Supabase form is being set to 587 because that's the port Supabase recommends in-product. Captured the divergence in ADR 0025 so future readers don't see "two ports for one SMTP host" and assume one is wrong.
+- **Brief instructed `Username: sales@arxys.com` in the Supabase SMTP form.** ADR 0002 documents the actual App Password as belonging to `andy.newbom@arxys.com` with `sales@arxys.com` set up as a "Send mail as" alias under that account — Google App Passwords are bound to the authenticating account, not the alias, so the Supabase `Username` field must use the owning account. The `Sender email` (the visible From) is correctly the alias. Surfacing this in the pending list so the dashboard step uses the right credential, not the literal brief text.
+- **Logo source.** Brief noted "user attached it earlier in the conversation history" — not available in a fresh session. Fell back to the brief's documented fallback ("pull from `https://www.arxys.com/` — the homepage header logo is the canonical asset"). Confirmed via `grep` of the homepage HTML; `Arxys-logo-gold-e1503013560806.png` is the canonical wordmark.
+
+---
+
 ## 2026-05-20 — Step 9 Phase B: admin panel + partner submission history
 
 ### Work done

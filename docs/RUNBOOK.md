@@ -124,6 +124,36 @@ In the dashboard at **Authentication → URL Configuration**:
 
 These control which URLs Supabase will redirect to from email links (invites, password resets). Save before bootstrapping any users — otherwise the email links will refuse to land on the portal.
 
+## 8a. Supabase: custom SMTP for auth emails
+
+The Portal sends all auth emails (invite, magic link, password reset, confirm signup) via the same Gmail Workspace SMTP used by the calculator notification path. Without this, Supabase ships its defaults from `noreply@mail.app.supabase.io` and most corporate inboxes will spam them.
+
+In the dashboard at **Project Settings → Authentication → SMTP Settings**:
+
+1. Toggle **Enable Custom SMTP** on.
+2. **Sender email**: `sales@arxys.com`. **Sender name**: `Arxys Partner Portal`.
+3. **Host**: `smtp.gmail.com`. **Port**: `587`.
+4. **Username**: the Google account that owns the App Password (`andy.newbom@arxys.com` per ADR [0002](./decisions/0002-gmail-smtp-over-siteground.md); `sales@arxys.com` is a "Send mail as" alias on that account, not its own auth identity).
+5. **Password**: the 16-character Gmail App Password — same value as Vercel env `SMTP_PASS`. Paste, do not type; App Passwords are 16 chars with no spaces in Supabase even though Google displays them grouped.
+6. **Minimum interval between emails**: `60` seconds (default).
+7. Save.
+
+Email templates live in [`docs/email-templates/*.html`](./email-templates/). To deploy: copy each file's HTML into Supabase Auth → Email Templates → corresponding template, update the subject per the table in ADR [0025](./decisions/0025-supabase-custom-smtp-and-branded-templates.md), save.
+
+If the Gmail App Password rotates, update **both**:
+
+- Vercel env `SMTP_PASS` (production + preview).
+- Supabase Auth → SMTP Settings → Password field.
+
+## 8b. Vercel: production deployment protection
+
+For the Portal project: **Settings → Deployment Protection → Vercel Authentication**.
+
+- **Production**: **Disabled** — invitees with no Vercel account need to reach `/login` on the live host.
+- **Preview**: **Only Vercel Team** (or default) — keeps preview deploys gated to the org.
+
+Verify by opening `https://portal-arxys.vercel.app` in an incognito browser window. Must land on the portal's `/login` page, not Vercel's SSO.
+
 ## 9. Create the first admin user
 
 ```bash
