@@ -12,15 +12,37 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Form elements always render with high-contrast text regardless of OS
+ * preference. The portal is light-mode only in Phase 1 (see ADR 0026).
+ * Without these rules, inputs inherited the body color which flipped to
+ * near-white under prefers-color-scheme: dark, and Chrome's autofill ghost
+ * text paints very pale by default — both produced white-on-white form
+ * fields on dark-mode systems. */
+input,
+textarea,
+select {
+  color: #171717;
+  background-color: #ffffff;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #6b7280; /* gray-500, ~4.7:1 on white — passes WCAG AA */
+  opacity: 1;     /* Firefox defaults to 0.54 — force full opacity */
+}
+
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill,
+select:-webkit-autofill {
+  -webkit-text-fill-color: #171717;
+  -webkit-box-shadow: 0 0 0 1000px #ffffff inset;
+  caret-color: #171717;
 }
