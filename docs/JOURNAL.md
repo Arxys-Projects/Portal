@@ -4,6 +4,53 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-05-20 — Step 9 Phase B: admin panel + partner submission history
+
+### Work done
+
+- **`src/app/(app)/admin/layout.tsx`** — admin-only shell. Re-checks `partners.role='admin' AND status='active'` defensively and calls `notFound()` if either is missing — a 404 (not 403) so the admin section doesn't leak its existence to non-admins. Inherits the header + signOut from `(app)/layout.tsx`. Renders a thin left side-nav with Overview / Partners / Submissions / Back to Dashboard.
+- **`src/app/(app)/admin/page.tsx`** — landing page with three KPI cards (Partners broken down by status, all-time submissions, submissions in the last 30 days) and a 10-row "Recent submissions" table linking each row to `/admin/submissions/[id]`. The 30-day cutoff goes through a `cutoffIsoDaysAgo()` helper so the impure `Date.now()` read isn't inline in the render body (eslint's `react-hooks/purity` rule treats async Server Components as render functions; see Detours).
+- **`src/app/(app)/admin/partners/page.tsx`** — table of all partners, ordered by `created_at desc`. Columns: company, contact, email, role, status (colored pill), created date, actions. Email comes from `auth.admin.listUsers({ perPage: 200 })` joined in memory — `partners` doesn't store email (it's the `auth.users` source of truth). Top-right "Invite partner" CTA links to `/admin/partners/new`.
+- **`src/app/(app)/admin/partners/partner-row-actions.tsx`** — client component wrapping the per-row Suspend / Reactivate / Resend Invite buttons. Each button is its own `<form>` with `useActionState` so inline errors (from the self-suspend / last-active-admin / TOCTOU guards) render next to the offending button. Suspend has a `window.confirm` prompt to defuse misclicks. Buttons are rendered conditionally on `row.status` — Suspend only for `active`, Reactivate only for `suspended`, Resend Invite only for `invited`.
+- **`src/app/(app)/admin/partners/actions.ts`** — four Server Actions (`invitePartner`, `suspendPartner`, `reactivatePartner`, `resendInvite`). All four start with a `requireAdmin()` helper that re-verifies the caller via the user-scoped client before opening the service-role client. Guards as committed: `invitePartner` rolls back the auth user with `admin.auth.admin.deleteUser` if the partners-row INSERT fails; `suspendPartner` refuses self-suspend and the last-active-admin case (count via service-role); `resendInvite` re-reads `partners.status` and refuses if no longer `'invited'` (TOCTOU). Redirect URL for both invite calls mirrors the `headers().get('origin')` pattern from `src/app/(auth)/forgot-password/actions.ts:23-30`.
+- **`src/app/(app)/admin/partners/new/page.tsx` + `invite-form.tsx`** — server page wrapping a client form. Three fields (email, contact name, company name); validation with zod inside the Server Action, field-level errors surfaced via `useActionState`. Submit button shows pending state.
+- **`src/app/(app)/admin/submissions/page.tsx`** — paginated (`LIMIT 50 OFFSET ?`) table of every submission across partners. `?partnerId=` GET filter via a dropdown sourced from the partners list (admin-only read OK via existing RLS). Columns: date, partner company, project, recommendation (`N × Model`), camera count, list price, View link.
+- **`src/app/(app)/admin/submissions/[id]/page.tsx`** — read-only admin submission detail. Uses the shared `<SubmissionDetail mode="admin" partner={...} />` component.
+- **`src/app/(app)/submissions/page.tsx`** — partner-facing list of the caller's own submissions. Same shape as the admin list minus the partner column. RLS scopes automatically; no application-level `partner_id` filter (per ADR 0024).
+- **`src/app/(app)/submissions/[id]/page.tsx`** — partner-facing detail, same shared component in `mode="partner"`. No partner header line, no Pipedrive link, no partner-price row.
+- **`src/app/(app)/_components/submission-detail.tsx`** — shared Server Component renderer. The `mode` prop is the only difference between admin and partner views; the partner-price row and the Pipedrive link key off it. Renders the calculator inputs table, the per-group breakdown from `groups_payload`, the recommendation block (joined `products.name + description + sku`), the Download PDF link, and (admin only) the Pipedrive deal link.
+- **`src/app/(app)/_components/load-submission.ts`** — `loadSubmissionDetail(id)` helper used by both detail pages. Single Supabase SELECT with the products embed; flattens the Supabase array-vs-object embed shape into a normalised object.
+- **`src/app/(app)/calculator/actions.ts`** — defense-in-depth at the top of `submitCalculation`: refuse with a clear error if the caller's `partners.status !== 'active'`. The Phase A layout gate already blocks suspended partners from the UI; this catches a stale tab or scripted POST.
+- **`scripts/test-rls.ts`** — extended with an `admin` persona (`provisionPersona("ADMIN", { role: "admin" })`). Added three test cases: admin SELECT partners returns at least A + B + self (8a), admin SELECT submissions returns rows for both A and B (8b), suspending the admin (via service-role) strips their cross-partner reads — they go from "sees all" to "sees only self" without dropping the session (8c, proves `is_admin()` correctly requires `status='active'`). Server Action guards (self-suspend, last-active-admin, resend-invite TOCTOU) are explicitly noted as out-of-scope for `test-rls.ts` because they live in Server Actions, not RLS.
+- **ADRs.**
+  - [`0023-partner-management-actions.md`](./decisions/0023-partner-management-actions.md) — minimal action surface: Invite + Suspend/Reactivate + Resend Invite. Explicit non-features: no delete, no edit-profile, no role-flip.
+  - [`0024-partner-submission-history.md`](./decisions/0024-partner-submission-history.md) — partner routes at `/submissions`, RLS-only scoping, shared detail renderer with `mode` prop.
+- **Verification** — `npm run build` clean (15 routes, ~2.8s compile + 2.6s TS), `npm run lint` clean (after the purity-rule workaround), `npm test` 19/19. `scripts/test-rls.ts` not executed in this session (requires service-role credentials in the local env) — extension is mechanical and the existing pattern is unchanged.
+- **RUNBOOK** — unchanged. Phase B introduces no new env vars, scripts, or setup steps.
+- **Local commits** — five, grouped by area: admin shell + landing; partner management (list + actions + invite + row-actions); submissions (admin + partner + shared component + loader); calculator defense + RLS test extension; docs (ADRs + this JOURNAL entry). Not pushed.
+
+### Detours & fixes
+
+- **`react-hooks/purity` flagged `Date.now()` inside the admin landing's Server Component.** First write put `new Date(Date.now() - 30 * 86_400_000).toISOString()` directly inside the `Promise.all([...])` body for the last-30-days submission count. ESLint v9 with `eslint-config-next` 16.2.6 now ships a purity rule that treats async RSCs as render functions and flags impure calls like `Date.now()` inline. Workaround: hoist into a one-line `cutoffIsoDaysAgo(days: number)` helper at module scope and call it once before the parallel reads — the rule allows function calls to non-render helpers. Captured here because the rule is recent enough that future authors writing similar "cutoff" logic in Server Components will hit the same warning.
+- **Server Action result state doesn't reach the page when used as a plain `<form action={...}>`.** Initially planned the row actions as plain server-rendered forms with the action functions wired directly. That works for the happy path (`revalidatePath` causes a re-render) but loses the inline error case — when `suspendPartner` returns `{ status: 'error', error: 'You cannot suspend yourself' }`, the page just re-renders without the message. Wrapped the buttons in a small client component (`partner-row-actions.tsx`) using `useActionState`. Trade-off acknowledged: an extra small client bundle on the partners page; the alternative (writing the error into a query string and reading it back) would have leaked partner IDs into the URL bar and required custom plumbing per action.
+- **`auth.admin.listUsers` is paginated, capped at 200 per page by default.** The partners table joins email from `auth.users` because email isn't denormalised onto `partners`. The current implementation calls `listUsers({ perPage: 200 })` once. For partner bases >200 we'd need to walk pages. Recorded as a known limitation in this entry rather than building speculative pagination — the current partner count is in single digits and the comment in [`admin/partners/page.tsx`](./../src/app/(app)/admin/partners/page.tsx) flags the limit.
+- **`recovery` vs `invite` confirm route.** The Supabase docs and `src/app/auth/confirm/route.ts` already accept `type=invite` (it's a value in `EmailOtpType`). The invite redirect goes to `/auth/confirm?next=/reset-password`; the verifyOtp call sets the session and forwards to `/reset-password` where the invitee picks a password. No new route was needed.
+- **No new migrations and no new RLS policies were introduced.** Every column referenced by Phase B (`partners.status`, `submissions.pipedrive_deal_id`, `submissions.groups_payload`, the embedded `products` columns) was already in place by the end of Step 8. The admin-aware select policies (`partners_select_self_or_admin`, `submissions_select_own_or_admin`, `products_select_active_or_admin`) cover every read; service-role writes cover the four partner-management actions.
+
+### Decisions captured
+
+- [`0023-partner-management-actions.md`](./decisions/0023-partner-management-actions.md)
+- [`0024-partner-submission-history.md`](./decisions/0024-partner-submission-history.md)
+
+### Pending / explicit non-goals
+
+- Smoke test in production: invite a real test partner, confirm the invite email arrives, click through `/reset-password`, set a password, sign in, verify dashboard renders with `partners.status` now `'active'`, suspend the test partner from `/admin/partners`, confirm the next request bounces to `/login?error=suspended`.
+- `scripts/test-rls.ts` end-to-end run requires the service-role key — defer to a session where Andy has env access loaded.
+- No partner self-service profile editing, no role-flip UI, no hard delete (ADR 0023).
+- No customised Supabase invite email — defaults are acceptable for Phase 1.
+
+---
+
 ## 2026-05-20 — Step 9 Phase A: foundation gates + dashboard cleanup
 
 ### Work done
