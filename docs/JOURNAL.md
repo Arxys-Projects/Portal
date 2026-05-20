@@ -4,6 +4,76 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-05-20 — Step 11: pre-launch verification (Phase 1 closed, partner-launch reframed to Phase 2)
+
+### Work done
+
+Structural pre-launch verification of Portal Phase 1 per the Step 11 brief. Phase 1 is **feature-complete and structurally verified**; partner-facing launch is **blocked on Phase 2** (Pricing Pipeline project per ADR [0019](./decisions/0019-defer-real-pricing-to-phase-2.md)) for one specific reason captured under Detours & fixes. That blocker is treated as the trigger event for Phase 2 — not a Step 11 bug to fix in place. Step 11 closes here, not partial-incomplete.
+
+**§A1 Vercel — verified clean:**
+
+- All 10 required Production env vars present. Orphan `PIPEDRIVE_API_KEY` (from the Step 8 follow-up detour 2026-05-19) removed.
+- Deployment Protection Production = Disabled (incognito `https://portal-arxys.vercel.app/` returns 307 → `/login`, not Vercel SSO).
+- `.vercel/project.json` pins working copy to the `portal` project (`prj_tu3RWtzjhh7ao4mAELuJVaFWgkJV` in org `arxys`).
+- Production deployment `dpl_CDefAByY...` Ready, aliased to `portal-arxys.vercel.app`, `portal-git-main-arxys.vercel.app`, `portal-flame-eta.vercel.app`. The `-git-main-` alias plus a 2h-old auto-deploy from `main` HEAD `9514b62` together evidence Production Branch = `main`.
+- Framework Preset = Next.js (Andy eyeball-confirmed; corroborated by Next.js routes + `/_next/static/...` URLs being served).
+- Sibling Vercel project `forecast` exists (RUNBOOK §10 step 9 partially satisfied — `arxys-com` placeholder optional, not created).
+
+**§A2 Supabase — verified clean:**
+
+- Supabase CLI linked to cloud project `ddqnpwpouvkgivvbjpju` (matches `NEXT_PUBLIC_SUPABASE_URL`).
+- All four canonical templates at [`docs/email-templates/*.html`](./email-templates/) use `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&amp;type=…&amp;next=…` — zero references to `{{ .ConfirmationURL }}` (the Step 9 follow-up detour bug). Per-template `<type>` + `<next>` correct.
+- `scripts/test-rls.ts` end-to-end run against the production database: **8/8 PASS**, including 8c (suspended admin loses cross-partner SELECT). This is the long-standing "pending" item from Step 9 Phase B closed out. Side-observation from 8b: the production DB already has ~14 submissions across 4 owner UUIDs (real partner activity beyond the ephemeral test personas).
+- Site URL / Redirect URLs / SMTP credentials / template paste / Auth logs eyeball: Andy confirmed via dashboard.
+
+**§A3 Gmail deliverability — verified via DNS:**
+
+- SPF includes `_spf.google.com` (`v=spf1 ip4:173.236.43.242 include:_spf.google.com include:arxys.com.spf.auto.dnssmarthost.net ~all`).
+- DKIM at `google._domainkey.arxys.com` actively signing (RSA key published).
+- DMARC `v=DMARC1; p=none; rua=mailto:info@arxys.com` — meets the brief's "p=none minimum"; aggregate reports flow to `info@arxys.com`.
+- MX routes to `aspmx.l.google.com` cluster.
+- Two non-blocking observations: SPF is `~all` (soft fail; tightening to `-all` is a future hardening step) and DMARC `p=none` (monitor-only; tightening to `p=quarantine` is a future step). App Password + `sales@arxys.com` alias + mailbox monitoring: Andy confirmed.
+
+**§A4 Pipedrive — verified clean against live tenant:**
+
+- Pipeline `"Project Pipeline"` exists (id=1, active). Stage `"New Lead"` exists in pipeline 1 (id=1, order 2).
+- User `"Andy Newbom"` resolves (id=6039322, active).
+- All 6 `arxys_*` custom fields exist with correct `field_type` (auto-created on prior submissions; no first-run risk for the launch cohort).
+- All 13 admin-curated calculator fields exist by exact name (`Project Name`, `VMS`, `Camera Streams`, `Recording`, `Motion Activity Est. %`, `Frame Rate`, `Resolution`, `Retention Days`, `CODEC`, `Total Storage`, `Scene Complexity`, `Recording hours`, `Recommended Server`).
+- All VMS / CODEC / Scene Complexity / Recording option IDs in [`src/lib/pipedrive/deal.ts`](../src/lib/pipedrive/deal.ts) match the live tenant exactly. Zero drift from the Step 8 follow-up baseline.
+
+**RLS regression — closed (see §A2 above).** Ephemeral users teardown clean; no residual state in cloud DB after the run.
+
+**Step 11 close-out doc work — landed in this commit:**
+
+- ADR [`0027-silent-log-for-non-blocking-integrations.md`](./decisions/0027-silent-log-for-non-blocking-integrations.md) — accepts the current silent-`console.error` behavior on Pipedrive deal-create + partner-copy email failures as a deliberate Phase 1 choice (not an oversight). Revisit on volume or real-incident trigger.
+- ADR [`0028-defer-per-flow-reset-password-heading.md`](./decisions/0028-defer-per-flow-reset-password-heading.md) — accepts the shared "Reset your password" heading as a known limitation; Phase 2's partner-portal copy pass takes it as tracked work.
+
+### Detours & fixes
+
+- **Partner-visible nonsense prices — the launch blocker that reframes Phase 2.** ADR [0019](./decisions/0019-defer-real-pricing-to-phase-2.md) instructed "Calculator, PDF, and email show 'Pricing TBD' or equivalent text in any price field." Implementation got three of four surfaces right (calculator UI, PDF, partner email — none of these render pricing). Step 9 Phase B introduced two routes that ADR 0019 was written before and therefore didn't enumerate: `/submissions` (partner-facing list) and `/submissions/[id]` (partner-facing detail). Both render `formatPrice(submission.total_list_price_usd)`, and `formatPrice()` at [`src/app/(app)/_components/submission-detail.tsx:67`](../src/app/(app)/_components/submission-detail.tsx) returns `"Pricing TBD"` only for **null** values — not for the placeholder `products.list_price_usd` rows (1.00..6.00 dollars). A real partner submitting today sees totals like `$57.00` for "19 units × V500 placeholder $3" on their submission detail. Confirmed by reading the production `submissions` table: 10 most recent rows show values from `$1.00` to `$57.00`. Not fixed in Step 11 by deliberate choice — fixing it cleanly belongs to Phase 2 (Pricing Pipeline), which can either ship real prices from the now-existing Master Sheet or short-circuit with a "partner price suppression" precursor commit before any real partner is invited. Step 11 surfaces the blocker; Phase 2 owns the resolution. The 2–3-partner launch cohort from Step 11 §D5 does not get invited until that resolution lands.
+
+- **Pricing master Google Sheet now exists.** The Phase 2 proposal at [`docs/proposals/phase-2-pricing-pipeline.md`](./proposals/phase-2-pricing-pipeline.md) anticipated this Sheet but treated it as future Phase 0 work. As of Step 11 the Sheet is live at `https://docs.google.com/spreadsheets/d/12zwFhDynV6T4ehxui7y-i6F-8XjEYFRBPgsAicpksmk/` with 35 data rows (header + 34 product rows, "Valid as of 5/5/2026"). Mismatches against the proposal's Phase 0 spec, captured for Phase 2 reconciliation rather than fixed in Step 11: (a) no `Product Group` column; (b) `Price Type` not a separate column — MKT/CFQ values are inline strings in the MSRP cell; (c) row count is 35, doc expected 41 after 4 named additions; (d) one named addition `VX5-PP5-V100` is still absent; (e) extra `Partner Discount Price` column derived from a sheet-level discount % rather than the doc's per-user `partners.discount_tier`. These are Pipeline Phase 0 cleanup items, not Step 11 work.
+
+- **Step 11 scope reframe (mid-pass).** Started executing the brief's §A → §B sequence, completed §A1–§A4 + RLS clean, then surfaced the partner-visible-prices issue during §A5 (branding/copy review). The remaining §A5 (price-display review), §A6 (cohort timing), §B1 partial (Pipedrive smoke), and §B3 (page-by-page production pass) all overlap Phase 2 work and would be redone there. Closing Step 11 now with the structural verification green is the cheaper move than pretending to complete a checklist whose remaining items belong to a different scoping cycle. The pre-launch verification function the brief was written to serve has been served; the partner-shipping function is Phase 2's job.
+
+### Decisions captured
+
+- [`0027-silent-log-for-non-blocking-integrations.md`](./decisions/0027-silent-log-for-non-blocking-integrations.md)
+- [`0028-defer-per-flow-reset-password-heading.md`](./decisions/0028-defer-per-flow-reset-password-heading.md)
+
+### Handed off to Phase 2 (Pricing Pipeline)
+
+These were on the original Step 11 brief but defer rather than complete:
+
+- **Partner-visible price display on `/submissions` + `/submissions/[id]`** (the launch blocker). Resolution path: either Pipeline Phase 2 (Portal Price Book Page) ships real partner pricing, or a precursor "Path B" suppression commit lands first and a no-pricing Phase 1 ships to a canary partner.
+- **Auth-flow smoke tests in production** (forgot-password recovery, suspend → `/login?error=suspended` banner, Resend Invite). Step 9 transitivity argues these work; defer to Phase 2 pre-launch where the page-by-page pass touches them anyway.
+- **Page-by-page production pass** (Step 11 §B3). Folded into Phase 2 pre-launch — pages will change in Phase 2 so doing this now would be wasteful.
+- **Custom domain `portal.arxys.com`** (Step 11 §D1 deferred per ADR [0025](./decisions/0025-supabase-custom-smtp-and-branded-templates.md) "when to revisit").
+- **2–3 partner launch cohort invite** (Step 11 §D5). Now a Phase 2 decision: shape of "what does launch look like" depends on Phase 2's pricing-display resolution.
+
+---
+
 ## 2026-05-20 — Step 9 follow-up: branded auth emails + Vercel production protection
 
 ### Work done
