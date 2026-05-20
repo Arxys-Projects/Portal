@@ -4,6 +4,95 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-05-20 — Step 9 Phase A: foundation gates + dashboard cleanup
+
+### Work done
+
+- **`src/app/(app)/layout.tsx`** — extended the existing partner-row `select` to include `status`. Inserted two branches between the partner load and the render:
+  1. `if (partner?.status === "suspended")` → `await supabase.auth.signOut()` then `redirect('/login?error=suspended')`. The signOut is load-bearing: without it, the proxy's authed-on-`/login` redirect (`src/lib/supabase/proxy.ts:59-64`) would bounce the still-authenticated user back to `/dashboard` and produce an infinite redirect loop.
+  2. `if (partner?.status === "invited")` → service-role `UPDATE partners SET status='active' WHERE id=?` via `createSupabaseAdminClient()`. Errors are logged, not thrown — a failed flip leaves the user `'invited'` until the next request, which is harmless because `'invited'` and `'active'` are functionally equivalent for non-admin paths (only `is_admin()` requires `status='active'`).
+  3. Added a conditional "Admin" link in the header chrome next to "Sign out", rendered only when `partner.role === 'admin'`. The link points at `/admin`, which doesn't exist yet — Phase B will add the route. Only admins see the link; non-admin partners never get a 404.
+- **`src/app/(auth)/login/page.tsx`** — widened the `Search` promise type to accept an optional `error` query string. When `error === 'suspended'`, renders a small red banner above the sign-in form: "Your account has been suspended. Contact your administrator." Banner uses the same `text-red-*` palette as the existing `LoginForm` error pattern (`login-form.tsx:44-48`).
+- **`src/app/(app)/dashboard/page.tsx`** — deleted the dashed-border "Coming in Step 5" stub. Added two cards, both styled to match the existing Calculator card so the dashboard reads coherently:
+  - "Submission history" → `/submissions` for all users. Route 404s today; Phase B adds the partner-facing submissions list.
+  - "Admin" → `/admin`, rendered only when the current user is an admin. Same 404 caveat; Phase B adds it.
+- **ADRs.**
+  - [`0021-suspend-gate-in-app-layout.md`](./decisions/0021-suspend-gate-in-app-layout.md) — why the gate lives in the layout (vs. proxy or RLS) and why the signOut-before-redirect is required.
+  - [`0022-auto-activate-on-first-sign-in.md`](./decisions/0022-auto-activate-on-first-sign-in.md) — why the `'invited' → 'active'` flip happens on first protected-page load via service-role rather than manually or via a webhook.
+- **Local commits** — grouped as: layout + login banner; dashboard cards; docs (ADRs + this JOURNAL entry). Not pushed.
+
+### Decisions captured
+
+- [`0021-suspend-gate-in-app-layout.md`](./decisions/0021-suspend-gate-in-app-layout.md)
+- [`0022-auto-activate-on-first-sign-in.md`](./decisions/0022-auto-activate-on-first-sign-in.md)
+
+### Phase B handoff brief
+
+> The next session reads this cold. Everything below is the locked input for Phase B; if any of it conflicts with new information discovered during implementation, update *here* before changing course.
+
+#### Locked decisions (re-state verbatim in the Phase B session)
+
+1. **Suspend gate lives in `src/app/(app)/layout.tsx`** (not the proxy, not RLS). Signs the user out and redirects to `/login?error=suspended`. Done in Phase A — Phase B does not re-implement.
+2. **Auto-activate on first protected-page load** flips `partners.status` from `'invited'` to `'active'` via the service-role client. Done in Phase A — Phase B does not re-implement. Phase B's admin partner table simply reads the current status; it does not need to provide a "Mark active" action separate from "Suspend/Reactivate."
+3. **Dashboard stub folded** into real navigation cards (Submission history for all; Admin for admins). Done in Phase A.
+4. **Partner actions in Phase B = exactly three:** Invite (new partner email → `inviteUserByEmail` + partners row insert via service-role), Suspend / Reactivate (toggle `partners.status` between `'active'` and `'suspended'`), Resend Invite (re-trigger the invite email; only visible for rows still at `status='invited'`). No edit-profile, no delete, no role-flip in Phase B.
+
+#### Confirmed guards (must be enforced in the Phase B Server Actions)
+
+- **Self-suspend block.** A suspended admin loses admin privileges immediately (`is_admin()` requires `status='active'`), which can lock the org out if the *only* active admin suspends themselves. The Suspend action MUST refuse when `targetId === auth.uid()`.
+- **Last-active-admin block.** The Suspend action MUST refuse if the target is the last partner with `role='admin' AND status='active'`. Run the count inside the same Server Action with the service-role client.
+- **Resend Invite hidden for non-invited rows.** Only render the button when `row.status === 'invited'`. The Server Action should also re-check and refuse if status has changed between page render and submit (TOCTOU).
+
+#### Brief-vs-reality deltas discovered during scoping
+
+These bit us during Phase A planning; surfacing them so Phase B doesn't re-trip:
+
+1. **No migrations needed.** `partners.status` with CHECK `('active','invited','suspended')` is already in `supabase/migrations/20260515193702_initial_schema.sql:34-35` since the project's first migration. No new column, no new policy.
+2. **`submissions.recommendation jsonb` does not exist and should NOT be added.** Earlier Step 9 drafts assumed a denormalised JSON column for the recommendation payload. The current schema stores the recommendation as the normalised columns `recommended_product_id`, `recommended_units`, `total_list_price_usd`, `total_partner_price_usd` (initial schema lines 114-117) — Phase B's submission detail page reads from those + a join to `products`, not from a JSON blob.
+3. **`pipedrive_deal_id` is already in the initial schema** (line 119). Step 8 discovered this the hard way (duplicate `alter table` error in CI). Phase B's submission detail page can read it directly.
+4. **The proxy file is `src/proxy.ts`, not `src/middleware.ts`** (Next 16 convention; see ADR [0009](./decisions/0009-proxy-replaces-middleware-next16.md)). Reusable session logic lives at `src/lib/supabase/proxy.ts`. Phase B does NOT touch either file.
+5. **`is_admin()` already requires `status='active'`** (initial schema lines 131-145). So a suspended admin automatically loses admin RLS privileges — no Phase B work needed to keep them out of admin tables. The layout gate handles UX; RLS handles enforcement.
+6. **RLS already grants admin SELECT on partners + submissions.** The `partners_select_self_or_admin` policy (lines 172-175) and the analogous submissions policy admit `is_admin(auth.uid())`. Phase B's `/admin/partners` and `/admin/submissions` pages can use the regular user-scoped client for reads; service-role is only needed for writes that bypass RLS (Invite, Suspend, Reactivate, Resend Invite) and for any read where we deliberately want to ignore RLS.
+7. **The PDF route at `src/app/(app)/api/submissions/[id]/pdf/route.ts` is already admin-accessible via existing RLS.** Because the submission-select policy admits admins, an admin hitting an arbitrary submission's PDF URL succeeds. Phase B's admin submission detail page can link to the existing PDF route directly — no separate admin handler needed.
+
+#### Phase B file-by-file task list
+
+```
+src/app/(app)/admin/layout.tsx                  NEW  — admin-only shell: defensive is_admin() re-check; side-nav (Partners / Submissions / back to Dashboard)
+src/app/(app)/admin/page.tsx                    NEW  — admin landing: KPI cards (partner counts by status, recent submissions) + quick links
+src/app/(app)/admin/partners/page.tsx           NEW  — table of all partners (company, contact, email, role, status, created_at). Row actions: Suspend/Reactivate, Resend Invite (if invited). "Invite partner" CTA → /admin/partners/new
+src/app/(app)/admin/partners/actions.ts         NEW  — Server Actions: invitePartner({ email, name, company }), suspendPartner(id), reactivatePartner(id), resendInvite(id). All use createSupabaseAdminClient(). Self-suspend + last-active-admin guards live here.
+src/app/(app)/admin/partners/new/page.tsx       NEW  — invite form (email, contact_name, company_name). On submit: invitePartner() → supabase.auth.admin.inviteUserByEmail() + partners row insert with status='invited' role='partner'. Use headers().get('origin') for the redirect (mirror src/app/(auth)/forgot-password/actions.ts:23-30).
+src/app/(app)/admin/submissions/page.tsx        NEW  — table of ALL submissions across partners (joined to partners.company_name). Filterable by partner. Rows link to /admin/submissions/[id].
+src/app/(app)/admin/submissions/[id]/page.tsx   NEW  — read-only submission detail: project name, partner, calculator inputs, recommended product + units, total prices, pipedrive_deal_id (linkified to Pipedrive if non-null), Download PDF (re-uses /api/submissions/[id]/pdf).
+src/app/(app)/submissions/page.tsx              NEW  — partner-facing list of THEIR own submissions (RLS already enforces). Same row layout as admin list minus the partner column.
+src/app/(app)/submissions/[id]/page.tsx         NEW  — partner-facing submission detail. Same content as admin detail, no admin-only metadata.
+scripts/test-rls.ts                             EDIT — extend the existing RLS verification harness to cover: suspended-partner read denial, admin cross-partner reads, invited-partner read (no admin), and the new admin write paths.
+docs/decisions/0023-*.md                        NEW  — ADR covering the partner-management action surface (Invite + Suspend/Reactivate + Resend Invite; explicit non-features: no delete, no role flip).
+docs/decisions/0024-*.md                        NEW  — ADR covering the partner-facing submission history routes (path scheme, RLS-only enforcement, mirror of admin detail).
+docs/JOURNAL.md                                 EDIT — Phase B entry at top with a short walkthrough of the admin partners flow.
+```
+
+Out-of-scope reminders that should NOT silently creep back into Phase B:
+
+- No edits to `src/proxy.ts` or `src/lib/supabase/proxy.ts`. The gate is in the layout by deliberate design.
+- No new RLS policies. Existing policies cover every Phase B read path; service-role covers every Phase B write path.
+- No new migrations. Every column is already in place.
+- No customisation of the Supabase invite email. Default template is acceptable for Phase 1; revisit when the marketing site lands.
+- Pipedrive integration is not touched in Phase B. Submission rows already carry `pipedrive_deal_id` from Step 8; admin detail just links out.
+
+#### Definition of done for Phase B
+
+- Admin can invite a new partner from `/admin/partners/new`; partner receives the Supabase invite email; first sign-in lands them on `/dashboard` with status auto-flipped to `'active'`.
+- Admin can suspend any partner *except themselves and except the last active admin*; suspended partner is bounced to `/login?error=suspended` on their next request.
+- Admin can reactivate any suspended partner.
+- Admin can resend the invite to any partner still at `'invited'`.
+- Partner sees `/submissions` and `/submissions/[id]` for their own rows. No cross-partner reads possible (verified by `scripts/test-rls.ts`).
+- Admin sees `/admin/partners` and `/admin/submissions` lists, can drill into either.
+- `npm run build` clean. `npm run lint` clean. `tsx --test` clean. `scripts/test-rls.ts` clean.
+
+---
+
 ## 2026-05-19 — UI polish: widen app shell max-width from 1024 to 1280
 
 ### Work done
