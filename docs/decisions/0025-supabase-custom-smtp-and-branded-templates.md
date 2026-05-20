@@ -29,6 +29,7 @@ The Vercel issue is fixed by toggling Production Deployment Protection off (a se
 - Supabase dashboard is the deploy target only; if templates are edited there directly, the change must be ported back to the repo within the same day.
 - Brand colors and fonts pulled from the `arxys-company` skill's Brand Identity section (Gold `#fbb040`, Grey `#d1d2d4`, Montserrat 400/700 with system fallback stack). Arxys Grey is used for borders only — its 1.7:1 contrast against white fails WCAG for text. CTA uses dark text on Gold (9.5:1, AAA) rather than white (2.0:1, fails AA).
 - Logo hosted at `public/email/arxys-logo.png`, referenced absolutely as `https://portal-arxys.vercel.app/email/arxys-logo.png` (the current production URL — update when the `portal.arxys.com` custom domain lands).
+- **CTA URL uses `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=<flow>&next=<path>`** — NOT `{{ .ConfirmationURL }}`. The legacy `{{ .ConfirmationURL }}` variable resolves to Supabase's `/auth/v1/verify` endpoint, which returns the session as a URL fragment (`#access_token=...`). Our `/auth/confirm` route handler (`src/app/auth/confirm/route.ts`) reads `token_hash` + `type` from **query params** (modern OTP / `@supabase/ssr` PKCE flow); URL fragments are invisible to it server-side, so a `{{ .ConfirmationURL }}` link redirects through `/login?error=missing_token`. Constructing the URL with `{{ .TokenHash }}` lands directly on our handler with the right shape — no Supabase verify round-trip, no fragment.
 
 ## Consequences
 

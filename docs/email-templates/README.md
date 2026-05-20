@@ -13,9 +13,22 @@ See [`docs/decisions/0025-supabase-custom-smtp-and-branded-templates.md`](../dec
 | [`reset-password.html`](./reset-password.html) | Reset Password | `Reset your Arxys Partner Portal password` |
 | [`confirm-signup.html`](./confirm-signup.html) | Confirm Signup | `Confirm your Arxys Partner Portal account` |
 
-## Template variable
+## Template variables and the CTA URL
 
-Only one Supabase template variable is referenced: `{{ .ConfirmationURL }}` (Go template syntax). Supabase substitutes the full verify URL at send time — leave it as-is.
+These templates use `{{ .SiteURL }}` and `{{ .TokenHash }}` (Go template syntax) and construct the CTA URL manually — they do **not** use `{{ .ConfirmationURL }}`. The reason is that `{{ .ConfirmationURL }}` resolves to Supabase's legacy `/auth/v1/verify` endpoint, which returns the session as a URL **fragment** (`#access_token=...`). Our `/auth/confirm` route handler (`src/app/auth/confirm/route.ts`) reads `token_hash` + `type` from **query params** (modern OTP / `@supabase/ssr` PKCE flow) — fragments are invisible to it server-side, so a `{{ .ConfirmationURL }}` link redirects through `/login?error=missing_token`.
+
+The CTA URLs constructed by these templates land directly on our route handler with the right query params, no Supabase round-trip:
+
+| Template | CTA `href` |
+|---|---|
+| `invite.html` | `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=invite&next=/reset-password` |
+| `magic-link.html` | `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=magiclink&next=/dashboard` |
+| `reset-password.html` | `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery&next=/reset-password` |
+| `confirm-signup.html` | `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=signup&next=/dashboard` |
+
+In the HTML these appear with `&amp;` for ampersands (XML-escaped) — Supabase does not double-escape them; the email client decodes the entities back to `&` before opening the link. Do not change to literal `&`.
+
+`{{ .SiteURL }}` resolves to Supabase Auth → URL Configuration → Site URL — keep that field aligned with the current portal production URL.
 
 ## Logo hosting
 
