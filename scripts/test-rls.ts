@@ -28,7 +28,17 @@ type Persona = {
   client: SupabaseClient;
 };
 
-async function provisionPersona(suffix: string): Promise<Persona> {
+type PersonaOptions = {
+  role?: "partner" | "admin";
+  status?: "active" | "invited" | "suspended";
+};
+
+async function provisionPersona(
+  suffix: string,
+  options: PersonaOptions = {},
+): Promise<Persona> {
+  const role = options.role ?? "partner";
+  const status = options.status ?? "active";
   const email = `rls-test-${suffix}-${Date.now()}@arxys-rls-test.invalid`;
   const password = `RLS_test_${suffix}_${Math.random().toString(36).slice(2)}`;
 
@@ -47,8 +57,8 @@ async function provisionPersona(suffix: string): Promise<Persona> {
     id,
     company_name: `RLS Test Co ${suffix}`,
     contact_name: `Tester ${suffix}`,
-    role: "partner",
-    status: "active",
+    role,
+    status,
   });
   if (partnerErr) throw new Error(`partners insert failed: ${partnerErr.message}`);
 
@@ -71,9 +81,10 @@ async function teardownPersona(p: Persona): Promise<void> {
 }
 
 async function run() {
-  console.log("Provisioning two ephemeral partners...");
+  console.log("Provisioning two ephemeral partners + one admin...");
   const a = await provisionPersona("A");
   const b = await provisionPersona("B");
+  const adminPersona = await provisionPersona("ADMIN", { role: "admin" });
 
   try {
     // Test 6a: A sees own partners row, not B's.
@@ -181,9 +192,68 @@ async function run() {
         );
       }
     }
+
+    // Test 8a: admin SELECTs every partner row (at least A, B, admin).
+    {
+      const { data, error } = await adminPersona.client
+        .from("partners")
+        .select("id");
+      if (error) {
+        record("8a: admin SELECT partners", false, error.message);
+      } else {
+        const ids = new Set(data.map((r) => r.id));
+        record(
+          "8a: admin SELECT partners returns A, B, and self",
+          ids.has(a.id) && ids.has(b.id) && ids.has(adminPersona.id),
+          `count=${data.length}`,
+        );
+      }
+    }
+
+    // Test 8b: admin SELECTs both A's and B's submissions.
+    {
+      const { data, error } = await adminPersona.client
+        .from("submissions")
+        .select("id, partner_id");
+      if (error) {
+        record("8b: admin SELECT submissions", false, error.message);
+      } else {
+        const owners = new Set(data.map((r) => r.partner_id));
+        record(
+          "8b: admin SELECT submissions returns rows for A and B",
+          owners.has(a.id) && owners.has(b.id),
+          `count=${data.length} owners=${JSON.stringify([...owners])}`,
+        );
+      }
+    }
+
+    // Test 8c: suspending the admin strips admin RLS reads.
+    // is_admin() requires status='active'; the helper is the only thing that
+    // distinguishes the admin client from a partner client. Flip via service
+    // role, verify the admin client now sees only their own partner row.
+    {
+      await admin
+        .from("partners")
+        .update({ status: "suspended" })
+        .eq("id", adminPersona.id);
+      const { data, error } = await adminPersona.client
+        .from("partners")
+        .select("id");
+      if (error) {
+        record("8c: suspended admin SELECT partners", false, error.message);
+      } else {
+        const ids = data.map((r) => r.id);
+        record(
+          "8c: suspended admin sees only self (admin privileges revoked)",
+          ids.length === 1 && ids[0] === adminPersona.id,
+          `got ${JSON.stringify(ids)}`,
+        );
+      }
+    }
   } finally {
     await teardownPersona(a);
     await teardownPersona(b);
+    await teardownPersona(adminPersona);
   }
 
   console.log("\n=== RLS test results ===");
@@ -197,6 +267,10 @@ async function run() {
     process.exit(1);
   }
   console.log("\nAll authenticated RLS tests passed.");
+  console.log(
+    "Note: Server Action guards (self-suspend, last-active-admin, resend-invite TOCTOU)\n" +
+      "are not exercised here — they live in src/app/(app)/admin/partners/actions.ts, not RLS.",
+  );
 }
 
 run().catch((err) => {

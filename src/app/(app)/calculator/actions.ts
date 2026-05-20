@@ -77,6 +77,21 @@ export async function submitCalculation(
     return { status: "error", error: "Your session has expired. Sign in and try again." };
   }
 
+  // Defense-in-depth: the (app)/layout.tsx gate (ADR 0021) already prevents a
+  // suspended partner from reaching the calculator UI; this catches direct
+  // POSTs from a stale tab or scripted client.
+  const { data: callerStatus } = await supabase
+    .from("partners")
+    .select("status")
+    .eq("id", user.id)
+    .maybeSingle();
+  if (!callerStatus || callerStatus.status !== "active") {
+    return {
+      status: "error",
+      error: "Your account is not active. Sign out and back in, or contact your administrator.",
+    };
+  }
+
   // Server-side recompute. Client totals are never trusted.
   const computed = input.groups.map((g) => {
     const gi: GroupInput = {
