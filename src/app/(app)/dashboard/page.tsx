@@ -7,6 +7,15 @@ export default async function DashboardPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
+  const { data: partner } = user
+    ? await supabase
+        .from("partners")
+        .select("role")
+        .eq("id", user.id)
+        .maybeSingle()
+    : { data: null };
+  const isAdmin = partner?.role === "admin";
+
   return (
     <div>
       <h1 className="text-2xl font-semibold text-neutral-900">Dashboard</h1>
@@ -27,14 +36,31 @@ export default async function DashboardPage() {
           </p>
         </Link>
 
-        <div className="rounded-lg border border-dashed border-neutral-300 bg-white p-6">
-          <h2 className="text-base font-semibold text-neutral-500">
+        <Link
+          href="/submissions"
+          className="group rounded-lg border border-neutral-200 bg-white p-6 transition hover:border-blue-300 hover:shadow-sm"
+        >
+          <h2 className="text-base font-semibold text-neutral-900 group-hover:text-blue-700">
             Submission history
           </h2>
-          <p className="mt-1 text-sm text-neutral-500">
-            Coming in Step 5.
+          <p className="mt-1 text-sm text-neutral-600">
+            Browse your past calculator submissions and reports.
           </p>
-        </div>
+        </Link>
+
+        {isAdmin ? (
+          <Link
+            href="/admin"
+            className="group rounded-lg border border-neutral-200 bg-white p-6 transition hover:border-blue-300 hover:shadow-sm"
+          >
+            <h2 className="text-base font-semibold text-neutral-900 group-hover:text-blue-700">
+              Admin
+            </h2>
+            <p className="mt-1 text-sm text-neutral-600">
+              Manage partners and review all submissions.
+            </p>
+          </Link>
+        ) : null}
       </div>
     </div>
   );
