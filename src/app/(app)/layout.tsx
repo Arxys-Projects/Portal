@@ -1,5 +1,7 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { signOut } from "./_actions/logout";
 
@@ -14,9 +16,32 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
 
   const { data: partner } = await supabase
     .from("partners")
-    .select("company_name, contact_name, role")
+    .select("company_name, contact_name, role, status")
     .eq("id", user.id)
     .maybeSingle();
+
+  if (partner?.status === "suspended") {
+    // Sign out before redirecting — otherwise the proxy bounces the still-authed
+    // user from /login back to /dashboard (src/lib/supabase/proxy.ts:59-64).
+    await supabase.auth.signOut();
+    redirect("/login?error=suspended");
+  }
+
+  if (partner?.status === "invited") {
+    // First protected-page load after invite → flip to 'active'. Use the
+    // service-role client so we don't depend on the partners-UPDATE RLS policy
+    // admitting a self-status change; the operation is idempotent.
+    const admin = createSupabaseAdminClient();
+    const { error } = await admin
+      .from("partners")
+      .update({ status: "active" })
+      .eq("id", user.id);
+    if (error) {
+      console.error("auto-activate failed", { userId: user.id, error });
+    }
+  }
+
+  const isAdmin = partner?.role === "admin";
 
   return (
     <div className="min-h-screen bg-neutral-50">
@@ -37,14 +62,24 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
               </p>
             )}
           </div>
-          <form action={signOut}>
-            <button
-              type="submit"
-              className="rounded border border-neutral-300 px-3 py-1.5 text-sm text-neutral-700 hover:bg-neutral-100"
-            >
-              Sign out
-            </button>
-          </form>
+          <div className="flex items-center gap-2">
+            {isAdmin ? (
+              <Link
+                href="/admin"
+                className="rounded border border-neutral-300 px-3 py-1.5 text-sm text-neutral-700 hover:bg-neutral-100"
+              >
+                Admin
+              </Link>
+            ) : null}
+            <form action={signOut}>
+              <button
+                type="submit"
+                className="rounded border border-neutral-300 px-3 py-1.5 text-sm text-neutral-700 hover:bg-neutral-100"
+              >
+                Sign out
+              </button>
+            </form>
+          </div>
         </div>
       </header>
       <main className="mx-auto max-w-7xl px-4 py-8">{children}</main>
