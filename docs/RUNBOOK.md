@@ -94,13 +94,21 @@ Using `--token` bypasses the browser-based login flow, which has been unreliable
 
 ## 6. Supabase: apply the schema
 
-The migration is already in the repo at `supabase/migrations/20260515193702_initial_schema.sql`. To apply it to a fresh project:
+The migrations live in `supabase/migrations/`:
+
+- `20260515193702_initial_schema.sql` — `partners`, `products` (placeholder), `server_specs` (placeholder), `submissions`, RLS, `is_admin()`.
+- `20260519052732_step5_submissions_and_seeds.sql` — `submissions.groups_payload`, server_specs bandwidth-gate relaxation, 6 placeholder family rows.
+- `20260521190350_step3_4_products_sku_pk.sql` — replaces `products` + drops `server_specs`; new SKU-PK shape with inline `max_cameras` + `max_storage_tb`; migrates `submissions.recommended_product_id` UUID → TEXT; seeds 6 mid-tier VideoX SKUs with real MSRPs. See [ADR 0031](./decisions/0031-step-3-4-schema-migration.md) and [ADR 0032](./decisions/0032-sku-level-recommendation-algorithm.md).
+
+Apply them to a fresh project:
 
 ```bash
 SUPABASE_DB_PASSWORD='<db-password>' supabase db push
 ```
 
-You'll be prompted to confirm. Type `Y`. The migration is idempotent on `pgcrypto` and uses `create extension if not exists`, so re-runs are safe up to that point — but Postgres will refuse to re-create tables that already exist. For a true reset, do it from the Supabase dashboard.
+You'll be prompted to confirm. Type `Y`. The CLI runs the three files in timestamp order. The 2026-05-21 migration is destructive: it `drop ... cascade`s the prior `products` + `server_specs` tables. On a fresh project this is a no-op (those tables only exist after the first two migrations land); on an existing project, see the rollback recipe at `supabase/rollback/step-3-4-rollback.sql` + the JSON-dump script `scripts/backup-tables.ts` before re-running.
+
+For a true reset on a cloud project, drop the schema from the dashboard SQL editor and re-push.
 
 ## 7. Supabase: verify RLS
 

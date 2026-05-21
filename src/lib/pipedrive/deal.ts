@@ -106,7 +106,14 @@ export async function createDealFromSubmission(
   });
 
   const winner = recommendation.winner;
-  const recommendedModels = `${winner.units} × ${winner.modelCode}`;
+  // Phase 2 Step 4 (Q5a): the Pipedrive `arxys_recommended_models` and the
+  // admin-curated `Recommended Server` fields stay family-friendly even after
+  // the SKU-PK migration. Derive "N × V800" from the winner's productGroup
+  // rather than its full SKU. Sales reading the deal card cares about the
+  // V-family, not the storage tier (that's a configuration detail to confirm
+  // during the sales conversation). The persisted SKU lives on
+  // submissions.recommended_product_id for downstream tooling.
+  const recommendedModels = `${winner.units} × ${winner.productGroup}`;
   const title =
     submission.projectName?.trim() ||
     `${partner.companyName} — submission ${submission.submissionId}`;

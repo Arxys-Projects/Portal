@@ -583,7 +583,7 @@ function RecommendationPanel({
       <div className="ax-rec-h">Recommended configuration</div>
       <div className="ax-rec-w">
         <span className="ax-rec-units">{winner.units} ×</span>
-        <span className="ax-rec-model">{winner.modelCode}</span>
+        <span className="ax-rec-model">{winner.productGroup}</span>
       </div>
       <div className="ax-rec-cov">
         <div>

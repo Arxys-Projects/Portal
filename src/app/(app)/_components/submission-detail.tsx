@@ -11,13 +11,19 @@ export type SubmissionDetailRow = {
   retention_days: number;
   bandwidth_mbps: number;
   storage_tb: number;
+  // Phase 2 Step 3+4: TEXT after the SKU-PK migration. Holds a SKU
+  // (`VX5-V800-720`) for new submissions, a UUID-shaped string for
+  // pre-migration legacy rows, or null.
+  recommended_product_id: string | null;
   recommended_units: number;
   total_list_price_usd: number | null;
   total_partner_price_usd: number | null;
   pipedrive_deal_id: number | null;
   created_at: string;
   groups_payload: unknown;
-  product: { name: string; description: string | null; sku: string } | null;
+  // null when the recommended_product_id is a legacy UUID with no matching
+  // row, or when no recommendation was attached.
+  product: { sku: string; product_name: string; product_group: string } | null;
 };
 
 export type SubmissionPartnerSummary = {
@@ -78,9 +84,21 @@ export function SubmissionDetail({
   mode: "admin" | "partner";
 }) {
   const groups = extractGroups(submission.groups_payload);
+  // Phase 2 Step 3+4: a UUID-shaped recommended_product_id signals a
+  // pre-migration row whose family-UUID FK target was dropped. Render the
+  // detail as "(legacy data)" so the partner / admin sees an explicit
+  // limitation rather than a confusing "—".
+  const isLegacyRecommendation =
+    submission.product === null &&
+    submission.recommended_product_id !== null &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+      submission.recommended_product_id,
+    );
   const productLabel = submission.product
-    ? `${submission.product.name} (${submission.product.sku})`
-    : "—";
+    ? `${submission.product.product_name} (${submission.product.sku})`
+    : isLegacyRecommendation
+      ? "(legacy data — product details unavailable)"
+      : "—";
 
   return (
     <div className="space-y-8">
@@ -237,13 +255,13 @@ export function SubmissionDetail({
                   {submission.recommended_units} × {productLabel}
                 </td>
               </tr>
-              {submission.product?.description ? (
+              {submission.product?.product_group ? (
                 <tr>
                   <th className="bg-neutral-50 px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">
-                    Product notes
+                    Product family
                   </th>
                   <td className="px-4 py-2 text-neutral-700">
-                    {submission.product.description}
+                    {submission.product.product_group}
                   </td>
                 </tr>
               ) : null}

@@ -124,12 +124,15 @@ function defaultResponder(url: URL, method: string, body: unknown): unknown {
 function fixtureRecommendation(): RecommendationResult {
   return {
     winner: {
-      productId: "11111111-1111-1111-1111-000000000800",
-      modelCode: "V800",
+      // Phase 2 Step 3+4: new candidate shape — SKU + productGroup + msrp.
+      sku: "VX5-V800-720",
+      productGroup: "V800",
+      productName: "VideoX V800 720TB 4U 36Bay Rack - V5 Video & Analytics Server",
       units: 3,
-      totalCostUsd: 18,
+      unitMsrp: 74048,
+      totalCostUsd: 222144,
       coveredCameras: 975,
-      coveredStorageTb: 1920,
+      coveredStorageTb: 2160,
       driverDimension: "cameras",
     },
     alternatives: [],

@@ -115,38 +115,35 @@ export async function submitCalculation(
     { cameras: 0, bandwidthMbps: 0, storageGb: 0 },
   );
 
-  const { data: specRows, error: specError } = await supabase
-    .from("server_specs")
-    .select("product_id, model_code, max_cameras, max_storage_tb, products!inner(name, description, list_price_usd)")
-    .eq("active", true);
-  if (specError) {
-    return { status: "error", error: `Failed to load server specs: ${specError.message}` };
+  // Phase 2 Step 3+4: products is now SKU-PK with inline max_cameras +
+  // max_storage_tb. server_specs is gone. recommend() filters MKT/CFQ
+  // defensively but we also filter at the query level to keep the
+  // candidate pool tight (Q4(a)).
+  const { data: productRows, error: productError } = await supabase
+    .from("products")
+    .select("sku, product_name, product_group, msrp, price_type, max_cameras, max_storage_tb")
+    .eq("active", true)
+    .eq("price_type", "numeric")
+    .not("max_cameras", "is", null)
+    .not("max_storage_tb", "is", null)
+    .order("sort_order");
+  if (productError) {
+    return { status: "error", error: `Failed to load products: ${productError.message}` };
   }
-  if (!specRows || specRows.length === 0) {
-    return { status: "error", error: "No active server specs are seeded. Contact an administrator." };
+  if (!productRows || productRows.length === 0) {
+    return { status: "error", error: "No active numeric-priced SKUs are seeded. Contact an administrator." };
   }
 
-  type ProductJoin = { name: string; description: string | null; list_price_usd: number };
-  const specs: ServerSpec[] = [];
-  const productByProductId = new Map<string, ProductJoin>();
-  const specByProductId = new Map<string, { maxCameras: number; maxStorageTb: number }>();
-  for (const row of specRows) {
-    const product = (Array.isArray(row.products) ? row.products[0] : row.products) as ProductJoin | null;
-    specs.push({
-      productId: row.product_id,
-      modelCode: row.model_code,
-      maxCameras: row.max_cameras,
-      maxStorageTb: Number(row.max_storage_tb),
-      listPriceUsd: Number(product?.list_price_usd ?? 0),
-    });
-    if (product) {
-      productByProductId.set(row.product_id, product);
-      specByProductId.set(row.product_id, {
-        maxCameras: row.max_cameras,
-        maxStorageTb: Number(row.max_storage_tb),
-      });
-    }
-  }
+  const specs: ServerSpec[] = productRows.map((row) => ({
+    sku: row.sku,
+    productGroup: row.product_group,
+    productName: row.product_name,
+    maxCameras: row.max_cameras as number,
+    maxStorageTb: Number(row.max_storage_tb),
+    msrp: Number(row.msrp),
+    priceType: "numeric" as const,
+  }));
+  const specBySku = new Map<string, ServerSpec>(specs.map((s) => [s.sku, s]));
 
   const recommendation = recommend(
     { totalCameras: totals.cameras, totalStorageGb: totals.storageGb },
@@ -167,7 +164,7 @@ export async function submitCalculation(
     retention_days: input.retentionDays,
     bandwidth_mbps: Number(totals.bandwidthMbps.toFixed(2)),
     storage_tb: Number((totals.storageGb / GB_PER_TB).toFixed(2)),
-    recommended_product_id: recommendation.winner.productId,
+    recommended_product_id: recommendation.winner.sku,
     recommended_units: recommendation.winner.units,
     total_list_price_usd: Number(recommendation.winner.totalCostUsd.toFixed(2)),
     groups_payload: {
@@ -254,15 +251,13 @@ export async function submitCalculation(
       storageGb: r.computed.storageGb,
     })),
     recommendation: (() => {
-      const winnerProduct = productByProductId.get(recommendation.winner.productId);
-      const winnerSpec = specByProductId.get(recommendation.winner.productId);
-      const productDescription = winnerProduct?.description
-        ? `${winnerProduct.name} — ${winnerProduct.description}`
-        : winnerProduct?.name ?? recommendation.winner.modelCode;
+      // After the SKU-PK migration the winner candidate carries product_name,
+      // productGroup, and covered capacity directly — no second lookup needed.
+      const winnerSpec = specBySku.get(recommendation.winner.sku);
       return {
         units: recommendation.winner.units,
-        modelCode: recommendation.winner.modelCode,
-        productDescription,
+        modelCode: recommendation.winner.productGroup,
+        productDescription: recommendation.winner.productName,
         coveredCameras: winnerSpec
           ? recommendation.winner.units * winnerSpec.maxCameras
           : recommendation.winner.coveredCameras,

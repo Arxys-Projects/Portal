@@ -71,14 +71,14 @@ export async function loadSubmissionPdfInput(
   };
   const submission = row as unknown as SubmissionRow;
 
-  const [{ data: partnerRow }, productJoin, warnings] = await Promise.all([
+  const [{ data: partnerRow }, productLookup, warnings] = await Promise.all([
     supabase
       .from("partners")
       .select("company_name, contact_name")
       .eq("id", submission.partner_id)
       .maybeSingle(),
     submission.recommended_product_id
-      ? loadProductAndSpec(supabase, submission.recommended_product_id)
+      ? loadProductBySku(supabase, submission.recommended_product_id)
       : Promise.resolve(null),
     Promise.resolve(extractWarnings(submission.groups_payload)),
   ]);
@@ -89,15 +89,20 @@ export async function loadSubmissionPdfInput(
   const generatedAt = new Date();
   const groups = mapGroups(submission.groups_payload);
   const recommendedUnits = submission.recommended_units;
-  const productName = productJoin?.product?.name ?? "Recommended server";
-  const productDescription = productJoin?.product?.description
-    ? `${productName} — ${productJoin.product.description}`
-    : productName;
-  const coveredCameras = productJoin?.spec
-    ? recommendedUnits * productJoin.spec.maxCameras
+  // Phase 2 Step 3+4: after the SKU-PK migration, pre-migration submissions
+  // carry a UUID-shaped TEXT recommended_product_id that points at no row.
+  // Render "(legacy data)" in that case; new submissions resolve cleanly via
+  // the SKU.
+  const isLegacy = isUuidShaped(submission.recommended_product_id);
+  const productName =
+    productLookup?.product?.product_name ??
+    (isLegacy ? "(legacy data — product details unavailable)" : "Recommended server");
+  const productDescription = productName;
+  const coveredCameras = productLookup?.product?.max_cameras
+    ? recommendedUnits * productLookup.product.max_cameras
     : 0;
-  const coveredStorageTb = productJoin?.spec
-    ? recommendedUnits * productJoin.spec.maxStorageTb
+  const coveredStorageTb = productLookup?.product?.max_storage_tb
+    ? recommendedUnits * productLookup.product.max_storage_tb
     : Number(submission.storage_tb);
 
   // groups_payload only has the per-group inputs; totals come straight off
@@ -123,13 +128,21 @@ export async function loadSubmissionPdfInput(
     groups,
     recommendation: {
       units: recommendedUnits,
-      modelCode: productJoin?.spec?.modelCode ?? "(unknown)",
+      modelCode: productLookup?.product?.product_group ?? (isLegacy ? "(legacy)" : "(unknown)"),
       productDescription,
       coveredCameras,
       coveredStorageTb,
       warnings,
     },
   };
+}
+
+// A UUID-shaped recommended_product_id signals a pre-Step-3+4 submission whose
+// FK target no longer exists. After the migration, new submissions write SKU
+// strings (e.g. `VX5-V800-720`), which never match the UUID pattern.
+function isUuidShaped(value: string | null | undefined): boolean {
+  if (!value) return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 }
 
 type GroupsPayload = {
@@ -172,38 +185,34 @@ function extractWarnings(payload: GroupsPayload | null): string[] {
   return payload?.warnings ?? [];
 }
 
-async function loadProductAndSpec(
+// Phase 2 Step 3+4: products is now SKU-PK with inline max_cameras +
+// max_storage_tb. server_specs is gone. Legacy UUID-shaped values resolve to
+// null (caller renders "(legacy data)" via the isLegacy branch).
+async function loadProductBySku(
   supabase: SupabaseClient,
-  productId: string,
+  sku: string,
 ): Promise<{
-  product: { name: string; description: string | null };
-  spec: { modelCode: string; maxCameras: number; maxStorageTb: number };
+  product: {
+    sku: string;
+    product_name: string;
+    product_group: string;
+    max_cameras: number | null;
+    max_storage_tb: number | null;
+  };
 } | null> {
-  const [{ data: product }, { data: spec }] = await Promise.all([
-    supabase
-      .from("products")
-      .select("name, description")
-      .eq("id", productId)
-      .maybeSingle(),
-    supabase
-      .from("server_specs")
-      .select("model_code, max_cameras, max_storage_tb")
-      .eq("product_id", productId)
-      .eq("active", true)
-      .maybeSingle(),
-  ]);
+  const { data: product } = await supabase
+    .from("products")
+    .select("sku, product_name, product_group, max_cameras, max_storage_tb")
+    .eq("sku", sku)
+    .maybeSingle();
   if (!product) return null;
   return {
     product: {
-      name: product.name,
-      description: product.description,
+      sku: product.sku,
+      product_name: product.product_name,
+      product_group: product.product_group,
+      max_cameras: product.max_cameras,
+      max_storage_tb: product.max_storage_tb === null ? null : Number(product.max_storage_tb),
     },
-    spec: spec
-      ? {
-          modelCode: spec.model_code,
-          maxCameras: spec.max_cameras,
-          maxStorageTb: Number(spec.max_storage_tb),
-        }
-      : { modelCode: "(unknown)", maxCameras: 0, maxStorageTb: 0 },
   };
 }

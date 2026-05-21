@@ -51,7 +51,7 @@ function buildSalesBody(input: SubmissionNotificationInput): string {
     `  VMS:        ${vms ?? "(not specified)"}`,
     "",
     "Recommended configuration",
-    `  ${winner.units} × ${winner.modelCode}`,
+    `  ${winner.units} × ${winner.productGroup}`,
     `  Coverage: ${winner.coveredCameras} cameras, ${fmtNumber(winner.coveredStorageTb)} TB`,
   ];
   if (recommendation.warnings.length > 0) {
@@ -80,7 +80,7 @@ function buildPartnerBody(input: SubmissionNotificationInput): string {
     `  Retention:  ${totals.retentionDays} days`,
     "",
     "Recommended configuration",
-    `  ${winner.units} × ${winner.modelCode}`,
+    `  ${winner.units} × ${winner.productGroup}`,
     `  Coverage: ${winner.coveredCameras} cameras, ${fmtNumber(winner.coveredStorageTb)} TB`,
     "",
     "Arxys sales has also received a copy of this report and will be in touch.",

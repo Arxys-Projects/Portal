@@ -227,6 +227,61 @@ async function run() {
       }
     }
 
+    // Test 9a: partner A can SELECT active products (new SKU-PK shape).
+    // After Phase 2 Step 3+4 the products table has columns
+    // (sku, product_name, msrp, product_group, max_cameras, max_storage_tb, ...);
+    // the products_select_active_or_admin policy carries over from the
+    // pre-migration schema. Partner-scoped reads must see active rows.
+    {
+      const { data, error } = await a.client
+        .from("products")
+        .select("sku, product_name, msrp, product_group, max_cameras, max_storage_tb")
+        .eq("active", true)
+        .order("sort_order");
+      if (error) {
+        record("9a: partner SELECT active products", false, error.message);
+      } else {
+        const skuShape = (data ?? []).every(
+          (r) =>
+            typeof r.sku === "string" &&
+            typeof r.product_name === "string" &&
+            typeof r.product_group === "string",
+        );
+        record(
+          "9a: partner SELECT active products (SKU-PK shape)",
+          (data?.length ?? 0) > 0 && skuShape,
+          `count=${data?.length} skuShape=${skuShape}`,
+        );
+      }
+    }
+
+    // Test 9b: an inactive product is invisible to a partner. Seed one via
+    // service-role, verify partner doesn't see it, then clean up.
+    {
+      const tempSku = `RLS-TEST-INACTIVE-${Date.now()}`;
+      await admin.from("products").insert({
+        sku: tempSku,
+        product_name: "RLS inactive test row",
+        msrp: 1,
+        price_type: "numeric",
+        product_group: "RLS",
+        sort_order: 9999,
+        active: false,
+        max_cameras: 1,
+        max_storage_tb: 1,
+      });
+      const { data, error } = await a.client
+        .from("products")
+        .select("sku")
+        .eq("sku", tempSku);
+      record(
+        "9b: partner cannot SELECT inactive products",
+        !error && (data?.length ?? 0) === 0,
+        error?.message ?? `count=${data?.length}`,
+      );
+      await admin.from("products").delete().eq("sku", tempSku);
+    }
+
     // Test 8c: suspending the admin strips admin RLS reads.
     // is_admin() requires status='active'; the helper is the only thing that
     // distinguishes the admin client from a partner client. Flip via service

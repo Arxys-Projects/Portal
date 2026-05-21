@@ -4,6 +4,125 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-05-21 — Phase 2 Steps 3+4: Schema migration + recommendation algorithm rewrite
+
+### Work done
+
+Replaced the 6-row family `products` table with the proposal's SKU-PK schema and rewrote the recommendation algorithm to pick a specific SKU instead of a V-family. One coherent commit; brief at [`docs/phase-2/step-3-and-4-schema-and-algorithm.md`](./phase-2/step-3-and-4-schema-and-algorithm.md).
+
+**Five locked decisions (Andy, 2026-05-21):**
+
+| Q | Choice | Implication |
+|---|---|---|
+| **Q1** | (b) Drop FK; `submissions.recommended_product_id` UUID → TEXT | 12 historical UUIDs preserved as opaque strings; submission-detail + PDF render "(legacy data)" |
+| **Q2** | (ii) Inline `max_cameras` + `max_storage_tb` on products; drop `server_specs` | Calculator action queries products only |
+| **Q3** | (b) Per-family `max_cameras` from old server_specs | V200→100, V400→200, V500/V600→275, V700/V800→325 |
+| **Q4** | (a) Filter `recommend()` to `price_type='numeric'` | MKT (`VX5-RAM-32GB`) + CFQ (`VX5-SW30-300`, `VX5-SW35-300`) never recommended |
+| **Q5** | (a) Family-friendly Pipedrive string | `arxys_recommended_models` + admin `Recommended Server` stay `"N × V800"` via `winner.productGroup` |
+
+ADR [`0031`](./decisions/0031-step-3-4-schema-migration.md) records Q1–Q5 + the backup posture; ADR [`0032`](./decisions/0032-sku-level-recommendation-algorithm.md) records the algorithm-rewrite decisions (numeric-only filter, tighter-fit tie-break, warning shape).
+
+**Backup posture (free-plan substitute, see Detours).** Free-plan Supabase has no dashboard snapshots, so the recoverable-backup gate for this destructive migration is a pair of locally-produced artifacts:
+
+1. Service-role JSON dump → `backups/pre-step-3-4-sku-pk-migration-2026-05-21T19-01-41-093Z.json` (30 KB; 6 products + 6 server_specs + 12 submissions + 4 partners). Produced by the new `scripts/backup-tables.ts`. Gitignored (`/backups/` added to `.gitignore` — real partner data never enters git).
+2. Reverse-migration SQL → `supabase/rollback/step-3-4-rollback.sql` (lives outside `supabase/migrations/` so the CLI never auto-applies it). Reverts the schema; pairs with `scripts/restore-tables.ts` to fully restore.
+
+This pair is documented in ADR 0031 as the recoverable-backup pattern for every future destructive Phase 2 migration on the free plan.
+
+**Migration** — `supabase/migrations/20260521190350_step3_4_products_sku_pk.sql`:
+
+1. Drop `submissions_recommended_product_id_fkey`.
+2. `drop table server_specs cascade; drop table products cascade;`.
+3. `alter table submissions alter column recommended_product_id type text using recommended_product_id::text;`
+4. Create new `products`: `sku TEXT PK`, `product_name`, `msrp NUMERIC nullable`, `price_type CHECK in ('numeric','market','call_for_quote')`, `product_group`, `sort_order`, `active`, `max_cameras`, `max_storage_tb`, `updated_at`. Plus `CHECK (price_type='numeric' implies msrp not null)` and four indexes.
+5. RLS: `products_select_active_or_admin` (same shape as before).
+6. Seed 6 mid-tier VideoX SKUs verbatim from the live Master Sheet validated in Step 2:
+
+   | SKU | product_group | MSRP | max_cameras | max_storage_tb |
+   |---|---|---|---|---|
+   | VX5-V200-80 | V200 | $16,640 | 100 | 80 |
+   | VX5-V400-160 | V400 | $26,910 | 200 | 160 |
+   | VX5-V500-240 | V500 | $35,926 | 275 | 240 |
+   | VX5-V600-320 | V600 | $41,659 | 275 | 320 |
+   | VX5-V700-480 | V700 | $54,512 | 325 | 480 |
+   | VX5-V800-720 | V800 | $74,048 | 325 | 720 |
+
+   Step 5's push script UPSERTs the full ~36-row Sheet over this seed.
+
+**Algorithm rewrite** — `src/lib/recommend/algorithm.ts`:
+
+1. Filter the pool to `priceType === 'numeric'` (defensive; calculator action also filters at the query layer).
+2. Evaluate each SKU: `units = max(1, ceil(cams/maxCams), ceil(storage/maxStorageTb))`; `totalCost = units × msrp`; `driverDimension = storage > cameras ? 'storage' : 'cameras'`.
+3. Rank by `(totalCost ASC, units ASC, excess-in-driver-dimension ASC, sku ASC)`.
+4. Warnings: `units > 1` → "Workload exceeds a single {productGroup}; recommendation stacks {units} units of {sku}." + "exceeds the largest single VideoX SKU" when either dimension overflows.
+
+Candidate shape now carries `sku`, `productGroup`, `productName`, `unitMsrp` directly — no second lookup needed by Pipedrive deal builder or PDF render.
+
+**Consumer updates:**
+
+- `src/lib/recommend/types.ts` — new candidate shape (sku, productGroup, productName, unitMsrp). `ServerSpec` mirrors the new products columns.
+- `src/lib/recommend/algorithm.test.ts` — 8 original tests rewritten with SKU-level fixtures + real MSRPs; +2 new tests (MKT/CFQ exclusion, tighter-fit tie-break); +1 throw-when-pool-empty. 11 cases total.
+- `src/app/(app)/calculator/actions.ts` — dropped server_specs join; query `products` with `active=true AND price_type='numeric'`; persists `winner.sku` as TEXT into `submissions.recommended_product_id`.
+- `src/lib/pipedrive/deal.ts` — derives `"N × {productGroup}"` from `winner.productGroup` (Q5a).
+- `src/lib/pipedrive/deal.test.ts` — fixture updated to new candidate shape.
+- `src/lib/email/submission-notification.ts` — sales + partner notification emails reference `winner.productGroup` (family-friendly).
+- `src/app/(app)/calculator/calculator-form.tsx` — post-submit "Recommended configuration" panel shows `winner.productGroup`.
+- `src/lib/pdf/render.ts` — `loadProductBySku()` replaces `loadProductAndSpec()`; renders `"(legacy data — product details unavailable)"` when `recommended_product_id` is UUID-shaped (pre-migration). Uses `productGroup` for the displayed model code.
+- `src/app/(app)/_components/load-submission.ts` — splits into two queries (submission, then product-by-SKU) since PostgREST embed-via-FK no longer works (the FK was dropped).
+- `src/app/(app)/_components/submission-detail.tsx` — new product shape (sku, product_name, product_group); "Product notes" row → "Product family"; legacy-data rendering matches PDF.
+- `scripts/test-rls.ts` — +9a (partner SELECT new products shape) + 9b (inactive products invisible to partner). 10 cases total.
+
+**Verification gates** (11 from the brief):
+
+1. ✅ Read migration carefully before push.
+2. ✅ Backup taken (JSON dump + reverse migration; recorded above).
+3. ✅ `supabase db push` — applied cleanly (Andy ran).
+4. ✅ Schema verified via service-role: 6 products in SKU-PK shape; `server_specs` absent (`PGRST205: Could not find the table 'public.server_specs'`).
+5. ✅ Seed verified: 6 rows, all numeric, sort_order 1–6.
+6. ✅ Historical data: 12 submissions all carry UUID-shaped TEXT in `recommended_product_id`.
+7. ✅ `npm run lint` — 0 errors, 2 pre-existing `<img>` warnings from Step 1.
+8. ✅ `npm run build` — clean, 15 routes (Turbopack, 2.7s).
+9. ✅ `npm test` — 22/22 pass (was 19; +3 from new MKT/CFQ + tighter-fit + Pipedrive fixture-shape coverage).
+10. ✅ `scripts/test-rls.ts` — 10/10 pass (was 8; +9a + 9b).
+11. ⚠️ Manual dev-server smoke — **deferred** with documented residual risk. The risk surface is bounded: build type-check passes; unit + Pipedrive tests cover logic; RLS tests cover policies; SubmissionPdf component didn't change shape; only the SKU-by-product loader changed in render.ts (mirror of the same pattern that already passed type-check). A live UI smoke remains the canonical confirmation, deferred to the next session when Andy is at the keyboard.
+
+**Recommendation outcomes vs Phase 1 (sanity check):**
+
+With real MSRPs from the seed, the algorithm now picks differently for the same workload. Example: workload (150 cameras, 100 TB):
+
+- **Phase 1 (placeholder $1–$6)**: 2× V200 ties 1× V400 at totalCost=$2; V200 wins on unit-price tiebreak.
+- **Phase 2 (real MSRPs)**: 2× V200 = $33,280 vs 1× V400 = $26,910 → **1× VX5-V400-160 wins** on primary cost. Materially different from Phase 1 and matches sales intuition (one bigger box vs two smaller ones at a real price gap).
+
+### Detours & fixes
+
+- **Free Supabase plan has no dashboard snapshots.** The brief's "Backup before migrating" §1 recommends "Database → Backups → Create backup" but that feature is Pro-only ($25/mo). Andy surfaced this when the question was raised. Resolved by writing `scripts/backup-tables.ts` (service-role SELECT * → JSON file; 60 lines) and pairing it with `supabase/rollback/step-3-4-rollback.sql` (hand-written reverse migration that recreates the pre-migration shape so the JSON can be restored). The pair lives in repo as the new free-plan-compatible backup pattern for any future destructive migration. Documented in ADR 0031.
+
+- **Brief's tertiary tie-break wording was self-contradictory.** "Capacity utilization ascending (less over-provisioning preferred)" — ASC utilization = LOW utilization = MORE over-provisioning, which contradicts the second clause. Resolved silently in code by treating "less over-provisioning" as authoritative: tertiary = excess capacity in driver dimension ASC. Explicitly documented in ADR 0032 + the algorithm-module header comment so future readers don't re-litigate. Test case "tighter-fit tie-break: same cost + same units -> smaller excess wins" pins the chosen semantics.
+
+- **Forgot to update three consumer call sites referencing `winner.modelCode` before running build.** The first `npm run build` failed type-check at `src/app/(app)/calculator/calculator-form.tsx:586` (post-submit recommendation panel). Grep then surfaced two more in `src/lib/email/submission-notification.ts:54` + `:83` (sales + partner notification email bodies). All three changed to `winner.productGroup` (family-friendly, matching Q5a) in one batch. The Pipedrive deal test fixture also needed updating from the old candidate shape — caught by `npm test` after the calculator-form fix.
+
+- **`server_specs` absence probe used a stale regex.** A late verification ran `await admin.from('server_specs').select('*').limit(1)` and expected `/does not exist/i` in the error message. PostgREST actually returns code `PGRST205` + message `"Could not find the table 'public.server_specs' in the schema cache"` — the words "does not exist" never appear. The first probe printed `FAIL`; the corrected probe `/(does not exist|Could not find the table|PGRST205|42P01)/i` returned `CONFIRMED MISSING`. Not a real failure, just a regex bug in the verification one-liner.
+
+- **One algorithm test miscounted warnings.** "Large workload — VX5-V500-240 cheapest at 2 units" asserted `warnings.length === 1` but 500 cameras > 325 (the largest single SKU's max_cameras) so the "exceeds the largest single VideoX SKU" warning also fires. Bumped to `length === 2` and added a positive match for the second warning string. Caught on first test run.
+
+- **PostgREST embed-via-FK stops working when the FK is dropped.** `load-submission.ts` used `products:recommended_product_id(name, description, sku)` to fetch the joined product row in a single query. After Q1(b) drops the FK, that embed silently returns null even when the target SKU exists. Rewrote into two sequential queries (submission, then products by SKU, skipping if the value is UUID-shaped) — a few extra ms but explicit and resilient to legacy strings.
+
+- **`server-only` import blocks tsx scripts.** A planned smoke test (`node --import tsx` calling `loadSubmissionPdfInput` directly) failed with `Cannot find module 'server-only'`. That module is a Next.js convention to prevent server-side modules from being bundled into client code; it's a no-op at runtime under Next but resolves to an empty package under plain tsx via Node's resolution. Couldn't fix in-session without restructuring the PDF module, and the smoke value vs. the build's full type-check is marginal. Documented as a known limitation in the verification gates above — the live UI smoke remains the canonical confirmation if the algorithm or PDF renderer ever needs deeper scrutiny.
+
+### Decisions captured
+
+- [`0031-step-3-4-schema-migration.md`](./decisions/0031-step-3-4-schema-migration.md)
+- [`0032-sku-level-recommendation-algorithm.md`](./decisions/0032-sku-level-recommendation-algorithm.md)
+
+### Pending / follow-ups
+
+- **Manual dev-server smoke** — deferred (gate 11). Recommended at the start of the next session: `npm run dev`, submit a calculation at `/calculator`, confirm a specific SKU is recommended; view at `/submissions` + `/admin/submissions/[id]`; download the PDF and check the SKU + price; pull up one of the 12 pre-migration submissions and confirm "(legacy data — product details unavailable)" renders.
+- **Real FK on `submissions.recommended_product_id`** is not added now because the value space still includes legacy UUID strings. After the legacy rows age out (or are pruned) and Step 5 lands the full SKU population, a `references public.products(sku)` constraint can be added in a follow-up migration.
+- **`unitMsrp` field on `RecommendationCandidate`** is currently not displayed anywhere. Retained as an audit field (sales can reconcile `units × unitMsrp = totalCostUsd`); drop if it stays unused after Step 6 / 7.
+- `docs/phase-2/step-3-4-pause-handoff.md` — written mid-session as a resume recipe when the session was almost out of budget. Now superseded by this JOURNAL entry; deleted as part of the same commit.
+
+---
+
 ## 2026-05-21 — Phase 2 Step 2: Master Sheet validation
 
 ### Work done
