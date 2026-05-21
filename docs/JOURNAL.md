@@ -4,21 +4,40 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
-## 2026-05-20 — Phase 2 setup: plan doc + step naming convention
+## 2026-05-20 — Portal Phase 2 plan locked + scope cuts
 
 ### Work done
 
-Set up the structural scaffolding for Portal Phase 2 work, immediately after the Step 11 close-out commit. Three artifacts:
+Scoped Portal Phase 2 in a single session immediately after the Step 11 close-out. Andy supplied five concrete partner-facing goals (minimal portal branding, real MSRP pricing on calculations, automatable Sheet → Supabase + Pipedrive sync with **no** Slides, partner XLSX download, HTML price book in the portal). The five goals plus the six "PQ" questions left open at Step 11 closure all locked in this session.
 
-- [`docs/phase-2-plan.md`](./phase-2-plan.md) — new operational plan for Portal Phase 2. Consolidates the "Handed off to Phase 2" list from the Step 11 entry plus the Pricing Pipeline proposal's Phase 0–3 sub-steps into a single sketched work-unit table (Phase 2 Step 1 … Step 9 + an optional custom-domain step). Captures the six open PQ decisions that need to be locked before any individual step gets a scoping brief.
-- ADR [`0029-phase-2-step-naming-convention.md`](./decisions/0029-phase-2-step-naming-convention.md) — Phase 2 work units are named **"Phase 2 Step N"** starting at N=1. Pipeline-proposal sub-phases are referenced as **"Pipeline Phase X"** in writing to disambiguate. Existing Phase 1 entries keep their bare "Step N" form (no retroactive renames).
-- [`docs/README.md`](./README.md) — appended a small "Forward-looking plans" section pointing at `phase-2-plan.md` and the proposal. Doesn't change the three-doc discipline; just makes Phase 2 work discoverable from the docs index.
+Artifacts created or revised:
 
-No code changes. No scoping briefs for any individual Phase 2 Step yet — those depend on PQ answers.
+- [`docs/phase-2-plan.md`](./phase-2-plan.md) — operational plan for Portal Phase 2. **10 Phase 2 Steps + 1 optional**, each with explicit blockers. Locked PQ resolutions, scope cuts, and internal-only-testing stance recorded at the top. Open scoping question for Step 8 (Slides content audit) parked at the bottom.
+- ADR [`0029-phase-2-step-naming-convention.md`](./decisions/0029-phase-2-step-naming-convention.md) — **"Phase 2 Step N"** naming for new entries; existing Phase 1 entries keep their bare "Step N" form (no retroactive renames). Pipeline-proposal sub-phases referenced in writing as "Pipeline Phase X" for disambiguation.
+- ADR [`0030-phase-2-scope-and-locked-decisions.md`](./decisions/0030-phase-2-scope-and-locked-decisions.md) — single consolidated record of every Phase 2 scope decision: the two scope cuts (Slides removed, internal-only-during-Phase-2) and the six PQ resolutions, each with options considered and rationale.
+- [`docs/README.md`](./README.md) — appended a "Forward-looking plans" section indexing `phase-2-plan.md` and the proposal. Doesn't change the three-doc discipline; just makes Phase 2 discoverable.
+- [`docs/proposals/phase-2-pricing-pipeline.md`](./proposals/phase-2-pricing-pipeline.md) — banner added at top documenting scope cuts (Slides out, Sheet stays as-is, script in this repo, internal-only testing, full SKU-PK migration). Body below the banner unchanged — it remains the verbatim reference copy of Andy's Google Doc.
+
+No code changes. Phase 2 Step 1's scoping brief is the next session's deliverable.
+
+### Scope cuts vs the original proposal
+
+- **Google Slides removed entirely.** No automation, no retirement step, no comms work. The HTML price book inside the portal (Phase 2 Step 8) replaces Slides functionally. Andy: *"remove from project entirely."*
+- **Internal testing only during Phase 2.** No external partners until end of Phase 2 (= "MVP final" = Phase 2 Step 10).
+
+### Decisions locked (six PQs)
+
+- **PQ1** launch-blocker treatment: moot. Internal-only-during-Phase-2 means the `/submissions` placeholder-price view is invisible to anyone outside Arxys; Step 6 unblocks with real numbers before external partners arrive.
+- **PQ2** Sheet reconciliation: **(ii)** — work with Sheet as-is. Push script derives Product Group from SKU prefix and parses inline MKT/CFQ. Zero data-entry burden on the Sheet maintainer.
+- **PQ3** discount mechanic: partial. XLSX download is MSRP-only. HTML price book defers per-user discount to its own scoping.
+- **PQ4** schema appetite: full SKU-PK migration. Forced by Goal 4 (partner XLSX of the full ~35-SKU price list).
+- **PQ5** push script location: **(a)** — `scripts/push-prices.ts` in this repo.
+- **PQ6** sub-phase sequencing: per-step scoping briefs in the Step 11 shape, at `docs/phase-2/step-N-<title>.md`.
 
 ### Decisions captured
 
 - [`0029-phase-2-step-naming-convention.md`](./decisions/0029-phase-2-step-naming-convention.md)
+- [`0030-phase-2-scope-and-locked-decisions.md`](./decisions/0030-phase-2-scope-and-locked-decisions.md)
 
 ---
 

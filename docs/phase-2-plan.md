@@ -1,81 +1,64 @@
-# Portal Phase 2 — Pricing Pipeline & partner launch
+# Portal Phase 2 — Pricing Pipeline & MVP launch
 
-Portal Phase 1 closed 2026-05-20 (JOURNAL: *Step 11 — pre-launch verification*). Phase 2 is the next coherent unit of work. It carries the partner-launch goal forward from where Phase 1 stopped: structural verification was green but partner-facing launch couldn't ship because of a placeholder-pricing-on-partner-pages issue. Phase 2 resolves that and lands the Pricing Pipeline outlined in [`proposals/phase-2-pricing-pipeline.md`](./proposals/phase-2-pricing-pipeline.md).
+Portal Phase 1 closed 2026-05-20 (JOURNAL: *Step 11 — pre-launch verification*). Phase 2 takes the project from "Phase 1 structurally verified but partner-launch blocked" to **"MVP final — first external partners invited."** Pricing data, calculator real-pricing, partner XLSX download, and an HTML price book inside the portal all land before any external partner is invited.
 
 ## Naming (per ADR [0029](./decisions/0029-phase-2-step-naming-convention.md))
 
 - **Portal Phase 1** = the partner-portal MVP. Closed.
-- **Portal Phase 2** = this work.
+- **Portal Phase 2** = this work. Ships the MVP.
 - **Phase 2 Step N** = a discrete work unit inside Portal Phase 2. Numbered from 1.
-- **Pipeline Phase 0 / 1 / 2 / 3** = the four sub-phases inside the Pricing Pipeline proposal. Distinct from Portal Phase 2.
-- When someone writes "Phase 2" with no qualifier, it means Portal Phase 2.
+- "Phase 2" with no qualifier means Portal Phase 2.
 
-## Open work units (tentative — PQ answers may merge, split, or reorder)
+## Locked decisions (per ADR [0030](./decisions/0030-phase-2-scope-and-locked-decisions.md))
 
-Consolidated from the Step 11 close-out "Handed off to Phase 2" list **plus** the Pricing Pipeline proposal:
+- **No Google Slides work in Phase 2, ever.** No automation. No retirement step. No comms work. The portal's HTML price book (Step 8) replaces Slides functionally; Slides becomes a non-thing.
+- **Internal testing only until end of Phase 2.** No external partners during Phase 2. End-of-Phase-2 = "MVP final" = the 2–3 partner cohort invite (Step 10).
+- **PQ1 launch-blocker:** moot. Internal-only testing means the placeholder `$1.00..$57.00` view on `/submissions` is invisible to anyone outside Arxys until Step 6 unblocks with real numbers.
+- **PQ2 Master Sheet reconciliation:** (ii) — work with the Sheet as-is. Push script derives Product Group from the SKU prefix (`VX5-<GROUP>-<TIER>`); parses inline MKT/CFQ in the MSRP cell. Zero data-entry burden on the Sheet's maintainer. Validation pass refuses to push any row whose SKU breaks the prefix convention — explicit error, requires manual fix in Sheet or addition of a Product Group column.
+- **PQ3 discount mechanic:** partial. Partner XLSX download (Step 7) is MSRP-only — no discount logic. HTML price book (Step 8) defers the per-user discount question to its own scoping brief; possibly displays "Contact Arxys" until tier data exists.
+- **PQ4 schema appetite:** full SKU-PK migration. The 6-row family `products` table is replaced with the ~35-row SKU-PK schema from the proposal. Cascade FK updates on `submissions.recommended_product_id` and `server_specs.product_id`.
+- **PQ5 push script location:** (a) — `scripts/push-prices.ts` in this repo. Sits next to `bootstrap-admin.ts` and `test-rls.ts`; reuses existing Supabase + Pipedrive clients + env validation.
+- **PQ6 sub-phase sequencing:** per-step scoping briefs in the Step 11 shape, at `docs/phase-2/step-N-<short-title>.md`.
 
-| # | Title | Source | Status / Blocker |
+## Work-unit table
+
+| # | Title | Blocker | Notes |
 |---|---|---|---|
-| Phase 2 Step 1 | **Pipeline Phase 0** — Master Sheet reconciliation (data work) | proposal | Andy data work. Blocked on PQ2 + PQ3 |
-| Phase 2 Step 2 | **Partner-price display resolution** — the Step 11 launch blocker | Step 11 detour | Blocked on PQ1 |
-| Phase 2 Step 3 | **Schema migration** — `products` UUID-PK → SKU-PK; cascade FKs on `submissions` + `server_specs` | proposal + PQ4 | Blocked on PQ4. May collapse with Step 4 |
-| Phase 2 Step 4 | **Recommendation algorithm rewrite** — family → SKU-level | proposal | Blocked on Step 3 |
-| Phase 2 Step 5 | **Pipeline Phase 1** — push script (Sheet → Supabase + Pipedrive Products) | proposal | Blocked on Steps 1 + 3 |
-| Phase 2 Step 6 | **Pipeline Phase 2** — Portal Price Book page (new authenticated route) | proposal | Blocked on Steps 3 + 5; depends on PQ3 |
-| Phase 2 Step 7 | **Pre-launch verification redux** — Step 11 deferred smoke tests + page-by-page production pass | Step 11 deferrals | Blocked on Steps 2 + 6 |
-| Phase 2 Step 8 | **Partner cohort invite** — 2–3 partners (D5 deferred) | Step 11 deferrals | Blocked on Step 7 |
-| Phase 2 Step 9 | **Pipeline Phase 3** — retire Google Slides price book | proposal | Andy comms. Blocked on Step 6 |
-| Phase 2 Step X (optional) | Custom domain `portal.arxys.com` (Step 11 D1 deferred) | Step 11 deferrals | Independent; can land any time |
+| **Phase 2 Step 1** | Minimal portal branding | None — independent | Arxys logo in app header + Gold accent (`#fbb040`) on primary buttons. Half-day. Ships first so internal testers see the brand from day one. |
+| **Phase 2 Step 2** | Master Sheet validation | None | Confirm Sheet is the final master. Confirm SKU prefix convention (`VX5-<GROUP>-<TIER>`) holds for all 35 current rows. No column additions per PQ2(ii). |
+| **Phase 2 Step 3** | Schema migration: `products` UUID-PK → SKU-PK | Step 2 | New columns per proposal: `price_type`, `product_group`, `sort_order`, `active`. Cascade FKs on `submissions.recommended_product_id` + `server_specs.product_id`. Migration replaces the 6 placeholder rows on first push. |
+| **Phase 2 Step 4** | Recommendation algorithm rewrite (family → SKU) | Step 3 | Calculator picks a specific SKU based on workload fit + cost. Tie-break logic updated. |
+| **Phase 2 Step 5** | Push script — `scripts/push-prices.ts` | Steps 2 + 3 | Sheet → Supabase + Pipedrive Products. Slides explicitly excluded. Validation + change-preview + CONFIRM-or-CANCEL prompt per the proposal. Adds `googleapis` dependency (scripts-only, not bundled into the portal app build). |
+| **Phase 2 Step 6** | Partner-price display fix | Steps 4 + 5 | `formatPrice` returns real numbers. Pipedrive Deal `value` no longer $0. Pinned `Phase 1 placeholder` note removed from new Deals. The Step 11 launch blocker resolves here. |
+| **Phase 2 Step 7** | Partner XLSX download (dashboard tool) | Step 5 | Goal 4. On-demand from Supabase. Authenticated partners only. MSRP-only (no discount). Dashboard button/widget; not on the Price Book page itself. |
+| **Phase 2 Step 8** | Portal HTML price book page | Step 5 | Goal 5. New authenticated route. **Open scoping question** at the bottom of this doc — depends on what's in the current Slides beyond a price table. |
+| **Phase 2 Step 9** | Verification + internal smoke testing | Steps 6 + 8 | Step 11's deferred items (forgot-password recovery, suspend banner, Resend Invite, page-by-page production walk) all run against real prices + the new price book. Internal-tester pass; admins + a few internal staff. |
+| **Phase 2 Step 10** | MVP launch — 2–3 partner cohort invite | Step 9 | End of Phase 2. Canary partner first; remaining 1–2 stagger 24–48h after the canary's first submission lands cleanly. |
+| **Phase 2 Step X (optional)** | Custom domain `portal.arxys.com` | None — independent | Anytime; ADR [0025](./decisions/0025-supabase-custom-smtp-and-branded-templates.md) "when to revisit." |
 
-This list is the **current sketch**, not a contract. As PQ answers come in some steps will merge (e.g. Steps 3 + 4 likely combine), and a couple may grow into multi-step efforts of their own.
+## Open question parked for Step 8 scoping
 
-## PQ — decisions to lock before scoping any step
+What's in the Google Slides price book today, content-wise, beyond a flat price table?
 
-Before any Phase 2 Step is written up as its own scoping brief (Step 11 shape — Andy prereqs separated from code work), these six decisions need answers:
+- **Just a clean price table** → Step 8 is a simple Supabase-driven table render, similar in shape to `/admin/submissions`. ~half-day.
+- **Product imagery + family descriptions + marketing copy + configuration callouts** → Step 8 grows into a content/design surface. Depends on Andy supplying assets (product photos, family blurbs) and copy. Splittable into 8a (table) + 8b (content shell) so 8a can ship independently.
 
-1. **PQ1 Launch-blocker treatment.**
-   - (a) Path B: suppress partner-visible prices via a tiny patch; ship Phase 1 to a canary partner before Phase 2 proper starts.
-   - (b) No partners until Phase 2 ships real prices; cohort waits for Step 6.
-   - (c) Hybrid: canary partner gets Path B + we proceed to Phase 2 in parallel.
-
-2. **PQ2 Pipeline Phase 0 completion target.**
-   - (i) Finish Phase 0 per the proposal's spec — add Product Group + Price Type columns; add the missing `VX5-PP5-V100`; reach 41 rows.
-   - (ii) Update the proposal to match the Sheet's actual shape today (35 rows; MKT/CFQ inline in MSRP cell; no Product Group column) and proceed from there.
-   - (iii) Hybrid — partial spec compliance.
-
-3. **PQ3 Discount mechanic.**
-   - (a) Sheet's `Partner Discount Price` column (one discount % per sheet refresh).
-   - (b) Proposal's per-user `partners.discount_tier` (runtime computation).
-   - Which is canonical going forward? Affects Step 6 (Price Book page) and Step 5 (push script).
-
-4. **PQ4 Schema appetite.**
-   - (a) Full SKU-PK migration + algorithm rewrite (the deep change ADR 0019 deferred).
-   - (b) Values-only update of the existing 6 family rows as a stopgap; defer SKU-PK rewrite to a later phase.
-   - Drives whether Steps 3 + 4 happen now or are pushed past Step 5.
-
-5. **PQ5 Push script location.**
-   - (a) `scripts/push-prices.ts` in this repo (reuses existing Supabase + Pipedrive clients; sits next to `bootstrap-admin.ts` and `test-rls.ts`).
-   - (b) Separate repo (cleaner separation; new env setup).
-
-6. **PQ6 Sub-phase sequencing.**
-   - (a) Single sweep — scope all of Phase 2 up front, execute in one long arc.
-   - (b) Per-step scoping briefs (the Step 11 shape) — scope each Phase 2 Step on demand.
+This question opens when Step 8 reaches its own scoping brief. Not now.
 
 ## How each Phase 2 Step gets scoped
 
-Same shape as the Step 11 brief: each scoping brief at `docs/phase-2/step-N-<short-title>.md` covers:
+Per Step 11 shape. Each scoping brief at `docs/phase-2/step-N-<short-title>.md` covers:
 
 1. Andy's dashboard / account / manual prereqs (separated from code work).
-2. The code work, with file-level task list.
+2. Code work, with file-level task list.
 3. Verification gates (build, lint, test, RLS, smoke).
 4. Definition of done.
 5. Open questions to lock before execution.
 
 ## References
 
-- [`JOURNAL.md`](./JOURNAL.md) — Step 11 close-out entry (2026-05-20) for the trigger event and the full deferral list.
-- [`proposals/phase-2-pricing-pipeline.md`](./proposals/phase-2-pricing-pipeline.md) — authoritative Pricing Pipeline spec. Pipeline Phases 0–3 live there. Verbatim reference copy of Andy's Google Doc; not edited here.
+- [`JOURNAL.md`](./JOURNAL.md) — Step 11 close-out entry (2026-05-20) for the trigger event; Phase 2 setup entry for the locking session.
+- [`proposals/phase-2-pricing-pipeline.md`](./proposals/phase-2-pricing-pipeline.md) — Pricing Pipeline reference spec. Top-of-file banner records the scope cuts (Slides removed, Sheet stays as-is, script in this repo). Body below the banner is verbatim historical reference.
 - [ADR 0019](./decisions/0019-defer-real-pricing-to-phase-2.md) — original deferral that created Phase 2 as a concept.
-- [ADR 0027](./decisions/0027-silent-log-for-non-blocking-integrations.md) — Phase 1 silent-log behavior; revisit if a Phase 2 step justifies retry/alert plumbing.
-- [ADR 0028](./decisions/0028-defer-per-flow-reset-password-heading.md) — reset-password heading fix folded into Phase 2 copy work (likely Step 6 or Step 7).
 - [ADR 0029](./decisions/0029-phase-2-step-naming-convention.md) — naming convention this doc uses.
+- [ADR 0030](./decisions/0030-phase-2-scope-and-locked-decisions.md) — the PQ resolutions and scope cuts summarized above.

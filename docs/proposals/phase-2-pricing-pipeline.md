@@ -1,9 +1,23 @@
 # Phase 2 — Arxys VideoX Pricing Pipeline
 
-**Status**: Proposed (Phase 2, after Portal Phase 1 ships)
+**Status**: Reference. The operational plan is [`../phase-2-plan.md`](../phase-2-plan.md); this file is historical context.
 **Source**: Andy's planning doc, captured 2026-05-19. Original: https://docs.google.com/document/d/1kZ7_TcBOwkgSLN1YqiJAmr0zwP48tvMPDXRxpFOovwQ/edit
 
-This file is a verbatim copy of the planning doc, preserved in the repo so future sessions can reference it without re-fetching from Drive. The doc is the authoritative spec for Phase 2; if the Google Doc diverges from this file, update this file.
+This file is a verbatim copy of the planning doc, preserved in the repo so future sessions can reference it without re-fetching from Drive. **Scope adjustments made after capture are recorded in the banner below; the body below the banner is unchanged.**
+
+---
+
+## Phase 2 scope adjustments (2026-05-20)
+
+Decisions made after this document was captured, recorded here so the operational plan in [`phase-2-plan.md`](../phase-2-plan.md) diverges from the spec below in known ways. Full rationale in ADR [`0030-phase-2-scope-and-locked-decisions.md`](../decisions/0030-phase-2-scope-and-locked-decisions.md).
+
+- **Google Slides removed from Phase 2 entirely.** No automation. No retirement step. No comms work. The portal's HTML price book (operational-plan Step 8) replaces Slides functionally; Slides becomes a non-thing. The body below's references to Slides — including "Phase 3 — Retire Google Slides Price Book" — are superseded.
+- **Master Sheet stays in its actual shape (PQ2(ii)).** Push script derives Product Group from the SKU prefix (`VX5-<GROUP>-<TIER>`) and parses inline MKT/CFQ in the MSRP cell. The Sheet's 4-column / 35-row shape diverges from the spec below's 6-column / 41-row expectation; that's accepted. Validation pass refuses any row whose SKU breaks the prefix convention.
+- **Push script lives at `scripts/push-prices.ts` in this repo (PQ5(a)),** not a separate repo. The body below leaves location undefined.
+- **Internal testing only during Phase 2.** External partners onboard at end of Phase 2 ("MVP final" = operational-plan Step 10), not during.
+- **Full SKU-PK schema migration (PQ4(a)).** The 6-row family `products` table is replaced with the SKU-PK schema below. Cascade FKs on `submissions.recommended_product_id` + `server_specs.product_id`.
+
+The body below remains as the original captured spec. Read the operational plan first; consult the body below for spec details the operational plan doesn't restate.
 
 ---
 
