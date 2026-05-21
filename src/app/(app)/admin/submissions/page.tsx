@@ -18,6 +18,12 @@ function formatPrice(n: number | null | undefined): string {
   })}`;
 }
 
+// A UUID-shaped recommended_product_id signals a pre-Step-3+4 submission
+// whose FK target was dropped. Post-migration rows carry SKU strings.
+function isUuidShaped(value: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+}
+
 type Search = Promise<{ partnerId?: string; page?: string }>;
 
 export default async function AdminSubmissionsPage({
@@ -31,13 +37,15 @@ export default async function AdminSubmissionsPage({
   const to = from + PAGE_SIZE - 1;
 
   const supabase = await createSupabaseServerClient();
+  // Phase 2 Step 3+4: the FK from submissions.recommended_product_id was
+  // dropped; PostgREST can't embed products via that column anymore. Pull
+  // submissions first, then batch-fetch products by SKU in a second query.
   let query = supabase
     .from("submissions")
     .select(
       `id, project_name, cameras_count, recommended_units, total_list_price_usd,
-       total_partner_price_usd, created_at,
-       partners!inner(id, company_name),
-       products:recommended_product_id(name, sku)`,
+       total_partner_price_usd, recommended_product_id, created_at,
+       partners!inner(id, company_name)`,
       { count: "exact" },
     )
     .order("created_at", { ascending: false })
@@ -71,17 +79,33 @@ export default async function AdminSubmissionsPage({
     recommended_units: number;
     total_list_price_usd: number | null;
     total_partner_price_usd: number | null;
+    recommended_product_id: string | null;
     created_at: string;
     partners:
       | { id: string; company_name: string }
       | { id: string; company_name: string }[]
       | null;
-    products:
-      | { name: string; sku: string }
-      | { name: string; sku: string }[]
-      | null;
   };
   const rows = (data ?? []) as Row[];
+
+  // Batch-fetch products by SKU for this page. Skip UUID-shaped (legacy)
+  // recommended_product_id values — they don't match any post-migration row.
+  const skuSet = new Set<string>();
+  for (const r of rows) {
+    if (r.recommended_product_id && !isUuidShaped(r.recommended_product_id)) {
+      skuSet.add(r.recommended_product_id);
+    }
+  }
+  const productBySku = new Map<string, { sku: string; product_group: string }>();
+  if (skuSet.size > 0) {
+    const { data: productRows } = await supabase
+      .from("products")
+      .select("sku, product_group")
+      .in("sku", [...skuSet]);
+    for (const p of productRows ?? []) {
+      productBySku.set(p.sku, { sku: p.sku, product_group: p.product_group });
+    }
+  }
   const total = count ?? 0;
   const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
@@ -151,9 +175,18 @@ export default async function AdminSubmissionsPage({
                 const partner = Array.isArray(r.partners)
                   ? r.partners[0]
                   : r.partners;
-                const product = Array.isArray(r.products)
-                  ? r.products[0]
-                  : r.products;
+                const product = r.recommended_product_id
+                  ? productBySku.get(r.recommended_product_id) ?? null
+                  : null;
+                const isLegacy =
+                  !product &&
+                  r.recommended_product_id !== null &&
+                  isUuidShaped(r.recommended_product_id);
+                const recommendationLabel = product
+                  ? `${r.recommended_units} × ${product.product_group}`
+                  : isLegacy
+                    ? `${r.recommended_units} × (legacy)`
+                    : `${r.recommended_units} ×`;
                 return (
                   <tr key={r.id}>
                     <td className="px-4 py-2 text-neutral-600">
@@ -166,9 +199,7 @@ export default async function AdminSubmissionsPage({
                       {r.project_name ?? "(untitled)"}
                     </td>
                     <td className="px-4 py-2 text-neutral-700">
-                      {product
-                        ? `${r.recommended_units} × ${product.name}`
-                        : `${r.recommended_units} ×`}
+                      {recommendationLabel}
                     </td>
                     <td className="px-4 py-2 text-right text-neutral-700">
                       {r.cameras_count}
