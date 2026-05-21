@@ -53,7 +53,7 @@ export function ResetForm() {
       <button
         type="submit"
         disabled={pending}
-        className="w-full rounded bg-blue-600 px-3 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-400"
+        className="w-full rounded bg-arxys-gold px-3 py-2 text-sm font-medium text-arxys-text-on-gold shadow-sm hover:bg-arxys-gold-hover disabled:cursor-not-allowed disabled:opacity-50"
       >
         {pending ? "Updating…" : "Update password"}
       </button>

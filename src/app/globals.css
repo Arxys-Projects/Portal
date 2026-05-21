@@ -10,6 +10,11 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  /* Arxys brand tokens — source: ADR 0025 */
+  --color-arxys-gold: #fbb040;
+  --color-arxys-gold-hover: #e69e2c;
+  --color-arxys-text-on-gold: #1a1a1a;
+  --color-arxys-grey: #d1d2d4;
 }
 
 body {

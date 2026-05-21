@@ -47,10 +47,14 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     <div className="min-h-screen bg-neutral-50">
       <header className="border-b border-neutral-200 bg-white">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
-          <div>
-            <p className="text-sm font-semibold text-neutral-900">
-              Arxys Partner Portal
-            </p>
+          <div className="flex items-center gap-3">
+            <img
+              src="/email/arxys-logo.png"
+              alt="Arxys"
+              width={140}
+              height={24}
+              style={{ height: "auto" }}
+            />
             {partner ? (
               <p className="text-xs text-neutral-500">
                 {partner.company_name} · {partner.contact_name}

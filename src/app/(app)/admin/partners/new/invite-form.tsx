@@ -91,7 +91,7 @@ export function InviteForm() {
         <button
           type="submit"
           disabled={pending}
-          className="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-400"
+          className="rounded bg-arxys-gold px-4 py-2 text-sm font-medium text-arxys-text-on-gold hover:bg-arxys-gold-hover disabled:cursor-not-allowed disabled:opacity-50"
         >
           {pending ? "Sending invite…" : "Send invite"}
         </button>

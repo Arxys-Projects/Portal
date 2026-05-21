@@ -4,6 +4,34 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-05-21 — Phase 2 Step 1: Minimal portal branding
+
+### Work done
+
+- Added Arxys brand tokens to `src/app/globals.css` `@theme inline` block: `--color-arxys-gold: #fbb040`, `--color-arxys-gold-hover: #e69e2c`, `--color-arxys-text-on-gold: #1a1a1a`, `--color-arxys-grey: #d1d2d4`. Source: ADR 0025. This makes Tailwind classes `bg-arxys-gold`, `hover:bg-arxys-gold-hover`, `text-arxys-text-on-gold`, `border-arxys-grey` available app-wide.
+- **Logo (Q1 — reused email asset)**: No new asset supplied. `public/email/arxys-logo.png` (250×43, transparent, Arxys Gold wordmark) used directly at its existing path. Email templates are unaffected.
+- Replaced the text title "Arxys Partner Portal" in `src/app/(app)/layout.tsx` header with a plain `<img>` tag referencing the logo at 140px wide. Partner name / contact info line retained below.
+- Replaced the `<h1>` title in `src/app/(auth)/layout.tsx` auth card with the same logo `<img>` (centered, `inline-block`). Text sub-title dropped as it was redundant with page context.
+- Swapped primary button colors from `bg-blue-600 text-white hover:bg-blue-700 disabled:bg-blue-400` to `bg-arxys-gold text-arxys-text-on-gold hover:bg-arxys-gold-hover disabled:opacity-50` in four files:
+  - `src/app/(auth)/login/login-form.tsx` — "Sign in" submit
+  - `src/app/(auth)/forgot-password/forgot-form.tsx` — "Send reset link" submit
+  - `src/app/(auth)/reset-password/reset-form.tsx` — "Update password" submit
+  - `src/app/(app)/admin/partners/new/invite-form.tsx` — "Send invite" submit
+- Updated `src/app/(app)/calculator/calculator.css` `.ax-save-btn` rule: background changed from `var(--ac)` (#2563eb blue) to `#fbb040`; text color from `#fff` to `#1a1a1a`; hover from `#1d4ed8` to `#e69e2c`. The broader `--ac` blue variable was left intact so focus rings, range sliders, and chart elements inside the calculator are unchanged.
+- `Suspend` button on `/admin/partners` left on its existing `danger` variant (red border/text). Row actions Reactivate/Resend Invite left on `primary`/`neutral` as-is — these are not CTA-level primary actions.
+
+**Verification gates passed:**
+- `npm run lint` — 0 errors, 2 warnings (both expected: ESLint flags plain `<img>` vs `next/image`; brief explicitly chose `<img>`).
+- `npm test` — 19/19 pass.
+- `npm run build` — Turbopack, clean, 15 routes.
+- Dev server started, `/login` returned HTTP 200. Visual browser verification skipped (Chrome extension not connected); code changes are mechanically correct.
+
+### Logo Q1 decision
+
+Reused `public/email/arxys-logo.png` (default fallback). At 140px render width the 250px source will be crisp on 1× screens and acceptable on 2× retina. A higher-res asset can be dropped at `public/arxys-logo.png` later — the `src` attribute in both layout files is the single change needed.
+
+---
+
 ## 2026-05-20 — Portal Phase 2 plan locked + scope cuts
 
 ### Work done

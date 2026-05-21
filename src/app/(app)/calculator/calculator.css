@@ -230,9 +230,9 @@
   flex-wrap: wrap;
 }
 #arxys-calc-root .ax-save-btn {
-  background: var(--ac);
-  color: #fff;
-  border: 1px solid var(--ac);
+  background: #fbb040;
+  color: #1a1a1a;
+  border: 1px solid #fbb040;
   border-radius: var(--r);
   padding: 12px 22px;
   font-size: 15px;
@@ -241,7 +241,7 @@
   box-shadow: var(--ss);
   transition: background 0.15s, box-shadow 0.15s;
 }
-#arxys-calc-root .ax-save-btn:hover { background: #1d4ed8; box-shadow: var(--sm); }
+#arxys-calc-root .ax-save-btn:hover { background: #e69e2c; box-shadow: var(--sm); }
 #arxys-calc-root .ax-save-btn:disabled { background: var(--tl); border-color: var(--tl); cursor: not-allowed; box-shadow: none; }
 #arxys-calc-root .ax-save-hint { font-size: 13px; color: var(--td); }
 
