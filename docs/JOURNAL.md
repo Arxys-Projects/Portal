@@ -4,6 +4,24 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-05-20 — Phase 2 setup: plan doc + step naming convention
+
+### Work done
+
+Set up the structural scaffolding for Portal Phase 2 work, immediately after the Step 11 close-out commit. Three artifacts:
+
+- [`docs/phase-2-plan.md`](./phase-2-plan.md) — new operational plan for Portal Phase 2. Consolidates the "Handed off to Phase 2" list from the Step 11 entry plus the Pricing Pipeline proposal's Phase 0–3 sub-steps into a single sketched work-unit table (Phase 2 Step 1 … Step 9 + an optional custom-domain step). Captures the six open PQ decisions that need to be locked before any individual step gets a scoping brief.
+- ADR [`0029-phase-2-step-naming-convention.md`](./decisions/0029-phase-2-step-naming-convention.md) — Phase 2 work units are named **"Phase 2 Step N"** starting at N=1. Pipeline-proposal sub-phases are referenced as **"Pipeline Phase X"** in writing to disambiguate. Existing Phase 1 entries keep their bare "Step N" form (no retroactive renames).
+- [`docs/README.md`](./README.md) — appended a small "Forward-looking plans" section pointing at `phase-2-plan.md` and the proposal. Doesn't change the three-doc discipline; just makes Phase 2 work discoverable from the docs index.
+
+No code changes. No scoping briefs for any individual Phase 2 Step yet — those depend on PQ answers.
+
+### Decisions captured
+
+- [`0029-phase-2-step-naming-convention.md`](./decisions/0029-phase-2-step-naming-convention.md)
+
+---
+
 ## 2026-05-20 — Step 11: pre-launch verification (Phase 1 closed, partner-launch reframed to Phase 2)
 
 ### Work done

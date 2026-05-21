@@ -20,3 +20,12 @@ Three documents, three jobs. Don't mix them.
 - JOURNAL entries are dated headings inside a single file. Newest at top.
 - ADRs are sequentially numbered: `0001-title.md`, `0002-title.md`. Numbers never get reused, even if an ADR is superseded.
 - A superseded ADR isn't deleted — it gets a `Status: Superseded by #NNNN` note at the top and stays in the directory.
+
+## Forward-looking plans
+
+The three core docs above are the source of truth for *what happened* and *how to recreate it*. They don't cover *what's next*. Active project plans live alongside them and follow different rules — they're rewritten as project state evolves rather than appended to like JOURNAL.
+
+| File | Status |
+|---|---|
+| [`phase-2-plan.md`](./phase-2-plan.md) | **Current** — Portal Phase 2 work plan (Pricing Pipeline + partner-launch completion). See ADR [0029](./decisions/0029-phase-2-step-naming-convention.md) for the "Phase 2 Step N" naming convention. |
+| [`proposals/phase-2-pricing-pipeline.md`](./proposals/phase-2-pricing-pipeline.md) | Reference — verbatim copy of Andy's Pricing Pipeline planning doc. Authoritative spec for Pipeline Phases 0–3. Read-only history; the operational plan is in `phase-2-plan.md`. |
