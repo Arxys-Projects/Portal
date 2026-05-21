@@ -48,6 +48,22 @@ export default async function DashboardPage() {
           </p>
         </Link>
 
+        <Link
+          href="/api/price-book/xlsx"
+          className="rounded-lg border border-neutral-200 bg-white p-6 transition hover:border-arxys-gold hover:shadow-sm"
+        >
+          <h2 className="text-base font-semibold text-neutral-900">
+            VideoX price list
+          </h2>
+          <p className="mt-1 text-sm text-neutral-600">
+            Download the current VideoX MSRP price book as an Excel
+            spreadsheet.
+          </p>
+          <p className="mt-3 text-sm font-medium text-arxys-gold">
+            Download XLSX →
+          </p>
+        </Link>
+
         {isAdmin ? (
           <Link
             href="/admin"

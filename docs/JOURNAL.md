@@ -4,6 +4,38 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-05-21 — Phase 2 Step 7: Partner XLSX download
+
+### Work done
+
+- Installed `exceljs` (90 packages, pure JavaScript, no native bindings) as a runtime dependency.
+- Created `src/lib/price-book/xlsx.ts`: pure generator — `generatePriceBookXlsx(rows, generatedAt)` returns a `Buffer`; `priceBookFilename(date)` returns `Arxys-Price-List-YYYY-MM-DD.xlsx`. Arxys Gold (`#FBB040`) header row at row 4; title + generated-at stamp in rows 1–2; numeric MSRPs use `numFmt '"$"#,##0.00'`; MKT rows emit `"Market Price"`, CFQ rows emit `"Call for Quote"`.
+- Created `src/lib/price-book/xlsx.test.ts`: 2 new tests (workbook shape + filename format). All 23 tests pass.
+- Created `src/app/(app)/api/price-book/xlsx/route.ts`: GET handler under the `(app)` layout group. `runtime = "nodejs"` (exceljs uses Node streams); `dynamic = "force-dynamic"` (always freshly queries `products`). Unauthenticated requests are caught by the `(app)` layout first (307 → `/login`) and by an explicit `!user` 401 guard inside the handler.
+- Added "VideoX price list" download card to `src/app/(app)/dashboard/page.tsx` (third card slot, before the admin card).
+- `npm run build`: clean, `/api/price-book/xlsx` appears in route table as `ƒ` (dynamic).
+- `npm run lint`: 0 errors, 2 pre-existing `<img>` warnings.
+- `scripts/test-rls.ts`: 10/10 pass (no RLS changes in this step).
+
+**Decisions (all recommended defaults from the step brief):**
+
+| Q | Decision |
+|---|---|
+| Q1 | `exceljs` — mature, full styling, currency `numFmt`, Node-only (no client-bundle impact) |
+| Q2 | Dashboard only — XLSX is reference data, not submission-related |
+| Q3 | Four columns: SKU, Product Name, Product Group, MSRP |
+| Q4 | `"Market Price"` / `"Call for Quote"` strings — matches future Step 8 HTML price book |
+| Q5 | `Arxys-Price-List-YYYY-MM-DD.xlsx` — date-stamped, dashes-only |
+| Q6 | Title + generated-at header rows (rows 1–2), column headers at row 4, data from row 5 |
+| Q7 | `numFmt '"$"#,##0.00'` on the numeric cell — raw number stored, currency displayed |
+| Q8 | `force-dynamic` — always fresh from Supabase |
+
+### Decisions captured
+
+- [`0034-xlsx-library-choice.md`](./decisions/0034-xlsx-library-choice.md)
+
+---
+
 ## 2026-05-21 — Phase 2 Steps 5+6: Real pricing pipeline live
 
 ### Work done
