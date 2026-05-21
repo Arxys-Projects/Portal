@@ -270,7 +270,9 @@ export function SubmissionDetail({
                   Total list price
                 </th>
                 <td className="px-4 py-2 text-neutral-800">
-                  {formatPrice(submission.total_list_price_usd)}
+                  {isLegacyRecommendation
+                    ? "(legacy pricing — pre-Phase-2)"
+                    : formatPrice(submission.total_list_price_usd)}
                 </td>
               </tr>
               {mode === "admin" ? (
@@ -279,7 +281,9 @@ export function SubmissionDetail({
                     Total partner price
                   </th>
                   <td className="px-4 py-2 text-neutral-800">
-                    {formatPrice(submission.total_partner_price_usd)}
+                    {isLegacyRecommendation
+                      ? "(legacy pricing — pre-Phase-2)"
+                      : formatPrice(submission.total_partner_price_usd)}
                   </td>
                 </tr>
               ) : null}

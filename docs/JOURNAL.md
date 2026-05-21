@@ -4,6 +4,60 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-05-21 — Phase 2 Steps 5+6: Real pricing pipeline live
+
+### Work done
+
+Built and ran the Master Sheet → Supabase + Pipedrive push pipeline. Supabase `products` now carries all 36 Sheet rows; Pipedrive Products are in sync. `deal.ts` emits real deal values; the partner UI shows real prices. Brief: [`docs/phase-2/step-5-and-6-push-and-display.md`](./phase-2/step-5-and-6-push-and-display.md).
+
+**Eight locked decisions (Andy, 2026-05-21):**
+
+| Q | Choice | Implication |
+|---|---|---|
+| **Q1** | (b) CSV export URL, no service account | Same auth path as `validate-prices-sheet.ts`; Sheet is intentionally public-link-viewable |
+| **Q2** | Existing Pipedrive entries with some matching SKUs | All 36 Sheet SKUs were already in Pipedrive (0 new, 10 updated, 940 legacy SK-* flagged print-only) |
+| **Q3** | (a) MKT/CFQ prefix in Pipedrive name | `[MKT] …` / `[CFQ] …` prefix; price = 0; sales sees all SKUs |
+| **Q4** | (a) Skip Pipedrive category | Categories not configured; setting unknown string would fail API |
+| **Q5** | (a) Print-only removal | Flagged-for-removal rows listed in preview, never auto-deleted |
+| **Q6** | VX5-PP5-V100 not in Sheet | Push = 36 rows; add in a follow-up push when Andy updates the Sheet |
+| **Q7** | (a) `value = winner.totalCostUsd` | Pipedrive deal `value` now shows the real total list price |
+| **Q8** | (a) ADR 0019 → Superseded by #0033 | ADR 0033 written; ADR 0019 closure note added |
+| **Legacy display** | (b) Show `"(legacy pricing — pre-Phase-2)"` | 12 pre-migration submissions no longer show misleading $1–$57 placeholder totals |
+
+**New scripts:**
+- `scripts/backup-pipedrive-products.ts` — dumps `GET /v1/products` (paginated) to `backups/pipedrive-products-pre-step-5-<timestamp>.json`.
+- `scripts/push-prices.ts` — full pipeline: `validateSheet()` → CSV fetch → Supabase + Pipedrive diff → CONFIRM gate → UPSERT. `--dry-run` flag prints preview without writing. Capacity columns (`max_cameras`, `max_storage_tb`) preserved from existing Supabase rows so the 6 V-family seed rows keep their calculator capacity.
+
+**Backups taken (pre-push):**
+- Supabase JSON: `backups/pre-step-5-6-real-pricing-2026-05-21T23-29-23-087Z.json` (6 products, 13 submissions, 4 partners)
+- Pipedrive Products JSON: `backups/pipedrive-products-pre-step-5-2026-05-21T23-29-26-179Z.json` (1019 products — includes legacy SK-* / SC-* lines)
+
+**Push results (first real run):**
+- Supabase: 36 upserted (30 new + 6 updated seed rows), 0 errors
+- Pipedrive: 36 upserted (10 updated + 26 no-ops matched by code), 0 errors
+- Idempotent re-run: 0 new, 0 updated in both targets — fully in sync
+
+**Surgical consumer fixes (Step 6):**
+- `src/lib/pipedrive/deal.ts`: `value: 0` → `value: winner.totalCostUsd`; portal URL → `/submissions/${submissionId}` permalink; Phase 1 placeholder note creation removed.
+- `src/app/(app)/_components/submission-detail.tsx`: legacy submissions (UUID-shaped `recommended_product_id`) show `"(legacy pricing — pre-Phase-2)"` instead of the stored $1–$57 placeholder totals.
+- `src/lib/pipedrive/deal.test.ts`: updated `value` assertion (0 → 222144), portal URL assertion, removed "pins a Phase 1 placeholder note" test.
+
+**ADRs:**
+- [`0019`](./decisions/0019-defer-real-pricing-to-phase-2.md) — status updated to Superseded by #0033
+- [`0033`](./decisions/0033-real-pricing-live-in-phase-2.md) — new; captures Q1–Q8 outcomes
+
+### Detours & fixes
+
+- **`backup-tables.ts` referenced dropped `server_specs`**: The script still listed `server_specs` in `TABLES` after Step 3+4 dropped the table. Fix: removed `server_specs` from the `TABLES` const.
+- **Validator `main()` ran twice on import**: `validate-prices-sheet.ts` calls `main()` unconditionally at module level. When `push-prices.ts` imports `validateSheet`, the `main()` ran as a side effect, producing duplicate validation output. Fix: guarded with `if (process.argv[1]?.includes("validate-prices-sheet"))`.
+- **Supabase untyped client + upsert literal table name**: `admin.from("products").upsert(chunk)` fails type check because Supabase resolves the insert row type to `never` when no `Database` generic is provided and the table name is a string literal. Used `chunk as unknown as never[]` double assertion (same escape as `deal.ts` uses for `payload as Parameters<...>[0]`).
+
+### Decisions captured
+
+- [`0033-real-pricing-live-in-phase-2.md`](./decisions/0033-real-pricing-live-in-phase-2.md)
+
+---
+
 ## 2026-05-21 — Phase 2 Steps 3+4: Schema migration + recommendation algorithm rewrite
 
 ### Work done

@@ -13,7 +13,8 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { env } from "../src/lib/env";
 
-const TABLES = ["products", "server_specs", "submissions", "partners"] as const;
+// server_specs was dropped in Step 3+4 migration (ADR 0031).
+const TABLES = ["products", "submissions", "partners"] as const;
 
 async function dumpTable(admin: SupabaseClient, name: string): Promise<unknown[]> {
   // Service-role bypasses RLS. Use `range()` to be explicit about no row cap;

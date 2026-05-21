@@ -110,6 +110,26 @@ You'll be prompted to confirm. Type `Y`. The CLI runs the three files in timesta
 
 For a true reset on a cloud project, drop the schema from the dashboard SQL editor and re-push.
 
+## 6a. Push the Master Sheet to Supabase + Pipedrive
+
+After applying migrations, the `products` table has 6 V-family seed rows. Run the push script to load the full ~36-row Master Sheet:
+
+```bash
+# 1. Pre-push backups (both targets)
+node --env-file=.env.local --import tsx scripts/backup-tables.ts pre-step-5-6-real-pricing
+node --env-file=.env.local --import tsx scripts/backup-pipedrive-products.ts
+
+# 2. Dry-run — review the change preview; verify 30+ new rows and 0 errors
+node --env-file=.env.local --import tsx scripts/push-prices.ts --dry-run
+
+# 3. Real push — type CONFIRM after reviewing the preview
+node --env-file=.env.local --import tsx scripts/push-prices.ts
+```
+
+Expected on first run: ~30 new Supabase rows, the 6 seed rows updated with Sheet names/prices, 0 Supabase errors. Pipedrive row counts depend on what's already in the account (all 36 Sheet SKUs may already exist as updates). The script is idempotent: re-running after a Sheet update produces a diff of only the changed rows.
+
+Capacity columns (`max_cameras`, `max_storage_tb`) on the 6 V-family rows are preserved automatically — the script reads existing values before UPSERTing so they are never clobbered.
+
 ## 7. Supabase: verify RLS
 
 ```bash

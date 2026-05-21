@@ -9,15 +9,7 @@ import {
 } from "./lookups";
 import type { RecommendationResult } from "@/lib/recommend/types";
 
-// Phase 1 placeholder URL — the submission-detail route doesn't exist yet.
-// When it lands, swap this for a `/submissions/${id}` permalink and record
-// the change in an ADR. See ADR 0019 + ADR 0020.
-const PORTAL_URL_PLACEHOLDER = "https://portal-arxys.vercel.app/dashboard";
-
-// Phase 1: Deal.value is 0 by design (ADR 0019). Surface the gap as a pinned
-// note so anyone browsing Pipedrive understands why.
-const PHASE_1_PLACEHOLDER_NOTE =
-  "Phase 1 placeholder — real pricing in Phase 2 (see ADR 0019). Deal value = 0 by design.";
+const PORTAL_BASE = "https://portal-arxys.vercel.app";
 
 // ---------------------------------------------------------------------------
 // Calculator → Pipedrive option-ID maps
@@ -124,7 +116,7 @@ export async function createDealFromSubmission(
   // Base payload: deal-level + arxys_* custom fields.
   const payload: Record<string, string | number | undefined> = {
     title,
-    value: 0,
+    value: winner.totalCostUsd,
     currency: "USD",
     user_id: ownerId,
     person_id: personId,
@@ -136,7 +128,7 @@ export async function createDealFromSubmission(
     [customFieldKeys["arxys_bandwidth_mbps"]]: Number(submission.totals.bandwidthMbps.toFixed(2)),
     [customFieldKeys["arxys_storage_gb"]]: Number(submission.totals.storageGb.toFixed(2)),
     [customFieldKeys["arxys_recommended_models"]]: recommendedModels,
-    [customFieldKeys["arxys_portal_url"]]: PORTAL_URL_PLACEHOLDER,
+    [customFieldKeys["arxys_portal_url"]]: `${PORTAL_BASE}/submissions/${submission.submissionId}`,
   };
 
   // Calculator-matching admin fields. Each only set if the field still
@@ -178,20 +170,6 @@ export async function createDealFromSubmission(
   set("Recommended Server", recommendedModels);
 
   const deal = await pipedriveClient.createDeal(payload as Parameters<typeof pipedriveClient.createDeal>[0]);
-
-  // Pin a placeholder note explaining the $0 value. Pipedrive Deals have no
-  // top-level description; Notes are the canonical "free text on a deal"
-  // surface. A note-creation failure here must not invalidate the deal — the
-  // deal is already saved with the correct fields. Log and continue.
-  try {
-    await pipedriveClient.createNote({
-      deal_id: deal.id,
-      content: PHASE_1_PLACEHOLDER_NOTE,
-      pinned_to_deal_flag: 1,
-    });
-  } catch (err) {
-    console.error("pipedrive deal note creation failed", { dealId: deal.id, error: err });
-  }
 
   return { dealId: deal.id };
 }

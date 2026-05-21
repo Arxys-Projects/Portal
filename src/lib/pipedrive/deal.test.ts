@@ -178,7 +178,7 @@ beforeEach(() => {
 });
 
 describe("createDealFromSubmission", () => {
-  it("builds the Deal payload with value=0 and the expected custom-field keys", async () => {
+  it("builds the Deal payload with real totalCostUsd value and the expected custom-field keys", async () => {
     const result = await createDealFromSubmission(
       fixtureSubmission,
       fixtureRecommendation(),
@@ -191,7 +191,7 @@ describe("createDealFromSubmission", () => {
     const body = dealCall.body as Record<string, unknown>;
 
     assert.equal(body.title, "Test Campus");
-    assert.equal(body.value, 0);
+    assert.equal(body.value, 222144);
     assert.equal(body.currency, "USD");
     assert.equal(body.pipeline_id, PIPELINE_ID);
     assert.equal(body.stage_id, STAGE_ID);
@@ -205,7 +205,7 @@ describe("createDealFromSubmission", () => {
     assert.equal(body[CUSTOM_FIELD_KEYS.arxys_recommended_models], "3 × V800");
     assert.equal(
       body[CUSTOM_FIELD_KEYS.arxys_portal_url],
-      "https://portal-arxys.vercel.app/dashboard",
+      `https://portal-arxys.vercel.app/submissions/${fixtureSubmission.submissionId}`,
     );
   });
 
@@ -221,21 +221,6 @@ describe("createDealFromSubmission", () => {
       body.title,
       `Acme Integrators — submission ${fixtureSubmission.submissionId}`,
     );
-  });
-
-  it("pins a Phase 1 placeholder note to the new deal", async () => {
-    await createDealFromSubmission(
-      fixtureSubmission,
-      fixtureRecommendation(),
-      fixturePartner,
-    );
-    const noteCall = calls.find((c) => c.url.includes("/v1/notes") && c.method === "POST");
-    assert.ok(noteCall, "expected a POST /v1/notes call");
-    const body = noteCall.body as Record<string, unknown>;
-    assert.equal(body.deal_id, DEAL_ID);
-    assert.equal(body.pinned_to_deal_flag, 1);
-    assert.match(String(body.content), /Phase 1 placeholder/);
-    assert.match(String(body.content), /ADR 0019/);
   });
 
   it("caches pipeline/stage/owner/dealFields across invocations", async () => {
@@ -423,6 +408,6 @@ describe("createDealFromSubmission", () => {
     const body = dealCall!.body as Record<string, unknown>;
     assert.equal(body["created_arxys_storage_gb"], 1500000.79);
     assert.equal(body["created_arxys_recommended_models"], "3 × V800");
-    assert.equal(body["created_arxys_portal_url"], "https://portal-arxys.vercel.app/dashboard");
+    assert.equal(body["created_arxys_portal_url"], `https://portal-arxys.vercel.app/submissions/${fixtureSubmission.submissionId}`);
   });
 });

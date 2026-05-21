@@ -1,6 +1,6 @@
 # 0019 — Defer real pricing to Phase 2 (Pricing Pipeline project)
 
-- **Status**: Accepted
+- **Status**: Superseded by [#0033](./0033-real-pricing-live-in-phase-2.md)
 - **Date**: 2026-05-19
 
 ## Context
@@ -45,3 +45,9 @@ The Pricing Pipeline doc is captured verbatim at [`docs/proposals/phase-2-pricin
 - The placeholder text is a small piece of throwaway UI — the real Phase 2 implementation will replace it.
 
 **When to revisit:** When Pricing Pipeline Phase 0 data cleanup is done and the Master Google Sheet exists. At that point, schedule Pricing Pipeline Phase 1 (push script) and Phase 2 (Portal price book page). Real pricing in the calculator/PDF/email lands at the same time the `products` table is repopulated.
+
+---
+
+## Closure note (2026-05-21)
+
+Superseded by [ADR 0033](./0033-real-pricing-live-in-phase-2.md). The push script (`scripts/push-prices.ts`) was built and run in Phase 2 Steps 5+6. Supabase `products` and Pipedrive Products now carry real MSRPs. `deal.ts` emits `value: winner.totalCostUsd`; `submission-detail.tsx` shows real prices for new submissions and `"(legacy pricing — pre-Phase-2)"` for the 12 pre-migration rows. See the Phase 2 Steps 5+6 JOURNAL entry for verification details.

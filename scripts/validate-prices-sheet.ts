@@ -194,7 +194,10 @@ async function main() {
   console.log("All Sheet validations passed.");
 }
 
-main().catch((err) => {
-  console.error("Validator crashed:", err);
-  process.exit(2);
-});
+// Guard: only run when this script is the entry point, not when imported by push-prices.ts.
+if (process.argv[1]?.includes("validate-prices-sheet")) {
+  main().catch((err) => {
+    console.error("Validator crashed:", err);
+    process.exit(2);
+  });
+}
