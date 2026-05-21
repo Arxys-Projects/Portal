@@ -4,6 +4,55 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-05-21 — Phase 2 Step 2: Master Sheet validation
+
+### Work done
+
+- Installed `csv-parse` as a devDependency (standards-compliant CSV parser; handles quoted fields and ragged trailing columns the sheet has in its header row).
+- Created `scripts/validate-prices-sheet.ts` — standalone CLI that fetches the master sheet as CSV, validates all rows, and prints a structured report. Exports `validateSheet()` so Step 5's push script can import the validation function without duplication. Run via: `node --import tsx scripts/validate-prices-sheet.ts`
+- Ran validation against the live sheet. **36 data rows, all pass.** Zero violations.
+
+**Validation report (2026-05-21):**
+
+| Check | Result |
+|---|---|
+| Fetch CSV | HTTP 200, 36 data rows + 1 header |
+| All SKUs non-empty | ✓ |
+| All SKUs match `VX5-<GROUP>-<TIER>` | ✓ |
+| No duplicate SKUs | ✓ |
+| All MSRPs are NUMERIC / MKT / "Call for Quote" | ✓ |
+
+Derived Product Groups (20): `GPU, NIC, RAM, SW10, SW20, SW25, SW30, SW35, V100, V150, V200, V250, V255, V260, V270, V400, V500, V600, V700, V800`
+
+MSRP ranges per group:
+- GPU: $1,575 | NIC: $300–$1,024 | RAM: MKT (no numeric)
+- SW10: $6,085 | SW20: $7,532 | SW25: $8,359 | SW30: CFQ | SW35: CFQ
+- V100: $8,317–$9,558 | V150: $7,030 | V200: $15,657–$18,139
+- V250: $13,748 | V255: $16,175 | V260: $14,029 | V270: $17,890
+- V400: $24,975–$29,861 | V500: $32,978–$40,425 | V600: $37,728–$47,657
+- V700: $48,615–$63,509 | V800: $64,922–$87,971
+
+MKT rows: `VX5-RAM-32GB` | CFQ rows: `VX5-SW30-300`, `VX5-SW35-300`
+
+**VX5-PP5-V100 not present** (see Decision 3 below).
+
+### Andy's five decisions (locked)
+
+1. **Sheet is canonical.** The Sheet at `12zwFhDynV6T4ehxui7y-i6F-8XjEYFRBPgsAicpksmk` is the single master. No rival copy.
+2. **SKU naming convention confirmed.** All future products follow `VX5-<GROUP>-<TIER>` (GROUP: uppercase/digit; TIER: starts uppercase/digit, allows mixed case). Push script will reject rows that break this.
+3. **VX5-PP5-V100 — add to sheet (option a).** Andy will add `VX5-PP5-V100 / 5 Year Protection Plan / $1,995` to the sheet. Validation script will pick it up on next run. Step 5 will push it to Supabase/Pipedrive.
+4. **Partner Discount Price column — leave in sheet, ignore in scripts (option a).** Column D stays informational; push script and all downstream tooling ignore it. Step 8 HTML price book will also ignore it (MSRP-only per PQ3).
+5. **SW group taxonomy — keep granular.** SW10, SW20, SW25, SW30, SW35 stay as separate product groups in Supabase and Pipedrive. No collapse rule in the push script.
+
+### Verification gates passed
+
+- `npm run lint` — 0 errors (2 warnings from Step 1's `<img>` tags, pre-existing).
+- `npm test` — 19/19 pass.
+- `npm run build` — clean.
+- `node --import tsx scripts/validate-prices-sheet.ts` — exits 0, all checks pass.
+
+---
+
 ## 2026-05-21 — Phase 2 Step 1: Minimal portal branding
 
 ### Work done
