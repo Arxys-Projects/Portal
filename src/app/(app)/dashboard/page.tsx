@@ -49,6 +49,21 @@ export default async function DashboardPage() {
         </Link>
 
         <Link
+          href="/price-book"
+          className="group rounded-lg border border-neutral-200 bg-white p-6 transition hover:border-[#054A91] hover:shadow-sm"
+        >
+          <h2 className="text-base font-semibold text-neutral-900 group-hover:text-[#054A91]">
+            VideoX V5 Price Book
+          </h2>
+          <p className="mt-1 text-sm text-neutral-600">
+            Browse families, specs, and current MSRPs.
+          </p>
+          <p className="mt-3 text-sm font-medium text-[#054A91]">
+            Open price book →
+          </p>
+        </Link>
+
+        <Link
           href="/api/price-book/xlsx"
           className="rounded-lg border border-neutral-200 bg-white p-6 transition hover:border-arxys-gold hover:shadow-sm"
         >

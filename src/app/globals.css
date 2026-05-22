@@ -15,6 +15,11 @@
   --color-arxys-gold-hover: #e69e2c;
   --color-arxys-text-on-gold: #1a1a1a;
   --color-arxys-grey: #d1d2d4;
+  /* Price book tokens — scoped to /price-book/* routes (ADR 0032) */
+  --color-arxys-navy: #054A91;
+  --color-arxys-navy-deep: #03396f;
+  --color-arxys-navy-soft: #f0f5fa;
+  --font-poppins: "Poppins", system-ui, sans-serif;
 }
 
 body {
@@ -50,4 +55,71 @@ select:-webkit-autofill {
   -webkit-text-fill-color: #171717;
   -webkit-box-shadow: 0 0 0 1000px #ffffff inset;
   caret-color: #171717;
+}
+
+/* ── Price book route scope ── */
+.price-book-route {
+  font-family: 'Montserrat', system-ui, sans-serif;
+}
+
+.price-book-route h1,
+.price-book-route h2,
+.price-book-route h3,
+.price-book-route h4 {
+  font-family: var(--font-poppins);
+}
+
+/* Gold-star bullets matching PPTX slides */
+.price-book-route .gold-star li {
+  position: relative;
+  padding-left: 1.5rem;
+}
+.price-book-route .gold-star li::before {
+  content: "★";
+  color: var(--color-arxys-gold);
+  position: absolute;
+  left: 0;
+  top: 0;
+  font-size: 0.875rem;
+}
+
+/* VSR tooltip — native details/summary, no client JS */
+.price-book-route details > div {
+  display: none;
+}
+.price-book-route details[open] > div {
+  display: block;
+}
+
+@media print {
+  /* Hide portal chrome when printing price book pages */
+  body:has(.price-book-route) header,
+  body:has(.price-book-route) nav,
+  body:has(.price-book-route) footer,
+  .no-print {
+    display: none !important;
+  }
+  .price-book-route {
+    font-size: 11pt;
+  }
+  .price-book-route h1 { font-size: 22pt; }
+  .price-book-route h2 { font-size: 12pt; }
+  .price-book-route .bg-arxys-navy-soft {
+    background-color: transparent !important;
+    border: 1px solid #cbd5e0;
+  }
+  .price-book-route .bg-arxys-navy {
+    background-color: white !important;
+    color: var(--color-arxys-navy) !important;
+  }
+  .price-book-route .bg-arxys-navy th {
+    color: var(--color-arxys-navy) !important;
+    border-bottom: 2px solid var(--color-arxys-navy);
+  }
+  .price-book-route a {
+    color: inherit !important;
+    text-decoration: none !important;
+  }
+  .price-book-route img { max-height: 200px !important; }
+  .price-book-route section { page-break-inside: avoid; }
 }

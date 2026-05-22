@@ -4,6 +4,34 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-05-22 — Phase 2 Step 8: HTML price book live
+
+### Work done
+
+- Built `/price-book` index and `/price-book/[slug]` family detail routes (Next.js Server Components).
+- Created `src/lib/price-book/families.ts` with all 10 family-page concepts: V100 (+ V150 tier), V250 (V255 tier skipped — single table), V260 (V270 tier skipped — single table), V200, V400, V500, V600, V700, V800, SW workstations. Content lifted verbatim from `/tmp/arxys-pricebook.txt` (pdftotext of the V5 MSRP PPTX).
+- Added `cardEyebrow`, `upgradeSkus`, `skuExtraData`, and `category` fields to the Family type beyond the brief's base schema. These were necessary to: match index card copy from the mockup, encode per-family upgrade lists from the PPTX, provide static cell overrides for SSD/monitor columns not in the DB schema, and drive the 3-section index grouping.
+- Parameterized SKU table column set via `SkuColumn[]` — SW workstations use `bandwidth + monitors` columns instead of `netStorage`; V250/V260 use `ssdStorage`. `skuExtraData` per-SKU overrides handle display values not stored in the DB (SSD configs as text, monitor counts for SW).
+- Upgrade SKU lists are per-family (not universal) — direct reading from PPTX pages. V700/V800 include `VX5-RAM-32GB`; V100 only `VX5-GPU-A1000`; SW includes `VX5-PP5-V100`.
+- Added `--color-arxys-navy`, `--color-arxys-navy-deep`, `--color-arxys-navy-soft`, `--font-poppins` to `globals.css` `@theme inline` block. Scoped Poppins headings + Montserrat body behind `.price-book-route` class on the price book layout wrapper. Print styles scoped using `body:has(.price-book-route)`.
+- Google Fonts loaded via `<link>` in the price book `layout.tsx` (not CSS `@import`): PostCSS/Tailwind 4 expands `@import "tailwindcss"` inline, leaving any subsequent `@import url()` after generated rules — invalid CSS. Route-level `<link>` tags are the correct Next.js App Router pattern.
+- Migrated 5 hero images from `docs/phase-2/mockups/step-8a/assets/` to `public/price-book/`. SW workstation hero is `null` — no workstation image was extracted from the PPTX at mockup time; SW index card and detail page use a gold "SW" text placeholder. Replace when asset is available.
+- Added "VideoX V5 Price Book" card to dashboard page and "Price Book" nav link to the app layout (alongside Dashboard / Calculator / Submissions / Admin / Sign out).
+- Wrote `src/lib/price-book/families.test.ts` (8 assertions); all pass. Also removed `import "server-only"` from families.ts — the `server-only` package throws when imported outside the Next.js runtime (the tsx test runner has no Next.js shim). The existing `xlsx.ts` in the same dir follows the same pattern of no guard; the Server Component pages are the actual gate.
+- Installed `server-only` package as a dep so the import resolves during build even if not used.
+- **Datasheet URL liveness probe (2026-05-22):** 6 of 10 families have published datasheets. Four return 404 and have `datasheetUrl: null` (button hidden): V250, V260, V500, SW. Six are live: V100, V200, V400, V600, V700, V800.
+
+### Detours & fixes
+
+- **`@import url()` in globals.css fails with PostCSS/Tailwind 4:** The brief specified adding a Google Fonts `@import url()` to `globals.css`. After `@import "tailwindcss"`, the PostCSS plugin inlines all Tailwind utilities, making any following `@import url()` invalid CSS (must precede all rules). Moving the import before `@import "tailwindcss"` is also wrong — PostCSS re-orders the output. **Fix:** moved Google Fonts to route-scoped `<link>` tags in the price book `layout.tsx`. This is the idiomatic Next.js App Router approach anyway.
+- **`import "server-only"` breaks tsx test runner:** The package throws with "This module cannot be imported from a Client Component module" when called outside the Next.js runtime. Removed the guard from `families.ts`; families.ts is pure data (no server APIs) so the guard added no real protection. Tests now pass cleanly.
+
+### Decisions captured
+
+- [`0032-price-book-brand-scope.md`](./decisions/0032-price-book-brand-scope.md)
+
+---
+
 ## 2026-05-21 — Phase 2 Step 7: Partner XLSX download
 
 ### Work done

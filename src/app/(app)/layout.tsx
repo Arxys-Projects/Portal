@@ -66,7 +66,33 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
               </p>
             )}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-4">
+            <nav className="hidden sm:flex items-center gap-1 text-sm">
+              <Link
+                href="/dashboard"
+                className="px-3 py-1.5 text-neutral-600 hover:text-neutral-900 rounded hover:bg-neutral-100"
+              >
+                Dashboard
+              </Link>
+              <Link
+                href="/calculator"
+                className="px-3 py-1.5 text-neutral-600 hover:text-neutral-900 rounded hover:bg-neutral-100"
+              >
+                Calculator
+              </Link>
+              <Link
+                href="/submissions"
+                className="px-3 py-1.5 text-neutral-600 hover:text-neutral-900 rounded hover:bg-neutral-100"
+              >
+                Submissions
+              </Link>
+              <Link
+                href="/price-book"
+                className="px-3 py-1.5 text-neutral-600 hover:text-neutral-900 rounded hover:bg-neutral-100"
+              >
+                Price Book
+              </Link>
+            </nav>
             {isAdmin ? (
               <Link
                 href="/admin"
