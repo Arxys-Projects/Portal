@@ -41,6 +41,7 @@ export default async function PriceBookIndexPage() {
     "nvr-mgmt-acm",
     "nvr-analytics",
     "high-density",
+    "workstations",
   ];
 
   const sections = categoryOrder.map((cat) => ({
@@ -80,15 +81,14 @@ export default async function PriceBookIndexPage() {
 
       {/* Compliance badges strip */}
       <div className="mx-auto max-w-5xl mt-8 -mb-2">
-        <div className="rounded-lg bg-neutral-50 border border-neutral-200 px-6 py-3 flex flex-wrap items-center justify-around gap-4 text-xs font-semibold text-[#054A91]">
+        <div className="rounded-lg bg-neutral-50 border border-neutral-200 px-6 py-3 flex flex-wrap items-center justify-around gap-4 text-sm font-semibold text-[#054A91]">
           {[
-            "Multi-VMS Validated",
-            "PSA Security Partner",
-            "TAA & NDAA Compliant",
+            "Multi-VMS Validated: Milestone, Avigilon, Genetec, NXWitness, Hanwha, Exacq, Axxonsoft",
+            "NDAA Compliant",
             "American Made",
           ].map((badge) => (
             <div key={badge} className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-[#fbb040]" />
+              <span className="w-2 h-2 rounded-full bg-[#fbb040] shrink-0" />
               <span>{badge}</span>
             </div>
           ))}

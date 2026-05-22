@@ -288,15 +288,14 @@ export default async function FamilyDetailPage({
 
       {/* Compliance badges */}
       <section className="pb-8">
-        <div className="rounded-lg bg-[#f0f5fa] border border-neutral-200 px-6 py-4 flex flex-wrap items-center justify-around gap-4 text-xs font-semibold text-[#054A91]">
+        <div className="rounded-lg bg-[#f0f5fa] border border-neutral-200 px-6 py-4 flex flex-wrap items-center justify-around gap-4 text-sm font-semibold text-[#054A91]">
           {[
-            "Multi-VMS Validated",
-            "PSA Security Partner",
-            "TAA & NDAA Compliant",
+            "Multi-VMS Validated: Milestone, Avigilon, Genetec, NXWitness, Hanwha, Exacq, Axxonsoft",
+            "NDAA Compliant",
             "American Made",
           ].map((badge) => (
             <div key={badge} className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-[#fbb040]" />
+              <span className="w-2 h-2 rounded-full bg-[#fbb040] shrink-0" />
               <span>{badge}</span>
             </div>
           ))}
@@ -391,7 +390,7 @@ export default async function FamilyDetailPage({
                     <td className="px-4 py-2.5 text-neutral-700">
                       {row.product_name}
                     </td>
-                    <td className="px-4 py-2.5 text-right font-semibold text-[#054A91]">
+                    <td className="px-4 py-2.5 text-right font-semibold text-neutral-900">
                       {formatMsrp(row)}
                     </td>
                   </tr>

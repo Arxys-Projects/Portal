@@ -62,7 +62,7 @@ export type Family = {
   heroImage: string | null;
   datasheetUrl: string | null;
   datasheetButtons?: DatasheetButton[]; // overrides datasheetUrl when set (multiple PDFs)
-  category: "nvr-mgmt-acm" | "nvr-analytics" | "high-density";
+  category: "nvr-mgmt-acm" | "nvr-analytics" | "high-density" | "workstations";
   sortOrder: number;
   skuExtraData?: Record<string, Partial<Record<SkuColumn, string>>>;
 };
@@ -86,6 +86,10 @@ export const FAMILY_CATEGORIES: Record<
   "high-density": {
     label: "High-Density Video & Analytics",
     warranty: "5-year warranty",
+  },
+  workstations: {
+    label: "Security Workstations — for video surveillance client viewing",
+    warranty: "3-year warranty",
   },
 };
 
@@ -119,7 +123,7 @@ export const FAMILIES: Family[] = [
     kpis: [
       { label: "Max VSR", value: "25", unit: "streams", vsrTooltip: true },
       { label: "Throughput", value: "500", unit: "Mbps" },
-      { label: "Warranty", value: "5", unit: "years NBD" },
+      { label: "Warranty Support", value: "5 Years", unit: "Next Business Day Parts" },
     ],
     productGroups: ["V100"],
     skuTableColumns: ["sku", "product", "netStorage", "msrp"],
@@ -138,6 +142,9 @@ export const FAMILIES: Family[] = [
     category: "nvr-mgmt-acm",
     sortOrder: 1,
     skuExtraData: {
+      "VX5-V100-32": { netStorage: "36 TB" },
+      "VX5-V100-40": { netStorage: "40 TB" },
+      "VX5-V100-48": { netStorage: "48 TB" },
       "VX5-V150-ACM": { ssdStorage: "2x 480GB" },
     },
   },
@@ -171,7 +178,7 @@ export const FAMILIES: Family[] = [
     kpis: [
       { label: "Throughput", value: "1,000", unit: "Mbps" },
       { label: "DB SSDs", value: "2x", unit: "Hot Swap" },
-      { label: "Warranty", value: "5", unit: "years NBD" },
+      { label: "Warranty Support", value: "5 Years", unit: "Next Business Day Parts" },
     ],
     productGroups: ["V250", "V255"],
     skuTableColumns: ["sku", "product", "ssdStorage", "msrp"],
@@ -216,7 +223,7 @@ export const FAMILIES: Family[] = [
     kpis: [
       { label: "Door Support", value: "500", unit: "doors" },
       { label: "Redundant PSU", value: "2x", unit: "Hot Swap" },
-      { label: "Warranty", value: "5", unit: "years NBD" },
+      { label: "Warranty Support", value: "5 Years", unit: "Next Business Day Parts" },
     ],
     productGroups: ["V260", "V270"],
     skuTableColumns: ["sku", "product", "ssdStorage", "msrp"],
@@ -261,7 +268,7 @@ export const FAMILIES: Family[] = [
     kpis: [
       { label: "Max VSR", value: "100", unit: "streams", vsrTooltip: true },
       { label: "Throughput", value: "1,000", unit: "Mbps" },
-      { label: "Warranty", value: "5", unit: "years NBD" },
+      { label: "Warranty Support", value: "5 Years", unit: "Next Business Day Parts" },
     ],
     productGroups: ["V200"],
     skuTableColumns: ["sku", "product", "netStorage", "msrp"],
@@ -271,6 +278,11 @@ export const FAMILIES: Family[] = [
     datasheetUrl: datasheetUrlFor("V200"),
     category: "nvr-mgmt-acm",
     sortOrder: 4,
+    skuExtraData: {
+      "VX5-V200-64": { netStorage: "48 TB" },
+      "VX5-V200-80": { netStorage: "60 TB" },
+      "VX5-V200-96": { netStorage: "72 TB" },
+    },
   },
 
   // ── V400 — 2U 8Bay Video Server ──────────────────────────────────────────
@@ -301,7 +313,7 @@ export const FAMILIES: Family[] = [
     kpis: [
       { label: "Max VSR", value: "200", unit: "streams", vsrTooltip: true },
       { label: "Throughput", value: "2,000", unit: "Mbps" },
-      { label: "Warranty", value: "5", unit: "years NBD" },
+      { label: "Warranty Support", value: "5 Years", unit: "Next Business Day Parts" },
     ],
     productGroups: ["V400"],
     skuTableColumns: ["sku", "product", "netStorage", "msrp"],
@@ -316,6 +328,11 @@ export const FAMILIES: Family[] = [
     datasheetUrl: datasheetUrlFor("V400"),
     category: "nvr-analytics",
     sortOrder: 5,
+    skuExtraData: {
+      "VX5-V400-128": { netStorage: "96 TB" },
+      "VX5-V400-160": { netStorage: "120 TB" },
+      "VX5-V400-192": { netStorage: "132 TB" },
+    },
   },
 
   // ── V500 — 2U 12Bay Video Server ─────────────────────────────────────────
@@ -346,7 +363,7 @@ export const FAMILIES: Family[] = [
     kpis: [
       { label: "Max VSR", value: "275", unit: "streams", vsrTooltip: true },
       { label: "Throughput", value: "3,000", unit: "Mbps" },
-      { label: "Warranty", value: "5", unit: "years NBD" },
+      { label: "Warranty Support", value: "5 Years", unit: "Next Business Day Parts" },
     ],
     productGroups: ["V500"],
     skuTableColumns: ["sku", "product", "netStorage", "msrp"],
@@ -361,6 +378,11 @@ export const FAMILIES: Family[] = [
     datasheetUrl: "https://www.arxys.com/wp-content/uploads/Arxys-VideoX-Factsheet-V500-v5.pdf",
     category: "nvr-analytics",
     sortOrder: 6,
+    skuExtraData: {
+      "VX5-V500-192": { netStorage: "160 TB" },
+      "VX5-V500-240": { netStorage: "200 TB" },
+      "VX5-V500-288": { netStorage: "240 TB" },
+    },
   },
 
   // ── V600 — 3U 16Bay Video Server ─────────────────────────────────────────
@@ -391,7 +413,7 @@ export const FAMILIES: Family[] = [
     kpis: [
       { label: "Max VSR", value: "275", unit: "streams", vsrTooltip: true },
       { label: "Throughput", value: "3,000", unit: "Mbps" },
-      { label: "Warranty", value: "5", unit: "years NBD" },
+      { label: "Warranty Support", value: "5 Years", unit: "Next Business Day Parts" },
     ],
     productGroups: ["V600"],
     skuTableColumns: ["sku", "product", "netStorage", "msrp"],
@@ -406,6 +428,11 @@ export const FAMILIES: Family[] = [
     datasheetUrl: datasheetUrlFor("V600"),
     category: "nvr-analytics",
     sortOrder: 7,
+    skuExtraData: {
+      "VX5-V600-256": { netStorage: "224 TB" },
+      "VX5-V600-320": { netStorage: "280 TB" },
+      "VX5-V600-384": { netStorage: "336 TB" },
+    },
   },
 
   // ── V700 — 4U 24Bay Video Server ─────────────────────────────────────────
@@ -436,7 +463,7 @@ export const FAMILIES: Family[] = [
     kpis: [
       { label: "Max VSR", value: "325", unit: "streams", vsrTooltip: true },
       { label: "Throughput", value: "4,000", unit: "Mbps" },
-      { label: "Warranty", value: "5", unit: "years NBD" },
+      { label: "Warranty Support", value: "5 Years", unit: "Next Business Day Parts" },
     ],
     productGroups: ["V700"],
     skuTableColumns: ["sku", "product", "netStorage", "msrp"],
@@ -452,6 +479,11 @@ export const FAMILIES: Family[] = [
     datasheetUrl: datasheetUrlFor("V700"),
     category: "high-density",
     sortOrder: 8,
+    skuExtraData: {
+      "VX5-V700-384": { netStorage: "316 TB" },
+      "VX5-V700-480": { netStorage: "400 TB" },
+      "VX5-V700-576": { netStorage: "480 TB" },
+    },
   },
 
   // ── V800 — 4U 36Bay Video Server ─────────────────────────────────────────
@@ -482,7 +514,7 @@ export const FAMILIES: Family[] = [
     kpis: [
       { label: "Max VSR", value: "325", unit: "streams", vsrTooltip: true },
       { label: "Throughput", value: "4,000", unit: "Mbps" },
-      { label: "Warranty", value: "5", unit: "years NBD" },
+      { label: "Warranty Support", value: "5 Years", unit: "Next Business Day Parts" },
     ],
     productGroups: ["V800"],
     skuTableColumns: ["sku", "product", "netStorage", "msrp"],
@@ -498,6 +530,11 @@ export const FAMILIES: Family[] = [
     datasheetUrl: datasheetUrlFor("V800"),
     category: "high-density",
     sortOrder: 9,
+    skuExtraData: {
+      "VX5-V800-576": { netStorage: "480 TB" },
+      "VX5-V800-720": { netStorage: "600 TB" },
+      "VX5-V800-864": { netStorage: "720 TB" },
+    },
   },
 
   // ── SW — Security Workstations ───────────────────────────────────────────
@@ -528,7 +565,7 @@ export const FAMILIES: Family[] = [
     kpis: [
       { label: "Max Bandwidth", value: "325", unit: "Mb/s" },
       { label: "Monitor Support", value: "8x", unit: "displays" },
-      { label: "Warranty", value: "3", unit: "years" },
+      { label: "Warranty Support", value: "3 Years", unit: "Next Business Day Parts" },
     ],
     productGroups: ["SW10", "SW20", "SW25", "SW30", "SW35"],
     skuTableColumns: ["sku", "product", "bandwidth", "monitors", "msrp"],
@@ -546,7 +583,7 @@ export const FAMILIES: Family[] = [
         url: "https://www.arxys.com/wp-content/uploads/Arxys-videoX-Factsheet-SW20-V5.pdf",
       },
     ],
-    category: "high-density",
+    category: "workstations",
     sortOrder: 10,
     skuExtraData: {
       "VX5-SW10-100": { bandwidth: "125 Mb/s", monitors: "4*" },
