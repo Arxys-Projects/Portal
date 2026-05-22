@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>VideoX V400 — Price Book — Arxys Partner Portal</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --arxys-navy: #054A91;
+      --arxys-navy-deep: #03396f;
+      --arxys-gold: #fbb040;
+      --arxys-gold-hover: #e69e2c;
+      --arxys-text: #333333;
+      --arxys-grey: #d1d2d4;
+    }
+    body { font-family: 'Montserrat', system-ui, sans-serif; color: var(--arxys-text); }
+    h1, h2, h3, h4 { font-family: 'Poppins', system-ui, sans-serif; }
+    .text-arxys-navy { color: var(--arxys-navy); }
+    .bg-arxys-navy { background-color: var(--arxys-navy); }
+    .text-arxys-gold { color: var(--arxys-gold); }
+    .bg-arxys-gold { background-color: var(--arxys-gold); }
+    .border-arxys-gold { border-color: var(--arxys-gold); }
+    .bg-arxys-navy-soft { background-color: #f0f5fa; }
+    /* Gold star bullets matching Slides */
+    .gold-star li { position: relative; padding-left: 1.5rem; }
+    .gold-star li::before {
+      content: "★";
+      color: var(--arxys-gold);
+      position: absolute;
+      left: 0;
+      top: 0;
+      font-size: 0.875rem;
+    }
+    /* Print stylesheet — partners can print a family page as a one-pager */
+    @media print {
+      header, nav, footer, .no-print { display: none !important; }
+      body { font-size: 11pt; }
+      h1 { font-size: 22pt; }
+      h2 { font-size: 12pt; }
+      .bg-arxys-navy-soft { background-color: transparent !important; border: 1px solid #cbd5e0; }
+      .bg-arxys-navy { background-color: white !important; color: var(--arxys-navy) !important; }
+      .bg-arxys-navy th { color: var(--arxys-navy) !important; border-bottom: 2px solid var(--arxys-navy); }
+      a { color: inherit !important; text-decoration: none !important; }
+      img { max-height: 200px !important; }
+      .print-page-break { page-break-after: always; }
+      section { page-break-inside: avoid; }
+    }
+  </style>
+</head>
+<body class="bg-white">
+
+  <!-- Portal header -->
+  <header class="border-b border-neutral-200">
+    <div class="mx-auto max-w-7xl px-6 py-4 flex items-center justify-between">
+      <div class="font-bold text-arxys-gold text-xl tracking-wider">ARXYS</div>
+      <nav class="flex items-center gap-6 text-sm text-neutral-700">
+        <a href="#" class="hover:text-arxys-navy">Dashboard</a>
+        <a href="#" class="hover:text-arxys-navy">Calculator</a>
+        <a href="#" class="hover:text-arxys-navy">Submissions</a>
+        <a href="index.html" class="font-semibold text-arxys-navy">Price Book</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Breadcrumb -->
+  <div class="mx-auto max-w-7xl px-6 pt-5 text-xs text-neutral-500">
+    <a href="index.html" class="hover:text-arxys-navy">← Price Book</a>
+    <span class="mx-2 text-neutral-300">/</span>
+    <span class="text-neutral-700">V400</span>
+  </div>
+
+  <!-- Hero -->
+  <section class="mx-auto max-w-7xl px-6 pt-6 pb-10">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      <!-- Left: image -->
+      <div class="lg:col-span-5 bg-neutral-50 rounded-lg p-8 flex items-center justify-center">
+        <img src="assets/v400-v500-hero.png" alt="VideoX V400 2U 8Bay Rack Server" class="max-h-72 object-contain">
+      </div>
+
+      <!-- Right: name + tagline + great-for -->
+      <div class="lg:col-span-7">
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <p class="text-arxys-gold font-semibold text-sm uppercase tracking-widest">VideoX V5 · 2U 8-Bay Video Server</p>
+            <h1 class="mt-2 text-4xl font-semibold text-arxys-navy">V400</h1>
+          </div>
+          <!-- Datasheet download CTA -->
+          <a href="#datasheet-url-tbd" target="_blank" rel="noopener noreferrer"
+             class="no-print shrink-0 inline-flex items-center gap-2 bg-arxys-gold hover:bg-[#e69e2c] text-[#1a1a1a] font-semibold text-sm px-4 py-2.5 rounded transition">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3M5 21h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+            Download Datasheet
+          </a>
+        </div>
+        <p class="mt-3 text-lg text-neutral-700 leading-snug">
+          Strong security and reliable performance for medium to medium-large deployments.
+        </p>
+
+        <div class="mt-6 rounded-lg border-l-4 border-arxys-gold bg-neutral-50 p-4">
+          <p class="text-xs font-semibold uppercase tracking-wider text-arxys-navy">Great For</p>
+          <p class="mt-1.5 text-sm text-neutral-700 leading-relaxed">
+            Designed for medium to medium-large deployments with modest camera counts, this solution delivers strong security and reliable performance. It balances efficient video protection with scalable storage options, making it ideal for organizations with steady but manageable surveillance needs.
+          </p>
+        </div>
+
+        <!-- Quick stats row -->
+        <div class="mt-6 grid grid-cols-3 gap-4">
+          <div class="text-center bg-arxys-navy-soft rounded-lg py-3 relative">
+            <div class="text-xs text-neutral-500 uppercase tracking-wide flex items-center justify-center gap-1">
+              Max VSR
+              <details class="inline-block group relative">
+                <summary class="cursor-help list-none text-arxys-gold font-bold no-print">ⓘ</summary>
+                <div class="absolute left-1/2 -translate-x-1/2 top-full mt-2 w-64 bg-arxys-navy text-white text-xs font-normal text-left p-3 rounded shadow-lg z-10 normal-case tracking-normal">
+                  <strong class="text-arxys-gold">VSR (Video Stream Rate):</strong> 4MP @ 15 fps, record on motion, with VMD + metadata, 75% motion activity, 30-day retention, h.264.20 &amp; h.265.20 CODEC (~3–5 Mb video file).
+                </div>
+              </details>
+            </div>
+            <div class="mt-1 text-2xl font-semibold text-arxys-navy">200</div>
+            <div class="text-xs text-neutral-500">streams</div>
+          </div>
+          <div class="text-center bg-arxys-navy-soft rounded-lg py-3">
+            <div class="text-xs text-neutral-500 uppercase tracking-wide">Throughput</div>
+            <div class="mt-1 text-2xl font-semibold text-arxys-navy">2,000</div>
+            <div class="text-xs text-neutral-500">Mbps</div>
+          </div>
+          <div class="text-center bg-arxys-navy-soft rounded-lg py-3">
+            <div class="text-xs text-neutral-500 uppercase tracking-wide">Warranty</div>
+            <div class="mt-1 text-2xl font-semibold text-arxys-navy">5</div>
+            <div class="text-xs text-neutral-500">years NBD</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Compliance badges -->
+  <section class="mx-auto max-w-7xl px-6 pb-8">
+    <div class="rounded-lg bg-arxys-navy-soft border border-neutral-200 px-6 py-4 flex flex-wrap items-center justify-around gap-4 text-xs font-semibold text-arxys-navy">
+      <div class="flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-arxys-gold"></span>
+        <span>Multi-VMS Validated</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-arxys-gold"></span>
+        <span>PSA Security Partner</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-arxys-gold"></span>
+        <span>TAA &amp; NDAA Compliant</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-arxys-gold"></span>
+        <span>American Made</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Key features + Tech specs -->
+  <section class="mx-auto max-w-7xl px-6 pb-10">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+      <div>
+        <h2 class="text-xs font-semibold uppercase tracking-wider text-neutral-500 border-b border-neutral-200 pb-2">Key Features</h2>
+        <ul class="gold-star mt-4 space-y-2 text-sm text-neutral-700">
+          <li>Windows Server 2022/2025 IoT Standard</li>
+          <li>8x Enterprise HDD's, RAID 5 &amp; Cachevault</li>
+          <li>2,000 Mbps max possible throughput</li>
+          <li>2U Rack mount w/ rails</li>
+          <li>Max VSR = 200 streams h.265 or h.264</li>
+        </ul>
+      </div>
+
+      <div>
+        <h2 class="text-xs font-semibold uppercase tracking-wider text-neutral-500 border-b border-neutral-200 pb-2">Technical Specs</h2>
+        <ul class="gold-star mt-4 space-y-2 text-sm text-neutral-700">
+          <li>AMD EPYC 9005 3.3GHz 16/32 Core CPU</li>
+          <li>16GB ECC DDR5 DRAM</li>
+          <li>2x Mirrored Enterprise OS SSD — Hot Swap</li>
+          <li>4x 10GbE, 1x Dedicated Remote Management</li>
+          <li>2x Hot-swap, Redundant Power Supply</li>
+        </ul>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- SKU table -->
+  <section class="mx-auto max-w-7xl px-6 pb-10">
+    <h2 class="text-xs font-semibold uppercase tracking-wider text-neutral-500 mb-3">V400 Configurations</h2>
+    <div class="overflow-hidden rounded-lg border border-neutral-200">
+      <table class="w-full text-sm">
+        <thead class="bg-arxys-navy text-white">
+          <tr>
+            <th class="text-left px-4 py-3 font-semibold">SKU</th>
+            <th class="text-left px-4 py-3 font-semibold">Product</th>
+            <th class="text-right px-4 py-3 font-semibold">Net Usable Storage</th>
+            <th class="text-right px-4 py-3 font-semibold">MSRP</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="border-t border-neutral-100 hover:bg-neutral-50">
+            <td class="px-4 py-3 font-mono text-xs">VX5-V400-128</td>
+            <td class="px-4 py-3 text-neutral-700">VideoX V400 128TB 2U 8Bay Rack — V5 Video &amp; Analytics Server</td>
+            <td class="px-4 py-3 text-right text-neutral-700">96 TB</td>
+            <td class="px-4 py-3 text-right font-semibold text-arxys-navy">$24,975</td>
+          </tr>
+          <tr class="border-t border-neutral-100 bg-neutral-50 hover:bg-neutral-100">
+            <td class="px-4 py-3 font-mono text-xs">VX5-V400-160</td>
+            <td class="px-4 py-3 text-neutral-700">VideoX V400 160TB 2U 8Bay Rack — V5 Video &amp; Analytics Server</td>
+            <td class="px-4 py-3 text-right text-neutral-700">120 TB</td>
+            <td class="px-4 py-3 text-right font-semibold text-arxys-navy">$26,910</td>
+          </tr>
+          <tr class="border-t border-neutral-100 hover:bg-neutral-50">
+            <td class="px-4 py-3 font-mono text-xs">VX5-V400-192</td>
+            <td class="px-4 py-3 text-neutral-700">VideoX V400 192TB 2U 8Bay Rack — V5 Video &amp; Analytics Server</td>
+            <td class="px-4 py-3 text-right text-neutral-700">132 TB</td>
+            <td class="px-4 py-3 text-right font-semibold text-arxys-navy">$29,861</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Upgrade options -->
+  <section class="mx-auto max-w-7xl px-6 pb-10">
+    <h2 class="text-xs font-semibold uppercase tracking-wider text-neutral-500 mb-3">Upgrade Options</h2>
+    <div class="overflow-hidden rounded-lg border border-neutral-200">
+      <table class="w-full text-sm">
+        <thead class="bg-neutral-100">
+          <tr>
+            <th class="text-left px-4 py-2.5 font-semibold text-neutral-600">SKU</th>
+            <th class="text-left px-4 py-2.5 font-semibold text-neutral-600">Add-on</th>
+            <th class="text-right px-4 py-2.5 font-semibold text-neutral-600">MSRP</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="border-t border-neutral-100">
+            <td class="px-4 py-2.5 font-mono text-xs">VX5-GPU-A1000</td>
+            <td class="px-4 py-2.5 text-neutral-700">Nvidia A1000 8GB Ampere GPU card — Video Analytics</td>
+            <td class="px-4 py-2.5 text-right font-semibold text-arxys-navy">$1,575</td>
+          </tr>
+          <tr class="border-t border-neutral-100">
+            <td class="px-4 py-2.5 font-mono text-xs">VX5-NIC-SFP28</td>
+            <td class="px-4 py-2.5 text-neutral-700">SFP28 Optical Ethernet NIC card (no transceivers)</td>
+            <td class="px-4 py-2.5 text-right font-semibold text-arxys-navy">$670</td>
+          </tr>
+          <tr class="border-t border-neutral-100">
+            <td class="px-4 py-2.5 font-mono text-xs">VX5-NIC-SFP28x10</td>
+            <td class="px-4 py-2.5 text-neutral-700">2x 10Gb SFP28 optical transceivers</td>
+            <td class="px-4 py-2.5 text-right font-semibold text-arxys-navy">$300</td>
+          </tr>
+          <tr class="border-t border-neutral-100">
+            <td class="px-4 py-2.5 font-mono text-xs">VX5-NIC-SFP28x25</td>
+            <td class="px-4 py-2.5 text-neutral-700">2x 25Gb SFP28 optical transceivers</td>
+            <td class="px-4 py-2.5 text-right font-semibold text-arxys-navy">$1,024</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Fine print -->
+  <section class="mx-auto max-w-7xl px-6 pb-12">
+    <div class="rounded-lg bg-neutral-50 border border-neutral-200 p-5 text-xs text-neutral-600 leading-relaxed">
+      <p><span class="font-semibold">VSR (Video Stream Rate):</span> 4MP @ 15fps, record on motion, with VMD &amp; metadata capture, 75% motion activity, 30-day retention, h.264.20 &amp; h.265.20 CODEC. ~3-5 Mb video file.</p>
+      <p class="mt-2">For installations with less than 300 cameras, free SQL Server Express edition can often be used; for larger systems, Microsoft SQL Server Standard or Enterprise edition is recommended. Client View application on server not supported (requires dedicated client view workstation). Windows Server IoT for Storage Workgroup EULA and Microsoft conditions apply.</p>
+      <p class="mt-2">Prices and specs subject to change without notice. NDAA compliant with no disclosures.</p>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="border-t border-neutral-200">
+    <div class="mx-auto max-w-7xl px-6 py-6 text-xs text-neutral-500 flex justify-between items-center">
+      <span>© Arxys 2026 · VideoX© · DataX© · AnalyticX©</span>
+      <a href="https://www.arxys.com" class="text-arxys-navy hover:underline">www.arxys.com</a>
+    </div>
+  </footer>
+
+</body>
+</html>
