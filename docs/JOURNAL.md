@@ -4,6 +4,64 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-05-22 — Portal Phase 2 closure
+
+### Work done
+
+Portal Phase 2 closed. Decision recorded in ADR [`0036-phase-2-closure-and-phase-3-scope.md`](./decisions/0036-phase-2-closure-and-phase-3-scope.md).
+
+**Phase 2 deliverables (Steps 1–9):**
+
+| Step | Outcome |
+|---|---|
+| 1 — Minimal portal branding | Arxys Gold + logo live; portal reads as Arxys |
+| 2 — Master Sheet validation | 36 SKUs validated; SKU naming convention locked (`VX5-<GROUP>-<TIER>`) |
+| 3+4 — Schema migration + algorithm rewrite | `products` SKU-PK; recommend() picks specific SKUs from real MSRPs |
+| 5+6 — Push script + real pricing live | Sheet → Supabase + Pipedrive; ADR 0019 closed |
+| 7 — Partner XLSX download | Dashboard widget; 36 rows; MSRP-only |
+| 8 — HTML price book live | `/price-book` index + 10 family pages; arxys.com-branded |
+| 9 — Internal verification | Folded into Step 8 polish commits; surfaced + fixed: compliance badges, V600–V800 net storage, warranty KPIs, SW section, V700/V800 hero, dual datasheet buttons |
+
+**Deferred to Phase 3 (per ADR 0036):**
+
+- Step 10 — 2-3 partner cohort invite. Better sequenced *after* custom domain to avoid mid-onboarding domain switch.
+- Step X — Custom domain `portal.arxys.com`. CNAME + Vercel + Supabase auth URL update + email template SiteURL.
+
+**Numbering housekeeping done in same commit:** ADR `0032-price-book-brand-scope.md` renumbered to `0035-price-book-brand-scope.md` to resolve a double-assignment with `0032-sku-level-recommendation-algorithm.md` (Step 3+4 — kept its number, ADR rule "numbers never reused even if superseded"). One JOURNAL cross-reference updated.
+
+**Plan + index housekeeping:**
+
+- `docs/phase-2-plan.md` — Status header → Complete. Document stays as historical record.
+- `docs/README.md` — Forward-looking-plans table updated to show Phase 2 Complete + placeholder for Phase 3 plan (to be created when scoped).
+
+### Phase 2 retrospective
+
+**What went well:**
+
+- Three-doc discipline held throughout. Every step has a JOURNAL entry + ADR(s) where decisions were non-obvious. Future reader can reconstruct *why* from the docs alone.
+- Step scoping briefs at `docs/phase-2/step-N-*.md` worked. Each brief was self-contained enough that a fresh session (Opus for 3+4; Sonnet for everything else) could pick it up cold.
+- Backup posture innovation (Step 3+4 JSON dump + reverse-migration SQL pair) replaced the missing Supabase-Pro snapshot feature cleanly. Reusable for future destructive migrations.
+- Manual smoke testing folded into the implementation step (Step 8) rather than a separate step caught real issues fast (the post-deploy `/submissions` embed-via-FK regression on Step 3+4 + the V700/V800 hero swap + the SW workstations table-column-shape requirement).
+
+**What to carry into Phase 3:**
+
+- ADR discipline includes uniqueness-check of next number before writing. Step 8b's session didn't realize 0032 was taken (the SKU one was committed days earlier in a different session). A fresh `ls docs/decisions/` is a 2-second pre-flight.
+- When dropping or replacing FKs, grep BOTH the column name AND the PostgREST embed-alias patterns (`<col>(...)`). Step 3+4's post-deploy regression was caused by exactly this gap.
+- Step briefs that pre-seed substantial content (Step 8b's families.ts seed, Step 5+6's push script field map) saved hours of Sonnet's clerical work and produced cleaner code on first pass.
+- The `arxys-company` skill correctly identifies brand tokens (Gold + Grey + Montserrat) but the live arxys.com CSS adds two more: navy `#054A91` primary and Poppins headings. These are now in `globals.css` scoped to /price-book/* — Phase 3 may want to extend portal-wide.
+
+### Decisions captured
+
+- [`0036-phase-2-closure-and-phase-3-scope.md`](./decisions/0036-phase-2-closure-and-phase-3-scope.md)
+
+### Pending / Phase 3 inputs
+
+- Custom domain `portal.arxys.com` — CNAME + Vercel + Supabase auth URL + email template SiteURL. ADR [0025](./decisions/0025-supabase-custom-smtp-and-branded-templates.md) "when to revisit" is now the trigger.
+- 2-3 partner cohort selection (who, in what order, canary-first cadence).
+- Phase 3 plan doc (`docs/phase-3-plan.md`) when scoped.
+
+---
+
 ## 2026-05-22 — Price book polish: compliance badges, storage data, warranty KPIs, SW section
 
 ### Work done
@@ -41,7 +99,7 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ### Decisions captured
 
-- [`0032-price-book-brand-scope.md`](./decisions/0032-price-book-brand-scope.md)
+- [`0035-price-book-brand-scope.md`](./decisions/0035-price-book-brand-scope.md) (originally numbered 0032; renumbered at Phase 2 close to resolve a collision with `0032-sku-level-recommendation-algorithm.md` — see Phase 2 close-out entry)
 
 ---
 

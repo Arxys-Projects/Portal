@@ -1,6 +1,8 @@
 # Portal Phase 2 — Pricing Pipeline & MVP launch
 
-Portal Phase 1 closed 2026-05-20 (JOURNAL: *Step 11 — pre-launch verification*). Phase 2 takes the project from "Phase 1 structurally verified but partner-launch blocked" to **"MVP final — first external partners invited."** Pricing data, calculator real-pricing, partner XLSX download, and an HTML price book inside the portal all land before any external partner is invited.
+> **Status: Complete (2026-05-22).** Steps 1–9 landed. Steps 10 (cohort invite) and X (custom domain) moved to Portal Phase 3 — see ADR [`0036-phase-2-closure-and-phase-3-scope.md`](./decisions/0036-phase-2-closure-and-phase-3-scope.md). This document stays in place as historical record; no further edits.
+
+Portal Phase 1 closed 2026-05-20 (JOURNAL: *Step 11 — pre-launch verification*). Phase 2 takes the project from "Phase 1 structurally verified but partner-launch blocked" to **"MVP feature-complete, internally validated, ready for production launch."** Pricing data, calculator real-pricing, partner XLSX download, and an HTML price book inside the portal all land in this phase; the external-partner cohort invite + custom domain move to Phase 3.
 
 ## Naming (per ADR [0029](./decisions/0029-phase-2-step-naming-convention.md))
 

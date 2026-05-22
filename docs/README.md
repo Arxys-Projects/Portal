@@ -27,5 +27,6 @@ The three core docs above are the source of truth for *what happened* and *how t
 
 | File | Status |
 |---|---|
-| [`phase-2-plan.md`](./phase-2-plan.md) | **Current** — Portal Phase 2 work plan (Pricing Pipeline + partner-launch completion). See ADR [0029](./decisions/0029-phase-2-step-naming-convention.md) for the "Phase 2 Step N" naming convention. |
-| [`proposals/phase-2-pricing-pipeline.md`](./proposals/phase-2-pricing-pipeline.md) | Reference — verbatim copy of Andy's Pricing Pipeline planning doc. Authoritative spec for Pipeline Phases 0–3. Read-only history; the operational plan is in `phase-2-plan.md`. |
+| `phase-3-plan.md` (not yet created) | **Next** — Portal Phase 3 work plan. Will cover custom domain `portal.arxys.com` + 2-3 partner cohort invite + anything else surfaced after Phase 2 close. Scoped when needed. |
+| [`phase-2-plan.md`](./phase-2-plan.md) | Complete (2026-05-22) — Portal Phase 2 work plan (Pricing Pipeline + MVP feature-complete). Historical record; see ADR [0036](./decisions/0036-phase-2-closure-and-phase-3-scope.md) for closure. |
+| [`proposals/phase-2-pricing-pipeline.md`](./proposals/phase-2-pricing-pipeline.md) | Reference — verbatim copy of Andy's Pricing Pipeline planning doc. Authoritative spec for Pipeline Phases 0–3. Read-only history; the operational plan was in `phase-2-plan.md`. |

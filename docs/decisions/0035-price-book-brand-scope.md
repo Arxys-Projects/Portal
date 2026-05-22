@@ -1,4 +1,4 @@
-# 0032 — Price book brand scope and font loading strategy
+# 0035 — Price book brand scope and font loading strategy
 
 - **Status**: Accepted
 - **Date**: 2026-05-22
