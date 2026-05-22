@@ -65,10 +65,15 @@ export default async function PriceBookIndexPage() {
             bandwidth savings versus H.264. Browse families below for full SKU,
             MSRP, and spec details. Prices live from current price list.
           </p>
-          <div className="mt-6 flex items-center gap-3 text-xs text-white/60">
-            <span>Effective 05/05/2026</span>
-            <span className="text-white/40">·</span>
-            <span>Prices and specs subject to change without notice</span>
+          <div className="mt-6 flex flex-col gap-1.5">
+            <p className="text-sm font-bold text-white tracking-wide">
+              Effective From: 05/05/2026
+            </p>
+            <p className="text-xs text-white/60">
+              Prices and specs subject to change without notice. Arxys reserves
+              the right to substitute components, ensuring equivalent or
+              superior performance.
+            </p>
           </div>
         </div>
       </section>
@@ -147,10 +152,12 @@ export default async function PriceBookIndexPage() {
         {/* Footer note */}
         <div className="mt-12 pt-6 border-t border-neutral-200 text-xs text-neutral-500 leading-relaxed">
           <p>
-            Prices and specs subject to change without notice. All tariff taxes
-            are passed on to buyers. All Arxys VideoX products are NDAA
-            compliant with no disclosures. Windows Server IoT for Storage
-            Workgroup EULA and Microsoft conditions apply.
+            Prices and specs subject to change without notice. Arxys reserves
+            the right to substitute components, ensuring equivalent or superior
+            performance. All tariff taxes are passed on to buyers. All Arxys
+            VideoX products are NDAA compliant with no disclosures. Windows
+            Server IoT for Storage Workgroup EULA and Microsoft conditions
+            apply.
           </p>
           <p className="mt-2">
             © Arxys 2026 · VideoX© · DataX© · AnalyticX© ·{" "}

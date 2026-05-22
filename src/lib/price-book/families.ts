@@ -172,7 +172,7 @@ export const FAMILIES: Family[] = [
     tierSections: [],
     upgradeSkus: ["VX5-NIC-SFP28", "VX5-NIC-SFP28x10"],
     heroImage: "/price-book/1u-chassis-hero.png",
-    datasheetUrl: null, // 404 as of 2026-05-22 — awaiting publish on arxys.com
+    datasheetUrl: "https://www.arxys.com/wp-content/uploads/Arxys-VideoX-Factsheet-V250-V5.pdf",
     category: "nvr-mgmt-acm",
     sortOrder: 2,
     skuExtraData: {
@@ -217,7 +217,7 @@ export const FAMILIES: Family[] = [
     tierSections: [],
     upgradeSkus: ["VX5-NIC-SFP28", "VX5-NIC-SFP28x10"],
     heroImage: "/price-book/1u-chassis-hero.png",
-    datasheetUrl: null, // 404 as of 2026-05-22 — awaiting publish on arxys.com
+    datasheetUrl: "https://www.arxys.com/wp-content/uploads/Arxys-VideoX-Factsheet-V260-V270-ACM-V5.pdf",
     category: "nvr-mgmt-acm",
     sortOrder: 3,
     skuExtraData: {
@@ -352,7 +352,7 @@ export const FAMILIES: Family[] = [
       "VX5-NIC-SFP28x25",
     ],
     heroImage: "/price-book/v400-v500-hero.png",
-    datasheetUrl: null, // 404 as of 2026-05-22 — awaiting publish on arxys.com
+    datasheetUrl: "https://www.arxys.com/wp-content/uploads/Arxys-VideoX-Factsheet-V500-v5.pdf",
     category: "nvr-analytics",
     sortOrder: 6,
   },

@@ -417,8 +417,9 @@ export default async function FamilyDetailPage({
             Microsoft conditions apply.
           </p>
           <p className="mt-2">
-            Prices and specs subject to change without notice. NDAA compliant
-            with no disclosures.
+            Prices and specs subject to change without notice. Arxys reserves
+            the right to substitute components, ensuring equivalent or superior
+            performance. NDAA compliant with no disclosures.
           </p>
         </div>
       </section>
