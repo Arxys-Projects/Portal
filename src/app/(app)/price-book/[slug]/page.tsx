@@ -209,12 +209,14 @@ export default async function FamilyDetailPage({
                   {family.shortName}
                 </h1>
               </div>
-              {family.datasheetUrl && (
+              <div className="no-print shrink-0 flex flex-col gap-2">
+              {(family.datasheetButtons ?? (family.datasheetUrl ? [{ label: "Download Datasheet", url: family.datasheetUrl }] : [])).map((btn) => (
                 <a
-                  href={family.datasheetUrl}
+                  key={btn.url}
+                  href={btn.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="no-print shrink-0 inline-flex items-center gap-2 bg-[#fbb040] hover:bg-[#e69e2c] text-[#1a1a1a] font-semibold text-sm px-4 py-2.5 rounded transition"
+                  className="inline-flex items-center gap-2 bg-[#fbb040] hover:bg-[#e69e2c] text-[#1a1a1a] font-semibold text-sm px-4 py-2.5 rounded transition"
                 >
                   <svg
                     className="w-4 h-4"
@@ -229,9 +231,10 @@ export default async function FamilyDetailPage({
                       d="M12 10v6m0 0l-3-3m3 3l3-3M5 21h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2z"
                     />
                   </svg>
-                  Download Datasheet
+                  {btn.label}
                 </a>
-              )}
+              ))}
+              </div>
             </div>
 
             <p className="mt-3 text-lg text-neutral-700 leading-snug">

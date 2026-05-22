@@ -39,6 +39,11 @@ export type FamilyTierSection = {
   caption?: string;
 };
 
+export type DatasheetButton = {
+  label: string;
+  url: string;
+};
+
 export type Family = {
   slug: string;
   displayName: string;
@@ -56,6 +61,7 @@ export type Family = {
   upgradeSkus: string[];
   heroImage: string | null;
   datasheetUrl: string | null;
+  datasheetButtons?: DatasheetButton[]; // overrides datasheetUrl when set (multiple PDFs)
   category: "nvr-mgmt-acm" | "nvr-analytics" | "high-density";
   sortOrder: number;
   skuExtraData?: Record<string, Partial<Record<SkuColumn, string>>>;
@@ -528,8 +534,18 @@ export const FAMILIES: Family[] = [
     skuTableColumns: ["sku", "product", "bandwidth", "monitors", "msrp"],
     tierSections: [],
     upgradeSkus: ["VX5-PP5-V100"],
-    heroImage: null,
-    datasheetUrl: null, // 404 as of 2026-05-22 — awaiting publish on arxys.com
+    heroImage: "/price-book/sw-hero.png",
+    datasheetUrl: null,
+    datasheetButtons: [
+      {
+        label: "SW10 Datasheet",
+        url: "https://www.arxys.com/wp-content/uploads/Arxys-videoX-Factsheet-SW10-V5.pdf",
+      },
+      {
+        label: "SW20 Datasheet",
+        url: "https://www.arxys.com/wp-content/uploads/Arxys-videoX-Factsheet-SW20-V5.pdf",
+      },
+    ],
     category: "high-density",
     sortOrder: 10,
     skuExtraData: {
