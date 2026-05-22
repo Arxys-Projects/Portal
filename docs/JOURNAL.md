@@ -4,6 +4,19 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-05-22 — Price book polish: compliance badges, storage data, warranty KPIs, SW section
+
+### Work done
+
+- Fixed upgrade options MSRP color from blue (`text-[#054A91]`) to black (`text-neutral-900`) — blue made them look like links.
+- Updated compliance badges on both index and detail pages: removed "PSA Security Partner", changed "TAA & NDAA Compliant" → "NDAA Compliant", expanded "Multi-VMS Validated" to include full partner list (Milestone, Avigilon, Genetec, NXWitness, Hanwha, Exacq, Axxonsoft), increased badge text from `text-xs` to `text-sm` for readability.
+- Added `skuExtraData` for V600 (224/280/336 TB), V700 (316/400/480 TB), V800 (480/600/720 TB) — fixes Net Usable Storage column showing "—" for first and third SKUs of each family. Values sourced from PPTX (not DB; `max_storage_tb` only stores raw capacity for the middle SKU).
+- Updated warranty KPI to consistent format `{ label: "Warranty Support", value: "X Years", unit: "Next Business Day Parts" }` for V700, V800 (were "Warranty / 5 / years NBD") and SW (was "Warranty / 3 / years").
+- Moved SW workstations from `category: "high-density"` to `category: "workstations"` and added `"workstations"` to `categoryOrder` in the index page, so SW now renders in its own "Security Workstations" section at the bottom.
+- Deleted `scripts/check-storage.ts` (temp debug artifact).
+
+---
+
 ## 2026-05-22 — Phase 2 Step 8: HTML price book live
 
 ### Work done
