@@ -200,41 +200,13 @@ export default async function FamilyDetailPage({
 
           {/* Right: copy */}
           <div className="lg:col-span-7">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-[#fbb040] font-semibold text-sm uppercase tracking-widest">
-                  {family.eyebrow}
-                </p>
-                <h1 className="mt-2 text-4xl font-semibold text-[#054A91]">
-                  {family.shortName}
-                </h1>
-              </div>
-              <div className="no-print shrink-0 flex flex-col gap-2">
-              {(family.datasheetButtons ?? (family.datasheetUrl ? [{ label: "Download Datasheet", url: family.datasheetUrl }] : [])).map((btn) => (
-                <a
-                  key={btn.url}
-                  href={btn.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 bg-[#fbb040] hover:bg-[#e69e2c] text-[#1a1a1a] font-semibold text-sm px-4 py-2.5 rounded transition"
-                >
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M12 10v6m0 0l-3-3m3 3l3-3M5 21h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2z"
-                    />
-                  </svg>
-                  {btn.label}
-                </a>
-              ))}
-              </div>
+            <div>
+              <p className="text-[#fbb040] font-semibold text-sm uppercase tracking-widest">
+                {family.eyebrow}
+              </p>
+              <h1 className="mt-2 text-4xl font-semibold text-[#054A91]">
+                {family.shortName}
+              </h1>
             </div>
 
             <p className="mt-3 text-lg text-neutral-700 leading-snug">
@@ -400,6 +372,47 @@ export default async function FamilyDetailPage({
           </div>
         </section>
       )}
+
+      {/* Documentation */}
+      <section className="pb-10">
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-neutral-500 border-b border-neutral-200 pb-2 mb-4">
+          Documentation
+        </h2>
+        {family.datasheetUrl ? (
+          <div className="flex flex-wrap gap-3">
+            {(
+              family.datasheetButtons ?? [
+                { label: "Download Datasheet", url: family.datasheetUrl },
+              ]
+            ).map((btn) => (
+              <a
+                key={btn.url}
+                href={btn.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-lg border border-neutral-200 bg-white px-4 py-3 text-sm font-medium text-[#054A91] hover:border-[#054A91] transition"
+              >
+                <svg
+                  className="w-4 h-4 text-[#fbb040]"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M12 10v6m0 0l-3-3m3 3l3-3M5 21h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2z"
+                  />
+                </svg>
+                {btn.label}
+              </a>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-neutral-400">Documentation coming soon.</p>
+        )}
+      </section>
 
       {/* Fine print */}
       <section className="pb-12">
