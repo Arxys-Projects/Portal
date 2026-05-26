@@ -4,6 +4,28 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-05-26 — Phase 3 Step 3: Calculator UX upgrade
+
+### Work done
+
+All 4 items shipped in one commit. No schema changes, no RLS changes, no migrations.
+
+- **B1** — Submit button moved above the Camera Groups section (after the global settings block). Button starts disabled (`hasInteracted = false`) on fresh page load; a `touch()` latch fires on the first user interaction (any field change, group add/remove/duplicate, retention/VMS/project-name edit). Reset restores the disabled state. Hint text updated to match the new position ("Configure a camera group below, then save…"). The existing `isSubmitting` guard is preserved alongside the new `hasInteracted` check.
+- **B2** — `@keyframes ax-rec-fadein` added to `calculator.css` (`opacity 0→1`, `translateY -10px→0`, 300ms ease-out) and applied to `.ax-rec`. Since `RecommendationPanel` is conditionally mounted (`status === "ok" && …`), the animation fires automatically on mount — no React state needed. Re-submissions update in place without re-animating (component stays mounted while `status` stays `ok`).
+- **B3** — `productGroupToFamilySlug(productGroup: string): string | null` exported from `families.ts`. Iterates all families checking `productGroups` and `tierSections[].productGroups` case-insensitively; returns `null` for groups that don't map to a price book page (GPU, RAM, NIC, etc.). `RecommendationPanel` wraps `winner.productGroup` in `<Link href="/price-book/{slug}">` when a slug is found; falls back to plain `<span>` otherwise. Link styled via new `.ax-rec-model-link` CSS class (inherits monospace/color, adds hover underline).
+- **B4** — Submission History page imports `productGroupToFamilySlug`. The Recommendation column wraps `product_group` in `<Link>` when slug resolves; legacy UUID rows and unmapped groups remain plain text.
+
+**Verification gates**
+
+| Gate | Result |
+|---|---|
+| `npm run build` | ✅ clean — same 19 routes |
+| `npm run lint` | ✅ 0 errors — 2 pre-existing warnings unchanged |
+| `npm test` | ✅ 32/32 pass |
+| `scripts/test-rls.ts` | ✅ 10/10 pass |
+
+---
+
 ## 2026-05-26 — Phase 3 Step 2: Portal polish + Support + Docs scaffold + Deal-Reg email
 
 ### Work done
