@@ -59,10 +59,10 @@ export default async function PriceBookIndexPage() {
         <div className="mx-auto max-w-5xl flex flex-col md:flex-row md:items-center md:justify-between gap-8">
           {/* Left: copy */}
           <div className="flex-1">
-            <div className="flex items-baseline gap-4 flex-wrap">
-              <p className="text-[#fbb040] font-semibold text-xl uppercase tracking-widest">
+            <div className="flex items-baseline gap-3 flex-wrap">
+              <span className="text-[#fbb040] font-semibold text-4xl uppercase leading-tight">
                 VIDEOX V5
-              </p>
+              </span>
               <h1 className="text-4xl font-semibold leading-tight">
                 MSRP Price Book
               </h1>
@@ -114,46 +114,56 @@ export default async function PriceBookIndexPage() {
         </div>
       </section>
 
-      {/* ── Compliance badges strip ── */}
-      <div className="mx-auto max-w-5xl mt-8 -mb-2">
-        <div className="rounded-lg bg-neutral-50 border border-neutral-200 px-6 py-3 flex flex-wrap items-center justify-around gap-4 text-sm font-semibold text-[#054A91]">
-          {[
-            "Multi-VMS Validated: Milestone, Avigilon, Genetec, NXWitness, Hanwha, Exacq, Axxonsoft",
-            "NDAA Compliant",
-            "American Made",
-          ].map((badge) => (
-            <div key={badge} className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-[#fbb040] shrink-0" />
-              <span>{badge}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* ── Enterprise Grade box (A6) ── */}
+      {/* ── Enterprise Grade + Compliance (combined) ── */}
       <div className="mx-auto max-w-5xl mt-8">
-        <div className="rounded-lg border-l-4 border-[#fbb040] bg-neutral-500 p-6">
-          <p className="font-bold text-white text-sm">
+        <div className="rounded-lg border-l-4 border-[#fbb040] bg-white border border-neutral-200 p-6">
+          <p className="font-bold text-neutral-900 text-sm mb-3">
             Enterprise Grade:{" "}
             <span className="font-normal">
               Arxys VideoX servers come standard with:
             </span>
           </p>
-          <ul className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-1.5 text-sm text-white">
-            {[
-              "Microsoft Windows Server 2022 or 2025",
-              "Hot-swap, enterprise class HDDs and SSDs",
-              "Hot-swap and redundant power and cooling",
-              "Dedicated secure remote management",
-              "Resilient Hardware RAID with cachevault protection",
-              "Rack slide rails, and lockable drive access",
-            ].map((item) => (
-              <li key={item} className="flex items-start gap-2">
-                <span className="mt-0.5 w-2 h-2 rounded-full bg-[#fbb040] shrink-0" />
-                {item}
-              </li>
-            ))}
-          </ul>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-1.5 text-sm text-neutral-900">
+            {/* Column 1 */}
+            <ul className="space-y-1.5">
+              {[
+                "Microsoft Windows Server 2022 or 2025",
+                "Hot-swap, enterprise class HDDs and SSDs",
+                "Hot-swap and redundant power and cooling",
+              ].map((item) => (
+                <li key={item} className="flex items-start gap-2">
+                  <span className="mt-1 w-2 h-2 rounded-full bg-[#fbb040] shrink-0" />
+                  {item}
+                </li>
+              ))}
+            </ul>
+            {/* Column 2 */}
+            <ul className="space-y-1.5">
+              {[
+                "Dedicated secure remote management",
+                "Resilient Hardware RAID with cachevault protection",
+                "Rack slide rails, and lockable drive access",
+              ].map((item) => (
+                <li key={item} className="flex items-start gap-2">
+                  <span className="mt-1 w-2 h-2 rounded-full bg-[#fbb040] shrink-0" />
+                  {item}
+                </li>
+              ))}
+            </ul>
+            {/* Column 3 — compliance */}
+            <ul className="space-y-1.5">
+              {[
+                "Multi-VMS Validated: Milestone, Avigilon, Genetec, NXWitness, Hanwha, Exacq, Axxonsoft",
+                "NDAA Compliant",
+                "American Made",
+              ].map((item) => (
+                <li key={item} className="flex items-start gap-2">
+                  <span className="mt-1 w-2 h-2 rounded-full bg-[#fbb040] shrink-0" />
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
       </div>
 
