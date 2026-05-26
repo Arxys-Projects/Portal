@@ -4,6 +4,43 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-05-26 — Phase 3 Step 2: Portal polish + Support + Docs scaffold + Deal-Reg email
+
+### Work done
+
+All 10 items shipped across 2 commits. No schema changes, no RLS changes, no migrations.
+
+**Commit 1 — Dashboard chrome + shared footer + Support card + Deal-Reg email**
+
+- **A1** — Page title → "Arxys Partner Dashboard"; card headers `text-xl`; `border-2` card borders; `bg-neutral-50` page background; `shadow-sm` + `hover:shadow-md` card depth.
+- **A2** — Extracted shared `Footer` Server Component to `src/app/(app)/_components/footer.tsx`. Rendered on both the dashboard and price book index pages. B6 footer links (About Arxys, Support & Resources, Contact Sales, www.arxys.com) live here.
+- **F** — Support card on dashboard: "Support Documentation" text link → `arxys.com/company/support/`; "Open a Support Ticket" gold button → `arxys.supportsystem.com`. Both `target="_blank"`.
+- **Deal-reg** — `RegisterDealForm` Client Component (`useActionState`); `registerDealAction` Server Action with zod validation (min 3 / max 200 projectName; max 1000 notes); `sendDealRegistrationEmail` mirroring `submission-notification.ts` pattern; fires to `INTERNAL_NOTIFICATION_EMAIL` with subject `Deal Registration: {projectName} — {company_name}`; no DB write; error state surfaced to form.
+
+**Commit 2 — Price book content + docs scaffold**
+
+- **A4** — "VIDEOX V5" and "MSRP Price Book" rendered as co-equal header elements; verbatim subtitle copy ("VideoX Enterprise IP video servers give security professionals…"); verbatim disclaimer copy ("Prices and specs subject to change…Thanks for your understanding.") replaces old short disclaimer.
+- **A5** — Next.js `<Image>` for `Windows_Server_2022.png` (120×100) and `5_year_warranty-circle-2.png` (100×100) in the blue hero right column. Explicit dimensions prevent CLS. Assets placed in `public/price-book/` per manual prereq.
+- **A6** — Enterprise Grade highlighted box below hero: `bg-neutral-500` (~50% black, per Andy), `text-white`, `border-l-4 border-[#fbb040]`; two-column bullet grid at `md:` breakpoint. Six standard-equipment bullets verbatim.
+- **B5** — H.265 HEVC performance banner: full-width bleed (`-mx-4`, matching top hero width) with `bg-[#03396f]`; small "H.265 HEVC" badge; verbatim heading and body copy; "Learn More →" CTA → `arxys.com/videox-v5-launch-deliver-on-the-promise-of-h-265-today/`.
+- **B6** — "View all VideoX Appliances" link in price book hero; four footer links in `Footer` component (About Arxys, Support & Resources, Contact Sales for Custom Configurations, www.arxys.com). All `target="_blank" rel="noopener noreferrer"`.
+- **G** — Documentation section on every family detail page (below the fine-print block): if `datasheetUrl` non-null, renders a doc card with download icon; if null, renders "Documentation coming soon." Standalone hero-area datasheet buttons removed — consolidated into this section. (Q4 default was "omit when null" but Andy overrode to "coming soon" before execution.)
+
+**Verification gates**
+
+| Gate | Result |
+|---|---|
+| `npm run build` | ✅ clean — same 19 routes, no new warnings |
+| `npm run lint` | ✅ 0 errors — 2 pre-existing `<img>` warnings unchanged |
+| `npm test` | ✅ 32/32 pass — no new tests required (no business logic) |
+| `scripts/test-rls.ts` | ✅ 10/10 pass — no RLS changes |
+
+### Detours & fixes
+
+- **Zod 4.x API change:** `parsed.error.errors` no longer exists; the array is `parsed.error.issues` in Zod v4. Build caught this on first compile; one-line fix.
+
+---
+
 ## 2026-05-22 — Portal Phase 2 closure
 
 ### Work done
