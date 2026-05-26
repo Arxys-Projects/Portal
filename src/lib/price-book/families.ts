@@ -596,3 +596,24 @@ export const FAMILIES: Family[] = [
 export function familyBySlug(slug: string): Family | undefined {
   return FAMILIES.find((f) => f.slug === slug);
 }
+
+/**
+ * Map a product group string (e.g. "V500", "SW10") to its Price Book family
+ * slug (e.g. "v500", "sw"). Checks primary productGroups plus tier section
+ * productGroups on each family. Returns null when no match is found (e.g.
+ * legacy data or upgrade-only SKU groups like "GPU", "RAM", "NIC").
+ */
+export function productGroupToFamilySlug(productGroup: string): string | null {
+  const upper = productGroup.toUpperCase();
+  for (const family of FAMILIES) {
+    if (family.productGroups.some((g) => g.toUpperCase() === upper)) {
+      return family.slug;
+    }
+    for (const tier of family.tierSections) {
+      if (tier.productGroups.some((g) => g.toUpperCase() === upper)) {
+        return family.slug;
+      }
+    }
+  }
+  return null;
+}

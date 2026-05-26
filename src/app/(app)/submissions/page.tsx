@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { productGroupToFamilySlug } from "@/lib/price-book/families";
 
 const PAGE_SIZE = 50;
 
@@ -152,11 +153,14 @@ export default async function PartnerSubmissionsPage({
                   !product &&
                   r.recommended_product_id !== null &&
                   isUuidShaped(r.recommended_product_id);
-                const recommendationLabel = product
-                  ? `${r.recommended_units} × ${product.product_group}`
+                const familySlug = product
+                  ? productGroupToFamilySlug(product.product_group)
+                  : null;
+                const productGroupLabel = product
+                  ? product.product_group
                   : isLegacy
-                    ? `${r.recommended_units} × (legacy)`
-                    : `${r.recommended_units} ×`;
+                    ? "(legacy)"
+                    : null;
                 return (
                   <tr key={r.id}>
                     <td className="px-4 py-2 text-neutral-600">
@@ -166,7 +170,17 @@ export default async function PartnerSubmissionsPage({
                       {r.project_name ?? "(untitled)"}
                     </td>
                     <td className="px-4 py-2 text-neutral-700">
-                      {recommendationLabel}
+                      {r.recommended_units} ×{" "}
+                      {productGroupLabel && familySlug ? (
+                        <Link
+                          href={`/price-book/${familySlug}`}
+                          className="text-[#054A91] hover:underline font-medium"
+                        >
+                          {productGroupLabel}
+                        </Link>
+                      ) : (
+                        productGroupLabel ?? ""
+                      )}
                     </td>
                     <td className="px-4 py-2 text-right text-neutral-700">
                       {r.cameras_count}

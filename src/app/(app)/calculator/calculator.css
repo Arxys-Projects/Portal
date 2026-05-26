@@ -221,7 +221,12 @@
   #arxys-calc-root .ax-cb .ax-f { width: auto !important; flex: 1; min-width: 140px; }
 }
 
-/* Save & recommendation panel — Step 5 */
+/* Save & recommendation panel */
+@keyframes ax-rec-fadein {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
 #arxys-calc-root .ax-save {
   display: flex;
   align-items: center;
@@ -262,6 +267,7 @@
   border-radius: var(--r);
   padding: 18px 22px;
   box-shadow: var(--ss);
+  animation: ax-rec-fadein 300ms ease-out;
 }
 #arxys-calc-root .ax-rec-h {
   font-size: 12px;
@@ -288,6 +294,11 @@
   color: var(--ac);
   font-family: "JetBrains Mono", Consolas, monospace;
 }
+#arxys-calc-root .ax-rec-model-link {
+  text-decoration: none;
+  transition: color 0.15s;
+}
+#arxys-calc-root .ax-rec-model-link:hover { color: #1d4ed8; text-decoration: underline; }
 #arxys-calc-root .ax-rec-cov {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

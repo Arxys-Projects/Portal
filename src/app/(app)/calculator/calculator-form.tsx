@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState, useMemo, useState } from "react";
 import {
   CODECS,
@@ -15,6 +16,7 @@ import {
   type GroupInput,
 } from "@/lib/calculator/compute";
 import { submitCalculation, type SubmissionState } from "./actions";
+import { productGroupToFamilySlug } from "@/lib/price-book/families";
 import {
   BarsIcon,
   CameraIcon,
@@ -68,16 +70,24 @@ export function CalculatorForm() {
   const [retentionDays, setRetentionDays] = useState(30);
   const [vms, setVms] = useState<string>("");
   const [projectName, setProjectName] = useState("");
+  const [hasInteracted, setHasInteracted] = useState(false);
   const [submitState, submitAction, isSubmitting] = useActionState<SubmissionState, unknown>(
     submitCalculation,
     INITIAL_STATE,
   );
 
-  const addGroup = () =>
+  const touch = () => { if (!hasInteracted) setHasInteracted(true); };
+
+  const addGroup = () => {
+    touch();
     setGroups((p) => [...p, newGroup(p.length + 1)]);
-  const removeGroup = (id: string) =>
+  };
+  const removeGroup = (id: string) => {
+    touch();
     setGroups((p) => (p.length > 1 ? p.filter((g) => g.id !== id) : p));
-  const duplicateGroup = (id: string) =>
+  };
+  const duplicateGroup = (id: string) => {
+    touch();
     setGroups((p) => {
       const src = p.find((g) => g.id === id);
       if (!src) return p;
@@ -90,13 +100,17 @@ export function CalculatorForm() {
         },
       ];
     });
-  const updateGroup = (id: string, patch: Partial<Group>) =>
+  };
+  const updateGroup = (id: string, patch: Partial<Group>) => {
+    touch();
     setGroups((p) => p.map((g) => (g.id === id ? { ...g, ...patch } : g)));
+  };
   const reset = () => {
     setGroups([newGroup(1)]);
     setRetentionDays(30);
     setVms("");
     setProjectName("");
+    setHasInteracted(false);
   };
 
   const groupResults = useMemo(
@@ -160,12 +174,12 @@ export function CalculatorForm() {
             maxLength={50}
             placeholder="e.g. Main Campus"
             value={projectName}
-            onChange={(e) => setProjectName(e.target.value)}
+            onChange={(e) => { touch(); setProjectName(e.target.value); }}
           />
         </div>
         <div className="ax-f" style={{ minWidth: 160 }}>
           <label className="ax-fl">Which VMS?</label>
-          <select value={vms} onChange={(e) => setVms(e.target.value)}>
+          <select value={vms} onChange={(e) => { touch(); setVms(e.target.value); }}>
             <option value="">— Select —</option>
             {VMS_OPTIONS.map((v) => (
               <option key={v} value={v}>
@@ -185,11 +199,12 @@ export function CalculatorForm() {
               min={1}
               max={730}
               value={retentionDays}
-              onChange={(e) =>
+              onChange={(e) => {
+                touch();
                 setRetentionDays(
                   Math.max(1, Math.min(730, parseInt(e.target.value || "1", 10))),
-                )
-              }
+                );
+              }}
               style={{ width: 80 }}
             />
             <span style={{ color: "var(--td)", fontSize: 13 }}>days</span>
@@ -205,6 +220,37 @@ export function CalculatorForm() {
             <ResetIcon /> Reset
           </button>
         </div>
+      </div>
+
+      {/* Submit button — above camera groups, disabled until first interaction */}
+      <div className="ax-save">
+        <button
+          type="button"
+          className="ax-save-btn"
+          disabled={!hasInteracted || isSubmitting}
+          onClick={() =>
+            submitAction({
+              projectName: projectName.trim() || null,
+              vms: vms || null,
+              retentionDays,
+              groups: groups.map((g) => ({
+                name: g.name,
+                cameras: g.cameras,
+                resolutionIdx: g.resolutionIdx,
+                codecIdx: g.codecIdx,
+                complexityIdx: g.complexityIdx,
+                fps: g.fps,
+                recordingPercent: g.recordingPercent,
+                motionPercent: g.motionPercent,
+              })),
+            })
+          }
+        >
+          {isSubmitting ? "Saving…" : "Save & request quote"}
+        </button>
+        <span className="ax-save-hint">
+          Configure a camera group below, then save to notify Arxys sales.
+        </span>
       </div>
 
       {/* Camera groups */}
@@ -530,36 +576,6 @@ export function CalculatorForm() {
         <strong>Note:</strong> Storage includes ~20% overhead for VMS best practices.
       </div>
 
-      <div className="ax-save">
-        <button
-          type="button"
-          className="ax-save-btn"
-          disabled={isSubmitting || totals.cameras <= 0}
-          onClick={() =>
-            submitAction({
-              projectName: projectName.trim() || null,
-              vms: vms || null,
-              retentionDays,
-              groups: groups.map((g) => ({
-                name: g.name,
-                cameras: g.cameras,
-                resolutionIdx: g.resolutionIdx,
-                codecIdx: g.codecIdx,
-                complexityIdx: g.complexityIdx,
-                fps: g.fps,
-                recordingPercent: g.recordingPercent,
-                motionPercent: g.motionPercent,
-              })),
-            })
-          }
-        >
-          {isSubmitting ? "Saving…" : "Save & request quote"}
-        </button>
-        <span className="ax-save-hint">
-          We&apos;ll save this calculation and notify Arxys sales.
-        </span>
-      </div>
-
       {submitState.status === "error" && (
         <div className="ax-rec-err">{submitState.error}</div>
       )}
@@ -578,12 +594,22 @@ function RecommendationPanel({
 }) {
   const { recommendation } = state;
   const { winner } = recommendation;
+  const familySlug = productGroupToFamilySlug(winner.productGroup);
   return (
     <div className="ax-rec">
       <div className="ax-rec-h">Recommended configuration</div>
       <div className="ax-rec-w">
         <span className="ax-rec-units">{winner.units} ×</span>
-        <span className="ax-rec-model">{winner.productGroup}</span>
+        {familySlug ? (
+          <Link
+            href={`/price-book/${familySlug}`}
+            className="ax-rec-model ax-rec-model-link"
+          >
+            {winner.productGroup}
+          </Link>
+        ) : (
+          <span className="ax-rec-model">{winner.productGroup}</span>
+        )}
       </div>
       <div className="ax-rec-cov">
         <div>
