@@ -1,61 +1,48 @@
-import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { productGroupToFamilySlug } from "@/lib/price-book/families";
+import { SUBMISSION_STATUSES, isActiveStatus, type SubmissionStatus } from "./status";
+import { Pipeline, type PipelineGroup, type PipelineRow, type StatusFilter } from "./pipeline";
 
-const PAGE_SIZE = 50;
-
-function formatDate(value: string | null | undefined): string {
-  if (!value) return "—";
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return "—";
-  return d.toISOString().slice(0, 10);
-}
-
-function formatPrice(n: number | null | undefined): string {
-  if (n === null || n === undefined) return "—";
-  return `$${Number(n).toLocaleString(undefined, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
-}
-
-// A UUID-shaped recommended_product_id signals a pre-Step-3+4 submission
-// whose FK target was dropped. Post-migration rows carry SKU strings (e.g.
-// `VX5-V800-720`) which never match the UUID pattern.
+// A UUID-shaped recommended_product_id signals a pre-Step-3+4 submission whose
+// FK target was dropped. Post-migration rows carry SKU strings.
 function isUuidShaped(value: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 }
 
-type Search = Promise<{ page?: string }>;
+type Search = Promise<{ status?: string }>;
 
 export default async function PartnerSubmissionsPage({
   searchParams,
 }: {
   searchParams: Search;
 }) {
-  const { page: pageParam } = await searchParams;
-  const page = Math.max(1, Number.parseInt(pageParam ?? "1", 10) || 1);
-  const from = (page - 1) * PAGE_SIZE;
-  const to = from + PAGE_SIZE - 1;
+  const { status: statusParam } = await searchParams;
+  const activeStatus: StatusFilter =
+    statusParam === "none" ||
+    (SUBMISSION_STATUSES as readonly string[]).includes(statusParam ?? "")
+      ? (statusParam as StatusFilter)
+      : "all";
 
-  // RLS already scopes to the caller's own rows — no application filter.
+  // RLS scopes to the caller's own rows — no application filter on partner_id.
   const supabase = await createSupabaseServerClient();
-  const { data, error, count } = await supabase
+  let query = supabase
     .from("submissions")
     .select(
-      `id, project_name, cameras_count, recommended_units, total_list_price_usd,
-       recommended_product_id, created_at`,
-      { count: "exact" },
+      `id, project_name, recommended_units, total_list_price_usd,
+       recommended_product_id, status, is_preferred, created_at`,
     )
-    .order("created_at", { ascending: false })
-    .range(from, to);
+    .order("created_at", { ascending: false });
+  if (activeStatus === "none") {
+    query = query.is("status", null);
+  } else if (activeStatus !== "all") {
+    query = query.eq("status", activeStatus);
+  }
+  const { data, error } = await query;
 
   if (error) {
     return (
       <div>
-        <h1 className="text-2xl font-semibold text-neutral-900">
-          Submission history
-        </h1>
+        <h1 className="text-2xl font-semibold text-neutral-900">My Pipeline</h1>
         <p className="mt-3 text-sm text-red-600">
           Failed to load submissions: {error.message}
         </p>
@@ -66,169 +53,86 @@ export default async function PartnerSubmissionsPage({
   type Row = {
     id: string;
     project_name: string | null;
-    cameras_count: number;
     recommended_units: number;
     total_list_price_usd: number | null;
     recommended_product_id: string | null;
+    status: string | null;
+    is_preferred: boolean;
     created_at: string;
   };
   const rows = (data ?? []) as Row[];
 
-  // Phase 2 Step 3+4: submissions.recommended_product_id is TEXT (SKU for
-  // post-migration rows, UUID-shaped string for legacy rows). The FK is
-  // gone, so we batch-fetch the products for this page in a second query
-  // and join in memory.
+  // Phase 2 Step 3+4: recommended_product_id is TEXT (SKU or legacy UUID). The
+  // FK is gone, so batch-fetch the products for this page and join in memory.
   const skuSet = new Set<string>();
   for (const r of rows) {
     if (r.recommended_product_id && !isUuidShaped(r.recommended_product_id)) {
       skuSet.add(r.recommended_product_id);
     }
   }
-  const productBySku = new Map<string, { product_group: string; sku: string }>();
+  const productBySku = new Map<string, { product_group: string }>();
   if (skuSet.size > 0) {
     const { data: productRows } = await supabase
       .from("products")
       .select("sku, product_group")
       .in("sku", [...skuSet]);
     for (const p of productRows ?? []) {
-      productBySku.set(p.sku, { sku: p.sku, product_group: p.product_group });
+      productBySku.set(p.sku, { product_group: p.product_group });
     }
   }
-  const total = count ?? 0;
-  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
-  return (
-    <div>
-      <div className="mb-4">
-        <Link
-          href="/dashboard"
-          className="text-sm text-blue-600 hover:underline"
-        >
-          ← Back to dashboard
-        </Link>
-      </div>
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-neutral-900">
-            Submission history
-          </h1>
-          <p className="mt-1 text-sm text-neutral-600">
-            Your past calculator submissions. {total} total.
-          </p>
-        </div>
-        <Link
-          href="/calculator"
-          className="rounded bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
-        >
-          New calculation
-        </Link>
-      </div>
+  function toPipelineRow(r: Row): PipelineRow {
+    const product = r.recommended_product_id
+      ? productBySku.get(r.recommended_product_id) ?? null
+      : null;
+    const isLegacy =
+      !product &&
+      r.recommended_product_id !== null &&
+      isUuidShaped(r.recommended_product_id);
+    const familySlug = product ? productGroupToFamilySlug(product.product_group) : null;
+    const productGroup = product ? product.product_group : isLegacy ? "(legacy)" : null;
+    return {
+      id: r.id,
+      createdAt: r.created_at,
+      recommendedUnits: r.recommended_units,
+      totalListPriceUsd:
+        r.total_list_price_usd === null ? null : Number(r.total_list_price_usd),
+      status: (r.status as SubmissionStatus | null) ?? null,
+      isPreferred: Boolean(r.is_preferred),
+      productGroup,
+      familySlug,
+    };
+  }
 
-      {rows.length === 0 ? (
-        <p className="mt-6 text-sm text-neutral-500">
-          You have not saved a calculation yet.{" "}
-          <Link href="/calculator" className="text-blue-600 hover:underline">
-            Start one now.
-          </Link>
-        </p>
-      ) : (
-        <div className="mt-6 overflow-hidden rounded-lg border border-neutral-200 bg-white">
-          <table className="w-full text-sm">
-            <thead className="bg-neutral-50 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">
-              <tr>
-                <th className="px-4 py-2">Date</th>
-                <th className="px-4 py-2">Project</th>
-                <th className="px-4 py-2">Recommendation</th>
-                <th className="px-4 py-2 text-right">Cameras</th>
-                <th className="px-4 py-2 text-right">List price</th>
-                <th className="px-4 py-2"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-neutral-100">
-              {rows.map((r) => {
-                const product = r.recommended_product_id
-                  ? productBySku.get(r.recommended_product_id) ?? null
-                  : null;
-                const isLegacy =
-                  !product &&
-                  r.recommended_product_id !== null &&
-                  isUuidShaped(r.recommended_product_id);
-                const familySlug = product
-                  ? productGroupToFamilySlug(product.product_group)
-                  : null;
-                const productGroupLabel = product
-                  ? product.product_group
-                  : isLegacy
-                    ? "(legacy)"
-                    : null;
-                return (
-                  <tr key={r.id}>
-                    <td className="px-4 py-2 text-neutral-600">
-                      {formatDate(r.created_at)}
-                    </td>
-                    <td className="px-4 py-2 text-neutral-900">
-                      {r.project_name ?? "(untitled)"}
-                    </td>
-                    <td className="px-4 py-2 text-neutral-700">
-                      {r.recommended_units} ×{" "}
-                      {productGroupLabel && familySlug ? (
-                        <Link
-                          href={`/price-book/${familySlug}`}
-                          className="text-[#054A91] hover:underline font-medium"
-                        >
-                          {productGroupLabel}
-                        </Link>
-                      ) : (
-                        productGroupLabel ?? ""
-                      )}
-                    </td>
-                    <td className="px-4 py-2 text-right text-neutral-700">
-                      {r.cameras_count}
-                    </td>
-                    <td className="px-4 py-2 text-right text-neutral-700">
-                      {formatPrice(r.total_list_price_usd)}
-                    </td>
-                    <td className="px-4 py-2 text-right">
-                      <Link
-                        href={`/submissions/${r.id}`}
-                        className="text-sm text-blue-600 hover:underline"
-                      >
-                        View
-                      </Link>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
+  // Group by project name (case-insensitive). Empty/null project → ungrouped.
+  // Rows arrive newest-first, so each group's rows preserve that order.
+  const grouped = new Map<string, { projectName: string | null; rows: PipelineRow[] }>();
+  for (const r of rows) {
+    const trimmed = r.project_name?.trim() ?? "";
+    const key = trimmed.toLowerCase();
+    if (!grouped.has(key)) grouped.set(key, { projectName: trimmed || null, rows: [] });
+    grouped.get(key)!.rows.push(toPipelineRow(r));
+  }
 
-      {pageCount > 1 ? (
-        <div className="mt-4 flex items-center justify-between text-sm text-neutral-600">
-          <p>
-            Page {page} of {pageCount}
-          </p>
-          <div className="flex gap-2">
-            {page > 1 ? (
-              <Link
-                href={{ pathname: "/submissions", query: { page: page - 1 } }}
-                className="rounded border border-neutral-300 px-3 py-1 hover:bg-neutral-100"
-              >
-                ← Previous
-              </Link>
-            ) : null}
-            {page < pageCount ? (
-              <Link
-                href={{ pathname: "/submissions", query: { page: page + 1 } }}
-                className="rounded border border-neutral-300 px-3 py-1 hover:bg-neutral-100"
-              >
-                Next →
-              </Link>
-            ) : null}
-          </div>
-        </div>
-      ) : null}
-    </div>
-  );
+  // Sort groups: ungrouped last; among the rest, groups with an active-status
+  // submission first; then by most-recent submission within each tier.
+  const groups: PipelineGroup[] = [...grouped.values()]
+    .map((g) => ({
+      key: g.projectName ? g.projectName.toLowerCase() : "__ungrouped__",
+      projectName: g.projectName,
+      rows: g.rows,
+    }))
+    .sort((a, b) => {
+      const aUng = a.projectName === null;
+      const bUng = b.projectName === null;
+      if (aUng !== bUng) return aUng ? 1 : -1;
+      const aActive = a.rows.some((row) => isActiveStatus(row.status));
+      const bActive = b.rows.some((row) => isActiveStatus(row.status));
+      if (aActive !== bActive) return aActive ? -1 : 1;
+      const aRecent = a.rows[0]?.createdAt ?? "";
+      const bRecent = b.rows[0]?.createdAt ?? "";
+      return bRecent.localeCompare(aRecent);
+    });
+
+  return <Pipeline groups={groups} activeStatus={activeStatus} />;
 }
