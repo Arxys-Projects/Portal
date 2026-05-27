@@ -20,12 +20,12 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 | Gate | Result |
 |---|---|
 | Pre-migration backup | ✅ JSON dump confirmed |
-| `supabase db push` | ⬜ Andy runs after reviewing migration SQL |
+| `supabase db push` | ✅ migration applied cleanly |
 | `npm run build` | ✅ clean — same 19 routes |
 | `npm run lint` | ✅ 0 errors — 2 pre-existing `<img>` warnings unchanged |
 | `npm test` | ✅ 32/32 pass |
-| `scripts/test-rls.ts` | ⬜ Run after `supabase db push` |
-| Manual smoke | ⬜ Run after `supabase db push` |
+| `scripts/test-rls.ts` | ✅ 10/10 pass |
+| Manual smoke | ✅ input_state populated; autocomplete working |
 
 ---
 
