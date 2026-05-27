@@ -65,7 +65,11 @@ function Tooltip({ text, side = "l" }: { text: string; side?: "l" | "r" }) {
   );
 }
 
-export function CalculatorForm() {
+export function CalculatorForm({
+  previousProjectNames = [],
+}: {
+  previousProjectNames?: string[];
+}) {
   const [groups, setGroups] = useState<Group[]>([newGroup(1)]);
   const [retentionDays, setRetentionDays] = useState(30);
   const [vms, setVms] = useState<string>("");
@@ -171,11 +175,19 @@ export function CalculatorForm() {
           <label className="ax-fl">Project Name</label>
           <input
             type="text"
+            list="ax-project-names"
             maxLength={50}
             placeholder="e.g. Main Campus"
             value={projectName}
             onChange={(e) => { touch(); setProjectName(e.target.value); }}
           />
+          {previousProjectNames.length > 0 && (
+            <datalist id="ax-project-names">
+              {previousProjectNames.map((name) => (
+                <option key={name} value={name} />
+              ))}
+            </datalist>
+          )}
         </div>
         <div className="ax-f" style={{ minWidth: 160 }}>
           <label className="ax-fl">Which VMS?</label>

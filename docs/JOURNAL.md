@@ -4,6 +4,31 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-05-27 — Phase 3 Step 4: Project name autocomplete + Input state persistence
+
+### Work done
+
+- **Pre-migration backup** — `scripts/backup-tables.ts` dumped to `backups/pre-step-4-input-persistence-2026-05-27T00-06-31-837Z.json` (36 products, 18 submissions, 5 partners). Gitignored.
+- **Schema migration** — `supabase/migrations/20260527000700_step4_submissions_input_state.sql`: additive `ALTER TABLE submissions ADD COLUMN input_state JSONB DEFAULT NULL`. No constraints, no index, no new RLS policies needed (column inherits existing partner-scoped policies). Paired rollback at `supabase/rollback/step-4-rollback.sql`.
+- **Input state persistence** — `actions.ts` now includes `input_state: parsed.data` in the Supabase INSERT. The schema-validated `parsed.data` is the exact structured state (projectName, vms, retentionDays, groups[] with all indices). Atomic with the existing submission creation. Pre-Step-4 submissions have `NULL`.
+- **Project name autocomplete** — `calculator/page.tsx` converted to `async` Server Component; queries the partner's distinct project names from prior submissions (case-insensitive dedup, most-recent-first). Passed as `previousProjectNames: string[]` prop to `CalculatorForm`. The project name `<input>` gains a `list="ax-project-names"` attribute and a native `<datalist>` element — zero dependencies, accessible, native substring matching.
+
+**Explicitly cut (per brief):** "Update Calculations" form rehydration from `input_state`. Data is banked; feature deferred until cohort feedback warrants it.
+
+**Verification gates**
+
+| Gate | Result |
+|---|---|
+| Pre-migration backup | ✅ JSON dump confirmed |
+| `supabase db push` | ⬜ Andy runs after reviewing migration SQL |
+| `npm run build` | ✅ clean — same 19 routes |
+| `npm run lint` | ✅ 0 errors — 2 pre-existing `<img>` warnings unchanged |
+| `npm test` | ✅ 32/32 pass |
+| `scripts/test-rls.ts` | ⬜ Run after `supabase db push` |
+| Manual smoke | ⬜ Run after `supabase db push` |
+
+---
+
 ## 2026-05-26 — Phase 3 Step 3: Calculator UX upgrade
 
 ### Work done

@@ -155,6 +155,7 @@ export async function submitCalculation(
 
   const submissionRow = {
     partner_id: user.id,
+    input_state: parsed.data,
     project_name: input.projectName?.trim() || null,
     cameras_count: totals.cameras,
     resolution_code: RESOLUTIONS[primary.input.resolutionIdx].label,
