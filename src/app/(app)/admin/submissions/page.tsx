@@ -1,7 +1,44 @@
 import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import {
+  STATUS_META,
+  NO_STATUS_BADGE,
+  type SubmissionStatus,
+} from "@/app/(app)/submissions/status";
 
 const PAGE_SIZE = 50;
+
+// Read-only status badge — the admin observes partner pipeline state but never
+// changes it (partners own their own status; Phase 3 Step 5).
+function StatusBadge({ status }: { status: SubmissionStatus | null }) {
+  const meta = status ? STATUS_META[status] : null;
+  return (
+    <span
+      className={`inline-block rounded-full border px-2 py-0.5 text-xs font-medium ${
+        meta ? meta.badge : NO_STATUS_BADGE
+      }`}
+    >
+      {meta ? meta.label : "—"}
+    </span>
+  );
+}
+
+function PreferredStar({ preferred }: { preferred: boolean }) {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill={preferred ? "#FBB040" : "none"}
+      stroke={preferred ? "#FBB040" : "#d4d4d4"}
+      strokeWidth="2"
+      strokeLinejoin="round"
+      aria-label={preferred ? "Preferred quote" : "Not preferred"}
+    >
+      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+    </svg>
+  );
+}
 
 function formatDate(value: string | null | undefined): string {
   if (!value) return "—";
@@ -44,8 +81,8 @@ export default async function AdminSubmissionsPage({
     .from("submissions")
     .select(
       `id, project_name, cameras_count, recommended_units, total_list_price_usd,
-       total_partner_price_usd, recommended_product_id, created_at,
-       partners!inner(id, company_name)`,
+       total_partner_price_usd, recommended_product_id, status, is_preferred,
+       created_at, partners!inner(id, company_name)`,
       { count: "exact" },
     )
     .order("created_at", { ascending: false })
@@ -80,6 +117,8 @@ export default async function AdminSubmissionsPage({
     total_list_price_usd: number | null;
     total_partner_price_usd: number | null;
     recommended_product_id: string | null;
+    status: string | null;
+    is_preferred: boolean;
     created_at: string;
     partners:
       | { id: string; company_name: string }
@@ -165,6 +204,8 @@ export default async function AdminSubmissionsPage({
                 <th className="px-4 py-2">Partner</th>
                 <th className="px-4 py-2">Project</th>
                 <th className="px-4 py-2">Recommendation</th>
+                <th className="px-4 py-2">Status</th>
+                <th className="px-4 py-2 text-center">Preferred</th>
                 <th className="px-4 py-2 text-right">Cameras</th>
                 <th className="px-4 py-2 text-right">List price</th>
                 <th className="px-4 py-2"></th>
@@ -200,6 +241,14 @@ export default async function AdminSubmissionsPage({
                     </td>
                     <td className="px-4 py-2 text-neutral-700">
                       {recommendationLabel}
+                    </td>
+                    <td className="px-4 py-2">
+                      <StatusBadge status={r.status as SubmissionStatus | null} />
+                    </td>
+                    <td className="px-4 py-2">
+                      <div className="flex justify-center">
+                        <PreferredStar preferred={Boolean(r.is_preferred)} />
+                      </div>
                     </td>
                     <td className="px-4 py-2 text-right text-neutral-700">
                       {r.cameras_count}
