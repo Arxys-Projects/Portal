@@ -42,13 +42,13 @@ export default async function DashboardPage() {
             </p>
           </Link>
 
-          {/* Submission history */}
+          {/* My Pipeline */}
           <Link
             href="/submissions"
             className="group rounded-lg border-2 border-neutral-200 bg-white p-6 shadow-sm transition hover:border-blue-300 hover:shadow-md"
           >
             <h2 className="text-xl font-semibold text-neutral-900 group-hover:text-blue-700">
-              Submission History
+              My Pipeline
             </h2>
             <p className="mt-1 text-sm text-neutral-600">
               Browse your past calculator submissions and reports.
