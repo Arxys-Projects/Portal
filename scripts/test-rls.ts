@@ -80,6 +80,35 @@ async function teardownPersona(p: Persona): Promise<void> {
   await admin.auth.admin.deleteUser(p.id);
 }
 
+// Seed a submission with a known status via service-role (bypasses RLS). Used
+// by the Step 5 UPDATE/DELETE policy tests. Cleaned up by teardownPersona,
+// which deletes all submissions for a partner_id regardless of status.
+async function seedSubmission(
+  partnerId: string,
+  status: string | null,
+): Promise<string> {
+  const { data, error } = await admin
+    .from("submissions")
+    .insert({
+      partner_id: partnerId,
+      project_name: "RLS-step5-status-test",
+      cameras_count: 10,
+      resolution_code: "4K",
+      codec: "H.265",
+      complexity: "MED",
+      retention_days: 30,
+      bandwidth_mbps: 250,
+      storage_tb: 5,
+      status,
+    })
+    .select("id")
+    .single();
+  if (error || !data) {
+    throw new Error(`seedSubmission failed: ${error?.message}`);
+  }
+  return data.id as string;
+}
+
 async function run() {
   console.log("Provisioning two ephemeral partners + one admin...");
   const a = await provisionPersona("A");
@@ -280,6 +309,131 @@ async function run() {
         error?.message ?? `count=${data?.length}`,
       );
       await admin.from("products").delete().eq("sku", tempSku);
+    }
+
+    // --- Phase 3 Step 5: submissions UPDATE / DELETE policies ---------------
+    // submissions_update_own allows a partner to UPDATE their own rows;
+    // submissions_delete_own_draft allows DELETE only when status is draft/NULL.
+    // RLS-blocked UPDATE/DELETE return zero affected rows (not an error).
+
+    // Test 11: A UPDATE own submission status → allowed.
+    {
+      const id = await seedSubmission(a.id, "draft");
+      const { data, error } = await a.client
+        .from("submissions")
+        .update({ status: "sent" })
+        .eq("id", id)
+        .select("id");
+      record(
+        "11: A UPDATE own submission status",
+        !error && (data?.length ?? 0) === 1,
+        error?.message ?? `rows=${data?.length}`,
+      );
+    }
+
+    // Test 12: A UPDATE own submission is_preferred → allowed.
+    {
+      const id = await seedSubmission(a.id, "draft");
+      const { data, error } = await a.client
+        .from("submissions")
+        .update({ is_preferred: true })
+        .eq("id", id)
+        .select("id");
+      record(
+        "12: A UPDATE own submission is_preferred",
+        !error && (data?.length ?? 0) === 1,
+        error?.message ?? `rows=${data?.length}`,
+      );
+    }
+
+    // Test 13: A UPDATE B's submission status → blocked (RLS filters to 0 rows).
+    {
+      const id = await seedSubmission(b.id, "draft");
+      const { data, error } = await a.client
+        .from("submissions")
+        .update({ status: "won" })
+        .eq("id", id)
+        .select("id");
+      const { data: after } = await admin
+        .from("submissions")
+        .select("status")
+        .eq("id", id)
+        .single();
+      record(
+        "13: A UPDATE B's submission is blocked",
+        !error && (data?.length ?? 0) === 0 && after?.status === "draft",
+        `rows=${data?.length} afterStatus=${after?.status}`,
+      );
+    }
+
+    // Test 14: A DELETE own submission with status=NULL → allowed.
+    {
+      const id = await seedSubmission(a.id, null);
+      const { data, error } = await a.client
+        .from("submissions")
+        .delete()
+        .eq("id", id)
+        .select("id");
+      record(
+        "14: A DELETE own submission status=NULL",
+        !error && (data?.length ?? 0) === 1,
+        error?.message ?? `rows=${data?.length}`,
+      );
+    }
+
+    // Test 15: A DELETE own submission with status='draft' → allowed.
+    {
+      const id = await seedSubmission(a.id, "draft");
+      const { data, error } = await a.client
+        .from("submissions")
+        .delete()
+        .eq("id", id)
+        .select("id");
+      record(
+        "15: A DELETE own submission status='draft'",
+        !error && (data?.length ?? 0) === 1,
+        error?.message ?? `rows=${data?.length}`,
+      );
+    }
+
+    // Test 16: A DELETE own submission with status='sent' → blocked (guard).
+    {
+      const id = await seedSubmission(a.id, "sent");
+      const { data, error } = await a.client
+        .from("submissions")
+        .delete()
+        .eq("id", id)
+        .select("id");
+      const { data: after } = await admin
+        .from("submissions")
+        .select("id")
+        .eq("id", id)
+        .maybeSingle();
+      record(
+        "16: A DELETE own 'sent' submission is blocked by status guard",
+        !error && (data?.length ?? 0) === 0 && Boolean(after),
+        `rows=${data?.length} stillExists=${Boolean(after)}`,
+      );
+    }
+
+    // Test 17: A DELETE B's submission → blocked (ownership).
+    {
+      const id = await seedSubmission(b.id, "draft");
+      const { data, error } = await a.client
+        .from("submissions")
+        .delete()
+        .eq("id", id)
+        .select("id");
+      const { data: after } = await admin
+        .from("submissions")
+        .select("id")
+        .eq("id", id)
+        .maybeSingle();
+      record(
+        "17: A DELETE B's submission is blocked",
+        !error && (data?.length ?? 0) === 0 && Boolean(after),
+        `rows=${data?.length} stillExists=${Boolean(after)}`,
+      );
     }
 
     // Test 8c: suspending the admin strips admin RLS reads.
