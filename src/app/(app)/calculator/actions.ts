@@ -156,6 +156,9 @@ export async function submitCalculation(
   const submissionRow = {
     partner_id: user.id,
     input_state: parsed.data,
+    // Phase 3 Step 5: new submissions start in 'draft' so the partner sees a
+    // status badge immediately. Pre-Step-5 rows stay NULL (treated as draft).
+    status: "draft",
     project_name: input.projectName?.trim() || null,
     cameras_count: totals.cameras,
     resolution_code: RESOLUTIONS[primary.input.resolutionIdx].label,
