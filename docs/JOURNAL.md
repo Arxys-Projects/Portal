@@ -4,6 +4,41 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-05-27 — Phase 3 Step 5: Submission lifecycle + Pipeline view + A3 hard-delete + Preferred flag
+
+### Work done
+
+- **Pre-migration backup** — `scripts/backup-tables.ts` → `backups/pre-step-5-pipeline-2026-05-27T18-20-09-217Z.json` (36 products, 19 submissions, 5 partners). Gitignored.
+- **Schema migration (Migration #2)** — `supabase/migrations/20260527182010_step5_submission_lifecycle.sql`: two additive columns — `status TEXT` (nullable, `CHECK` ∈ draft/sent/won/lost/on-hold) and `is_preferred BOOLEAN NOT NULL DEFAULT false`. Existing 19 rows → `status=NULL`, `is_preferred=false`. Plus `GRANT UPDATE, DELETE ON submissions TO authenticated` — **required**, since the initial schema granted only SELECT+INSERT and a policy without the matching table grant has no privilege to act on. Two new RLS policies: `submissions_update_own` (own rows) and `submissions_delete_own_draft` (own rows **and** status draft/NULL — the DB-level A3 delete guard). Paired rollback at `supabase/rollback/step-5-rollback.sql`. Applied via `supabase db push`.
+- **Server Actions** — `src/app/(app)/submissions/actions.ts`: `updateSubmissionStatus`, `togglePreferred`, `deleteSubmission`. RLS does the row-level work (and the delete status guard); the actions confirm a live session and treat a zero-row result as "not yours / can't delete". `togglePreferred` sets the target preferred **first**, then clears any other preferred in the same project (case-insensitive) — so a mid-operation failure leaves two preferred (self-correcting on next toggle) rather than zero (Q5: sequential, accept edge case). Shared `submissions/status.ts` is the single source for the enum + badge metadata + `isActiveStatus`/`isDeletable` helpers (no framework imports → safe in server + client bundles).
+- **New-submission default** — `calculator/actions.ts` now sets `status: 'draft'` on insert (Q6); pre-Step-5 rows stay NULL.
+- **Pipeline view** — `submissions/page.tsx` rewritten as **"My Pipeline"** (Q2): a Server Component that groups submissions by project name (case-insensitive), filters by status via `?status=` query (All / each status / No Status), and sorts active-status groups above draft/NULL-only groups with Ungrouped last. Client component `submissions/pipeline.tsx` renders per row: a preferred star (gold `#FBB040` when set), a colored status dropdown (Q1), View + PDF links, the product → price-book link (Step 3 B3/B4), and a draft/NULL-only inline Delete with Confirm/Cancel. Refresh model = Option A (`revalidatePath` in the action + `router.refresh()` in a transition). Pagination dropped (grouping + MVP scale).
+- **Admin view** — `admin/submissions/page.tsx` gains read-only **Status** badge + **Preferred** star columns (no edit, no delete — partners own their pipeline).
+- **RLS tests** — `scripts/test-rls.ts` +7 cases (11–17): partner UPDATE own status/is_preferred (pass), UPDATE another's (blocked, 0 rows), DELETE own NULL/draft (pass), DELETE own `sent` (blocked by guard, row retained), DELETE another's (blocked, row retained).
+
+### Verification gates
+
+| Gate | Result |
+|---|---|
+| Pre-migration backup | ✅ JSON dump (36 products, 19 submissions, 5 partners) |
+| `supabase db push` | ✅ migration applied (1 pending) |
+| Schema + RLS policies + grants | ✅ verified functionally by the 17/17 RLS suite |
+| `npm run build` | ✅ clean — same route set, no new warnings |
+| `npm run lint` | ✅ 0 errors — 2 pre-existing `<img>` warnings unchanged |
+| `npm test` | ✅ 32/32 pass |
+| `scripts/test-rls.ts` | ✅ **17/17 pass** (7 new) |
+| Browser smoke (authed pipeline) | ⏳ deferred to Andy — see Detours |
+
+### Detours & fixes
+
+- **In-browser smoke not self-driveable this session.** The preview dev-server tool launched `npm` from the session's primary working directory (`~/`) and ignored `launch.json`'s `cwd`, so the server failed to boot; and the pipeline is auth-gated, which would need a synthetic Supabase login to exercise anyway. Rather than rabbit-hole on the launch config, compilation was taken as covered by `next build` (all routes generated) and the data layer by the 17/17 RLS suite; the authed click-through (status change, star toggle + cross-project clear, status filter, draft-only delete) was handed to Andy with a checklist. Not claimed as self-verified.
+
+### Decisions captured
+
+- [`0037-status-guarded-submission-delete.md`](./decisions/0037-status-guarded-submission-delete.md)
+
+---
+
 ## 2026-05-27 — Phase 3 Step 4: Project name autocomplete + Input state persistence
 
 ### Work done
