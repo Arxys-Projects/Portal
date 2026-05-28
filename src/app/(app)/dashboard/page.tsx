@@ -2,6 +2,8 @@ import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import Footer from "@/app/(app)/_components/footer";
 import RegisterDealForm from "./register-deal-form";
+import { groupIntoDeals, computeWeightedForecast, type SubmissionRow } from "@/lib/pipeline/forecast";
+import { STATUS_META, type SubmissionStatus } from "@/app/(app)/submissions/status";
 
 export default async function DashboardPage() {
   const supabase = await createSupabaseServerClient();
@@ -17,6 +19,37 @@ export default async function DashboardPage() {
         .maybeSingle()
     : { data: null };
   const isAdmin = partner?.role === "admin";
+
+  // Partner funnel — RLS-scoped to the current user's own submissions.
+  const { data: ownSubs } = user
+    ? await supabase
+        .from("submissions")
+        .select(
+          `id, partner_id, project_name, status, is_preferred,
+           total_list_price_usd, pipedrive_deal_id, created_at`,
+        )
+        .order("created_at", { ascending: false })
+    : { data: null };
+
+  const ownSubmissions = (ownSubs ?? []) as SubmissionRow[];
+  const deals = partner
+    ? groupIntoDeals(ownSubmissions, [
+        { id: partner.id, company_name: partner.company_name },
+      ])
+    : [];
+  const { totalOpenPipeline, weightedForecast } = computeWeightedForecast(deals);
+
+  // Status counts per deal (representative submission).
+  const statusCounts: Partial<Record<SubmissionStatus | "none", number>> = {};
+  let draftCount = 0;
+  for (const deal of deals) {
+    if (deal.status === null || deal.status === "draft") {
+      draftCount += 1;
+    } else {
+      const s = deal.status as SubmissionStatus;
+      statusCounts[s] = (statusCounts[s] ?? 0) + 1;
+    }
+  }
 
   return (
     <div className="min-h-screen bg-neutral-50">
@@ -54,6 +87,51 @@ export default async function DashboardPage() {
               Browse your past calculator submissions and reports.
             </p>
           </Link>
+
+          {/* Pipeline funnel */}
+          {deals.length > 0 ? (
+            <div className="rounded-lg border-2 border-neutral-200 bg-white p-6 shadow-sm sm:col-span-2">
+              <h2 className="text-xl font-semibold text-neutral-900">
+                My Pipeline Summary
+              </h2>
+              <p className="mt-1 text-xs text-neutral-500">
+                Pre-CRM activity — one value per project (preferred or most recent quote).
+              </p>
+              <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <FunnelStat
+                  label="Open pipeline"
+                  value={fmtPrice(totalOpenPipeline)}
+                />
+                <FunnelStat
+                  label="Weighted forecast"
+                  value={fmtPrice(weightedForecast)}
+                />
+                <div className="rounded border border-neutral-100 bg-neutral-50 px-3 py-2">
+                  <p className="text-xs text-neutral-500">By status</p>
+                  <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5">
+                    {(Object.entries(statusCounts) as [SubmissionStatus, number][]).map(
+                      ([st, n]) => (
+                        <span key={st} className="text-xs text-neutral-700">
+                          <span
+                            className={`inline-block rounded-full border px-1.5 py-0.5 ${STATUS_META[st].badge}`}
+                          >
+                            {STATUS_META[st].label}
+                          </span>{" "}
+                          {n}
+                        </span>
+                      ),
+                    )}
+                  </div>
+                </div>
+                {draftCount > 0 ? (
+                  <FunnelStat
+                    label="Drafts (excluded from $)"
+                    value={String(draftCount)}
+                  />
+                ) : null}
+              </div>
+            </div>
+          ) : null}
 
           {/* Price book */}
           <Link
@@ -153,4 +231,20 @@ export default async function DashboardPage() {
       </div>
     </div>
   );
+}
+
+function FunnelStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded border border-neutral-100 bg-neutral-50 px-3 py-2">
+      <p className="text-xs text-neutral-500">{label}</p>
+      <p className="mt-0.5 text-base font-semibold text-neutral-900">{value}</p>
+    </div>
+  );
+}
+
+function fmtPrice(n: number): string {
+  return `$${n.toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
 }

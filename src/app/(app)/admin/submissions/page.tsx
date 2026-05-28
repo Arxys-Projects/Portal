@@ -3,8 +3,18 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
   STATUS_META,
   NO_STATUS_BADGE,
+  SUBMISSION_STATUSES,
   type SubmissionStatus,
 } from "@/app/(app)/submissions/status";
+import {
+  groupIntoDeals,
+  computeWeightedForecast,
+  type SubmissionRow,
+} from "@/lib/pipeline/forecast";
+import {
+  PartnerGroupView,
+  type PartnerGroup,
+} from "./_components/partner-group-view";
 
 const PAGE_SIZE = 50;
 
@@ -61,22 +71,183 @@ function isUuidShaped(value: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 }
 
-type Search = Promise<{ partnerId?: string; page?: string }>;
+type Search = Promise<{
+  partnerId?: string;
+  page?: string;
+  groupBy?: string;
+  status?: string;
+  from?: string;
+  to?: string;
+}>;
 
 export default async function AdminSubmissionsPage({
   searchParams,
 }: {
   searchParams: Search;
 }) {
-  const { partnerId, page: pageParam } = await searchParams;
+  const {
+    partnerId,
+    page: pageParam,
+    groupBy,
+    status: statusParam,
+    from: fromDate,
+    to: toDate,
+  } = await searchParams;
+
+  const isPartnerGrouped = groupBy === "partner";
+
+  const supabase = await createSupabaseServerClient();
+
+  // Load partners list (for filter dropdown and for the forecast grouping).
+  const { data: partnerRows } = await supabase
+    .from("partners")
+    .select("id, company_name")
+    .order("company_name");
+
+  // --- Partner group-by view ---
+  if (isPartnerGrouped) {
+    // Fetch all submissions with pipeline-relevant columns — no pagination
+    // needed at single-digit-partner scale; group in memory.
+    let q = supabase
+      .from("submissions")
+      .select(
+        `id, partner_id, project_name, status, is_preferred,
+         total_list_price_usd, pipedrive_deal_id, created_at`,
+      )
+      .order("created_at", { ascending: false });
+
+    if (statusParam && statusParam !== "all") {
+      if (statusParam === "none") {
+        q = q.is("status", null);
+      } else {
+        q = q.eq("status", statusParam);
+      }
+    }
+    if (fromDate) q = q.gte("created_at", `${fromDate}T00:00:00Z`);
+    if (toDate) q = q.lte("created_at", `${toDate}T23:59:59Z`);
+
+    const { data: allRows, error } = await q;
+    if (error) {
+      return <ErrorMessage message={error.message} />;
+    }
+
+    const submissions = (allRows ?? []) as SubmissionRow[];
+    const partners = (partnerRows ?? []).map((p) => ({
+      id: p.id,
+      company_name: p.company_name,
+    }));
+
+    const deals = groupIntoDeals(submissions, partners);
+    const { totalOpenPipeline, weightedForecast } =
+      computeWeightedForecast(deals);
+
+    // Build per-partner groups for the UI.
+    // Each group carries the deals + the individual submission rows for drill-down.
+    type SubMini = {
+      id: string;
+      project_name: string | null;
+      status: SubmissionStatus | null;
+      is_preferred: boolean;
+      total_list_price_usd: number | null;
+      created_at: string;
+    };
+    const subById = new Map<string, SubMini>();
+    for (const s of submissions) {
+      subById.set(s.id, {
+        id: s.id,
+        project_name: s.project_name,
+        status: s.status as SubmissionStatus | null,
+        is_preferred: s.is_preferred,
+        total_list_price_usd: s.total_list_price_usd,
+        created_at: s.created_at,
+      });
+    }
+
+    const partnerGroupMap = new Map<string, PartnerGroup>();
+    for (const deal of deals) {
+      if (!partnerGroupMap.has(deal.partner_id)) {
+        partnerGroupMap.set(deal.partner_id, {
+          partner_id: deal.partner_id,
+          partner_name: deal.partner_name,
+          deals: [],
+          draft_count: 0,
+        });
+      }
+      const group = partnerGroupMap.get(deal.partner_id)!;
+      const dealSubs = deal.all_submission_ids
+        .map((id) => subById.get(id))
+        .filter((s): s is SubMini => s !== undefined);
+
+      if (deal.status === null || deal.status === "draft") {
+        group.draft_count += 1;
+      } else {
+        group.deals.push({
+          ...deal,
+          submissions: dealSubs,
+        });
+      }
+    }
+
+    // Also add draft deals into their partner groups for display.
+    for (const deal of deals) {
+      if (deal.status === null || deal.status === "draft") {
+        const group = partnerGroupMap.get(deal.partner_id);
+        if (group) {
+          const dealSubs = deal.all_submission_ids
+            .map((id) => subById.get(id))
+            .filter((s): s is SubMini => s !== undefined);
+          group.deals.push({ ...deal, submissions: dealSubs });
+        }
+      }
+    }
+
+    const groups = [...partnerGroupMap.values()];
+    const activePartners = groups.filter((g) =>
+      g.deals.some(
+        (d) => d.status !== null && d.status !== "draft",
+      ),
+    ).length;
+
+    // Status counts across all non-draft deals (the representative per deal).
+    const statusCounts: Record<string, number> = {};
+    let draftCount = 0;
+    for (const deal of deals) {
+      if (deal.status === null || deal.status === "draft") {
+        draftCount += 1;
+      } else {
+        statusCounts[deal.status] = (statusCounts[deal.status] ?? 0) + 1;
+      }
+    }
+
+    return (
+      <div>
+        <PageHeader
+          total={submissions.length}
+          partnerRows={partnerRows ?? []}
+          partnerId={partnerId}
+          groupBy={groupBy}
+          statusParam={statusParam}
+          fromDate={fromDate}
+          toDate={toDate}
+          showExport
+        />
+        <PartnerGroupView
+          groups={groups}
+          totalActivePartners={activePartners}
+          totalOpenPipeline={totalOpenPipeline}
+          totalWeighted={weightedForecast}
+          statusCounts={statusCounts}
+          draftCount={draftCount}
+        />
+      </div>
+    );
+  }
+
+  // --- Project / flat list view ---
   const page = Math.max(1, Number.parseInt(pageParam ?? "1", 10) || 1);
   const from = (page - 1) * PAGE_SIZE;
   const to = from + PAGE_SIZE - 1;
 
-  const supabase = await createSupabaseServerClient();
-  // Phase 2 Step 3+4: the FK from submissions.recommended_product_id was
-  // dropped; PostgREST can't embed products via that column anymore. Pull
-  // submissions first, then batch-fetch products by SKU in a second query.
   let query = supabase
     .from("submissions")
     .select(
@@ -87,26 +258,21 @@ export default async function AdminSubmissionsPage({
     )
     .order("created_at", { ascending: false })
     .range(from, to);
-  if (partnerId) {
-    query = query.eq("partner_id", partnerId);
+
+  if (partnerId) query = query.eq("partner_id", partnerId);
+  if (statusParam && statusParam !== "all") {
+    if (statusParam === "none") {
+      query = query.is("status", null);
+    } else {
+      query = query.eq("status", statusParam);
+    }
   }
+  if (fromDate) query = query.gte("created_at", `${fromDate}T00:00:00Z`);
+  if (toDate) query = query.lte("created_at", `${toDate}T23:59:59Z`);
+
   const { data, error, count } = await query;
-
-  // Load partners list for the filter dropdown (admin RLS admits this).
-  const { data: partnerRows } = await supabase
-    .from("partners")
-    .select("id, company_name")
-    .order("company_name");
-
   if (error) {
-    return (
-      <div>
-        <h1 className="text-2xl font-semibold text-neutral-900">Submissions</h1>
-        <p className="mt-3 text-sm text-red-600">
-          Failed to load submissions: {error.message}
-        </p>
-      </div>
-    );
+    return <ErrorMessage message={error.message} />;
   }
 
   type Row = {
@@ -127,8 +293,7 @@ export default async function AdminSubmissionsPage({
   };
   const rows = (data ?? []) as Row[];
 
-  // Batch-fetch products by SKU for this page. Skip UUID-shaped (legacy)
-  // recommended_product_id values — they don't match any post-migration row.
+  // Batch-fetch products by SKU for this page.
   const skuSet = new Set<string>();
   for (const r of rows) {
     if (r.recommended_product_id && !isUuidShaped(r.recommended_product_id)) {
@@ -145,51 +310,21 @@ export default async function AdminSubmissionsPage({
       productBySku.set(p.sku, { sku: p.sku, product_group: p.product_group });
     }
   }
+
   const total = count ?? 0;
   const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   return (
     <div>
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-neutral-900">Submissions</h1>
-          <p className="mt-1 text-sm text-neutral-600">
-            All partner submissions. {total} total.
-          </p>
-        </div>
-        <form method="get" className="flex items-end gap-2">
-          <label htmlFor="partnerId" className="text-xs text-neutral-600">
-            Filter by partner
-            <select
-              id="partnerId"
-              name="partnerId"
-              defaultValue={partnerId ?? ""}
-              className="mt-1 block rounded border border-neutral-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none"
-            >
-              <option value="">All partners</option>
-              {(partnerRows ?? []).map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.company_name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <button
-            type="submit"
-            className="rounded border border-neutral-300 px-3 py-1.5 text-sm text-neutral-700 hover:bg-neutral-100"
-          >
-            Apply
-          </button>
-          {partnerId ? (
-            <Link
-              href="/admin/submissions"
-              className="text-xs text-blue-600 hover:underline"
-            >
-              Clear
-            </Link>
-          ) : null}
-        </form>
-      </div>
+      <PageHeader
+        total={total}
+        partnerRows={partnerRows ?? []}
+        partnerId={partnerId}
+        groupBy={groupBy}
+        statusParam={statusParam}
+        fromDate={fromDate}
+        toDate={toDate}
+      />
 
       {rows.length === 0 ? (
         <p className="mt-6 text-sm text-neutral-500">
@@ -282,7 +417,13 @@ export default async function AdminSubmissionsPage({
               <Link
                 href={{
                   pathname: "/admin/submissions",
-                  query: { ...(partnerId ? { partnerId } : {}), page: page - 1 },
+                  query: {
+                    ...(partnerId ? { partnerId } : {}),
+                    ...(statusParam ? { status: statusParam } : {}),
+                    ...(fromDate ? { from: fromDate } : {}),
+                    ...(toDate ? { to: toDate } : {}),
+                    page: page - 1,
+                  },
                 }}
                 className="rounded border border-neutral-300 px-3 py-1 hover:bg-neutral-100"
               >
@@ -293,7 +434,13 @@ export default async function AdminSubmissionsPage({
               <Link
                 href={{
                   pathname: "/admin/submissions",
-                  query: { ...(partnerId ? { partnerId } : {}), page: page + 1 },
+                  query: {
+                    ...(partnerId ? { partnerId } : {}),
+                    ...(statusParam ? { status: statusParam } : {}),
+                    ...(fromDate ? { from: fromDate } : {}),
+                    ...(toDate ? { to: toDate } : {}),
+                    page: page + 1,
+                  },
                 }}
                 className="rounded border border-neutral-300 px-3 py-1 hover:bg-neutral-100"
               >
@@ -303,6 +450,167 @@ export default async function AdminSubmissionsPage({
           </div>
         </div>
       ) : null}
+    </div>
+  );
+}
+
+function ErrorMessage({ message }: { message: string }) {
+  return (
+    <div>
+      <h1 className="text-2xl font-semibold text-neutral-900">Submissions</h1>
+      <p className="mt-3 text-sm text-red-600">
+        Failed to load submissions: {message}
+      </p>
+    </div>
+  );
+}
+
+function PageHeader({
+  total,
+  partnerRows,
+  partnerId,
+  groupBy,
+  statusParam,
+  fromDate,
+  toDate,
+  showExport,
+}: {
+  total: number;
+  partnerRows: { id: string; company_name: string }[];
+  partnerId?: string;
+  groupBy?: string;
+  statusParam?: string;
+  fromDate?: string;
+  toDate?: string;
+  showExport?: boolean;
+}) {
+  const isPartnerGrouped = groupBy === "partner";
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold text-neutral-900">
+            Submissions
+          </h1>
+          <p className="mt-1 text-sm text-neutral-600">
+            {isPartnerGrouped
+              ? "Partner pipeline view — weighted forecast."
+              : `All partner submissions. ${total} total.`}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          {/* Group-by toggle */}
+          <Link
+            href={{
+              pathname: "/admin/submissions",
+              query: {
+                groupBy: isPartnerGrouped ? undefined : "partner",
+                ...(statusParam ? { status: statusParam } : {}),
+                ...(fromDate ? { from: fromDate } : {}),
+                ...(toDate ? { to: toDate } : {}),
+              },
+            }}
+            className={`rounded border px-3 py-1.5 text-sm ${
+              isPartnerGrouped
+                ? "border-blue-300 bg-blue-50 text-blue-700"
+                : "border-neutral-300 text-neutral-700 hover:bg-neutral-100"
+            }`}
+          >
+            {isPartnerGrouped ? "← Project view" : "Partner view"}
+          </Link>
+          {showExport ? (
+            <Link
+              href="/api/admin/forecast/xlsx"
+              className="rounded border border-neutral-300 px-3 py-1.5 text-sm text-neutral-700 hover:bg-neutral-100"
+            >
+              Export XLSX
+            </Link>
+          ) : null}
+        </div>
+      </div>
+
+      {/* Filters */}
+      <form method="get" className="flex flex-wrap items-end gap-2">
+        {isPartnerGrouped ? (
+          <input type="hidden" name="groupBy" value="partner" />
+        ) : null}
+
+        {/* Partner filter (project view only) */}
+        {!isPartnerGrouped ? (
+          <label className="text-xs text-neutral-600">
+            Partner
+            <select
+              name="partnerId"
+              defaultValue={partnerId ?? ""}
+              className="mt-1 block rounded border border-neutral-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none"
+            >
+              <option value="">All partners</option>
+              {partnerRows.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.company_name}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
+
+        {/* Status filter */}
+        <label className="text-xs text-neutral-600">
+          Status
+          <select
+            name="status"
+            defaultValue={statusParam ?? "all"}
+            className="mt-1 block rounded border border-neutral-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none"
+          >
+            <option value="all">All</option>
+            <option value="none">No status</option>
+            {SUBMISSION_STATUSES.map((s) => (
+              <option key={s} value={s}>
+                {STATUS_META[s].label}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        {/* Date range */}
+        <label className="text-xs text-neutral-600">
+          From
+          <input
+            type="date"
+            name="from"
+            defaultValue={fromDate ?? ""}
+            className="mt-1 block rounded border border-neutral-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none"
+          />
+        </label>
+        <label className="text-xs text-neutral-600">
+          To
+          <input
+            type="date"
+            name="to"
+            defaultValue={toDate ?? ""}
+            className="mt-1 block rounded border border-neutral-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none"
+          />
+        </label>
+
+        <button
+          type="submit"
+          className="rounded border border-neutral-300 px-3 py-1.5 text-sm text-neutral-700 hover:bg-neutral-100"
+        >
+          Apply
+        </button>
+        {(partnerId || statusParam || fromDate || toDate) ? (
+          <Link
+            href={{
+              pathname: "/admin/submissions",
+              query: isPartnerGrouped ? { groupBy: "partner" } : {},
+            }}
+            className="text-xs text-blue-600 hover:underline"
+          >
+            Clear filters
+          </Link>
+        ) : null}
+      </form>
     </div>
   );
 }

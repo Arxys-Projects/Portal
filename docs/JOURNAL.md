@@ -4,6 +4,90 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-05-28 — Phase 4 Step 1: Partner pipeline forecast
+
+### Work done
+
+- **`src/lib/pipeline/forecast.ts`** — Pure forecast library (no Supabase import). `STAGE_PROBABILITY` constant (on-hold 20%, sent 40%, won 100%, lost 0%); `groupIntoDeals(submissions, partners)` collapses rows to one deal per (partner_id, trimmed-lower project_name) using the preferred submission if starred, else most-recent by `created_at`; `computeWeightedForecast(deals)` filters draft/NULL before weighting and returns `{ totalOpenPipeline, weightedForecast }`.
+- **`src/lib/pipeline/forecast.test.ts`** — 12 tests covering: dedup to one deal, case-insensitive/whitespace normalisation, cross-partner isolation, preferred-over-latest representative selection, weighted-sum arithmetic, draft exclusion from pipeline dollars, null-status exclusion, and null `project_name` handling.
+- **`src/app/(app)/admin/submissions/page.tsx`** — Added `?groupBy=partner` toggle. Partner mode: summary cards (active partners, open-pipeline total, weighted forecast, per-status counts + separate draft count), per-partner expandable accordion → deals → submissions drill-down. Added `?status=` and `?from=` / `?to=` date-range filters across both views. Refactored the page header into a shared `PageHeader` component. Kept the existing flat project view intact; pagination, partner filter, and View links unchanged.
+- **`src/app/(app)/admin/submissions/_components/partner-group-view.tsx`** — Client component for the expandable partner/deal accordion. Two-level expand: partner card → deal row → individual submissions table. Displays Pipedrive badge where `pipedrive_deal_id` is set. Weighted forecast note labels the data as pre-CRM partner activity.
+- **`src/app/(app)/api/admin/forecast/xlsx/route.ts`** — Admin-only XLSX export mirroring the price-book pattern (Node.js runtime, force-dynamic, admin role+status gate). Exports the per-deal table with partner, project, status, list price, weighted value, Pipedrive deal ID, and quote date columns. Header row in Arxys Gold (#FBB040). Summary line embeds totals.
+- **`src/app/(app)/dashboard/page.tsx`** — Partner-facing funnel card (hidden when the partner has no deals). Shows open pipeline, weighted forecast, per-status badge counts, and a separate draft count labelled "excluded from $". RLS-scoped automatically via the `submissions` policy — no partner_id filter needed in the query.
+
+### Verification gates
+
+| Gate | Result |
+|---|---|
+| `npm test` | ✅ **43/43 pass** (12 new forecast tests) |
+| `npm run build` | ✅ Clean — new route `/api/admin/forecast/xlsx` appears in the route manifest |
+| `npm run lint` | ✅ 0 errors — 2 pre-existing `<img>` warnings unchanged |
+| `scripts/test-rls.ts` | ✅ **17/17 pass** — existing `submissions_select_own` policy confirms partner A cannot read partner B's submission rows, so the funnel card is isolated by RLS without any application-layer filter |
+| Manual smoke | ⏳ Deferred to Andy — see click-through checklist below |
+
+### Manual smoke checklist (for Andy)
+
+1. **Admin — Partner view**: navigate to `/admin/submissions?groupBy=partner`. Confirm summary cards show totals; expand a partner row; expand a deal row; expand the submissions sub-table. Confirm a deal with a `pipedrive_deal_id` shows the blue badge.
+2. **Admin — Filters**: apply a status filter (e.g. "Sent") and date range in partner view; confirm counts change. Switch to project view; apply partner + status filters; confirm table filters correctly.
+3. **Admin — Project view intact**: navigate to `/admin/submissions` (no groupBy). Confirm the existing table, pagination, and View links are unchanged.
+4. **XLSX export**: in partner view, click "Export XLSX". Confirm download opens in Excel/Numbers; check the on-screen weighted forecast total matches column E in the spreadsheet.
+5. **Dashboard funnel card**: sign in as a non-admin partner with at least one non-draft submission. Confirm the "My Pipeline Summary" card appears with correct status counts and dollar totals. Confirm draft submissions appear as a count only, never as a dollar value. Sign in as a second partner and confirm you see only your own data.
+6. **Draft exclusion**: in partner view, confirm a deal with `status=draft` or `status=null` does not contribute to the open-pipeline or weighted-forecast totals, but does appear in the draft count.
+
+### Decisions captured
+
+- [`0038-partner-pipeline-forecast.md`](./decisions/0038-partner-pipeline-forecast.md)
+
+---
+
+## 2026-05-28 — Phase 4 scoped: quote revision, partner forecast & calculator improvements
+
+### Work done
+
+Reviewed the live portal calculator (`src/lib/calculator/{tables,compute}.ts`,
+`src/app/(app)/calculator/{calculator-form,actions,page}.tsx`) plus the recommend and pipedrive
+modules against two partner-portal ideas — reopen/revise a past quote, and a partner-grouped pipeline
+forecast — and folded both plus a calculator audit into `docs/phase-4-plan.md` (3 steps, no migrations).
+Phase 4 Steps 1–2 are independent of the still-pending Phase 3 domain/cohort work.
+
+Findings from the read-through:
+- `input_state` banks the form payload **index-based** (`resolutionIdx`/`codecIdx`/`complexityIdx`) —
+  brittle if the lookup tables ever reorder. Mitigated: `groups_payload` already stores the resolved
+  `resolutionLabel`/`codec`/`complexity` per group, so rehydration can resolve label→index rather than
+  trust the raw index. No historical backfill needed.
+- `total_list_price_usd` (+ `recommended_units`, `cameras_count`, `bandwidth_mbps`, `storage_tb`, `vms`,
+  `retention_days`, `status`, `is_preferred`, `pipedrive_deal_id`) are all denormalized on `submissions`
+  since the initial schema, so the partner forecast is queries-only — no new columns.
+- `createDealFromSubmission` is POST-only (`client.ts` `request` supports GET|POST), and no note is
+  created on deals today (the Phase-1 placeholder note was removed in Phase 2). Revision-time deal
+  update needs PUT + an `updateDeal` method; the add-on note introduces the first `createNote`.
+- Calculator audit: `reset()` doesn't clear `submitState`, so a stale recommendation panel persists —
+  the one real bug. Minor cluster: `formatNumber` truncates ≥1000 to one decimal; results "Rec" shows
+  percent while the input shows hours; numeric inputs snap to 1 on clear; slider/tooltip aren't
+  keyboard-accessible. `RecommendationPanel` ignores the `alternatives` `recommend()` already returns.
+
+### Decisions locked (Andy, 2026-05-28)
+
+- Revision **updates the existing Pipedrive deal non-destructively** (calc fields + value + portal URL +
+  note only; never `stage_id`/`user_id`/`pipeline_id`), falling back to create if there's no linked deal;
+  no new sales email on a revision.
+- Revision creates a **new** submission (status `draft`), grouped by (partner, project); no parent column.
+- Forecast weights: on-hold 20% / sent 40% / won 100% / lost 0%; **drafts excluded from dollar totals**
+  (count only). Constant in `src/lib/pipeline/forecast.ts`.
+- Two add-on checkboxes (failover recorder, management server) → **Pipedrive note only**, no sizing impact.
+- Surface runner-up + next-size-up SKUs (min/max bracket); fix all cosmetic issues.
+- **No database migration** anywhere in Phase 4.
+
+### Artifacts
+
+- `docs/phase-4-plan.md` — executable plan: 3 steps, verification gates, ADR pointers 0038–0040, and a
+  Claude Code kickoff prompt.
+
+### Pending
+
+- Execution handed to Claude Code per the plan's kickoff prompt. ADRs 0038 (forecast), 0039 (rehydration),
+  0040 (deal-update-on-revision) to be written during execution. RUNBOOK unchanged.
+
 ## 2026-05-27 — Phase 3 Step 5: Submission lifecycle + Pipeline view + A3 hard-delete + Preferred flag
 
 ### Work done
