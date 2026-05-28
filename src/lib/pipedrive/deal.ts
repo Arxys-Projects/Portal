@@ -69,6 +69,8 @@ export type DealSubmissionInput = {
     recordingPercent: number;
     motionPercent: number;
   };
+  addOnFailoverRecorder?: boolean;
+  addOnManagementServer?: boolean;
 };
 
 export type DealPartnerInput = {
@@ -170,6 +172,21 @@ export async function createDealFromSubmission(
   set("Recommended Server", recommendedModels);
 
   const deal = await pipedriveClient.createDeal(payload as Parameters<typeof pipedriveClient.createDeal>[0]);
+
+  // Post an add-ons note if either toggle is on. Failure must not block the deal. (Phase 4 Step 2)
+  if (submission.addOnFailoverRecorder || submission.addOnManagementServer) {
+    try {
+      await pipedriveClient.createNote({
+        deal_id: deal.id,
+        content:
+          `Add-ons requested — Failover recorder: ${submission.addOnFailoverRecorder ? "Yes" : "No"} · ` +
+          `Management server: ${submission.addOnManagementServer ? "Yes" : "No"}`,
+        pinned_to_deal_flag: 1,
+      });
+    } catch (err) {
+      console.error("pipedrive add-on note creation failed", err);
+    }
+  }
 
   return { dealId: deal.id };
 }

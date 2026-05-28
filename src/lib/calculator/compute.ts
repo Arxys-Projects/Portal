@@ -126,7 +126,7 @@ function withThousands(n: number): string {
 
 export function formatNumber(n: number, decimals = 2): string {
   if (!Number.isFinite(n)) return "—";
-  if (n >= 1000) return withThousands(n).replace(/\.\d+$/, (s) => s.slice(0, 2));
+  if (n >= 1000) return withThousands(n);
   return n.toFixed(decimals);
 }
 

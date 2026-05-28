@@ -33,6 +33,8 @@ const submissionSchema = z.object({
   vms: z.string().max(40).optional().nullable(),
   retentionDays: z.number().int().min(1).max(730),
   groups: z.array(groupSchema).min(1).max(50),
+  addOnFailoverRecorder: z.boolean().optional().default(false),
+  addOnManagementServer: z.boolean().optional().default(false),
 });
 
 export type SubmissionState =
@@ -330,6 +332,8 @@ export async function submitCalculation(
           recordingPercent: primary.input.recordingPercent,
           motionPercent: primary.input.motionPercent,
         },
+        addOnFailoverRecorder: input.addOnFailoverRecorder,
+        addOnManagementServer: input.addOnManagementServer,
       },
       recommendation,
       {

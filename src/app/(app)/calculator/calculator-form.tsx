@@ -17,6 +17,7 @@ import {
 } from "@/lib/calculator/compute";
 import { submitCalculation, type SubmissionState } from "./actions";
 import { productGroupToFamilySlug } from "@/lib/price-book/families";
+import { pickHeadroomOption } from "@/lib/recommend/headroom";
 import {
   BarsIcon,
   CameraIcon,
@@ -58,7 +59,10 @@ function newGroup(seqNumber: number): Group {
 
 function Tooltip({ text, side = "l" }: { text: string; side?: "l" | "r" }) {
   return (
-    <span className={"ax-tip" + (side === "r" ? " ax-tip-r" : "")}>
+    <span
+      className={"ax-tip" + (side === "r" ? " ax-tip-r" : "")}
+      tabIndex={0}
+    >
       <InfoIcon />
       <span className="ax-tt">{text}</span>
     </span>
@@ -75,12 +79,44 @@ export function CalculatorForm({
   const [vms, setVms] = useState<string>("");
   const [projectName, setProjectName] = useState("");
   const [hasInteracted, setHasInteracted] = useState(false);
+  const [resultDismissed, setResultDismissed] = useState(false);
+  const [addOnFailoverRecorder, setAddOnFailoverRecorder] = useState(false);
+  const [addOnManagementServer, setAddOnManagementServer] = useState(false);
+
+  // Tracks raw string values for numeric inputs while the user is actively
+  // typing, so an intermediate empty field doesn't snap to the clamped minimum.
+  // Keys: `${groupId}.cameras`, `${groupId}.fps`, `${groupId}.recording`, "retention".
+  const [numericDrafts, setNumericDrafts] = useState<Map<string, string>>(
+    new Map(),
+  );
+
   const [submitState, submitAction, isSubmitting] = useActionState<SubmissionState, unknown>(
     submitCalculation,
     INITIAL_STATE,
   );
 
-  const touch = () => { if (!hasInteracted) setHasInteracted(true); };
+  const touch = () => {
+    if (!hasInteracted) setHasInteracted(true);
+    // Dismiss a stale recommendation on the first interaction after a submit.
+    if (!resultDismissed && submitState.status === "ok") {
+      setResultDismissed(true);
+    }
+  };
+
+  const getDraft = (key: string, fallback: number): string =>
+    numericDrafts.has(key) ? numericDrafts.get(key)! : String(fallback);
+
+  const setDraft = (key: string, value: string) => {
+    setNumericDrafts((prev) => new Map(prev).set(key, value));
+  };
+
+  const clearDraft = (key: string) => {
+    setNumericDrafts((prev) => {
+      const next = new Map(prev);
+      next.delete(key);
+      return next;
+    });
+  };
 
   const addGroup = () => {
     touch();
@@ -115,6 +151,10 @@ export function CalculatorForm({
     setVms("");
     setProjectName("");
     setHasInteracted(false);
+    setResultDismissed(true);
+    setAddOnFailoverRecorder(false);
+    setAddOnManagementServer(false);
+    setNumericDrafts(new Map());
   };
 
   const groupResults = useMemo(
@@ -210,18 +250,47 @@ export function CalculatorForm({
               type="number"
               min={1}
               max={730}
-              value={retentionDays}
+              value={getDraft("retention", retentionDays)}
               onChange={(e) => {
                 touch();
-                setRetentionDays(
-                  Math.max(1, Math.min(730, parseInt(e.target.value || "1", 10))),
-                );
+                setDraft("retention", e.target.value);
+                const n = parseInt(e.target.value, 10);
+                if (!isNaN(n)) {
+                  setRetentionDays(Math.max(1, Math.min(730, n)));
+                }
+              }}
+              onBlur={(e) => {
+                clearDraft("retention");
+                const n = parseInt(e.target.value, 10);
+                setRetentionDays(isNaN(n) ? 30 : Math.max(1, Math.min(730, n)));
               }}
               style={{ width: 80 }}
             />
             <span style={{ color: "var(--td)", fontSize: 13 }}>days</span>
           </div>
         </div>
+
+        {/* Add-on toggles */}
+        <div className="ax-f" style={{ gap: 8 }}>
+          <label className="ax-fl">Add-ons</label>
+          <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", fontSize: 13 }}>
+            <input
+              type="checkbox"
+              checked={addOnFailoverRecorder}
+              onChange={(e) => { touch(); setAddOnFailoverRecorder(e.target.checked); }}
+            />
+            Failover Recorder
+          </label>
+          <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", fontSize: 13 }}>
+            <input
+              type="checkbox"
+              checked={addOnManagementServer}
+              onChange={(e) => { touch(); setAddOnManagementServer(e.target.checked); }}
+            />
+            Management Server
+          </label>
+        </div>
+
         <div style={{ marginLeft: "auto" }}>
           <button
             type="button"
@@ -240,11 +309,14 @@ export function CalculatorForm({
           type="button"
           className="ax-save-btn"
           disabled={!hasInteracted || isSubmitting}
-          onClick={() =>
+          onClick={() => {
+            setResultDismissed(false);
             submitAction({
               projectName: projectName.trim() || null,
               vms: vms || null,
               retentionDays,
+              addOnFailoverRecorder,
+              addOnManagementServer,
               groups: groups.map((g) => ({
                 name: g.name,
                 cameras: g.cameras,
@@ -255,8 +327,8 @@ export function CalculatorForm({
                 recordingPercent: g.recordingPercent,
                 motionPercent: g.motionPercent,
               })),
-            })
-          }
+            });
+          }}
         >
           {isSubmitting ? "Saving…" : "Save & request quote"}
         </button>
@@ -309,15 +381,24 @@ export function CalculatorForm({
                   type="number"
                   min={1}
                   max={9999}
-                  value={group.cameras}
-                  onChange={(e) =>
+                  value={getDraft(`${group.id}.cameras`, group.cameras)}
+                  onChange={(e) => {
+                    setDraft(`${group.id}.cameras`, e.target.value);
+                    touch();
+                    const n = parseInt(e.target.value, 10);
+                    if (!isNaN(n)) {
+                      updateGroup(group.id, {
+                        cameras: Math.max(1, Math.min(9999, n)),
+                      });
+                    }
+                  }}
+                  onBlur={(e) => {
+                    clearDraft(`${group.id}.cameras`);
+                    const n = parseInt(e.target.value, 10);
                     updateGroup(group.id, {
-                      cameras: Math.max(
-                        1,
-                        Math.min(9999, parseInt(e.target.value || "1", 10)),
-                      ),
-                    })
-                  }
+                      cameras: isNaN(n) ? 1 : Math.max(1, Math.min(9999, n)),
+                    });
+                  }}
                   style={{ textAlign: "center" }}
                 />
               </div>
@@ -364,15 +445,24 @@ export function CalculatorForm({
                   type="number"
                   min={1}
                   max={60}
-                  value={group.fps}
-                  onChange={(e) =>
+                  value={getDraft(`${group.id}.fps`, group.fps)}
+                  onChange={(e) => {
+                    setDraft(`${group.id}.fps`, e.target.value);
+                    touch();
+                    const n = parseInt(e.target.value, 10);
+                    if (!isNaN(n)) {
+                      updateGroup(group.id, {
+                        fps: Math.max(1, Math.min(60, n)),
+                      });
+                    }
+                  }}
+                  onBlur={(e) => {
+                    clearDraft(`${group.id}.fps`);
+                    const n = parseInt(e.target.value, 10);
                     updateGroup(group.id, {
-                      fps: Math.max(
-                        1,
-                        Math.min(60, parseInt(e.target.value || "1", 10)),
-                      ),
-                    })
-                  }
+                      fps: isNaN(n) ? 1 : Math.max(1, Math.min(60, n)),
+                    });
+                  }}
                   style={{ textAlign: "center" }}
                 />
               </div>
@@ -403,14 +493,29 @@ export function CalculatorForm({
                     type="number"
                     min={1}
                     max={24}
-                    value={Math.round((group.recordingPercent / 100) * 24)}
+                    value={getDraft(
+                      `${group.id}.recording`,
+                      Math.round((group.recordingPercent / 100) * 24),
+                    )}
                     onChange={(e) => {
-                      const h = Math.max(
-                        1,
-                        Math.min(24, parseInt(e.target.value || "1", 10)),
-                      );
+                      setDraft(`${group.id}.recording`, e.target.value);
+                      touch();
+                      const h = parseInt(e.target.value, 10);
+                      if (!isNaN(h)) {
+                        updateGroup(group.id, {
+                          recordingPercent: Math.round(
+                            (Math.max(1, Math.min(24, h)) / 24) * 100,
+                          ),
+                        });
+                      }
+                    }}
+                    onBlur={(e) => {
+                      clearDraft(`${group.id}.recording`);
+                      const h = parseInt(e.target.value, 10);
                       updateGroup(group.id, {
-                        recordingPercent: Math.round((h / 24) * 100),
+                        recordingPercent: Math.round(
+                          (isNaN(h) ? 24 : Math.max(1, Math.min(24, h))) / 24 * 100,
+                        ),
                       });
                     }}
                     style={{ width: 56, textAlign: "center" }}
@@ -429,6 +534,7 @@ export function CalculatorForm({
                     min={1}
                     max={100}
                     value={group.motionPercent}
+                    aria-label={`Scene motion level for ${group.name}, ${group.motionPercent}%`}
                     onChange={(e) =>
                       updateGroup(group.id, {
                         motionPercent: parseInt(e.target.value, 10),
@@ -502,7 +608,7 @@ export function CalculatorForm({
                 <td>{RESOLUTIONS[group.resolutionIdx].label}</td>
                 <td>{CODECS[group.codecIdx].label}</td>
                 <td className="m">{group.fps}</td>
-                <td className="m">{group.recordingPercent}%</td>
+                <td className="m">{Math.round((group.recordingPercent / 100) * 24)} hrs</td>
                 <td className="m" style={{ color: "var(--cy)" }}>
                   {formatBandwidthMbps(computed.bandwidthMbps)}
                 </td>
@@ -588,11 +694,11 @@ export function CalculatorForm({
         <strong>Note:</strong> Storage includes ~20% overhead for VMS best practices.
       </div>
 
-      {submitState.status === "error" && (
+      {submitState.status === "error" && !resultDismissed && (
         <div className="ax-rec-err">{submitState.error}</div>
       )}
 
-      {submitState.status === "ok" && (
+      {submitState.status === "ok" && !resultDismissed && (
         <RecommendationPanel state={submitState} />
       )}
     </div>
@@ -607,9 +713,15 @@ function RecommendationPanel({
   const { recommendation } = state;
   const { winner } = recommendation;
   const familySlug = productGroupToFamilySlug(winner.productGroup);
+
+  const runnerUps = recommendation.alternatives.slice(0, 2);
+  const headroom = pickHeadroomOption(winner, recommendation.alternatives);
+
   return (
     <div className="ax-rec">
       <div className="ax-rec-h">Recommended configuration</div>
+
+      {/* Winner */}
       <div className="ax-rec-w">
         <span className="ax-rec-units">{winner.units} ×</span>
         {familySlug ? (
@@ -641,6 +753,61 @@ function RecommendationPanel({
           <span className="ax-rec-v">{winner.driverDimension}</span>
         </div>
       </div>
+
+      {/* Alternatives */}
+      {runnerUps.length > 0 && (
+        <div className="ax-rec-alt">
+          <div className="ax-rec-alt-h">Alternatives</div>
+          {runnerUps.map((alt) => {
+            const altSlug = productGroupToFamilySlug(alt.productGroup);
+            return (
+              <div key={alt.sku} className="ax-rec-alt-row">
+                <span className="ax-rec-units">{alt.units} ×</span>
+                {altSlug ? (
+                  <Link
+                    href={`/price-book/${altSlug}`}
+                    className="ax-rec-model ax-rec-model-link"
+                  >
+                    {alt.productGroup}
+                  </Link>
+                ) : (
+                  <span className="ax-rec-model">{alt.productGroup}</span>
+                )}
+                <span className="ax-rec-alt-price">
+                  ${alt.totalCostUsd.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Headroom / room to grow */}
+      {headroom && (
+        <div className="ax-rec-grow">
+          <div className="ax-rec-alt-h">Room to grow</div>
+          <div className="ax-rec-alt-row">
+            <span className="ax-rec-units">{headroom.units} ×</span>
+            {productGroupToFamilySlug(headroom.productGroup) ? (
+              <Link
+                href={`/price-book/${productGroupToFamilySlug(headroom.productGroup)}`}
+                className="ax-rec-model ax-rec-model-link"
+              >
+                {headroom.productGroup}
+              </Link>
+            ) : (
+              <span className="ax-rec-model">{headroom.productGroup}</span>
+            )}
+            <span className="ax-rec-alt-price">
+              ${headroom.totalCostUsd.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+            </span>
+          </div>
+          <div style={{ fontSize: 12, color: "var(--td)", marginTop: 4 }}>
+            Covers {headroom.coveredCameras.toLocaleString()} cameras · {formatNumber(headroom.coveredStorageTb)} TB
+          </div>
+        </div>
+      )}
+
       {recommendation.warnings.length > 0 && (
         <ul className="ax-rec-warn">
           {recommendation.warnings.map((w, i) => (

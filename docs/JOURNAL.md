@@ -4,6 +4,43 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-05-28 — Phase 4 Step 2: Calculator improvements
+
+### Work done
+
+- **Bug fix — reset leaves stale result.** Added `resultDismissed` boolean state to `calculator-form.tsx`. `reset()` sets it to `true`; `touch()` sets it to `true` when `submitState.status === "ok"` (dismisses panel on first input change after a successful submit); the submit button click sets it to `false` so the new result always shows. The `RecommendationPanel` and error div are both gated on `!resultDismissed`.
+- **`formatNumber` fix** (`src/lib/calculator/compute.ts`): the `>=1000` branch was calling `.replace(/\.\d+$/, s => s.slice(0, 2))` which truncated to one decimal. Removed the replace; `withThousands()` already uses `.toFixed(2)` so the output is now `"1,234.57"` rather than `"1,234.5"`. New `src/lib/calculator/compute.test.ts` covers the fix plus `formatStorageGb` and `formatBandwidthMbps`.
+- **Results-table "Rec" column** now shows hours (`Math.round((recordingPercent / 100) * 24) hrs`) instead of a raw percent, matching the Hrs/Day input. No PDF change needed — the PDF already used hours.
+- **Transient empty numeric inputs.** Added `numericDrafts` Map state. While typing, the raw string is stored as a draft (so the field can be visually empty); on `onBlur`, the draft is cleared and the clamped integer value is committed to state. Applies to: cameras, FPS, Hrs/Day (per group) and Retention days (global).
+- **A11y.** `aria-label` added to the motion `<input type="range">` per group (`"Scene motion level for {name}, {pct}%"`). `Tooltip` trigger gains `tabIndex={0}` so it's keyboard-focusable; the existing CSS `.ax-tip:focus-within .ax-tt` reveals the tooltip on focus (verified the CSS rule was already present via `:focus-within`).
+- **Add-on toggles → Pipedrive note.** Two checkboxes ("Failover Recorder", "Management Server") in the global-settings block of `calculator-form.tsx`. Both booleans flow into the submit payload → `submissionSchema` (optional, default false) → `input_state` automatically → `createDealFromSubmission`. In `deal.ts`, after `createDeal` succeeds, if either add-on is checked, a pinned note is posted via `pipedriveClient.createNote`; the note call is wrapped in its own try/catch so a note failure never blocks the deal. Both toggles reset on `reset()`.
+- **Min/max options display.** New `src/lib/recommend/headroom.ts`: `pickHeadroomOption(winner, alternatives)` — returns the cheapest alternative whose `coveredCameras` and `coveredStorageTb` both strictly exceed the winner's (fewer units on cost tie), or `null` if none exists. `RecommendationPanel` now renders: winner (recommended), up to 2 cheapest runner-ups (alternatives), and the headroom pick (room to grow) with capacity details. No change to the recommendation algorithm.
+
+### Verification gates
+
+| Gate | Result |
+|---|---|
+| `npm test` | ✅ **57/57 pass** (14 new: 8 compute + 6 headroom) |
+| `npm run build` | ✅ Clean — same route manifest as Step 1 |
+| `npm run lint` | ✅ 0 errors — same 2 pre-existing `<img>` warnings |
+| `scripts/test-rls.ts` | ✅ **17/17 pass** — no RLS changes; Step 2 is calculator-only |
+| Manual smoke | ⏳ Deferred to Andy — see click-through checklist below |
+
+### Manual smoke checklist (for Andy)
+
+1. **Reset clears panel**: submit a quote → see the recommendation panel → click Reset → panel disappears.
+2. **Input change clears panel**: submit a quote → see the panel → change any camera count or FPS → panel disappears.
+3. **New submit shows new result**: after dismissal, click "Save & request quote" again → new recommendation panel appears.
+4. **Transient empty field**: click into the "Video Streams" field, select-all and delete → field shows blank (no snap to 1) → blur → field snaps to 1.
+5. **Rec column shows hours**: check the results table → the Rec column shows e.g. "24 hrs" not "100%".
+6. **`formatNumber` ≥1000**: submit a configuration that produces storage in the thousands of TB; confirm the displayed number uses two decimal places and a thousands separator.
+7. **Keyboard tooltip**: Tab to the Codec info icon → tooltip text appears.
+8. **Keyboard slider**: Tab to the Motion range slider for a group → left/right arrow keys change the value.
+9. **Add-on toggles**: check "Failover Recorder" and "Management Server" → submit → open the resulting Pipedrive deal → confirm a pinned note shows "Add-ons requested — Failover recorder: Yes · Management server: Yes". Also confirm submitting with both unchecked produces no note.
+10. **Min/max display**: submit any quote that has alternatives → confirm the recommendation panel shows "Recommended", "Alternatives" (1–2 rows), and (if a headroom candidate exists) "Room to grow" with coverage details.
+
+---
+
 ## 2026-05-28 — Phase 4 Step 1: Partner pipeline forecast
 
 ### Work done
