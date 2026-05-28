@@ -6,6 +6,8 @@ import {
   resolveOwnerId,
   resolvePipelineId,
   resolveStageId,
+  type CalculatorFieldName,
+  type CustomFieldKeyMap,
 } from "./lookups";
 import type { RecommendationResult } from "@/lib/recommend/types";
 
@@ -79,26 +81,22 @@ export type DealPartnerInput = {
   email: string;
 };
 
-export async function createDealFromSubmission(
+type ResolvedFieldKeys = {
+  customFieldKeys: CustomFieldKeyMap;
+  calcFieldKeys: Partial<Record<CalculatorFieldName, string>>;
+};
+
+// Builds the calculator-derived portion of a deal payload: the deal `value`,
+// the six arxys_* custom fields (incl. portal URL), and the admin-curated
+// calculator fields. Deliberately emits NO routing/ownership/contact fields
+// (title, currency, user_id, person_id, org_id, pipeline_id, stage_id) — those
+// are create-only. The revision update path (Phase 4 Step 3) reuses this output
+// verbatim so a revision can never disturb a deal's stage, owner, or pipeline.
+function buildDealFields(
   submission: DealSubmissionInput,
   recommendation: RecommendationResult,
-  partner: DealPartnerInput,
-): Promise<{ dealId: number }> {
-  const [pipelineId, ownerId, customFieldKeys, calcFieldKeys] = await Promise.all([
-    resolvePipelineId(),
-    resolveOwnerId(),
-    ensureCustomFields(),
-    resolveCalculatorFieldKeys(),
-  ]);
-  const stageId = await resolveStageId(pipelineId);
-
-  const orgId = await upsertOrganization({ name: partner.companyName });
-  const personId = await upsertPerson({
-    name: partner.contactName,
-    email: partner.email,
-    orgId,
-  });
-
+  { customFieldKeys, calcFieldKeys }: ResolvedFieldKeys,
+): Record<string, string | number | undefined> {
   const winner = recommendation.winner;
   // Phase 2 Step 4 (Q5a): the Pipedrive `arxys_recommended_models` and the
   // admin-curated `Recommended Server` fields stay family-friendly even after
@@ -108,23 +106,11 @@ export async function createDealFromSubmission(
   // during the sales conversation). The persisted SKU lives on
   // submissions.recommended_product_id for downstream tooling.
   const recommendedModels = `${winner.units} × ${winner.productGroup}`;
-  const title =
-    submission.projectName?.trim() ||
-    `${partner.companyName} — submission ${submission.submissionId}`;
-
   const totalStorageTb = (submission.totals.storageGb / 1000).toFixed(2);
   const recordingHours = Math.round((submission.primaryGroup.recordingPercent / 100) * 24);
 
-  // Base payload: deal-level + arxys_* custom fields.
   const payload: Record<string, string | number | undefined> = {
-    title,
     value: winner.totalCostUsd,
-    currency: "USD",
-    user_id: ownerId,
-    person_id: personId,
-    org_id: orgId,
-    pipeline_id: pipelineId,
-    stage_id: stageId,
     [customFieldKeys["arxys_submission_id"]]: submission.submissionId,
     [customFieldKeys["arxys_total_cameras"]]: submission.totals.cameras,
     [customFieldKeys["arxys_bandwidth_mbps"]]: Number(submission.totals.bandwidthMbps.toFixed(2)),
@@ -135,7 +121,7 @@ export async function createDealFromSubmission(
 
   // Calculator-matching admin fields. Each only set if the field still
   // resolves by name in Pipedrive — a rename in the admin UI silently skips
-  // that field rather than blocking the whole deal create.
+  // that field rather than blocking the whole deal write.
   const set = (name: keyof typeof calcFieldKeys, value: string | number | undefined) => {
     if (value === undefined || value === "") return;
     const key = calcFieldKeys[name];
@@ -171,6 +157,45 @@ export async function createDealFromSubmission(
   set("Recording hours", String(recordingHours));
   set("Recommended Server", recommendedModels);
 
+  return payload;
+}
+
+export async function createDealFromSubmission(
+  submission: DealSubmissionInput,
+  recommendation: RecommendationResult,
+  partner: DealPartnerInput,
+): Promise<{ dealId: number }> {
+  const [pipelineId, ownerId, customFieldKeys, calcFieldKeys] = await Promise.all([
+    resolvePipelineId(),
+    resolveOwnerId(),
+    ensureCustomFields(),
+    resolveCalculatorFieldKeys(),
+  ]);
+  const stageId = await resolveStageId(pipelineId);
+
+  const orgId = await upsertOrganization({ name: partner.companyName });
+  const personId = await upsertPerson({
+    name: partner.contactName,
+    email: partner.email,
+    orgId,
+  });
+
+  const title =
+    submission.projectName?.trim() ||
+    `${partner.companyName} — submission ${submission.submissionId}`;
+
+  // Calculator-derived fields + the create-only routing/ownership/contact set.
+  const payload: Record<string, string | number | undefined> = {
+    ...buildDealFields(submission, recommendation, { customFieldKeys, calcFieldKeys }),
+    title,
+    currency: "USD",
+    user_id: ownerId,
+    person_id: personId,
+    org_id: orgId,
+    pipeline_id: pipelineId,
+    stage_id: stageId,
+  };
+
   const deal = await pipedriveClient.createDeal(payload as Parameters<typeof pipedriveClient.createDeal>[0]);
 
   // Post an add-ons note if either toggle is on. Failure must not block the deal. (Phase 4 Step 2)
@@ -189,4 +214,50 @@ export async function createDealFromSubmission(
   }
 
   return { dealId: deal.id };
+}
+
+// Phase 4 Step 3 — non-destructive revision update.
+//
+// Updates an EXISTING deal in place from a new revision submission. It writes
+// ONLY the calculator-derived fields (value + arxys_* + admin calculator
+// fields) via buildDealFields, then posts a "revised from portal" note. It
+// deliberately does NOT resolve or send pipeline_id / stage_id / user_id, and
+// does NOT upsert the person/organization — a revision must never disturb the
+// deal's stage, owner, pipeline, or linked contacts that sales may have changed
+// since the deal was created. The PUT carries exactly buildDealFields()'s
+// output, so prohibited routing fields are architecturally impossible to send.
+export async function updateDealFromRevision(
+  dealId: number,
+  submission: DealSubmissionInput,
+  recommendation: RecommendationResult,
+): Promise<{ dealId: number }> {
+  const [customFieldKeys, calcFieldKeys] = await Promise.all([
+    ensureCustomFields(),
+    resolveCalculatorFieldKeys(),
+  ]);
+
+  const fields = buildDealFields(submission, recommendation, {
+    customFieldKeys,
+    calcFieldKeys,
+  });
+
+  await pipedriveClient.updateDeal(dealId, fields);
+
+  // Revision marker note. Failure must not fail the revision. Add-on status is
+  // folded in so sales see the current toggles if they changed in the revision.
+  const revisedOn = new Date().toISOString().slice(0, 10);
+  try {
+    await pipedriveClient.createNote({
+      deal_id: dealId,
+      content:
+        `Revised from portal on ${revisedOn}. ` +
+        `Add-ons — Failover recorder: ${submission.addOnFailoverRecorder ? "Yes" : "No"} · ` +
+        `Management server: ${submission.addOnManagementServer ? "Yes" : "No"}`,
+      pinned_to_deal_flag: 1,
+    });
+  } catch (err) {
+    console.error("pipedrive revision note creation failed", err);
+  }
+
+  return { dealId };
 }

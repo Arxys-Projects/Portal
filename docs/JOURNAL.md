@@ -4,6 +4,48 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-05-28 — Phase 4 Step 3: Quote revision + non-destructive Pipedrive deal update
+
+### Work done
+
+- **Rehydration module** — new [`src/lib/calculator/rehydrate.ts`](../src/lib/calculator/rehydrate.ts). `normalizeInputState(raw)` coerces a raw `input_state` blob into a fully-defaulted, range-clamped shape (tolerates null/partial/old rows). `fromStoredSubmission(row)` builds the form's initial state, resolving each group's resolution/codec/complexity index by the banked `groups_payload` *value* (label / codec value / tier) first — order-independent — and falling back to the raw stored index, then clamping. Add-on booleans are gated on a new additive `version` stamp (`INPUT_STATE_VERSION = 1`); pre-stamp rows default add-ons to false. New [`rehydrate.test.ts`](../src/lib/calculator/rehydrate.test.ts) (10 tests) including an index-shift resilience case proving stale raw indices are corrected via banked labels. **No migration** — the version stamp is just another key in the existing `input_state` JSON.
+- **Version stamp in [`actions.ts`](../src/app/(app)/calculator/actions.ts)** — `input_state` is now written as an explicit object `{ version: INPUT_STATE_VERSION, ...calculator inputs }` rather than the raw parsed payload, so the revision flags never leak into the banked state.
+- **Form rehydration** — [`calculator-form.tsx`](../src/app/(app)/calculator/calculator-form.tsx) accepts optional `initialState` + `sourceSubmissionId` props seeding all `useState` initializers. A rehydrated form starts `hasInteracted = true` (immediately re-submittable). New `revisionSourceId` state is tracked so `reset()` clears the revision link (a reset-then-submit saves a fresh quote, not a blank-data mutation of the old deal). Submit payload gains `isRevision` + `sourceSubmissionId`.
+- **Entry points** — `/calculator?revise={id}` loader in [`page.tsx`](../src/app/(app)/calculator/page.tsx) reads the source row RLS-scoped (`select id, input_state, groups_payload`) and passes rehydrated `initialState`; a forbidden/missing row silently yields a fresh calculator. "Edit / revise quote" link added to the partner submission-detail action bar and a "Revise" link to each pipeline row.
+- **Pipedrive PUT support** — [`client.ts`](../src/lib/pipedrive/client.ts) `request()` now allows `"PUT"`; added `updateDeal(id, payload)` → `PUT /v1/deals/{id}` and an `UpdateDealPayload` type that has no routing fields.
+- **Shared `buildDealFields()`** — [`deal.ts`](../src/lib/pipedrive/deal.ts) extracts the calculator-derived payload portion (value + six `arxys_*` + admin calculator fields, **no** title/currency/user_id/person_id/org_id/pipeline_id/stage_id). `createDealFromSubmission` spreads it and adds the routing fields; new `updateDealFromRevision(dealId, submission, recommendation)` sends it verbatim, resolves only field keys (never pipeline/stage/owner, no person/org upsert), and posts a single "Revised from portal {date}" note (try/catch, non-blocking). The create path's payload is byte-for-byte unchanged — verified by the existing 9 deal tests.
+- **Revision branch in `actions.ts`** — accepts `isRevision`/`sourceSubmissionId` in the schema; on a revision it reads the source `pipedrive_deal_id` RLS-scoped → if present, `updateDealFromRevision` + links the new row to the same deal id; if absent or the PUT 404s, falls back to `createDealFromSubmission`. **No new sales-notification email on a revision** (both PDF render and email send are skipped).
+
+### Verification gates
+
+| Gate | Result |
+|---|---|
+| `npm test` | ✅ **70/70 pass** (13 new: 10 rehydrate incl. index-shift + 3 deal-update) |
+| `npm run build` | ✅ Clean — TypeScript passes, same route manifest |
+| `npm run lint` | ✅ 0 errors — same 2 pre-existing `<img>` warnings |
+| `scripts/test-rls.ts` | ✅ **18/18 pass** — new Test 18: partner A cannot SELECT B's submission to revise it |
+| Manual smoke | ⏳ Deferred to Andy — calculator needs an authed session; see checklist below |
+
+The deal-update test explicitly asserts `stage_id` / `user_id` / `pipeline_id` (and `title`/`currency`/`person_id`/`org_id`) are **absent** from the PUT body, and that no pipeline/stage/owner/contact lookups fire on a revision.
+
+### Manual smoke checklist (for Andy)
+
+1. **Revise entry point**: open a past submission → click "Edit / revise quote" (detail page) or "Revise" (pipeline row) → calculator opens pre-filled with that quote's groups, retention, VMS, project name, add-ons.
+2. **Rehydrated form is submittable**: the Save button is enabled immediately (no need to touch a field first).
+3. **Save a revision**: change a camera count → Save → a *new* draft submission appears in the pipeline (the original is untouched).
+4. **Deal updated in place**: open the source quote's Pipedrive deal → confirm `value`, camera count, and portal URL refreshed; **stage, owner, and pipeline unchanged**; a pinned "Revised from portal {date}" note added.
+5. **No new email**: confirm sales did *not* receive a new submission-notification email for the revision.
+6. **Reset clears revision link**: on a rehydrated form, click Reset → Save → confirm this creates a brand-new deal (not an update of the old one).
+7. **Fallback to create**: revise a quote whose source has no Pipedrive deal (or whose deal was deleted) → confirm a new deal is created instead of erroring.
+8. **RLS**: confirm you cannot reach another partner's quote via `/calculator?revise={their-id}` (form loads empty/fresh).
+
+### Decisions captured
+
+- [`0039-quote-revision-rehydration.md`](./decisions/0039-quote-revision-rehydration.md) — new-row-not-mutate, value-first index resolution, additive version stamp, no migration.
+- [`0040-pipedrive-deal-update-on-revision.md`](./decisions/0040-pipedrive-deal-update-on-revision.md) — non-destructive field subset via shared builder, RLS-scoped deal lookup, fallback-to-create, single revision note, no revision email.
+
+---
+
 ## 2026-05-28 — Phase 4 Step 2: Calculator improvements
 
 ### Work done

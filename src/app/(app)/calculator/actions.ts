@@ -10,12 +10,14 @@ import {
   VMS_OPTIONS,
 } from "@/lib/calculator/tables";
 import { computeGroup, type GroupInput } from "@/lib/calculator/compute";
+import { INPUT_STATE_VERSION } from "@/lib/calculator/rehydrate";
 import { recommend } from "@/lib/recommend/algorithm";
 import { GB_PER_TB, type ServerSpec, type RecommendationResult } from "@/lib/recommend/types";
 import { sendSubmissionNotification } from "@/lib/email/submission-notification";
 import { pdfFilename, renderSubmissionPdfBuffer } from "@/lib/pdf/render";
 import type { SubmissionPdfInput } from "@/lib/pdf/types";
-import { createDealFromSubmission } from "@/lib/pipedrive/deal";
+import { createDealFromSubmission, updateDealFromRevision } from "@/lib/pipedrive/deal";
+import { PipedriveError } from "@/lib/pipedrive/client";
 
 const groupSchema = z.object({
   name: z.string().trim().max(80).default(""),
@@ -35,6 +37,11 @@ const submissionSchema = z.object({
   groups: z.array(groupSchema).min(1).max(50),
   addOnFailoverRecorder: z.boolean().optional().default(false),
   addOnManagementServer: z.boolean().optional().default(false),
+  // Revision flags (Phase 4 Step 3) — submit-flow control, not banked into
+  // input_state. When isRevision is set, the source quote's Pipedrive deal is
+  // updated in place rather than a new deal created (see ADR 0040).
+  isRevision: z.boolean().optional().default(false),
+  sourceSubmissionId: z.string().uuid().optional().nullable(),
 });
 
 export type SubmissionState =
@@ -157,7 +164,18 @@ export async function submitCalculation(
 
   const submissionRow = {
     partner_id: user.id,
-    input_state: parsed.data,
+    // Bank only the calculator inputs (plus the version stamp) — the revision
+    // flags are submit-flow control, not part of the reconstructable state.
+    // normalizeInputState() reads `version` to know which defaults to apply.
+    input_state: {
+      version: INPUT_STATE_VERSION,
+      projectName: input.projectName ?? null,
+      vms: input.vms ?? null,
+      retentionDays: input.retentionDays,
+      groups: input.groups,
+      addOnFailoverRecorder: input.addOnFailoverRecorder,
+      addOnManagementServer: input.addOnManagementServer,
+    },
     // Phase 3 Step 5: new submissions start in 'draft' so the partner sees a
     // status badge immediately. Pre-Step-5 rows stay NULL (treated as draft).
     status: "draft",
@@ -275,79 +293,118 @@ export async function submitCalculation(
     })(),
   };
 
-  let pdfBuffer: Buffer | undefined;
-  try {
-    pdfBuffer = await renderSubmissionPdfBuffer(pdfInput);
-  } catch (err) {
-    console.error("submission PDF render failed", err);
-  }
+  // A fresh submit renders the PDF and emails sales. A revision deliberately
+  // sends NO new sales-notification email (the deal is updated in place — see
+  // ADR 0040), so both the render and the send are skipped for it.
+  if (!input.isRevision) {
+    let pdfBuffer: Buffer | undefined;
+    try {
+      pdfBuffer = await renderSubmissionPdfBuffer(pdfInput);
+    } catch (err) {
+      console.error("submission PDF render failed", err);
+    }
 
-  try {
-    await sendSubmissionNotification({
-      partner: { ...partnerInfo, email: user.email ?? "(no email on file)" },
-      projectName: submissionRow.project_name,
-      totals: {
-        cameras: totals.cameras,
-        bandwidthMbps: totals.bandwidthMbps,
-        storageGb: totals.storageGb,
-        retentionDays: input.retentionDays,
-      },
-      vms: submissionRow.vms,
-      recommendation,
-      submissionId: inserted.id,
-      pdfBuffer,
-      pdfFilename: pdfBuffer ? pdfFilename(pdfInput) : undefined,
-      partnerEmail,
-    });
-    await supabase
-      .from("submissions")
-      .update({ email_sent_at: new Date().toISOString() })
-      .eq("id", inserted.id);
-  } catch (err) {
-    // Sales notification failure is logged on the server but not surfaced to
-    // the partner — their submission persisted and admins can re-send later.
-    console.error("submission notification failed", err);
-  }
-
-  // Pipedrive Deal creation. Pipedrive failure must not regress submission
-  // persist, PDF render, or email send — submission success is already
-  // committed to the client by this point. ADR 0020.
-  try {
-    const { dealId } = await createDealFromSubmission(
-      {
-        submissionId: inserted.id,
+    try {
+      await sendSubmissionNotification({
+        partner: { ...partnerInfo, email: user.email ?? "(no email on file)" },
         projectName: submissionRow.project_name,
-        vms: submissionRow.vms,
-        retentionDays: input.retentionDays,
         totals: {
           cameras: totals.cameras,
           bandwidthMbps: totals.bandwidthMbps,
           storageGb: totals.storageGb,
+          retentionDays: input.retentionDays,
         },
-        primaryGroup: {
-          resolutionLabel: RESOLUTIONS[primary.input.resolutionIdx].label,
-          codec: CODECS[primary.input.codecIdx].value,
-          complexity: COMPLEXITIES[primary.input.complexityIdx].tier,
-          fps: primary.input.fps,
-          recordingPercent: primary.input.recordingPercent,
-          motionPercent: primary.input.motionPercent,
-        },
-        addOnFailoverRecorder: input.addOnFailoverRecorder,
-        addOnManagementServer: input.addOnManagementServer,
-      },
-      recommendation,
-      {
-        companyName: partnerInfo.companyName,
-        contactName: partnerInfo.contactName,
-        email: user.email ?? "(no email on file)",
-      },
-    );
+        vms: submissionRow.vms,
+        recommendation,
+        submissionId: inserted.id,
+        pdfBuffer,
+        pdfFilename: pdfBuffer ? pdfFilename(pdfInput) : undefined,
+        partnerEmail,
+      });
+      await supabase
+        .from("submissions")
+        .update({ email_sent_at: new Date().toISOString() })
+        .eq("id", inserted.id);
+    } catch (err) {
+      // Sales notification failure is logged on the server but not surfaced to
+      // the partner — their submission persisted and admins can re-send later.
+      console.error("submission notification failed", err);
+    }
+  }
+
+  // Pipedrive Deal sync. Pipedrive failure must not regress submission persist,
+  // PDF render, or email send — submission success is already committed to the
+  // client by this point. ADR 0020.
+  //
+  // A revision updates the source quote's deal IN PLACE (ADR 0040) — writing
+  // only calculator-derived fields, never stage/owner/pipeline — and links the
+  // new submission row to that same deal. A fresh submit (or a revision whose
+  // source has no deal / whose deal 404s) creates a new deal instead.
+  const dealSubmission = {
+    submissionId: inserted.id,
+    projectName: submissionRow.project_name,
+    vms: submissionRow.vms,
+    retentionDays: input.retentionDays,
+    totals: {
+      cameras: totals.cameras,
+      bandwidthMbps: totals.bandwidthMbps,
+      storageGb: totals.storageGb,
+    },
+    primaryGroup: {
+      resolutionLabel: RESOLUTIONS[primary.input.resolutionIdx].label,
+      codec: CODECS[primary.input.codecIdx].value,
+      complexity: COMPLEXITIES[primary.input.complexityIdx].tier,
+      fps: primary.input.fps,
+      recordingPercent: primary.input.recordingPercent,
+      motionPercent: primary.input.motionPercent,
+    },
+    addOnFailoverRecorder: input.addOnFailoverRecorder,
+    addOnManagementServer: input.addOnManagementServer,
+  };
+  const dealPartner = {
+    companyName: partnerInfo.companyName,
+    contactName: partnerInfo.contactName,
+    email: user.email ?? "(no email on file)",
+  };
+
+  try {
+    let dealId: number | undefined;
+
+    if (input.isRevision && input.sourceSubmissionId) {
+      // RLS-scoped read: a partner can only inherit a deal from a quote they
+      // own. A forbidden/missing source row yields null → falls through to
+      // create, so a guessed id can never attach to someone else's deal.
+      const { data: source } = await supabase
+        .from("submissions")
+        .select("pipedrive_deal_id")
+        .eq("id", input.sourceSubmissionId)
+        .maybeSingle();
+      const sourceDealId = source?.pipedrive_deal_id as number | null | undefined;
+      if (sourceDealId) {
+        try {
+          ({ dealId } = await updateDealFromRevision(sourceDealId, dealSubmission, recommendation));
+        } catch (err) {
+          // The deal was deleted in Pipedrive since the source quote was filed.
+          // Fall back to a fresh deal; re-throw anything else to the outer log.
+          if (err instanceof PipedriveError && err.status === 404) {
+            ({ dealId } = await createDealFromSubmission(dealSubmission, recommendation, dealPartner));
+          } else {
+            throw err;
+          }
+        }
+      }
+    }
+
+    if (dealId === undefined) {
+      ({ dealId } = await createDealFromSubmission(dealSubmission, recommendation, dealPartner));
+    }
+
     await supabase
       .from("submissions")
       .update({ pipedrive_deal_id: dealId })
       .eq("id", inserted.id);
   } catch (err) {
-    console.error("pipedrive deal creation failed", { submissionId: inserted.id, error: err });
+    console.error("pipedrive deal sync failed", { submissionId: inserted.id, error: err });
   }
 
   return {

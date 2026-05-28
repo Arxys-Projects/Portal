@@ -41,6 +41,8 @@ const ORG_ID = 555;
 const PERSON_ID = 777;
 const DEAL_ID = 9001;
 const NOTE_ID = 9101;
+// An existing deal id a revision updates in place.
+const EXISTING_DEAL_ID = 8800;
 
 const CUSTOM_FIELD_KEYS: Record<string, string> = {
   arxys_submission_id: "key_subid",
@@ -115,6 +117,10 @@ function defaultResponder(url: URL, method: string, body: unknown): unknown {
     const payload = body as { title: string; value: number };
     return { id: DEAL_ID, title: payload.title, value: payload.value };
   }
+  if (path.startsWith("/v1/deals/") && method === "PUT") {
+    const payload = body as { value?: number };
+    return { id: EXISTING_DEAL_ID, title: "Existing Deal", value: payload.value ?? 0 };
+  }
   if (path === "/v1/notes" && method === "POST") {
     return { id: NOTE_ID };
   }
@@ -163,11 +169,12 @@ const fixturePartner = {
 };
 
 let createDealFromSubmission: typeof import("./deal").createDealFromSubmission;
+let updateDealFromRevision: typeof import("./deal").updateDealFromRevision;
 let resetCache: typeof import("./lookups").__resetLookupCache;
 
 before(async () => {
   installFetchMock();
-  ({ createDealFromSubmission } = await import("./deal"));
+  ({ createDealFromSubmission, updateDealFromRevision } = await import("./deal"));
   ({ __resetLookupCache: resetCache } = await import("./lookups"));
 });
 
@@ -409,5 +416,91 @@ describe("createDealFromSubmission", () => {
     assert.equal(body["created_arxys_storage_gb"], 1500000.79);
     assert.equal(body["created_arxys_recommended_models"], "3 × V800");
     assert.equal(body["created_arxys_portal_url"], `https://portal-arxys.vercel.app/submissions/${fixtureSubmission.submissionId}`);
+  });
+});
+
+describe("updateDealFromRevision", () => {
+  it("PUTs only calculator-derived fields and NEVER stage_id/user_id/pipeline_id", async () => {
+    const result = await updateDealFromRevision(
+      EXISTING_DEAL_ID,
+      { ...fixtureSubmission, addOnFailoverRecorder: false, addOnManagementServer: false },
+      fixtureRecommendation(),
+    );
+    assert.equal(result.dealId, EXISTING_DEAL_ID);
+
+    const putCall = calls.find(
+      (c) => c.url.includes(`/v1/deals/${EXISTING_DEAL_ID}`) && c.method === "PUT",
+    );
+    assert.ok(putCall, "expected a PUT /v1/deals/{id} call");
+    const body = putCall.body as Record<string, unknown>;
+
+    // The whole point of the non-destructive update: routing/ownership/contact
+    // fields must NEVER be in the payload — sales may have changed them.
+    for (const forbidden of ["stage_id", "user_id", "pipeline_id"]) {
+      assert.ok(
+        !(forbidden in body),
+        `revision update must NOT send ${forbidden} — found ${JSON.stringify(body[forbidden])}`,
+      );
+    }
+    // Title/currency/person/org are create-only and must not be sent either.
+    for (const createOnly of ["title", "currency", "person_id", "org_id"]) {
+      assert.ok(!(createOnly in body), `revision update must NOT send ${createOnly}`);
+    }
+
+    // The calculator-derived fields ARE sent.
+    assert.equal(body.value, 222144);
+    assert.equal(body[CUSTOM_FIELD_KEYS.arxys_submission_id], fixtureSubmission.submissionId);
+    assert.equal(body[CUSTOM_FIELD_KEYS.arxys_total_cameras], 900);
+    assert.equal(
+      body[CUSTOM_FIELD_KEYS.arxys_portal_url],
+      `https://portal-arxys.vercel.app/submissions/${fixtureSubmission.submissionId}`,
+    );
+    assert.equal(body[CALC_FIELD_KEYS.Resolution], "4MP (2560×1440)");
+    assert.equal(body[CALC_FIELD_KEYS.CODEC], 139);
+
+    // No deal CREATE happened — this was an in-place update.
+    assert.equal(
+      calls.filter((c) => c.url.endsWith("/v1/deals") && c.method === "POST").length,
+      0,
+      "revision must not POST a new deal",
+    );
+    // It also must not touch pipeline/stage/owner/contact lookups.
+    for (const lookup of ["/v1/pipelines", "/v1/stages", "/v1/users", "/v1/persons", "/v1/organizations"]) {
+      assert.equal(
+        calls.filter((c) => c.url.includes(lookup)).length,
+        0,
+        `revision must not call ${lookup}`,
+      );
+    }
+  });
+
+  it("posts a 'revised from portal' note that does not block on note failure", async () => {
+    await updateDealFromRevision(
+      EXISTING_DEAL_ID,
+      { ...fixtureSubmission, addOnFailoverRecorder: true, addOnManagementServer: false },
+      fixtureRecommendation(),
+    );
+    const noteCall = calls.find((c) => c.url.includes("/v1/notes") && c.method === "POST");
+    assert.ok(noteCall, "expected a POST /v1/notes call");
+    const note = noteCall.body as { deal_id: number; content: string };
+    assert.equal(note.deal_id, EXISTING_DEAL_ID);
+    assert.match(note.content, /Revised from portal/);
+    assert.match(note.content, /Failover recorder: Yes/);
+  });
+
+  it("does not throw when the note POST fails", async () => {
+    responder = (url, method, body) => {
+      if (url.pathname === "/v1/notes" && method === "POST") {
+        throw new Error("note service down");
+      }
+      return defaultResponder(url, method, body);
+    };
+    // The update itself still resolves even though the note POST blew up.
+    const result = await updateDealFromRevision(
+      EXISTING_DEAL_ID,
+      fixtureSubmission,
+      fixtureRecommendation(),
+    );
+    assert.equal(result.dealId, EXISTING_DEAL_ID);
   });
 });

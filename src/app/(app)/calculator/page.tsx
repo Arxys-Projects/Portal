@@ -1,13 +1,44 @@
 import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { CalculatorForm } from "./calculator-form";
+import {
+  fromStoredSubmission,
+  type CalculatorInitialState,
+} from "@/lib/calculator/rehydrate";
 import "./calculator.css";
 
-export default async function CalculatorPage() {
+type Search = Promise<{ revise?: string }>;
+
+export default async function CalculatorPage({
+  searchParams,
+}: {
+  searchParams: Search;
+}) {
+  const { revise } = await searchParams;
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  // Quote revision (Phase 4 Step 3): load the source submission RLS-scoped so a
+  // partner can only rehydrate their own quote. A missing/forbidden row simply
+  // yields a fresh calculator rather than an error.
+  let initialState: CalculatorInitialState | undefined;
+  let sourceSubmissionId: string | undefined;
+  if (revise) {
+    const { data: source } = await supabase
+      .from("submissions")
+      .select("id, input_state, groups_payload")
+      .eq("id", revise)
+      .maybeSingle();
+    if (source) {
+      initialState = fromStoredSubmission({
+        input_state: source.input_state,
+        groups_payload: source.groups_payload,
+      });
+      sourceSubmissionId = source.id as string;
+    }
+  }
 
   const previousProjectNames: string[] = [];
   if (user) {
@@ -39,7 +70,11 @@ export default async function CalculatorPage() {
           ← Back to dashboard
         </Link>
       </div>
-      <CalculatorForm previousProjectNames={previousProjectNames} />
+      <CalculatorForm
+        previousProjectNames={previousProjectNames}
+        initialState={initialState}
+        sourceSubmissionId={sourceSubmissionId}
+      />
     </div>
   );
 }

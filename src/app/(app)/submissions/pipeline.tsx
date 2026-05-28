@@ -273,7 +273,7 @@ export function Pipeline({
                           </select>
                         </td>
 
-                        {/* Actions: View · PDF · Delete */}
+                        {/* Actions: View · Revise · PDF · Delete */}
                         <td className="px-4 py-2">
                           <div className="flex items-center justify-end gap-3">
                             <Link
@@ -281,6 +281,12 @@ export function Pipeline({
                               className="text-blue-600 hover:underline"
                             >
                               View
+                            </Link>
+                            <Link
+                              href={`/calculator?revise=${row.id}`}
+                              className="text-blue-600 hover:underline"
+                            >
+                              Revise
                             </Link>
                             <a
                               href={`/api/submissions/${row.id}/pdf`}

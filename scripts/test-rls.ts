@@ -436,6 +436,42 @@ async function run() {
       );
     }
 
+    // Test 18: A cannot SELECT B's submission by id (revise-loader guard).
+    // The /calculator?revise= loader reads the source row RLS-scoped
+    // (select input_state, groups_payload, pipedrive_deal_id .eq id). RLS must
+    // return nothing for someone else's row, so A can never rehydrate B's quote
+    // or inherit B's Pipedrive deal id into a revision.
+    {
+      const { data: seeded } = await admin
+        .from("submissions")
+        .insert({
+          partner_id: b.id,
+          project_name: "B-revise-target",
+          cameras_count: 8,
+          resolution_code: "4K",
+          codec: "H.265",
+          complexity: "MED",
+          retention_days: 30,
+          bandwidth_mbps: 120,
+          storage_tb: 3,
+          status: "draft",
+          pipedrive_deal_id: 999999,
+        })
+        .select("id")
+        .single();
+      const id = seeded!.id as string;
+      const { data, error } = await a.client
+        .from("submissions")
+        .select("id, input_state, groups_payload, pipedrive_deal_id")
+        .eq("id", id)
+        .maybeSingle();
+      record(
+        "18: A cannot SELECT B's submission to revise it",
+        !error && data === null,
+        `row=${JSON.stringify(data)} err=${error?.message ?? "none"}`,
+      );
+    }
+
     // Test 8c: suspending the admin strips admin RLS reads.
     // is_admin() requires status='active'; the helper is the only thing that
     // distinguishes the admin client from a partner client. Flip via service

@@ -18,6 +18,7 @@ import {
 import { submitCalculation, type SubmissionState } from "./actions";
 import { productGroupToFamilySlug } from "@/lib/price-book/families";
 import { pickHeadroomOption } from "@/lib/recommend/headroom";
+import type { CalculatorInitialState, InitialGroup } from "@/lib/calculator/rehydrate";
 import {
   BarsIcon,
   CameraIcon,
@@ -43,9 +44,13 @@ type Group = {
   motionPercent: number;
 };
 
+function freshId(): string {
+  return `g-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
 function newGroup(seqNumber: number): Group {
   return {
-    id: `g-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    id: freshId(),
     name: `Camera Group ${seqNumber}`,
     cameras: 1,
     resolutionIdx: 14, // 4MP (2560×1440) — same default as legacy
@@ -55,6 +60,13 @@ function newGroup(seqNumber: number): Group {
     recordingPercent: 100,
     motionPercent: 50,
   };
+}
+
+// Rehydration (Phase 4 Step 3): turn a stored group into a form Group, minting
+// a fresh client-side id. Falls back to one default group for an empty state.
+function groupsFromInitial(initial: InitialGroup[] | undefined): Group[] {
+  if (!initial || initial.length === 0) return [newGroup(1)];
+  return initial.map((g) => ({ id: freshId(), ...g }));
 }
 
 function Tooltip({ text, side = "l" }: { text: string; side?: "l" | "r" }) {
@@ -71,17 +83,37 @@ function Tooltip({ text, side = "l" }: { text: string; side?: "l" | "r" }) {
 
 export function CalculatorForm({
   previousProjectNames = [],
+  initialState,
+  sourceSubmissionId,
 }: {
   previousProjectNames?: string[];
+  initialState?: CalculatorInitialState;
+  sourceSubmissionId?: string;
 }) {
-  const [groups, setGroups] = useState<Group[]>([newGroup(1)]);
-  const [retentionDays, setRetentionDays] = useState(30);
-  const [vms, setVms] = useState<string>("");
-  const [projectName, setProjectName] = useState("");
-  const [hasInteracted, setHasInteracted] = useState(false);
+  const [groups, setGroups] = useState<Group[]>(() =>
+    groupsFromInitial(initialState?.groups),
+  );
+  const [retentionDays, setRetentionDays] = useState(
+    () => initialState?.retentionDays ?? 30,
+  );
+  const [vms, setVms] = useState<string>(() => initialState?.vms ?? "");
+  const [projectName, setProjectName] = useState(
+    () => initialState?.projectName ?? "",
+  );
+  // A rehydrated form is immediately re-submittable, so it starts "interacted".
+  const [hasInteracted, setHasInteracted] = useState(() => Boolean(initialState));
   const [resultDismissed, setResultDismissed] = useState(false);
-  const [addOnFailoverRecorder, setAddOnFailoverRecorder] = useState(false);
-  const [addOnManagementServer, setAddOnManagementServer] = useState(false);
+  const [addOnFailoverRecorder, setAddOnFailoverRecorder] = useState(
+    () => initialState?.addOnFailoverRecorder ?? false,
+  );
+  const [addOnManagementServer, setAddOnManagementServer] = useState(
+    () => initialState?.addOnManagementServer ?? false,
+  );
+  // The source submission this is a revision of. Reset clears it so a freshly
+  // reset form saves a brand-new submission rather than another revision.
+  const [revisionSourceId, setRevisionSourceId] = useState<string | null>(
+    () => sourceSubmissionId ?? null,
+  );
 
   // Tracks raw string values for numeric inputs while the user is actively
   // typing, so an intermediate empty field doesn't snap to the clamped minimum.
@@ -154,6 +186,7 @@ export function CalculatorForm({
     setResultDismissed(true);
     setAddOnFailoverRecorder(false);
     setAddOnManagementServer(false);
+    setRevisionSourceId(null);
     setNumericDrafts(new Map());
   };
 
@@ -317,6 +350,8 @@ export function CalculatorForm({
               retentionDays,
               addOnFailoverRecorder,
               addOnManagementServer,
+              isRevision: Boolean(revisionSourceId),
+              sourceSubmissionId: revisionSourceId,
               groups: groups.map((g) => ({
                 name: g.name,
                 cameras: g.cameras,

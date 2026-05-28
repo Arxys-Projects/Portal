@@ -67,6 +67,15 @@ export type CreateDealPayload = {
   status?: "open" | "won" | "lost" | "deleted";
 } & Record<string, string | number | undefined>;
 
+// Update payload for a revision. Deliberately has NO pipeline_id / stage_id /
+// user_id: a revision must not touch deal routing or ownership that sales may
+// have changed. The index signature carries the hashed custom-field keys plus
+// the deal `value`. Callers build this via buildDealFields() in deal.ts, which
+// never emits routing fields.
+export type UpdateDealPayload = {
+  value?: number;
+} & Record<string, string | number | undefined>;
+
 export type CreateNotePayload = {
   content: string;
   deal_id: number;
@@ -102,7 +111,7 @@ function withToken(path: string, query?: Record<string, string | number | undefi
 }
 
 async function request<T>(
-  method: "GET" | "POST",
+  method: "GET" | "POST" | "PUT",
   path: string,
   options: {
     query?: Record<string, string | number | undefined>;
@@ -171,6 +180,9 @@ export const pipedriveClient = {
   },
   createDeal(payload: CreateDealPayload): Promise<PdDeal> {
     return request<PdDeal>("POST", "/deals", { body: payload });
+  },
+  updateDeal(id: number, payload: UpdateDealPayload): Promise<PdDeal> {
+    return request<PdDeal>("PUT", `/deals/${id}`, { body: payload });
   },
   createNote(payload: CreateNotePayload): Promise<PdNote> {
     return request<PdNote>("POST", "/notes", { body: payload });
