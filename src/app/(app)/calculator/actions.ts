@@ -350,14 +350,15 @@ export async function submitCalculation(
       bandwidthMbps: totals.bandwidthMbps,
       storageGb: totals.storageGb,
     },
-    primaryGroup: {
-      resolutionLabel: RESOLUTIONS[primary.input.resolutionIdx].label,
-      codec: CODECS[primary.input.codecIdx].value,
-      complexity: COMPLEXITIES[primary.input.complexityIdx].tier,
-      fps: primary.input.fps,
-      recordingPercent: primary.input.recordingPercent,
-      motionPercent: primary.input.motionPercent,
-    },
+    groups: computed.map((r) => ({
+      resolutionLabel: RESOLUTIONS[r.input.resolutionIdx].label,
+      codec: CODECS[r.input.codecIdx].value,
+      complexity: COMPLEXITIES[r.input.complexityIdx].tier,
+      fps: r.input.fps,
+      recordingPercent: r.input.recordingPercent,
+      motionPercent: r.input.motionPercent,
+      cameras: r.input.cameras,
+    })),
     addOnFailoverRecorder: input.addOnFailoverRecorder,
     addOnManagementServer: input.addOnManagementServer,
   };

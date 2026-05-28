@@ -4,6 +4,46 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-05-28 — Multi-group aggregation of Pipedrive per-stream deal fields
+
+### Work done
+
+- **Problem**: deals with multiple camera groups only showed the *primary* group's per-stream values (resolution, FPS, codec, complexity, recording, motion) — sales perceived this as "averaging" / hidden data. Applies to every deal write, not just revisions.
+- **`buildDealFields` now aggregates across `submission.groups`** ([`deal.ts`](../src/lib/pipedrive/deal.ts)), per Pipedrive field type:
+  - Free-text (Frame Rate, Motion Activity %, Recording hours): distinct values, sorted ascending, comma-separated via `distinctSortedNumberList` (e.g. `"10, 15, 20"`).
+  - Resolution: forced to uniform megapixels via `resolutionLabelToMp` (parse the `(W×H)` suffix → `round(W·H/1e6)`, floor 1MP), distinct + sorted → `"2MP, 4MP, 8MP"`. Pixel dimensions and marketing labels dropped.
+  - Scene Complexity (multi-select set): all distinct tier option IDs comma-joined (`"287,289"`).
+  - Recording (single-select enum): any group < 100% duty cycle ⇒ "On Motion" (119), else "Continuous" (118).
+  - CODEC (single-select enum, can't list multiple): dominant codec by total cameras across groups; ties first-seen.
+- **`DealSubmissionInput.primaryGroup` replaced by `groups: DealGroup[]`** (each carries `cameras`). [`actions.ts`](../src/app/(app)/calculator/actions.ts) now maps the full `computed` array into `groups` for both the create and revision paths, so aggregation is identical for new submissions and revisions.
+- **Tests** ([`deal.test.ts`](../src/lib/pipedrive/deal.test.ts)): fixture switched to a `groups` array; single-group assertions updated (Resolution `"4MP (2560×1440)"`→`"4MP"`, Scene Complexity `288`→`"288"` string set); new multi-group test asserting all five aggregation rules at once (FPS `"10, 15, 20"`, MP `"2MP, 4MP, 8MP"`, recording hours `"12, 24"`, complexity set `"287,289"`, Recording 119, dominant CODEC 139).
+
+### Decisions captured
+
+- [`0041-multi-group-pipedrive-field-aggregation.md`](./decisions/0041-multi-group-pipedrive-field-aggregation.md)
+
+### Verification gates
+
+| Gate | Result |
+|---|---|
+| `npm test` | ✅ **71/71 pass** (+1 multi-group aggregation test) |
+| `npm run build` | ✅ Clean — same route manifest |
+| `npx eslint` (touched files) | ✅ 0 errors |
+| `npx tsc --noEmit` | ✅ Only the 2 pre-existing errors in untouched test files (`pdf/render.test.ts`, `price-book/xlsx.test.ts`) |
+
+### Smoke test (manual, deferred to Andy)
+
+Create/revise a quote with **three groups** at distinct FPS / resolutions / codecs / complexities, then open the Pipedrive deal and confirm:
+
+- **Frame Rate** lists every distinct FPS, ascending (e.g. `10, 15, 20`).
+- **Resolution** shows MP only, distinct + ascending (e.g. `2MP, 4MP, 8MP`) — no pixel dimensions.
+- **Motion Activity %** and **Recording hours** list all distinct values ascending.
+- **Scene Complexity** shows every tier used (e.g. `Low, High`).
+- **Recording** = "On Motion" if any group is < 100%, else "Continuous".
+- **CODEC** = the codec used by the most cameras.
+
+---
+
 ## 2026-05-28 — Phase 4 Step 3: Quote revision + non-destructive Pipedrive deal update
 
 ### Work done

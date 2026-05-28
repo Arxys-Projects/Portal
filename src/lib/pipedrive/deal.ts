@@ -54,26 +54,48 @@ const COMPLEXITY_OPTION_IDS: Record<string, number> = {
 const RECORDING_CONTINUOUS_ID = 118;
 const RECORDING_ON_MOTION_ID = 119;
 
+// One camera group as it matters to the deal's per-stream fields. The
+// calculator form accepts multiple groups; rather than collapse to a single
+// "primary" group (which hid the other groups' values), we aggregate ACROSS
+// all groups onto each Pipedrive field — see buildDealFields.
+export type DealGroup = {
+  resolutionLabel: string;
+  codec: string;
+  complexity: string;
+  fps: number;
+  recordingPercent: number;
+  motionPercent: number;
+  cameras: number;
+};
+
 export type DealSubmissionInput = {
   submissionId: string;
   projectName: string | null;
   vms: string | null;
   retentionDays: number;
   totals: { cameras: number; bandwidthMbps: number; storageGb: number };
-  // Primary group = the camera group with the most cameras. The calculator
-  // form accepts multiple groups; the Pipedrive Deal carries a single row, so
-  // we surface the primary group's characteristics on the per-stream fields.
-  primaryGroup: {
-    resolutionLabel: string;
-    codec: string;
-    complexity: string;
-    fps: number;
-    recordingPercent: number;
-    motionPercent: number;
-  };
+  groups: DealGroup[];
   addOnFailoverRecorder?: boolean;
   addOnManagementServer?: boolean;
 };
+
+// Distinct values, sorted ascending, comma-separated — the human-readable
+// list format for the free-text per-stream fields when groups differ.
+function distinctSortedNumberList(values: number[]): string {
+  return Array.from(new Set(values))
+    .sort((a, b) => a - b)
+    .join(", ");
+}
+
+// "1080p Full HD (1920×1080)" → 2 (megapixels). Forces every resolution label
+// to a uniform MP number so the deal lists "2MP, 4MP, 8MP" rather than mixed
+// marketing labels + pixel dimensions. Parses the (W×H) suffix every label
+// carries; rounds w·h/1e6, floored at 1MP so sub-megapixel modes don't show 0.
+function resolutionLabelToMp(label: string): number {
+  const m = label.match(/\((\d+)[×x](\d+)\)/);
+  if (!m) return 1;
+  return Math.max(1, Math.round((Number(m[1]) * Number(m[2])) / 1_000_000));
+}
 
 export type DealPartnerInput = {
   companyName: string;
@@ -107,7 +129,7 @@ function buildDealFields(
   // submissions.recommended_product_id for downstream tooling.
   const recommendedModels = `${winner.units} × ${winner.productGroup}`;
   const totalStorageTb = (submission.totals.storageGb / 1000).toFixed(2);
-  const recordingHours = Math.round((submission.primaryGroup.recordingPercent / 100) * 24);
+  const groups = submission.groups;
 
   const payload: Record<string, string | number | undefined> = {
     value: winner.totalCostUsd,
@@ -135,26 +157,62 @@ function buildDealFields(
   }
   set("Camera Streams", submission.totals.cameras);
 
-  const recordingId =
-    submission.primaryGroup.recordingPercent >= 100
-      ? RECORDING_CONTINUOUS_ID
-      : RECORDING_ON_MOTION_ID;
-  set("Recording", recordingId);
+  // Recording (single-select enum): can't list multiple, so any group recording
+  // below 100% duty cycle flips the whole deal to "On Motion"; all-continuous
+  // stays "Continuous".
+  const anyMotion = groups.some((g) => g.recordingPercent < 100);
+  set("Recording", anyMotion ? RECORDING_ON_MOTION_ID : RECORDING_CONTINUOUS_ID);
 
-  set("Motion Activity Est. %", String(submission.primaryGroup.motionPercent));
-  set("Frame Rate", String(submission.primaryGroup.fps));
-  set("Resolution", submission.primaryGroup.resolutionLabel);
+  // Free-text per-stream fields: list every distinct value across groups,
+  // sorted ascending, rather than surfacing just one group's value.
+  set("Motion Activity Est. %", distinctSortedNumberList(groups.map((g) => g.motionPercent)));
+  set("Frame Rate", distinctSortedNumberList(groups.map((g) => g.fps)));
+
+  // Resolution → uniform MP, distinct, sorted ascending, e.g. "2MP, 4MP, 8MP".
+  const mpList = Array.from(new Set(groups.map((g) => resolutionLabelToMp(g.resolutionLabel))))
+    .sort((a, b) => a - b)
+    .map((mp) => `${mp}MP`)
+    .join(", ");
+  set("Resolution", mpList);
+
   set("Retention Days", String(submission.retentionDays));
 
-  const codecId = CODEC_OPTION_IDS[submission.primaryGroup.codec];
+  // CODEC (single-select enum): can hold only one option, so send the codec
+  // used by the most cameras across all groups. Ties resolve to first-seen.
+  const camerasByCodec = new Map<string, number>();
+  for (const g of groups) {
+    camerasByCodec.set(g.codec, (camerasByCodec.get(g.codec) ?? 0) + g.cameras);
+  }
+  let dominantCodec: string | undefined;
+  let dominantCameras = -1;
+  for (const g of groups) {
+    const total = camerasByCodec.get(g.codec) ?? 0;
+    if (total > dominantCameras) {
+      dominantCameras = total;
+      dominantCodec = g.codec;
+    }
+  }
+  const codecId = dominantCodec ? CODEC_OPTION_IDS[dominantCodec] : undefined;
   if (codecId) set("CODEC", codecId);
 
   set("Total Storage", `${totalStorageTb} TB`);
 
-  const complexityId = COMPLEXITY_OPTION_IDS[submission.primaryGroup.complexity];
-  if (complexityId) set("Scene Complexity", complexityId);
+  // Scene Complexity (multi-select set): send every distinct tier used as a
+  // comma-joined list of option IDs.
+  const complexityIds = Array.from(
+    new Set(
+      groups
+        .map((g) => COMPLEXITY_OPTION_IDS[g.complexity])
+        .filter((id): id is number => typeof id === "number"),
+    ),
+  ).sort((a, b) => a - b);
+  if (complexityIds.length) set("Scene Complexity", complexityIds.join(","));
 
-  set("Recording hours", String(recordingHours));
+  // Recording hours: distinct per-group duty-cycle hours, sorted ascending.
+  set(
+    "Recording hours",
+    distinctSortedNumberList(groups.map((g) => Math.round((g.recordingPercent / 100) * 24))),
+  );
   set("Recommended Server", recommendedModels);
 
   return payload;

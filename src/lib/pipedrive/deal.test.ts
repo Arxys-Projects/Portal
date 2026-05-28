@@ -152,14 +152,17 @@ const fixtureSubmission = {
   vms: "Milestone",
   retentionDays: 30,
   totals: { cameras: 900, bandwidthMbps: 3240.5, storageGb: 1500000.789 },
-  primaryGroup: {
-    resolutionLabel: "4MP (2560×1440)",
-    codec: "h265",
-    complexity: "med",
-    fps: 15,
-    recordingPercent: 100,
-    motionPercent: 35,
-  },
+  groups: [
+    {
+      resolutionLabel: "4MP (2560×1440)",
+      codec: "h265",
+      complexity: "med",
+      fps: 15,
+      recordingPercent: 100,
+      motionPercent: 35,
+      cameras: 900,
+    },
+  ],
 };
 
 const fixturePartner = {
@@ -329,20 +332,21 @@ describe("createDealFromSubmission", () => {
     assert.equal(body[CALC_FIELD_KEYS.Recording], 118);
     assert.equal(body[CALC_FIELD_KEYS["Motion Activity Est. %"]], "35");
     assert.equal(body[CALC_FIELD_KEYS["Frame Rate"]], "15");
-    assert.equal(body[CALC_FIELD_KEYS.Resolution], "4MP (2560×1440)");
+    // Resolution forced to MP: 2560×1440 = 3.69MP → 4MP.
+    assert.equal(body[CALC_FIELD_KEYS.Resolution], "4MP");
     assert.equal(body[CALC_FIELD_KEYS["Retention Days"]], "30");
     // codec "h265" → option id 139.
     assert.equal(body[CALC_FIELD_KEYS.CODEC], 139);
     assert.equal(body[CALC_FIELD_KEYS["Total Storage"]], "1500.00 TB");
-    // complexity "med" → option id 288.
-    assert.equal(body[CALC_FIELD_KEYS["Scene Complexity"]], 288);
+    // complexity "med" → option id 288, sent as a comma-joined set string.
+    assert.equal(body[CALC_FIELD_KEYS["Scene Complexity"]], "288");
     assert.equal(body[CALC_FIELD_KEYS["Recording hours"]], "24");
     assert.equal(body[CALC_FIELD_KEYS["Recommended Server"]], "3 × V800");
   });
 
   it("flips Recording to 'On Motion' when recordingPercent < 100", async () => {
     await createDealFromSubmission(
-      { ...fixtureSubmission, primaryGroup: { ...fixtureSubmission.primaryGroup, recordingPercent: 50 } },
+      { ...fixtureSubmission, groups: [{ ...fixtureSubmission.groups[0], recordingPercent: 50 }] },
       fixtureRecommendation(),
       fixturePartner,
     );
@@ -351,6 +355,38 @@ describe("createDealFromSubmission", () => {
     assert.equal(body[CALC_FIELD_KEYS.Recording], 119);
     // recordingPercent=50 → 12 hours.
     assert.equal(body[CALC_FIELD_KEYS["Recording hours"]], "12");
+  });
+
+  it("aggregates per-stream fields across multiple camera groups", async () => {
+    await createDealFromSubmission(
+      {
+        ...fixtureSubmission,
+        groups: [
+          // h265, 130 cameras total → dominant codec
+          { resolutionLabel: "1080p Full HD (1920×1080)", codec: "h265", complexity: "low", fps: 15, recordingPercent: 100, motionPercent: 35, cameras: 100 },
+          { resolutionLabel: "4MP (2560×1440)", codec: "h264", complexity: "high", fps: 10, recordingPercent: 50, motionPercent: 20, cameras: 50 },
+          { resolutionLabel: "4K/8MP (3840×2160)", codec: "h265", complexity: "low", fps: 20, recordingPercent: 100, motionPercent: 50, cameras: 30 },
+        ],
+      },
+      fixtureRecommendation(),
+      fixturePartner,
+    );
+    const dealCall = calls.find((c) => c.url.includes("/v1/deals") && c.method === "POST");
+    const body = dealCall!.body as Record<string, unknown>;
+
+    // Free-text lists: distinct, sorted ascending, comma-separated.
+    assert.equal(body[CALC_FIELD_KEYS["Frame Rate"]], "10, 15, 20");
+    assert.equal(body[CALC_FIELD_KEYS["Motion Activity Est. %"]], "20, 35, 50");
+    // 1920×1080→2MP, 2560×1440→4MP, 3840×2160→8MP.
+    assert.equal(body[CALC_FIELD_KEYS.Resolution], "2MP, 4MP, 8MP");
+    // recording hours: 24, 12, 24 → distinct {12,24}.
+    assert.equal(body[CALC_FIELD_KEYS["Recording hours"]], "12, 24");
+    // Scene Complexity set: low(287) + high(289), comma-joined sorted.
+    assert.equal(body[CALC_FIELD_KEYS["Scene Complexity"]], "287,289");
+    // Any group below 100% → On Motion (119).
+    assert.equal(body[CALC_FIELD_KEYS.Recording], 119);
+    // Dominant codec by cameras: h265 (130) > h264 (50) → 139.
+    assert.equal(body[CALC_FIELD_KEYS.CODEC], 139);
   });
 
   it("skips calculator fields that aren't found in Pipedrive (rename tolerance)", async () => {
@@ -455,7 +491,7 @@ describe("updateDealFromRevision", () => {
       body[CUSTOM_FIELD_KEYS.arxys_portal_url],
       `https://portal-arxys.vercel.app/submissions/${fixtureSubmission.submissionId}`,
     );
-    assert.equal(body[CALC_FIELD_KEYS.Resolution], "4MP (2560×1440)");
+    assert.equal(body[CALC_FIELD_KEYS.Resolution], "4MP");
     assert.equal(body[CALC_FIELD_KEYS.CODEC], 139);
 
     // No deal CREATE happened — this was an in-place update.
