@@ -319,3 +319,71 @@ export async function updateDealFromRevision(
 
   return { dealId };
 }
+
+// ---------------------------------------------------------------------------
+// Phase 5 Step 3 — Comparison deal creation.
+//
+// Distinguishable from sizing deals by: title prefix "Comparison:" and a
+// pinned note containing lead_source="comparison_tool". Does NOT use
+// buildDealFields() (which is calculator-specific — requires a
+// RecommendationResult). Uses the same pipeline + stage as sizing deals.
+// ---------------------------------------------------------------------------
+
+export type ComparisonDealInput = {
+  vendorName: string;
+  vendorModelName: string;
+  arxysModelId: string;
+  arxysMsrp: number;
+  serverCount: number;
+  partner: DealPartnerInput;
+};
+
+export async function createComparisonDeal(
+  input: ComparisonDealInput,
+): Promise<{ dealId: number }> {
+  const [pipelineId, ownerId] = await Promise.all([
+    resolvePipelineId(),
+    resolveOwnerId(),
+  ]);
+  const stageId = await resolveStageId(pipelineId);
+
+  const orgId = await upsertOrganization({ name: input.partner.companyName });
+  const personId = await upsertPerson({
+    name: input.partner.contactName,
+    email: input.partner.email,
+    orgId,
+  });
+
+  const title = `Comparison: ${input.vendorName} ${input.vendorModelName} vs Arxys — ${input.partner.companyName}`;
+  const value = input.arxysMsrp * input.serverCount;
+
+  const deal = await pipedriveClient.createDeal({
+    title,
+    value,
+    currency: "USD",
+    user_id: ownerId,
+    person_id: personId,
+    org_id: orgId,
+    pipeline_id: pipelineId,
+    stage_id: stageId,
+  });
+
+  try {
+    await pipedriveClient.createNote({
+      deal_id: deal.id,
+      content: [
+        `lead_source: comparison_tool`,
+        `Competitor model: ${input.vendorName} ${input.vendorModelName}`,
+        `Arxys match: ${input.arxysModelId}`,
+        `Server count: ${input.serverCount}`,
+        `Arxys MSRP: $${input.arxysMsrp.toLocaleString("en-US")}`,
+        `Deal value (MSRP × count): $${value.toLocaleString("en-US")}`,
+      ].join("\n"),
+      pinned_to_deal_flag: 1,
+    });
+  } catch (err) {
+    console.error("comparison deal note creation failed", err);
+  }
+
+  return { dealId: deal.id };
+}

@@ -4,6 +4,83 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-05-29 — Phase 5 Step 3: PDF + quote action
+
+### Work done
+
+- **`src/lib/pdf/comparison-template.tsx`** — `@react-pdf/renderer` Document with header (ARXYS logo, date, partner name), competitor→Arxys match row, 3-column spec table (Specification | Competitor | Arxys VideoX), pricing section (competitor quote, Arxys MSRP, savings per server, deployment total), fixed footer. Exports `ComparisonPdfInput`, `renderComparisonPdfBuffer()`, `comparisonPdfFilename()`.
+- **`src/app/(app)/api/comparison/pdf/route.ts`** — POST route (nodejs runtime, force-dynamic). Auth-gated (returns 401 for unauthenticated). Accepts `Omit<ComparisonPdfInput, 'generatedAt'>` JSON body, generates PDF, streams with `application/pdf` Content-Disposition header.
+- **`src/app/(app)/comparison/actions.ts`** — `requestComparisonQuote()` Server Action. Validates with zod, looks up partner record RLS-scoped, calls `createComparisonDeal()`, sends internal notification email (no PDF attachment, no partner email). Email failure is non-blocking.
+- **`src/lib/pipedrive/deal.ts`** — added `createComparisonDeal()`. Title prefix `"Comparison:"` + pinned note with `lead_source: comparison_tool`, competitor model, Arxys match ID, server count. Same pipeline/stage as sizing deals. See ADR 0043.
+- **`src/app/(app)/comparison/comparison-form.tsx`** — buttons wired: `handleDownloadPdf()` (POST fetch → blob → anchor download), `handleRequestQuote()` (Server Action call). Quote button disabled after success (idempotency). Success/error feedback inline. PDF and quote status tracked independently.
+- **`src/app/(app)/comparison/comparison.css`** — active button styles, `.ac-cta-success`, `.ac-cta-error`.
+
+### Verification gates
+
+| Gate | Result |
+|---|---|
+| `npm run build` | ✅ Clean — `/api/comparison/pdf` route compiled |
+| `npx eslint` (new/changed files) | ✅ 0 errors |
+| `npm test` | ✅ 71/71 pass |
+| `scripts/test-rls.ts` | ✅ 18/18 pass |
+
+### Decisions captured
+
+- [`0043-comparison-pipedrive-deal.md`](./decisions/0043-comparison-pipedrive-deal.md)
+
+---
+
+## 2026-05-29 — Phase 5 Step 2: Comparison UI
+
+### Work done
+
+- **`src/lib/comparison/display-specs.ts`** — `DISPLAY_SPECS: DisplaySpec[]` (13 rows, `os` excluded per `show_in_calculator=NO`, `cpu_architecture` renamed to `cpu_passmark`) and `MESSAGES: Record<string, string>` from the JSON messages array.
+- **`src/lib/comparison/data.ts`** — `getComparisonData()` server function; fetches both tables, returns `productSpecs` (Record indexed by id) and `competitorsByVendor` (grouped with brandName/productLine metadata).
+- **`src/app/(app)/comparison/page.tsx`** — Server Component; calls `getComparisonData()`, passes typed props + constants to `ComparisonForm`.
+- **`src/app/(app)/comparison/comparison-form.tsx`** — client component. State: `selectedVendor`, `selectedModelId`, `userPrice`, `serverCount (1–25)`. Renders vendor select → model select → results panel (spec table, pricing section, deployment multiplier slider, three callouts, CTA buttons). Results panel hidden until model is selected. Advantage column: numeric delta/percentage for numeric fields; fixed "Arxys advantage" badge for string fields with `highlight_if_better=true`. CTA buttons present but disabled (wired in Step 3).
+- **`src/app/(app)/comparison/comparison.css`** — scoped to `#arxys-cmp-root`; mirrors calculator CSS approach. Advantage badges: gold for string fields, green for numeric wins, red for numeric losses. Mobile: advantage column hidden below 600px.
+- **`src/app/(app)/dashboard/page.tsx`** — added "Server Comparison" card above Price Book.
+
+### Verification gates
+
+| Gate | Result |
+|---|---|
+| `npm run build` | ✅ Clean — `/comparison` route compiled |
+| `npx eslint` (new/changed files) | ✅ 0 errors |
+| `npm test` | ✅ 71/71 pass — no regressions |
+| `scripts/test-rls.ts` | ✅ 18/18 pass |
+
+---
+
+## 2026-05-29 — Phase 5 Step 1: Comparison schema + seed
+
+### Work done
+
+- **`data/server-specs.json`** committed to repo (copied from `~/Downloads/arxys-compare/data/`). This is the WP plugin's authoritative data file and the single source of truth for both new tables.
+- **Migration `20260529000001_phase5_product_specs.sql`** — creates `product_specs` table (text PK matching JSON IDs, 19 columns including `cpu_passmark` mapped from JSON's `cpu_architecture`). RLS: enabled, authenticated SELECT always permitted. Seeded 21 Arxys VideoX rows inline (V100×3, V200×3, V400×3, V500×3, V600×3, V700×3, V800×3).
+- **Migration `20260529000002_phase5_competitor_products.sql`** — creates `competitor_products` table with FK `arxys_match_id → product_specs(id)`. RLS: same pattern. Seeded 14 Milestone Husky IVO + 20 Avigilon NVR6 rows (34 total). Avigilon `msrp_current` rows seed as NULL (competitor pricing not displayed).
+- **`scripts/update-comparison-data.ts`** — idempotent upsert script for future JSON refreshes. Accepts `--path` override; requires CONFIRM before writing. Mirrors `push-prices.ts` structure.
+- **`src/lib/comparison/types.ts`** — `ProductSpec`, `CompetitorProduct`, `SharedSpecKey`, `NumericSpecKey`, `DisplaySpec`, `ComparisonMessage` types derived from the JSON/DB schema.
+- **Open questions OQ-1 through OQ-3 confirmed**: separate table (not extending products), inline seed, numeric delta + badge for string fields.
+- One naming decision: `cpu_architecture` in the JSON stores Passmark scores; mapped to `cpu_passmark` in both DB tables and the TypeScript types for clarity.
+
+### Verification gates
+
+| Gate | Result |
+|---|---|
+| `npm run build` | ✅ Clean — no new routes yet |
+| `npx eslint` (new files) | ✅ 0 errors |
+| `supabase db push` | ✅ Both migrations applied cleanly |
+| `scripts/test-rls.ts` | ✅ 18/18 pass — no regressions |
+| Manual: row counts | ✅ 21 + 34 rows; 0 broken FK refs; 0 null MSRPs |
+| Manual: update script dry-run | ✅ Parses JSON correctly, reports correct counts |
+
+### Decisions captured
+
+- [`0042-comparison-data-architecture.md`](./decisions/0042-comparison-data-architecture.md)
+
+---
+
 ## 2026-05-28 — Multi-group aggregation of Pipedrive per-stream deal fields
 
 ### Work done

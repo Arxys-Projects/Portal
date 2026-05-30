@@ -133,6 +133,22 @@ export default async function DashboardPage() {
             </div>
           ) : null}
 
+          {/* Server Comparison */}
+          <Link
+            href="/comparison"
+            className="group rounded-lg border-2 border-neutral-200 bg-white p-6 shadow-sm transition hover:border-[#fbb040] hover:shadow-md"
+          >
+            <h2 className="text-xl font-semibold text-neutral-900 group-hover:text-[#054A91]">
+              Server Comparison
+            </h2>
+            <p className="mt-1 text-sm text-neutral-600">
+              See how Arxys VideoX stacks up against Milestone and Avigilon appliances — spec for spec, price for price.
+            </p>
+            <p className="mt-3 text-sm font-medium text-[#fbb040]">
+              Compare servers →
+            </p>
+          </Link>
+
           {/* Price book */}
           <Link
             href="/price-book"
