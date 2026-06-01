@@ -15,6 +15,7 @@ import {
   PartnerGroupView,
   type PartnerGroup,
 } from "./_components/partner-group-view";
+import { RowControls } from "./_components/row-controls";
 
 const PAGE_SIZE = 50;
 
@@ -378,7 +379,10 @@ export default async function AdminSubmissionsPage({
                       {recommendationLabel}
                     </td>
                     <td className="px-4 py-2">
-                      <StatusBadge status={r.status as SubmissionStatus | null} />
+                      <RowControls
+                        submissionId={r.id}
+                        status={r.status as SubmissionStatus | null}
+                      />
                     </td>
                     <td className="px-4 py-2">
                       <div className="flex justify-center">
