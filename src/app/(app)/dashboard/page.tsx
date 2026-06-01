@@ -57,8 +57,13 @@ export default async function DashboardPage() {
         <h1 className="text-3xl font-semibold text-neutral-900">
           Arxys Partner Dashboard
         </h1>
-        <p className="mt-2 text-sm text-neutral-600">
-          Welcome back{user?.email ? `, ${user.email}` : ""}.
+        {partner?.company_name && (
+          <p className="mt-1 text-sm text-neutral-500">
+            for: {partner.company_name}
+          </p>
+        )}
+        <p className="mt-1 text-sm text-neutral-600">
+          Welcome back{partner?.contact_name ? `, ${partner.contact_name}` : ""}.
         </p>
 
         <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2">
@@ -165,23 +170,6 @@ export default async function DashboardPage() {
             </p>
           </Link>
 
-          {/* XLSX download */}
-          <Link
-            href="/api/price-book/xlsx"
-            className="rounded-lg border-2 border-neutral-200 bg-white p-6 shadow-sm transition hover:border-[#fbb040] hover:shadow-md"
-          >
-            <h2 className="text-xl font-semibold text-neutral-900">
-              VideoX Price List
-            </h2>
-            <p className="mt-1 text-sm text-neutral-600">
-              Download the current VideoX MSRP price book as an Excel
-              spreadsheet.
-            </p>
-            <p className="mt-3 text-sm font-medium text-[#fbb040]">
-              Download XLSX →
-            </p>
-          </Link>
-
           {/* Support */}
           <div className="rounded-lg border-2 border-neutral-200 bg-white p-6 shadow-sm">
             <h2 className="text-xl font-semibold text-neutral-900">Support</h2>
@@ -207,6 +195,23 @@ export default async function DashboardPage() {
               </a>
             </div>
           </div>
+
+          {/* XLSX download */}
+          <Link
+            href="/api/price-book/xlsx"
+            className="rounded-lg border-2 border-neutral-200 bg-white p-6 shadow-sm transition hover:border-[#fbb040] hover:shadow-md"
+          >
+            <h2 className="text-xl font-semibold text-neutral-900">
+              VideoX Price List
+            </h2>
+            <p className="mt-1 text-sm text-neutral-600">
+              Download the current VideoX MSRP price book as an Excel
+              spreadsheet.
+            </p>
+            <p className="mt-3 text-sm font-medium text-[#fbb040]">
+              Download XLSX →
+            </p>
+          </Link>
 
           {/* Deal Registration */}
           <div className="rounded-lg border-2 border-neutral-200 bg-white p-6 shadow-sm">
