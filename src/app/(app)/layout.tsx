@@ -87,6 +87,12 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
                 My Pipeline
               </Link>
               <Link
+                href="/videox-compare"
+                className="px-3 py-1.5 text-neutral-600 hover:text-neutral-900 rounded hover:bg-neutral-100"
+              >
+                QuickCompare
+              </Link>
+              <Link
                 href="/price-book"
                 className="px-3 py-1.5 text-neutral-600 hover:text-neutral-900 rounded hover:bg-neutral-100"
               >

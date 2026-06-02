@@ -154,6 +154,22 @@ export default async function DashboardPage() {
             </p>
           </Link>
 
+          {/* VideoX QuickCompare */}
+          <Link
+            href="/videox-compare"
+            className="group rounded-lg border-2 border-neutral-200 bg-white p-6 shadow-sm transition hover:border-[#fbb040] hover:shadow-md"
+          >
+            <h2 className="text-xl font-semibold text-neutral-900 group-hover:text-[#054A91]">
+              VideoX QuickCompare
+            </h2>
+            <p className="mt-1 text-sm text-neutral-600">
+              Compare all VideoX V5 NVR models side by side — specs, features, and capabilities at a glance.
+            </p>
+            <p className="mt-3 text-sm font-medium text-[#fbb040]">
+              Compare models →
+            </p>
+          </Link>
+
           {/* Price book */}
           <Link
             href="/price-book"

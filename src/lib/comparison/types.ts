@@ -18,6 +18,34 @@ export type ProductSpec = {
   msrp: number;
   notes: string | null;
   product_sku: string | null;
+  // QuickCompare columns (Phase 6 Step 1 — see ADR 0044). All nullable; only
+  // the /videox-compare tool reads these. The comparison/calculator tools
+  // ignore them (DISPLAY_SPECS references only SharedSpecKey fields).
+  rack_units?: string | null;
+  drive_bays?: number | null;
+  max_bandwidth_mbps?: number | null;
+  os_edition?: string | null;
+  ram_spec?: string | null;
+  cpu_model_full?: string | null;
+  cpu_turbo_ghz?: string | null;
+  cores_threads?: string | null;
+  cpu_cache?: string | null;
+  mem_bandwidth?: string | null;
+  avx_512?: string | null;
+  workload_affinity?: string | null;
+  chiplet_arch?: string | null;
+  infinity_guard?: string | null;
+  hotswap_power?: string | null;
+  hdd_count?: number | null;
+  hdd_mtbf?: string | null;
+  raid_level_display?: string | null;
+  battery_raid?: string | null;
+  os_ssd_type?: string | null;
+  os_redundancy?: string | null;
+  gbe_1_ports?: number | null;
+  gbe_10_ports?: number | null;
+  sfp_addon?: string | null;
+  avigilon_gpu?: string | null;
 };
 
 export type CompetitorProduct = {
