@@ -4,6 +4,45 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-06-02 — Phase 6 Step 1: VideoX QuickCompare
+
+### Work done
+
+- **`supabase/migrations/20260602000001_quickcompare_columns.sql`** — additive migration adding 25 nullable columns to `product_specs` (rack_units, drive_bays, max_bandwidth_mbps, os_edition, ram_spec, cpu_model_full, cpu_turbo_ghz, cores_threads, cpu_cache, mem_bandwidth, avx_512, workload_affinity, chiplet_arch, infinity_guard, hotswap_power, hdd_count, hdd_mtbf, raid_level_display, battery_raid, os_ssd_type, os_redundancy, gbe_1_ports, gbe_10_ports, sfp_addon, avigilon_gpu). One `UPDATE … WHERE id LIKE 'VX5-Vnnn-%'` per family seeds identical values across each family's SKU tiers. No existing columns, rows, indexes, or RLS policies touched. Source: `VideoX-QuickCompare-V5.xlsx`, "Arxys V5" sheet. Matching rollback at **`supabase/rollback/quickcompare-columns-rollback.sql`** (drops exactly the 25 columns).
+- **`src/lib/comparison/types.ts`** — extended `ProductSpec` with the 25 new fields as optional/nullable. The comparison & calculator tools are unaffected: their `DISPLAY_SPECS` reference only `SharedSpecKey` fields.
+- **`src/lib/videox-compare/{types,data,specs}.ts`** — `QuickCompareModel` type (camelCase, family-level); `getQuickCompareModels()` queries `product_specs` (`id LIKE 'VX5-V%'`), dedupes to the first row per family, and returns the 7 families ordered V100→V800; `QUICK_COMPARE_SPECS` (26 rows across Overview/System/Storage/Networking), `SECTIONS`, verbatim `TOOLTIPS`, and `FOOTNOTE`.
+- **`src/app/(app)/videox-compare/page.tsx`** — Server Component, calls `getQuickCompareModels()`, mirrors `/comparison`'s back-link layout.
+- **`src/app/(app)/videox-compare/videox-compare-form.tsx`** — Client Component. Full sticky-label/sticky-header table; compare mode (checkbox per model header → 2+ checked collapses to selected columns, "Show all models" reset); diff highlighting (gold left-border on rows whose displayed values differ across selected models); "Minimum cameras needed" filter (below-requirement header badge + red-tinted Max Cameras cell, works in both views); CSS tooltips on technical rows (hover + keyboard focus); verbatim footnote.
+- **`src/app/(app)/videox-compare/videox-compare.css`** — scoped to `#arxys-vxc-root` (prefix `vxc-`), mirroring the comparison tool's scoping; uses global Arxys brand tokens, no new fonts.
+- **`src/app/(app)/dashboard/page.tsx`** — "VideoX QuickCompare" card added after Server Comparison.
+- **`src/app/(app)/layout.tsx`** — "QuickCompare" nav link added before Price Book.
+
+### Detours & fixes
+
+- **No V900, and it can't go in `product_specs`.** The brief assumed all 8 V5 families were in `product_specs`, but the table holds only 7 (V100–V800, 21 rows); there is no V900 anywhere in the repo. Adding V900 would require fabricating the NOT NULL base columns (`msrp`, `storage_raw_tb`, `cpu_passmark`, …), which breaks the "no pricing" rule and would leak a fake V900 into `/comparison` and `/calculator`. Per decision, V900 is **ignored** — QuickCompare ships 7 families. Revisit when V900 has real `product_specs` rows.
+- **Column-name collision.** The brief's new `cpu_model` column collides with the existing NOT NULL `product_specs.cpu_model`. Renamed the QuickCompare column to `cpu_model_full` (same pattern the brief used for `raid_level_display` vs `raid_support`).
+- **Missing `max_bandwidth` column.** The Overview "Max Bandwidth" row had no backing column in the brief's list nor in `product_specs`. Added `max_bandwidth_mbps`.
+- **V600 rack-unit typo in source spreadsheet — resolved.** The QuickCompare spreadsheet listed **V600 = 2U**, but `product_specs.form_factor` *and* the in-repo price-book both say **3U** ("3U 16Bay"), and 16 bays in 2U is physically implausible. Flagged it; Andy confirmed **3U** (2026-06-02), so the migration seeds `rack_units = '3U'` for V600. The spreadsheet value was a typo.
+- **Note — QuickCompare CPU specs differ from comparison-tool columns by design.** For V100/V200 the sheet says 6C/12T (matches the price-book), while the existing `cpu_cores_threads` says 8C/16T. The new columns hold QuickCompare's marketing-canonical values; the old columns stay untouched for the comparison tool. Not a bug.
+- **Migration not yet pushed to cloud.** The new columns don't exist on the cloud DB yet, so `getQuickCompareModels()` returns rows with the new fields null and the page renders em-dashes until `supabase db push` runs. Graceful by design (all new fields are nullable / `?? null`).
+
+### Verification gates
+
+| Gate | Result |
+|---|---|
+| `npm run build` | ✅ Clean — `/videox-compare` route in manifest |
+| `npx eslint` (new/changed files) | ✅ 0 errors (lone pre-existing `<img>` warning in layout.tsx) |
+| `npm test` | ✅ 71/71 pass — no regressions |
+| `scripts/test-rls.ts` | ✅ All pass — no RLS regressions (no policy changes) |
+| Migration SQL review | ✅ Additive ALTER + per-family UPDATE; valid syntax |
+| Rollback SQL review | ✅ Drops exactly the 25 added columns, nothing else |
+
+### Decisions captured
+
+- [`0044-quickcompare-extends-product-specs.md`](./decisions/0044-quickcompare-extends-product-specs.md)
+
+---
+
 ## 2026-05-29 — Phase 5 Step 3: PDF + quote action
 
 ### Work done
