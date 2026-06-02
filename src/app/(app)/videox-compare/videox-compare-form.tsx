@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from "react";
 import type { QuickCompareModel, QuickCompareSpec, QuickCompareSection } from "@/lib/videox-compare/types";
+import { VMS_OPTIONS } from "@/lib/videox-compare/vms";
+import type { VmsId } from "@/lib/videox-compare/vms";
 
 type Props = {
   models: QuickCompareModel[];
@@ -23,6 +25,8 @@ export function VideoxCompareForm({ models, specs, sections, footnote }: Props) 
   const [selected, setSelected] = useState<Set<string>>(new Set());
   // "Minimum cameras needed" quick filter (raw input string).
   const [minCameras, setMinCameras] = useState<string>("");
+  // Active VMS selection for the validation sheet banner. Null = none selected.
+  const [selectedVms, setSelectedVms] = useState<VmsId | null>(null);
 
   const compareMode = selected.size >= 2;
   const visibleModels = compareMode
@@ -131,6 +135,45 @@ export function VideoxCompareForm({ models, specs, sections, footnote }: Props) 
           )}
         </div>
       </div>
+
+      {/* VMS toggle row */}
+      <div className="vxc-vms-toggle" role="group" aria-label="VMS selection">
+        {VMS_OPTIONS.map((vms) => (
+          <button
+            key={vms.id}
+            type="button"
+            className={selectedVms === vms.id ? "vxc-vms-pill vxc-vms-pill--active" : "vxc-vms-pill"}
+            onClick={() => setSelectedVms(selectedVms === vms.id ? null : vms.id)}
+            aria-pressed={selectedVms === vms.id}
+          >
+            {vms.name}
+          </button>
+        ))}
+      </div>
+
+      {/* VMS validation sheet banner */}
+      {selectedVms !== null && (() => {
+        const vms = VMS_OPTIONS.find((v) => v.id === selectedVms)!;
+        return (
+          <div className="vxc-vms-banner" role="region" aria-label="VMS validation information">
+            <span className="vxc-vms-banner-text">
+              VideoX V5 is validated for {vms.name} {vms.vmsProduct}
+            </span>
+            {vms.sheetUrl ? (
+              <a
+                className="vxc-vms-sheet-link"
+                href={vms.sheetUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Download {vms.name} Validation Sheet ↗
+              </a>
+            ) : (
+              <span className="vxc-vms-sheet-pending">Validation sheet coming soon</span>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Table */}
       <div className="vxc-tw">

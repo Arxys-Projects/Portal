@@ -4,6 +4,25 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-06-02 — Phase 6 Step 2: VMS Selector + Validation Sheets
+
+### Work done
+
+- **`src/lib/videox-compare/vms.ts`** — new constants file. `VMS_OPTIONS` (three entries: Avigilon/ACC7, Milestone/Xprotect, Genetec/Omnicast), each with `id`, `name`, `vmsProduct`, `sheetUrl`, and `sheetLabel`. Exports `VmsId` union type derived from the `as const` array. No external deps.
+- **`src/app/(app)/videox-compare/videox-compare-form.tsx`** — added `selectedVms: VmsId | null` state (default `null`). VMS toggle row: three pill buttons (`Avigilon | Milestone | Genetec`) rendered below the camera filter, above the table. Click selects; click again deselects (returns to `null`). VMS banner: shown when `selectedVms !== null`; text "VideoX V5 is validated for [name] [vmsProduct]"; download link styled as secondary button opens PDF in new tab; defensive `sheetUrl` null-check renders muted "coming soon" text (not currently reachable). Controls are fully independent — VMS selection does not affect compare mode, camera filter, or table data.
+- **`src/app/(app)/videox-compare/videox-compare.css`** — added `.vxc-vms-toggle`, `.vxc-vms-pill`, `.vxc-vms-pill--active`, `.vxc-vms-banner`, `.vxc-vms-banner-text`, `.vxc-vms-sheet-link`, `.vxc-vms-sheet-pending` all scoped under `#arxys-vxc-root`. Responsive: pills wrap on narrow screens; banner stacks vertically below 640 px.
+
+### Verification gates
+
+| Gate | Result |
+|---|---|
+| `npm run build` | ✅ Clean — `/videox-compare` in manifest |
+| `npx eslint` (changed files) | ✅ 0 errors |
+| `npm test` | ✅ 71/71 pass |
+| Language audit | ✅ "certified" appears nowhere in changed files |
+
+---
+
 ## 2026-06-02 — Phase 6 Step 1: VideoX QuickCompare
 
 ### Work done
