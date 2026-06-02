@@ -71,7 +71,7 @@ export function VideoxCompareForm({ models, specs, sections, footnote }: Props) 
     <div id="arxys-vxc-root">
       {/* Header */}
       <div className="vxc-hdr">
-        <div className="vxc-t">VideoX QuickCompare</div>
+        <div className="vxc-t">VideoX Model Quick Compare</div>
         <div className="vxc-st">
           Every VideoX V5 NVR model, side by side — specs, features, and
           capabilities at a glance.
