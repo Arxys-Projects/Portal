@@ -324,7 +324,39 @@ export function CalculatorForm({
           </label>
         </div>
 
-        <div style={{ marginLeft: "auto" }}>
+        <div className="ax-save" style={{ marginLeft: "auto", marginTop: 0 }}>
+          <span className="ax-save-hint">
+            Configure a camera group below, then save to notify Arxys sales.
+          </span>
+          <button
+            type="button"
+            className="ax-save-btn"
+            disabled={!hasInteracted || isSubmitting}
+            onClick={() => {
+              setResultDismissed(false);
+              submitAction({
+                projectName: projectName.trim() || null,
+                vms: vms || null,
+                retentionDays,
+                addOnFailoverRecorder,
+                addOnManagementServer,
+                isRevision: Boolean(revisionSourceId),
+                sourceSubmissionId: revisionSourceId,
+                groups: groups.map((g) => ({
+                  name: g.name,
+                  cameras: g.cameras,
+                  resolutionIdx: g.resolutionIdx,
+                  codecIdx: g.codecIdx,
+                  complexityIdx: g.complexityIdx,
+                  fps: g.fps,
+                  recordingPercent: g.recordingPercent,
+                  motionPercent: g.motionPercent,
+                })),
+              });
+            }}
+          >
+            {isSubmitting ? "Saving…" : "Save & request quote"}
+          </button>
           <button
             type="button"
             className="ax-ib"
@@ -334,42 +366,6 @@ export function CalculatorForm({
             <ResetIcon /> Reset
           </button>
         </div>
-      </div>
-
-      {/* Submit button — above camera groups, disabled until first interaction */}
-      <div className="ax-save">
-        <button
-          type="button"
-          className="ax-save-btn"
-          disabled={!hasInteracted || isSubmitting}
-          onClick={() => {
-            setResultDismissed(false);
-            submitAction({
-              projectName: projectName.trim() || null,
-              vms: vms || null,
-              retentionDays,
-              addOnFailoverRecorder,
-              addOnManagementServer,
-              isRevision: Boolean(revisionSourceId),
-              sourceSubmissionId: revisionSourceId,
-              groups: groups.map((g) => ({
-                name: g.name,
-                cameras: g.cameras,
-                resolutionIdx: g.resolutionIdx,
-                codecIdx: g.codecIdx,
-                complexityIdx: g.complexityIdx,
-                fps: g.fps,
-                recordingPercent: g.recordingPercent,
-                motionPercent: g.motionPercent,
-              })),
-            });
-          }}
-        >
-          {isSubmitting ? "Saving…" : "Save & request quote"}
-        </button>
-        <span className="ax-save-hint">
-          Configure a camera group below, then save to notify Arxys sales.
-        </span>
       </div>
 
       {/* Camera groups */}
