@@ -188,7 +188,8 @@
 #arxys-calc-root .ax-tbl tfoot td { background: var(--ip); font-weight: 700; color: var(--tp); border-top: 2px solid var(--bd); }
 
 /* Charts */
-#arxys-calc-root .ax-cht { background: var(--cd); border: 1px solid var(--bd); border-radius: var(--r); padding: 24px; margin-top: 20px; box-shadow: var(--ss); }
+#arxys-calc-root .ax-cht-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 20px; }
+#arxys-calc-root .ax-cht { background: var(--cd); border: 1px solid var(--bd); border-radius: var(--r); padding: 24px; box-shadow: var(--ss); }
 #arxys-calc-root .ax-cht-t { font-size: 15px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; color: var(--tp); }
 #arxys-calc-root .ax-br { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
 #arxys-calc-root .ax-bl { width: 130px; font-size: 12px; color: var(--ts); text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-shrink: 0; }
@@ -364,6 +365,7 @@
 
 /* Responsive — Mobile */
 @media (max-width: 768px) {
+  #arxys-calc-root .ax-cht-grid { grid-template-columns: 1fr; }
   #arxys-calc-root { padding: 20px 16px 40px; }
   #arxys-calc-root .ax-sum { grid-template-columns: 1fr; gap: 12px; }
   #arxys-calc-root .ax-gl { flex-direction: column; gap: 16px; padding: 20px 24px; align-items: stretch; }

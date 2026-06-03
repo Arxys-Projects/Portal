@@ -675,54 +675,56 @@ export function CalculatorForm({
         </table>
       </div>
 
-      {/* Bandwidth bar chart */}
-      <div className="ax-cht">
-        <div className="ax-cht-t">
-          <BarsIcon /> Bandwidth by Group
+      <div className="ax-cht-grid">
+        {/* Bandwidth bar chart */}
+        <div className="ax-cht">
+          <div className="ax-cht-t">
+            <BarsIcon /> Bandwidth by Group
+          </div>
+          {groupResults.map(({ group, computed }) => {
+            const pct =
+              totals.bandwidthMbps > 0
+                ? (computed.bandwidthMbps / totals.bandwidthMbps) * 100
+                : 0;
+            return (
+              <div key={group.id} className="ax-br">
+                <div className="ax-bl">{group.name}</div>
+                <div className="ax-bt">
+                  <div className="ax-bf bw" style={{ width: `${pct}%` }} />
+                  <span className="ax-bpct">{pct.toFixed(0)}%</span>
+                </div>
+                <div className="ax-bv">
+                  {formatBandwidthMbps(computed.bandwidthMbps)}
+                </div>
+              </div>
+            );
+          })}
         </div>
-        {groupResults.map(({ group, computed }) => {
-          const pct =
-            totals.bandwidthMbps > 0
-              ? (computed.bandwidthMbps / totals.bandwidthMbps) * 100
-              : 0;
-          return (
-            <div key={group.id} className="ax-br">
-              <div className="ax-bl">{group.name}</div>
-              <div className="ax-bt">
-                <div className="ax-bf bw" style={{ width: `${pct}%` }} />
-                <span className="ax-bpct">{pct.toFixed(0)}%</span>
-              </div>
-              <div className="ax-bv">
-                {formatBandwidthMbps(computed.bandwidthMbps)}
-              </div>
-            </div>
-          );
-        })}
-      </div>
 
-      {/* Storage bar chart */}
-      <div className="ax-cht">
-        <div className="ax-cht-t">
-          <StorageIcon /> Storage by Group
+        {/* Storage bar chart */}
+        <div className="ax-cht">
+          <div className="ax-cht-t">
+            <StorageIcon /> Storage by Group
+          </div>
+          {groupResults.map(({ group, computed }) => {
+            const pct =
+              totals.storageGb > 0
+                ? (computed.storageGb / totals.storageGb) * 100
+                : 0;
+            return (
+              <div key={group.id} className="ax-br">
+                <div className="ax-bl">{group.name}</div>
+                <div className="ax-bt">
+                  <div className="ax-bf st" style={{ width: `${pct}%` }} />
+                  <span className="ax-bpct">{pct.toFixed(0)}%</span>
+                </div>
+                <div className="ax-bv">
+                  {formatStorageGb(computed.storageGb)}
+                </div>
+              </div>
+            );
+          })}
         </div>
-        {groupResults.map(({ group, computed }) => {
-          const pct =
-            totals.storageGb > 0
-              ? (computed.storageGb / totals.storageGb) * 100
-              : 0;
-          return (
-            <div key={group.id} className="ax-br">
-              <div className="ax-bl">{group.name}</div>
-              <div className="ax-bt">
-                <div className="ax-bf st" style={{ width: `${pct}%` }} />
-                <span className="ax-bpct">{pct.toFixed(0)}%</span>
-              </div>
-              <div className="ax-bv">
-                {formatStorageGb(computed.storageGb)}
-              </div>
-            </div>
-          );
-        })}
       </div>
 
       <div className="ax-fn">
