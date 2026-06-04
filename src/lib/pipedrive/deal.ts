@@ -99,8 +99,13 @@ function resolutionLabelToMp(label: string): number {
 
 export type DealPartnerInput = {
   companyName: string;
-  contactName: string;
-  email: string;
+  // contactName/email are optional for a free-typed on-behalf target (Phase 7
+  // Step 1): a company that isn't a portal partner yet has no person to attach,
+  // so the deal is created against the organization only. When both are
+  // present (self-serve, or an on-behalf target matched to a real partner) the
+  // person is upserted and linked as normal.
+  contactName?: string | null;
+  email?: string | null;
 };
 
 type ResolvedFieldKeys = {
@@ -222,6 +227,10 @@ export async function createDealFromSubmission(
   submission: DealSubmissionInput,
   recommendation: RecommendationResult,
   partner: DealPartnerInput,
+  // Phase 7 Step 1 — when the calc was run on behalf of a partner, this pinned
+  // note credits the internal rep (we don't route the Pipedrive owner field;
+  // see ADR 0048). Omitted for normal self-serve deals.
+  onBehalfNote?: string | null,
 ): Promise<{ dealId: number }> {
   const [pipelineId, ownerId, customFieldKeys, calcFieldKeys] = await Promise.all([
     resolvePipelineId(),
@@ -232,11 +241,16 @@ export async function createDealFromSubmission(
   const stageId = await resolveStageId(pipelineId);
 
   const orgId = await upsertOrganization({ name: partner.companyName });
-  const personId = await upsertPerson({
-    name: partner.contactName,
-    email: partner.email,
-    orgId,
-  });
+  // A free-typed on-behalf target has no email to match/create a person on —
+  // creating a placeholder would pollute Pipedrive, so we attach the org only.
+  const personId =
+    partner.email && partner.contactName
+      ? await upsertPerson({
+          name: partner.contactName,
+          email: partner.email,
+          orgId,
+        })
+      : undefined;
 
   const title =
     submission.projectName?.trim() ||
@@ -255,6 +269,19 @@ export async function createDealFromSubmission(
   };
 
   const deal = await pipedriveClient.createDeal(payload as Parameters<typeof pipedriveClient.createDeal>[0]);
+
+  // On-behalf attribution note. Failure must not block the deal.
+  if (onBehalfNote) {
+    try {
+      await pipedriveClient.createNote({
+        deal_id: deal.id,
+        content: onBehalfNote,
+        pinned_to_deal_flag: 1,
+      });
+    } catch (err) {
+      console.error("pipedrive on-behalf note creation failed", err);
+    }
+  }
 
   // Post an add-ons note if either toggle is on. Failure must not block the deal. (Phase 4 Step 2)
   if (submission.addOnFailoverRecorder || submission.addOnManagementServer) {
@@ -348,11 +375,14 @@ export async function createComparisonDeal(
   const stageId = await resolveStageId(pipelineId);
 
   const orgId = await upsertOrganization({ name: input.partner.companyName });
-  const personId = await upsertPerson({
-    name: input.partner.contactName,
-    email: input.partner.email,
-    orgId,
-  });
+  const personId =
+    input.partner.email && input.partner.contactName
+      ? await upsertPerson({
+          name: input.partner.contactName,
+          email: input.partner.email,
+          orgId,
+        })
+      : undefined;
 
   const title = `Comparison: ${input.vendorName} ${input.vendorModelName} vs Arxys — ${input.partner.companyName}`;
   const value = input.arxysMsrp * input.serverCount;

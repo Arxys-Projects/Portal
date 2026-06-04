@@ -107,6 +107,57 @@ describe("groupIntoDeals — null project_name", () => {
   });
 });
 
+describe("groupIntoDeals — on-behalf-of (Phase 7 Step 1)", () => {
+  it("rolls an on-behalf-of-partner submission up to the target, not the creator", () => {
+    // Creator p1 (internal rep) runs a calc on behalf of partner p2. Only the
+    // FK is set (mutual-exclusion invariant); the name resolves from PARTNERS.
+    const subs = [
+      sub({ id: "s1", partner_id: "p1", on_behalf_of_partner_id: "p2" }),
+    ];
+    const deals = groupIntoDeals(subs, PARTNERS);
+    assert.equal(deals.length, 1);
+    assert.equal(deals[0].partner_id, "p2");
+    assert.equal(deals[0].partner_name, "Beta LLC");
+  });
+
+  it("groups an on-behalf submission with the target partner's own submission", () => {
+    const subs = [
+      sub({ id: "self", partner_id: "p2" }),
+      sub({ id: "on-behalf", partner_id: "p1", on_behalf_of_partner_id: "p2" }),
+    ];
+    const deals = groupIntoDeals(subs, PARTNERS);
+    assert.equal(deals.length, 1);
+    assert.equal(deals[0].all_submission_ids.length, 2);
+    assert.equal(deals[0].partner_id, "p2");
+  });
+
+  it("groups free-typed on-behalf companies by normalised name and labels them", () => {
+    const subs = [
+      sub({
+        id: "s1",
+        partner_id: "p1",
+        on_behalf_of_company_name: "  Gamma Security  ",
+      }),
+      sub({
+        id: "s2",
+        partner_id: "p2",
+        on_behalf_of_company_name: "gamma security",
+      }),
+    ];
+    const deals = groupIntoDeals(subs, PARTNERS);
+    assert.equal(deals.length, 1);
+    assert.equal(deals[0].all_submission_ids.length, 2);
+    assert.equal(deals[0].partner_name, "Gamma Security");
+  });
+
+  it("leaves normal self-serve submissions grouped by their creator", () => {
+    const subs = [sub({ id: "s1", partner_id: "p1" })];
+    const deals = groupIntoDeals(subs, PARTNERS);
+    assert.equal(deals[0].partner_id, "p1");
+    assert.equal(deals[0].partner_name, "Acme Corp");
+  });
+});
+
 describe("computeWeightedForecast — weighted sum", () => {
   it("computes correct weighted totals for a mix of statuses", () => {
     const deals = groupIntoDeals(

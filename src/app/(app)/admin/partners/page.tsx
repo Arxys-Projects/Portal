@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { PartnerRowActions } from "./partner-row-actions";
+import { InternalToggle, PartnerRowActions } from "./partner-row-actions";
 
 function formatDate(value: string | null | undefined): string {
   if (!value) return "—";
@@ -32,7 +32,7 @@ export default async function AdminPartnersPage() {
   const supabase = await createSupabaseServerClient();
   const { data: rows, error } = await supabase
     .from("partners")
-    .select("id, company_name, contact_name, role, status, created_at")
+    .select("id, company_name, contact_name, role, status, is_internal, created_at")
     .order("created_at", { ascending: false });
   if (error) {
     return (
@@ -65,6 +65,7 @@ export default async function AdminPartnersPage() {
     contact_name: string;
     role: string;
     status: string;
+    is_internal: boolean;
     created_at: string;
   };
   const partners = (rows ?? []) as Row[];
@@ -100,6 +101,7 @@ export default async function AdminPartnersPage() {
                 <th className="px-4 py-2">Email</th>
                 <th className="px-4 py-2">Role</th>
                 <th className="px-4 py-2">Status</th>
+                <th className="px-4 py-2">Internal</th>
                 <th className="px-4 py-2">Created</th>
                 <th className="px-4 py-2 text-right">Actions</th>
               </tr>
@@ -114,6 +116,9 @@ export default async function AdminPartnersPage() {
                   </td>
                   <td className="px-4 py-3 text-neutral-700">{p.role}</td>
                   <td className="px-4 py-3">{statusPill(p.status)}</td>
+                  <td className="px-4 py-3">
+                    <InternalToggle id={p.id} isInternal={Boolean(p.is_internal)} />
+                  </td>
                   <td className="px-4 py-3 text-neutral-600">
                     {formatDate(p.created_at)}
                   </td>

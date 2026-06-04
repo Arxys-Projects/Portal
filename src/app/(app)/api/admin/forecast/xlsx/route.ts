@@ -40,7 +40,8 @@ export async function GET() {
         .from("submissions")
         .select(
           `id, partner_id, project_name, status, is_preferred,
-           total_list_price_usd, pipedrive_deal_id, created_at`,
+           total_list_price_usd, pipedrive_deal_id, created_at,
+           on_behalf_of_partner_id, on_behalf_of_company_name`,
         )
         .order("created_at", { ascending: false }),
       supabase

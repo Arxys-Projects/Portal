@@ -69,6 +69,23 @@ export function InviteForm() {
         />
         <FieldError errors={fieldErrors?.companyName} />
       </div>
+      <div>
+        <label className="flex items-start gap-2 text-sm text-neutral-700">
+          <input
+            id="isInternal"
+            name="isInternal"
+            type="checkbox"
+            className="mt-0.5 h-4 w-4 rounded border-neutral-300"
+          />
+          <span>
+            <span className="font-medium">Internal user</span>
+            <span className="block text-xs text-neutral-500">
+              An Arxys staff member who can run sizing calculations on behalf of
+              partners. Leave unchecked for an external partner.
+            </span>
+          </span>
+        </label>
+      </div>
 
       {state.status === "error" && !state.fieldErrors ? (
         <p role="alert" className="text-sm text-red-600">

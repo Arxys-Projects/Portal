@@ -2,7 +2,6 @@ import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
   STATUS_META,
-  NO_STATUS_BADGE,
   SUBMISSION_STATUSES,
   type SubmissionStatus,
 } from "@/app/(app)/submissions/status";
@@ -18,21 +17,6 @@ import {
 import { RowControls } from "./_components/row-controls";
 
 const PAGE_SIZE = 50;
-
-// Read-only status badge — the admin observes partner pipeline state but never
-// changes it (partners own their own status; Phase 3 Step 5).
-function StatusBadge({ status }: { status: SubmissionStatus | null }) {
-  const meta = status ? STATUS_META[status] : null;
-  return (
-    <span
-      className={`inline-block rounded-full border px-2 py-0.5 text-xs font-medium ${
-        meta ? meta.badge : NO_STATUS_BADGE
-      }`}
-    >
-      {meta ? meta.label : "—"}
-    </span>
-  );
-}
 
 function PreferredStar({ preferred }: { preferred: boolean }) {
   return (
@@ -113,7 +97,8 @@ export default async function AdminSubmissionsPage({
       .from("submissions")
       .select(
         `id, partner_id, project_name, status, is_preferred,
-         total_list_price_usd, pipedrive_deal_id, created_at`,
+         total_list_price_usd, pipedrive_deal_id, created_at,
+         on_behalf_of_partner_id, on_behalf_of_company_name`,
       )
       .order("created_at", { ascending: false });
 

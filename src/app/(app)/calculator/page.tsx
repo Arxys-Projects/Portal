@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { CalculatorForm } from "./calculator-form";
 import {
   fromStoredSubmission,
@@ -60,6 +61,36 @@ export default async function CalculatorPage({
     }
   }
 
+  // Phase 7 Step 1 — only internal users may run a calc on behalf of a partner.
+  // The target-partner field (and its company-name suggestions) renders for them
+  // alone. RLS blocks a non-admin from listing partners, so the suggestion list
+  // is fetched with the admin client and gated behind is_internal.
+  let isInternal = false;
+  const partnerCompanyNames: string[] = [];
+  if (user) {
+    const { data: caller } = await supabase
+      .from("partners")
+      .select("is_internal")
+      .eq("id", user.id)
+      .maybeSingle();
+    isInternal = Boolean(caller?.is_internal);
+    if (isInternal) {
+      const admin = createSupabaseAdminClient();
+      const { data: partnerRows } = await admin
+        .from("partners")
+        .select("company_name")
+        .order("company_name");
+      const seen = new Set<string>();
+      for (const row of partnerRows ?? []) {
+        const name = (row.company_name as string)?.trim();
+        if (name && !seen.has(name.toLowerCase())) {
+          seen.add(name.toLowerCase());
+          partnerCompanyNames.push(name);
+        }
+      }
+    }
+  }
+
   return (
     <div>
       <div className="mb-4 flex items-center justify-between">
@@ -74,6 +105,8 @@ export default async function CalculatorPage({
         previousProjectNames={previousProjectNames}
         initialState={initialState}
         sourceSubmissionId={sourceSubmissionId}
+        isInternal={isInternal}
+        partnerCompanyNames={partnerCompanyNames}
       />
     </div>
   );
