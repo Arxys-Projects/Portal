@@ -21,6 +21,12 @@ export type SubmissionRow = {
   total_list_price_usd: number | null;
   pipedrive_deal_id: string | null;
   created_at: string;
+  // Phase 7 Step 1 — on-behalf-of. When set, the submission rolls up to a
+  // target partner rather than its creator (partner_id). on_behalf_of_partner_id
+  // is the stable grouping key for a matched partner; on_behalf_of_company_name
+  // is always populated for an on-behalf row and is the display label.
+  on_behalf_of_partner_id?: string | null;
+  on_behalf_of_company_name?: string | null;
 };
 
 export type PartnerRow = {
@@ -44,7 +50,33 @@ export type Deal = {
   all_submission_ids: string[];
 };
 
-// One deal = one (partner_id, trimmed-lower project_name) pair.
+// Resolve the partner a submission rolls up to (Phase 7 Step 1). For a normal
+// self-serve row this is the creator; for an on-behalf row it is the target.
+//   groupingId — the stable bucket key:
+//     COALESCE(on_behalf_of_partner_id, lower(trim(company_name)), partner_id).
+//   partnerName — the human label for that bucket.
+function effectivePartner(
+  s: SubmissionRow,
+  partnerMap: Map<string, string>,
+): { groupingId: string; partnerName: string } {
+  const fk = s.on_behalf_of_partner_id ?? null;
+  const company = (s.on_behalf_of_company_name ?? "").trim();
+  if (fk) {
+    // Matched partner: group by the stable FK; label from the denormalised
+    // company name, falling back to the partners map (admin views) then the id.
+    return { groupingId: fk, partnerName: company || partnerMap.get(fk) || fk };
+  }
+  if (company) {
+    // Free-typed company: no portal identity — group by the normalised name.
+    return { groupingId: company.toLowerCase(), partnerName: company };
+  }
+  return {
+    groupingId: s.partner_id,
+    partnerName: partnerMap.get(s.partner_id) ?? s.partner_id,
+  };
+}
+
+// One deal = one (effective-partner, trimmed-lower project_name) pair.
 // Representative = is_preferred row if any starred, else most-recent by created_at.
 export function groupIntoDeals(
   submissions: SubmissionRow[],
@@ -60,12 +92,10 @@ export function groupIntoDeals(
 
   for (const s of submissions) {
     const projectKey = (s.project_name ?? "").trim().toLowerCase();
-    const key = `${s.partner_id}\x00${projectKey}`;
+    const { groupingId, partnerName } = effectivePartner(s, partnerMap);
+    const key = `${groupingId}\x00${projectKey}`;
     if (!buckets.has(key)) {
-      buckets.set(key, {
-        subs: [],
-        partnerName: partnerMap.get(s.partner_id) ?? s.partner_id,
-      });
+      buckets.set(key, { subs: [], partnerName });
     }
     buckets.get(key)!.subs.push(s);
   }

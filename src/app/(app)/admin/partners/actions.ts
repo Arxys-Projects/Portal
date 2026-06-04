@@ -80,6 +80,9 @@ export async function invitePartner(
     };
   }
   const { email, contactName, companyName } = parsed.data;
+  // Phase 7 Step 1 — internal Arxys users can run calcs on behalf of partners.
+  // Checkboxes are absent from FormData when unchecked.
+  const isInternal = formData.get("isInternal") === "on";
 
   const admin = createSupabaseAdminClient();
   const redirectTo = await inviteRedirectUrl();
@@ -107,6 +110,7 @@ export async function invitePartner(
     contact_name: contactName,
     role: "partner",
     status: "invited",
+    is_internal: isInternal,
   });
   if (insert.error) {
     // Roll back the auth user so a retry isn't blocked by a half-state.
@@ -246,4 +250,31 @@ export async function resendInvite(
 
   revalidatePath("/admin/partners");
   return { status: "ok", message: `Invite re-sent to ${email}.` };
+}
+
+// Phase 7 Step 1 — mark/unmark a partner as an internal Arxys user. Needed to
+// retrofit staff who were invited as plain partners before this flag existed.
+// is_internal authorizes running calcs on behalf of other partners.
+export async function setPartnerInternal(
+  _prev: SimpleActionState | null,
+  formData: FormData,
+): Promise<SimpleActionState> {
+  const gate = await requireAdmin();
+  if (!gate.ok) return { status: "error", error: gate.error };
+  const targetId = String(formData.get("id") ?? "");
+  if (!targetId) return { status: "error", error: "Missing partner id." };
+  const value = formData.get("value") === "true";
+
+  const admin = createSupabaseAdminClient();
+  const { error } = await admin
+    .from("partners")
+    .update({ is_internal: value })
+    .eq("id", targetId);
+  if (error) return { status: "error", error: error.message };
+
+  revalidatePath("/admin/partners");
+  return {
+    status: "ok",
+    message: value ? "Marked as internal." : "Unmarked internal.",
+  };
 }

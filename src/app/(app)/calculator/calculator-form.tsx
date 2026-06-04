@@ -85,10 +85,16 @@ export function CalculatorForm({
   previousProjectNames = [],
   initialState,
   sourceSubmissionId,
+  isInternal = false,
+  partnerCompanyNames = [],
 }: {
   previousProjectNames?: string[];
   initialState?: CalculatorInitialState;
   sourceSubmissionId?: string;
+  // Phase 7 Step 1 — internal users get a target-partner field to run a calc on
+  // behalf of a partner. Never rendered for external partners.
+  isInternal?: boolean;
+  partnerCompanyNames?: string[];
 }) {
   const [groups, setGroups] = useState<Group[]>(() =>
     groupsFromInitial(initialState?.groups),
@@ -100,6 +106,9 @@ export function CalculatorForm({
   const [projectName, setProjectName] = useState(
     () => initialState?.projectName ?? "",
   );
+  // On-behalf-of target (internal users only). Not part of input_state, so it
+  // is always blank on a rehydrated revision — the rep retypes it if needed.
+  const [onBehalfOf, setOnBehalfOf] = useState("");
   // A rehydrated form is immediately re-submittable, so it starts "interacted".
   const [hasInteracted, setHasInteracted] = useState(() => Boolean(initialState));
   const [resultDismissed, setResultDismissed] = useState(false);
@@ -182,6 +191,7 @@ export function CalculatorForm({
     setRetentionDays(30);
     setVms("");
     setProjectName("");
+    setOnBehalfOf("");
     setHasInteracted(false);
     setResultDismissed(true);
     setAddOnFailoverRecorder(false);
@@ -262,6 +272,37 @@ export function CalculatorForm({
             </datalist>
           )}
         </div>
+        {isInternal && (
+          <div className="ax-f" style={{ minWidth: 180 }}>
+            <label className="ax-fl">
+              On behalf of
+              <Tooltip text="Internal only. Type a partner's company to roll this calc and its deal up to them. Leave blank to file under your own account." />
+            </label>
+            <input
+              type="text"
+              list="ax-partner-names"
+              maxLength={120}
+              placeholder="Partner company"
+              value={onBehalfOf}
+              onChange={(e) => { touch(); setOnBehalfOf(e.target.value); }}
+            />
+            {partnerCompanyNames.length > 0 && (
+              <datalist id="ax-partner-names">
+                {partnerCompanyNames.map((name) => (
+                  <option key={name} value={name} />
+                ))}
+              </datalist>
+            )}
+            {onBehalfOf.trim() &&
+            !partnerCompanyNames.some(
+              (n) => n.toLowerCase() === onBehalfOf.trim().toLowerCase(),
+            ) ? (
+              <span style={{ fontSize: 11, color: "var(--td)", marginTop: 4 }}>
+                No matching partner — a new Pipedrive organization will be created.
+              </span>
+            ) : null}
+          </div>
+        )}
         <div className="ax-f" style={{ minWidth: 160 }}>
           <label className="ax-fl">Which VMS?</label>
           <select value={vms} onChange={(e) => { touch(); setVms(e.target.value); }}>
@@ -336,6 +377,7 @@ export function CalculatorForm({
               setResultDismissed(false);
               submitAction({
                 projectName: projectName.trim() || null,
+                onBehalfOf: isInternal ? (onBehalfOf.trim() || null) : null,
                 vms: vms || null,
                 retentionDays,
                 addOnFailoverRecorder,

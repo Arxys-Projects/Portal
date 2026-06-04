@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import Footer from "@/app/(app)/_components/footer";
 import RegisterDealForm from "./register-deal-form";
 import { groupIntoDeals, computeWeightedForecast, type SubmissionRow } from "@/lib/pipeline/forecast";
@@ -26,16 +27,38 @@ export default async function DashboardPage() {
         .from("submissions")
         .select(
           `id, partner_id, project_name, status, is_preferred,
-           total_list_price_usd, pipedrive_deal_id, created_at`,
+           total_list_price_usd, pipedrive_deal_id, created_at,
+           on_behalf_of_partner_id, on_behalf_of_company_name`,
         )
         .order("created_at", { ascending: false })
     : { data: null };
 
   const ownSubmissions = (ownSubs ?? []) as SubmissionRow[];
+  // For on-behalf submissions the grouping resolves to a target partner the
+  // viewer can't read under their own RLS scope. Resolve just those targets'
+  // names via the admin client so the dashboard shows a company, not a UUID.
+  const partnersForGrouping = partner
+    ? [{ id: partner.id, company_name: partner.company_name }]
+    : [];
+  const onBehalfIds = [
+    ...new Set(
+      ownSubmissions
+        .map((s) => s.on_behalf_of_partner_id)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
+  if (partner && onBehalfIds.length > 0) {
+    const admin = createSupabaseAdminClient();
+    const { data: targets } = await admin
+      .from("partners")
+      .select("id, company_name")
+      .in("id", onBehalfIds);
+    for (const t of targets ?? []) {
+      partnersForGrouping.push({ id: t.id, company_name: t.company_name });
+    }
+  }
   const deals = partner
-    ? groupIntoDeals(ownSubmissions, [
-        { id: partner.id, company_name: partner.company_name },
-      ])
+    ? groupIntoDeals(ownSubmissions, partnersForGrouping)
     : [];
   const { totalOpenPipeline, weightedForecast } = computeWeightedForecast(deals);
 

@@ -32,6 +32,10 @@ const groupSchema = z.object({
 
 const submissionSchema = z.object({
   projectName: z.string().trim().max(50).optional().nullable(),
+  // Phase 7 Step 1 — internal-only target partner this calc is run on behalf of.
+  // Honored server-side only when the caller is an internal user; ignored
+  // otherwise (the field never renders for external partners).
+  onBehalfOf: z.string().trim().max(120).optional().nullable(),
   vms: z.string().max(40).optional().nullable(),
   retentionDays: z.number().int().min(1).max(730),
   groups: z.array(groupSchema).min(1).max(50),
@@ -91,7 +95,7 @@ export async function submitCalculation(
   // POSTs from a stale tab or scripted client.
   const { data: callerStatus } = await supabase
     .from("partners")
-    .select("status")
+    .select("status, is_internal")
     .eq("id", user.id)
     .maybeSingle();
   if (!callerStatus || callerStatus.status !== "active") {
@@ -99,6 +103,52 @@ export async function submitCalculation(
       status: "error",
       error: "Your account is not active. Sign out and back in, or contact your administrator.",
     };
+  }
+
+  // Phase 7 Step 1 — resolve the on-behalf-of target. Authorization is enforced
+  // here, server-side: only an internal user (is_internal) can direct a calc at
+  // another partner. A typed value that exactly matches an existing partner's
+  // company name binds the FK (so two reps targeting the same partner group
+  // together, and the deal attaches that partner's person); otherwise it is
+  // banked as a free-text company and the deal is created against the org only.
+  const admin = createSupabaseAdminClient();
+  const onBehalfRaw = (input.onBehalfOf ?? "").trim();
+  let onBehalfPartnerId: string | null = null;
+  let onBehalfCompanyName: string | null = null;
+  // Pipedrive identity to bill the deal against — the target when on-behalf,
+  // otherwise (left null) the creator's own partner record, resolved below.
+  let dealTarget: { companyName: string; contactName: string | null; email: string | null } | null =
+    null;
+
+  if (callerStatus.is_internal && onBehalfRaw) {
+    // Case-insensitive exact match (ilike with no wildcards is a literal match;
+    // partner company names don't contain % or _ in practice).
+    const { data: matches } = await admin
+      .from("partners")
+      .select("id, company_name, contact_name")
+      .ilike("company_name", onBehalfRaw)
+      .limit(1);
+    const matched = matches?.[0];
+    if (matched) {
+      // Matched partner: bind the FK only (the "at most one set" invariant —
+      // grouped views resolve the display name from the partners table).
+      onBehalfPartnerId = matched.id;
+      let targetEmail: string | null = null;
+      try {
+        const u = await admin.auth.admin.getUserById(matched.id);
+        targetEmail = u.data.user?.email ?? null;
+      } catch {
+        // No email → deal attaches the org only; never blocks the submission.
+      }
+      dealTarget = {
+        companyName: matched.company_name,
+        contactName: matched.contact_name,
+        email: targetEmail,
+      };
+    } else {
+      onBehalfCompanyName = onBehalfRaw;
+      dealTarget = { companyName: onBehalfRaw, contactName: null, email: null };
+    }
   }
 
   // Server-side recompute. Client totals are never trusted.
@@ -179,6 +229,10 @@ export async function submitCalculation(
     // Phase 3 Step 5: new submissions start in 'draft' so the partner sees a
     // status badge immediately. Pre-Step-5 rows stay NULL (treated as draft).
     status: "draft",
+    // partner_id stays = creator (auth.uid()); the on-behalf columns are what
+    // redirect grouping + the Pipedrive deal to the target partner.
+    on_behalf_of_partner_id: onBehalfPartnerId,
+    on_behalf_of_company_name: onBehalfCompanyName,
     project_name: input.projectName?.trim() || null,
     cameras_count: totals.cameras,
     resolution_code: RESOLUTIONS[primary.input.resolutionIdx].label,
@@ -224,7 +278,6 @@ export async function submitCalculation(
   // the user-scoped RLS view returning a row in every edge case.
   let partnerInfo = { companyName: "(unknown)", contactName: "(unknown)" };
   try {
-    const admin = createSupabaseAdminClient();
     const { data: partnerRow } = await admin
       .from("partners")
       .select("company_name, contact_name")
@@ -362,11 +415,27 @@ export async function submitCalculation(
     addOnFailoverRecorder: input.addOnFailoverRecorder,
     addOnManagementServer: input.addOnManagementServer,
   };
-  const dealPartner = {
-    companyName: partnerInfo.companyName,
-    contactName: partnerInfo.contactName,
-    email: user.email ?? "(no email on file)",
-  };
+  // For an on-behalf calc the deal is billed against the TARGET partner; the
+  // internal rep who ran it is credited via a pinned note rather than the
+  // Pipedrive owner field (ADR 0048). A normal calc uses the creator's record.
+  const dealPartner = dealTarget
+    ? {
+        companyName: dealTarget.companyName,
+        contactName: dealTarget.contactName ?? undefined,
+        email: dealTarget.email ?? undefined,
+      }
+    : {
+        companyName: partnerInfo.companyName,
+        contactName: partnerInfo.contactName,
+        email: user.email ?? "(no email on file)",
+      };
+  const onBehalfNote = dealTarget
+    ? [
+        `Created on behalf of: ${dealTarget.companyName}`,
+        `By Arxys rep: ${partnerInfo.contactName} (${user.email ?? "no email"})`,
+        `Portal user id: ${user.id}`,
+      ].join("\n")
+    : null;
 
   try {
     let dealId: number | undefined;
@@ -388,7 +457,7 @@ export async function submitCalculation(
           // The deal was deleted in Pipedrive since the source quote was filed.
           // Fall back to a fresh deal; re-throw anything else to the outer log.
           if (err instanceof PipedriveError && err.status === 404) {
-            ({ dealId } = await createDealFromSubmission(dealSubmission, recommendation, dealPartner));
+            ({ dealId } = await createDealFromSubmission(dealSubmission, recommendation, dealPartner, onBehalfNote));
           } else {
             throw err;
           }

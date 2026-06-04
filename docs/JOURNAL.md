@@ -4,6 +4,37 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-06-04 — Phase 7 Step 1: internal "on behalf of" calculations
+
+### Work done
+
+- **Migration `20260604000001_phase7_on_behalf.sql`** — additive, RLS-neutral. `partners.is_internal boolean not null default false`; `submissions.on_behalf_of_partner_id` (FK → partners) + `submissions.on_behalf_of_company_name` (text) + an index on the FK. No policy changes — the creator-based insert/select policies already cover on-behalf rows (`partner_id` stays = creator), and admins already read across partners.
+- **`src/lib/pipeline/forecast.ts`** — new `effectivePartner()` helper computes the bucket as `COALESCE(on_behalf_of_partner_id, lower(trim(company_name)), partner_id)` and resolves the display label. `groupIntoDeals` now groups by the effective partner, so every consumer follows automatically. Added the two columns to `SubmissionRow` (optional, so existing fixtures/callers compile unchanged).
+- **`SubmissionRow` queries** updated to select the new columns: admin submissions (partner-grouped view), dashboard, and the forecast XLSX route. The dashboard also resolves on-behalf FK targets' names via the admin client (the rep can't read other partners under their own RLS scope), so its grouped view shows a company name rather than a UUID.
+- **`src/app/(app)/calculator/actions.ts`** — `onBehalfOf` added to the submission schema; caller `is_internal` loaded alongside status; server-side authorization (a target is honoured only for internal callers). A typed value that exactly (case-insensitively) matches an existing partner's company binds the FK (and resolves the target's email for the Pipedrive person); otherwise it banks as free text (org-only deal). At most one of the two columns is set. The deal is billed against the target; the rep is credited via a pinned note.
+- **`src/lib/pipedrive/deal.ts`** — `DealPartnerInput.contactName/email` made optional; `createDealFromSubmission` skips the person upsert when no email is supplied (free-typed org-only) and accepts an optional pinned `onBehalfNote`. Same person guard applied to `createComparisonDeal` for type-safety.
+- **Calculator UI** — `page.tsx` loads `is_internal` and (for internal users only, via the admin client since RLS blocks listing partners) the partner company-name suggestions. `calculator-form.tsx` renders an "On behalf of" free-text + datalist field, gated on `isInternal`, mirroring the Project Name pattern.
+- **Admin surface** — invite form gains an "Internal user" checkbox (`invitePartner` writes `is_internal`); partners table gains an "Internal" column with a per-row `InternalToggle` (new `setPartnerInternal` action, `requireAdmin`-gated) to retrofit existing staff.
+- **Tests** — 4 new `groupIntoDeals` cases (FK roll-up, grouping with the target's own submissions, free-typed normalisation + label, self-serve unchanged). Full suite green (75 tests).
+
+### Detours & fixes
+
+- **Considered denormalising the company name into both columns** to give every grouped view an inline display label. Backed out to honour the brief's locked "at most one set" invariant (DB CHECK enforces it). The one place this bites — the RLS-scoped rep dashboard, which can't read other partners' names from a bare FK — is handled with a scoped service-role name lookup in the dashboard loader instead. Rationale in ADR 0045.
+- **Narrow `deal.ts` touch for the free-typed case.** `upsertPerson` has no graceful empty-email path — a free-typed target would have created a junk person. The brief sanctioned a minimal branch; `createDealFromSubmission` now skips the person upsert when no email is supplied (same guard applied to `createComparisonDeal` for type-safety). The 13 `deal.test.ts` cases stay byte-for-byte green.
+
+### Verification gates
+
+- `npm run build` — clean, all 18 routes in the manifest (`/calculator`, `/dashboard`, `/admin/partners` included).
+- `npx eslint` on all 13 changed files — 0 errors.
+- `npm test` — 75/75 green, including 4 new `groupIntoDeals` on-behalf cases and the unchanged 13 `deal.test.ts` cases.
+- `scripts/test-rls.ts` — not run (no service-role creds in this session). The change is RLS-neutral by construction: no policies added or altered, `partner_id` stays = creator, so `submissions_insert_self` / `submissions_select_own_or_admin` already cover on-behalf rows.
+- Migration reviewed: additive ALTERs + a CHECK constraint, valid syntax; paired rollback at `supabase/rollback/phase-7-step-1-rollback.sql` drops exactly the three columns (+ constraint + index). `scripts/backup-tables.ts` is a pre-push step — due before `supabase db push`, not run yet (nothing pushed).
+- `no-ai-slop` audit over user-facing strings + this entry — 0 AI-isms.
+
+### Decisions captured
+
+- [`0045-on-behalf-of-calculations.md`](./decisions/0045-on-behalf-of-calculations.md)
+
 ## 2026-06-02 — Phase 6 Step 2: VMS Selector + Validation Sheets
 
 ### Work done
