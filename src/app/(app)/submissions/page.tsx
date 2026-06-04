@@ -1,4 +1,5 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { productGroupToFamilySlug } from "@/lib/price-book/families";
 import { SUBMISSION_STATUSES, isActiveStatus, type SubmissionStatus } from "./status";
 import { Pipeline, type PipelineGroup, type PipelineRow, type StatusFilter } from "./pipeline";
@@ -29,7 +30,8 @@ export default async function PartnerSubmissionsPage({
     .from("submissions")
     .select(
       `id, project_name, recommended_units, total_list_price_usd,
-       recommended_product_id, status, is_preferred, created_at`,
+       recommended_product_id, status, is_preferred, created_at,
+       on_behalf_of_partner_id, on_behalf_of_company_name`,
     )
     .order("created_at", { ascending: false });
   if (activeStatus === "none") {
@@ -59,8 +61,37 @@ export default async function PartnerSubmissionsPage({
     status: string | null;
     is_preferred: boolean;
     created_at: string;
+    on_behalf_of_partner_id: string | null;
+    on_behalf_of_company_name: string | null;
   };
   const rows = (data ?? []) as Row[];
+
+  // On-behalf target names. A free-typed target carries its name inline; a
+  // matched partner carries only the FK, which this RLS-scoped page can't read
+  // for other partners — resolve those few ids via the admin client.
+  const obFkIds = [
+    ...new Set(
+      rows
+        .map((r) => r.on_behalf_of_partner_id)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
+  const obNameById = new Map<string, string>();
+  if (obFkIds.length > 0) {
+    const admin = createSupabaseAdminClient();
+    const { data: targets } = await admin
+      .from("partners")
+      .select("id, company_name")
+      .in("id", obFkIds);
+    for (const t of targets ?? []) obNameById.set(t.id, t.company_name);
+  }
+  function onBehalfCompany(r: Row): string | null {
+    if (r.on_behalf_of_company_name) return r.on_behalf_of_company_name;
+    if (r.on_behalf_of_partner_id) {
+      return obNameById.get(r.on_behalf_of_partner_id) ?? null;
+    }
+    return null;
+  }
 
   // Phase 2 Step 3+4: recommended_product_id is TEXT (SKU or legacy UUID). The
   // FK is gone, so batch-fetch the products for this page and join in memory.
@@ -106,12 +137,19 @@ export default async function PartnerSubmissionsPage({
 
   // Group by project name (case-insensitive). Empty/null project → ungrouped.
   // Rows arrive newest-first, so each group's rows preserve that order.
-  const grouped = new Map<string, { projectName: string | null; rows: PipelineRow[] }>();
+  const grouped = new Map<
+    string,
+    { projectName: string | null; onBehalfCompanyName: string | null; rows: PipelineRow[] }
+  >();
   for (const r of rows) {
     const trimmed = r.project_name?.trim() ?? "";
     const key = trimmed.toLowerCase();
-    if (!grouped.has(key)) grouped.set(key, { projectName: trimmed || null, rows: [] });
-    grouped.get(key)!.rows.push(toPipelineRow(r));
+    if (!grouped.has(key)) {
+      grouped.set(key, { projectName: trimmed || null, onBehalfCompanyName: null, rows: [] });
+    }
+    const g = grouped.get(key)!;
+    g.rows.push(toPipelineRow(r));
+    if (!g.onBehalfCompanyName) g.onBehalfCompanyName = onBehalfCompany(r);
   }
 
   // Sort groups: ungrouped last; among the rest, groups with an active-status
@@ -120,6 +158,7 @@ export default async function PartnerSubmissionsPage({
     .map((g) => ({
       key: g.projectName ? g.projectName.toLowerCase() : "__ungrouped__",
       projectName: g.projectName,
+      onBehalfCompanyName: g.onBehalfCompanyName,
       rows: g.rows,
     }))
     .sort((a, b) => {
