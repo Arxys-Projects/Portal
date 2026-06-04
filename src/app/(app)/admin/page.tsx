@@ -27,7 +27,7 @@ export default async function AdminOverviewPage() {
       supabase
         .from("submissions")
         .select(
-          "id, project_name, cameras_count, created_at, partners!inner(company_name)",
+          "id, project_name, cameras_count, created_at, partners!submissions_partner_id_fkey!inner(company_name)",
         )
         .order("created_at", { ascending: false })
         .limit(10),

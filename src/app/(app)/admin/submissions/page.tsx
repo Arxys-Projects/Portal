@@ -239,7 +239,7 @@ export default async function AdminSubmissionsPage({
     .select(
       `id, project_name, cameras_count, recommended_units, total_list_price_usd,
        total_partner_price_usd, recommended_product_id, status, is_preferred,
-       created_at, partners!inner(id, company_name)`,
+       created_at, partners!submissions_partner_id_fkey!inner(id, company_name)`,
       { count: "exact" },
     )
     .order("created_at", { ascending: false })
