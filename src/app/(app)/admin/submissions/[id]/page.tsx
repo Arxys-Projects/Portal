@@ -18,7 +18,7 @@ export default async function AdminSubmissionDetailPage({
   const { data: partnerRow } = await supabase
     .from("submissions")
     .select(
-      "partners!inner(id, company_name, contact_name)",
+      "partners!submissions_partner_id_fkey!inner(id, company_name, contact_name)",
     )
     .eq("id", id)
     .maybeSingle();
