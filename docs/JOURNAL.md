@@ -4,6 +4,40 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-06-04 — Phase 8 Steps A + B: CSS/copy fixes + submissions dollar totals
+
+### Work done
+
+**Step A — CSS and copy fixes**
+
+- **A1 (`videox-compare.css`)**: diff-row highlight changed from left-border-only to a full-row gold background wash (`rgba(251,176,64,0.08) !important`). Left border kept as secondary signal. The `!important` matches the existing pattern used by `.vxc-td-below`; since the below-requirement rule appears later in the file its `!important` still wins when both classes are present (red > gold for cells that are below the camera threshold AND in a diff row).
+- **A2 (`videox-compare-form.tsx`, `videox-compare.css`)**: Subtitle rewritten to two clean sentences — no em dash. Element changed from `<div>` to `<p>`. CSS `.vxc-st` max-width tightened from `620px` to `480px`; `text-align: center` added explicitly so the constrained block centers its text symmetrically within the gold-underlined header.
+- **A3 (`dashboard/page.tsx`)**: All three em dashes removed (Server Comparison description, VideoX QuickCompare description, Register a Deal description). QuickCompare description text updated to match A2 wording. All five text-link-with-arrow actions converted to filled gold `bg-[#fbb040]` buttons matching the existing "Open a Support Ticket" treatment: Compare servers, Compare models, Open price book, Support Documentation, Download XLSX. Arrows dropped. For cards where the whole card is a `<Link>`, the button is a `<span>` (valid — no nested interactive element). For the Support Documentation link (a real `<a>` inside a non-Link card) the class was applied directly to the `<a>` tag.
+
+**Step B — Submissions page dollar totals**
+
+- **`submissions/page.tsx`**: Added `partner_id` to the Supabase SELECT (already a NOT NULL column; no migration). Added `import { groupIntoDeals, computeWeightedForecast, type SubmissionRow }` from the forecast library. After loading rows, maps them to `SubmissionRow[]` and calls `groupIntoDeals(forecastRows, [])` — empty partners array is intentional: display names aren't needed for dollar summation, and on-behalf grouping still works correctly because the FK and free-typed company fields are in each row. Pre-filters out `lost` deals before `computeWeightedForecast` (see Detours). Passes `totalOpenPipeline` and `weightedForecast` as new optional props to `<Pipeline>`.
+- **`submissions/pipeline.tsx`**: Added `totalOpenPipeline?: number` and `weightedForecast?: number` props (optional so the admin view's absence of these props is a no-op). Added `fmtAmount()` helper: `$0` for zero, no decimals for round integers, two decimals otherwise. Summary bar renders between the status filter pills and the error/content block; subdued `bg-neutral-100` background with `text-sm text-neutral-600` body text — smaller than the project group headers. Bar shows even when totals are zero. Bar is hidden if props are undefined (admin context).
+- **`forecast.test.ts`**: Added one test (`computeWeightedForecast — lost excluded from open pipeline (pre-filter pattern)`) demonstrating the `deals.filter(d => d.status !== "lost")` pattern used in the page. 76/76 green.
+
+### Detours & fixes
+
+- **`computeWeightedForecast` includes `lost` in `totalOpenPipeline`.** The existing function skips `draft` and `null` but keeps `lost` (it just weights it at 0 for `weightedForecast`). For the dashboard funnel card this behaviour was intentional (it reports all-time pipeline volume). For the submissions bar the requirement explicitly excludes lost from the open-pipeline total. Rather than change the shared function (which would break the existing dashboard test and funnel card semantics), I pre-filter at the call site: `const openDeals = deals.filter(d => d.status !== "lost")`. When the user is on the "Lost" status filter, the bar correctly shows `$0 · $0`.
+- **"at a glance" in A2/A3 copy.** The general rule bans it, but the brief provides it verbatim as the required replacement text. Kept per explicit instruction. Flagged here.
+
+### Verification gates
+
+| Gate | Result |
+|---|---|
+| `npm test` | ✅ 76/76 green (75 prior + 1 new lost-exclusion test) |
+| `npm run build` | ✅ Clean — 22 routes, 0 errors |
+| `npx eslint` (5 changed files) | ✅ 0 errors |
+| Em-dash audit (`dashboard/page.tsx`) | ✅ 0 em dashes remain |
+| Em-dash audit (`videox-compare-form.tsx`) | ✅ 0 em dashes remain |
+| Scope guard: no migration, no admin view changes, no RLS changes | ✅ Confirmed |
+
+---
+
 ## 2026-06-04 — Phase 7 Step 1: internal "on behalf of" calculations
 
 ### Work done

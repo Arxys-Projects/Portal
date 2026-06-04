@@ -170,10 +170,10 @@ export default async function DashboardPage() {
               VMS Server Comparison
             </h2>
             <p className="mt-1 text-sm text-neutral-600">
-              See how Arxys VideoX stacks up against Milestone and Avigilon appliances — spec for spec, price for price.
+              See how Arxys VideoX stacks up against Milestone and Avigilon appliances. Spec for spec, price for price.
             </p>
-            <p className="mt-3 text-sm font-medium text-[#fbb040]">
-              Compare servers →
+            <p className="mt-3">
+              <span className="inline-flex w-fit items-center rounded bg-[#fbb040] px-4 py-2 text-sm font-semibold text-[#1a1a1a] transition hover:bg-[#e69e2c]">Compare servers</span>
             </p>
           </Link>
 
@@ -186,10 +186,10 @@ export default async function DashboardPage() {
               VideoX Model Quick Compare
             </h2>
             <p className="mt-1 text-sm text-neutral-600">
-              Compare all VideoX V5 NVR models side by side — specs, features, and capabilities at a glance.
+              Compare every VideoX V5 NVR model side by side. Specs, features, and capabilities at a glance.
             </p>
-            <p className="mt-3 text-sm font-medium text-[#fbb040]">
-              Compare models →
+            <p className="mt-3">
+              <span className="inline-flex w-fit items-center rounded bg-[#fbb040] px-4 py-2 text-sm font-semibold text-[#1a1a1a] transition hover:bg-[#e69e2c]">Compare models</span>
             </p>
           </Link>
 
@@ -204,8 +204,8 @@ export default async function DashboardPage() {
             <p className="mt-1 text-sm text-neutral-600">
               Browse families, specs, and current MSRPs.
             </p>
-            <p className="mt-3 text-sm font-medium text-[#054A91]">
-              Open price book →
+            <p className="mt-3">
+              <span className="inline-flex w-fit items-center rounded bg-[#fbb040] px-4 py-2 text-sm font-semibold text-[#1a1a1a] transition hover:bg-[#e69e2c]">Open price book</span>
             </p>
           </Link>
 
@@ -220,9 +220,9 @@ export default async function DashboardPage() {
                 href="https://www.arxys.com/company/support/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-sm font-medium text-[#054A91] hover:underline"
+                className="inline-flex w-fit items-center rounded bg-[#fbb040] px-4 py-2 text-sm font-semibold text-[#1a1a1a] transition hover:bg-[#e69e2c]"
               >
-                Support Documentation →
+                Support Documentation
               </a>
               <a
                 href="https://arxys.supportsystem.com/"
@@ -247,8 +247,8 @@ export default async function DashboardPage() {
               Download the current VideoX MSRP price book as an Excel
               spreadsheet.
             </p>
-            <p className="mt-3 text-sm font-medium text-[#fbb040]">
-              Download XLSX →
+            <p className="mt-3">
+              <span className="inline-flex w-fit items-center rounded bg-[#fbb040] px-4 py-2 text-sm font-semibold text-[#1a1a1a] transition hover:bg-[#e69e2c]">Download XLSX</span>
             </p>
           </Link>
 
@@ -258,8 +258,7 @@ export default async function DashboardPage() {
               Register a Deal
             </h2>
             <p className="mt-1 text-sm text-neutral-600">
-              Lock in partner protection on a specific opportunity — Andy will
-              follow up.
+              Lock in partner protection on a specific opportunity. Andy will follow up.
             </p>
             <div className="mt-4">
               <RegisterDealForm

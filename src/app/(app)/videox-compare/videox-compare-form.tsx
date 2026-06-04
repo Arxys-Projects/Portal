@@ -76,10 +76,9 @@ export function VideoxCompareForm({ models, specs, sections, footnote }: Props) 
       {/* Header */}
       <div className="vxc-hdr">
         <div className="vxc-t">VideoX Model Quick Compare</div>
-        <div className="vxc-st">
-          Every VideoX V5 NVR model, side by side — specs, features, and
-          capabilities at a glance.
-        </div>
+        <p className="vxc-st">
+          Compare every VideoX V5 NVR model side by side. Specs, features, and capabilities at a glance.
+        </p>
       </div>
 
       {/* Controls */}

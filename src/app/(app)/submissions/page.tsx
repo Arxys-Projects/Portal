@@ -3,6 +3,7 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { productGroupToFamilySlug } from "@/lib/price-book/families";
 import { SUBMISSION_STATUSES, isActiveStatus, type SubmissionStatus } from "./status";
 import { Pipeline, type PipelineGroup, type PipelineRow, type StatusFilter } from "./pipeline";
+import { groupIntoDeals, computeWeightedForecast, type SubmissionRow } from "@/lib/pipeline/forecast";
 
 // A UUID-shaped recommended_product_id signals a pre-Step-3+4 submission whose
 // FK target was dropped. Post-migration rows carry SKU strings.
@@ -29,7 +30,7 @@ export default async function PartnerSubmissionsPage({
   let query = supabase
     .from("submissions")
     .select(
-      `id, project_name, recommended_units, total_list_price_usd,
+      `id, partner_id, project_name, recommended_units, total_list_price_usd,
        recommended_product_id, status, is_preferred, created_at,
        on_behalf_of_partner_id, on_behalf_of_company_name`,
     )
@@ -54,6 +55,7 @@ export default async function PartnerSubmissionsPage({
 
   type Row = {
     id: string;
+    partner_id: string;
     project_name: string | null;
     recommended_units: number;
     total_list_price_usd: number | null;
@@ -173,5 +175,31 @@ export default async function PartnerSubmissionsPage({
       return bRecent.localeCompare(aRecent);
     });
 
-  return <Pipeline groups={groups} activeStatus={activeStatus} />;
+  // Dollar totals for the summary bar. Uses groupIntoDeals to dedup correctly
+  // (including on-behalf grouping). Lost deals are excluded from open pipeline
+  // — computeWeightedForecast already skips draft/null; lost is pre-filtered here.
+  const forecastRows: SubmissionRow[] = rows.map((r) => ({
+    id: r.id,
+    partner_id: r.partner_id,
+    project_name: r.project_name,
+    status: r.status,
+    is_preferred: r.is_preferred,
+    total_list_price_usd: r.total_list_price_usd,
+    pipedrive_deal_id: null,
+    created_at: r.created_at,
+    on_behalf_of_partner_id: r.on_behalf_of_partner_id,
+    on_behalf_of_company_name: r.on_behalf_of_company_name,
+  }));
+  const deals = groupIntoDeals(forecastRows, []);
+  const openDeals = deals.filter((d) => d.status !== "lost");
+  const { totalOpenPipeline, weightedForecast } = computeWeightedForecast(openDeals);
+
+  return (
+    <Pipeline
+      groups={groups}
+      activeStatus={activeStatus}
+      totalOpenPipeline={totalOpenPipeline}
+      weightedForecast={weightedForecast}
+    />
+  );
 }

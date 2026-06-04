@@ -178,6 +178,22 @@ describe("computeWeightedForecast — weighted sum", () => {
   });
 });
 
+describe("computeWeightedForecast — lost excluded from open pipeline (pre-filter pattern)", () => {
+  it("lost deals are absent from totalOpenPipeline when filtered out before forecasting", () => {
+    const deals = groupIntoDeals(
+      [
+        sub({ id: "s1", status: "sent", total_list_price_usd: 10000 }),
+        sub({ id: "s2", project_name: "B", status: "lost", total_list_price_usd: 50000 }),
+      ],
+      PARTNERS,
+    );
+    const openDeals = deals.filter((d) => d.status !== "lost");
+    const { totalOpenPipeline, weightedForecast } = computeWeightedForecast(openDeals);
+    assert.equal(totalOpenPipeline, 10000);
+    assert.equal(weightedForecast, 4000);
+  });
+});
+
 describe("computeWeightedForecast — drafts excluded", () => {
   it("excludes draft submissions from pipeline dollars and weighted forecast", () => {
     const deals = groupIntoDeals(

@@ -41,7 +41,7 @@
 #arxys-vxc-root .vxc-hdr { text-align: center; margin-bottom: 20px; padding-bottom: 18px; position: relative; }
 #arxys-vxc-root .vxc-hdr::after { content: ""; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 80px; height: 3px; background: linear-gradient(90deg, var(--color-arxys-gold), #f59e0b); border-radius: 2px; }
 #arxys-vxc-root .vxc-t { font-size: clamp(26px, 5vw, 36px); font-weight: 800; letter-spacing: -0.5px; color: var(--color-arxys-gold); }
-#arxys-vxc-root .vxc-st { color: var(--vxc-td); font-size: clamp(12px, 2vw, 16px); margin-top: 6px; max-width: 620px; margin-left: auto; margin-right: auto; }
+#arxys-vxc-root .vxc-st { color: var(--vxc-td); font-size: clamp(12px, 2vw, 16px); margin-top: 6px; max-width: 480px; margin-left: auto; margin-right: auto; text-align: center; }
 
 /* Controls row */
 #arxys-vxc-root .vxc-controls { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end; justify-content: space-between; background: var(--vxc-cd); border: 2px solid var(--vxc-bd); border-radius: var(--vxc-r); padding: 14px 18px; margin-bottom: 16px; box-shadow: var(--vxc-ss); }
@@ -110,7 +110,8 @@
 #arxys-vxc-root .vxc-row:hover .vxc-td-label { background: var(--vxc-ip); }
 
 /* Diff highlight (compare mode, values differ across selected models) */
-#arxys-vxc-root .vxc-row-diff .vxc-td-label { border-left: 3px solid var(--color-arxys-gold); }
+#arxys-vxc-root .vxc-row-diff td { background: rgba(251, 176, 64, 0.08) !important; }
+#arxys-vxc-root .vxc-row-diff .vxc-td-label { border-left: 3px solid var(--color-arxys-gold); background: rgba(251, 176, 64, 0.08) !important; }
 
 /* Section divider rows */
 #arxys-vxc-root .vxc-section-row .vxc-section-cell { position: sticky; left: 0; background: var(--vxc-section-bg); color: var(--color-arxys-navy); text-align: left; font-size: 11.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.8px; padding: 8px 14px; border-bottom: 1px solid var(--vxc-bd); }

@@ -83,12 +83,22 @@ function TrashIcon() {
   );
 }
 
+function fmtAmount(n: number): string {
+  if (n === 0) return "$0";
+  if (n === Math.floor(n)) return `$${n.toLocaleString()}`;
+  return `$${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
 export function Pipeline({
   groups,
   activeStatus,
+  totalOpenPipeline,
+  weightedForecast,
 }: {
   groups: PipelineGroup[];
   activeStatus: StatusFilter;
+  totalOpenPipeline?: number;
+  weightedForecast?: number;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -159,6 +169,16 @@ export function Pipeline({
           );
         })}
       </div>
+
+      {totalOpenPipeline !== undefined && weightedForecast !== undefined ? (
+        <div className="mt-3 rounded bg-neutral-100 px-4 py-2 text-sm text-neutral-600">
+          <span className="font-medium text-neutral-800">Open Pipeline:</span>{" "}
+          {fmtAmount(totalOpenPipeline)}
+          {" · "}
+          <span className="font-medium text-neutral-800">Weighted Forecast:</span>{" "}
+          {fmtAmount(weightedForecast)}
+        </div>
+      ) : null}
 
       {error ? (
         <p className="mt-4 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
