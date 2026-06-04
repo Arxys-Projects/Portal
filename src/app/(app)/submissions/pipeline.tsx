@@ -33,6 +33,8 @@ export type PipelineRow = {
 export type PipelineGroup = {
   key: string;
   projectName: string | null; // null = ungrouped
+  // Set when the project was run on behalf of a partner (internal users only).
+  onBehalfCompanyName?: string | null;
   rows: PipelineRow[];
 };
 
@@ -184,12 +186,17 @@ export function Pipeline({
               key={group.key}
               className="overflow-hidden rounded-lg border border-neutral-200 bg-white"
             >
-              <header className="border-b border-neutral-200 bg-neutral-50 px-4 py-2">
+              <header className="flex flex-wrap items-center gap-2 border-b border-neutral-200 bg-neutral-50 px-4 py-2">
                 <h2 className="text-sm font-semibold text-neutral-900">
                   {group.projectName ?? (
                     <span className="text-neutral-500">Ungrouped</span>
                   )}
                 </h2>
+                {group.onBehalfCompanyName ? (
+                  <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800">
+                    On behalf of {group.onBehalfCompanyName}
+                  </span>
+                ) : null}
               </header>
               <table className="w-full text-sm">
                 <thead className="text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">
