@@ -259,6 +259,7 @@
 @keyframes ax-spin { to { transform: rotate(360deg); } }
 #arxys-calc-root .ax-save-btn:hover { background: #e69e2c; box-shadow: var(--sm); }
 #arxys-calc-root .ax-save-btn:disabled { background: var(--tl); border-color: var(--tl); cursor: not-allowed; box-shadow: none; }
+#arxys-calc-root .ax-save-btn[data-saving]:disabled { background: #fbb040; border-color: #fbb040; cursor: wait; }
 #arxys-calc-root .ax-save-hint { font-size: 13px; color: var(--td); }
 
 #arxys-calc-root .ax-rec-err {

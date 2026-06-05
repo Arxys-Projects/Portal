@@ -380,6 +380,7 @@ export function CalculatorForm({
             type="button"
             className="ax-save-btn"
             disabled={!hasInteracted || isSubmitting}
+            data-saving={isSubmitting || undefined}
             onClick={() => {
               setResultDismissed(false);
               submitAction({
