@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useMemo, useState } from "react";
+import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 import {
   CODECS,
   COMPLEXITIES,
@@ -135,6 +135,13 @@ export function CalculatorForm({
     submitCalculation,
     INITIAL_STATE,
   );
+
+  const resultRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (submitState.status === "ok" && !resultDismissed) {
+      resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [submitState.status, submitState, resultDismissed]);
 
   const touch = () => {
     if (!hasInteracted) setHasInteracted(true);
@@ -397,6 +404,12 @@ export function CalculatorForm({
               });
             }}
           >
+            {isSubmitting && (
+              <svg className="ax-save-spinner" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeOpacity="0.25" />
+                <path d="M22 12a10 10 0 0 0-10-10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+              </svg>
+            )}
             {isSubmitting ? "Saving…" : "Save & request quote"}
           </button>
           <button
@@ -774,7 +787,9 @@ export function CalculatorForm({
       )}
 
       {submitState.status === "ok" && !resultDismissed && (
-        <RecommendationPanel state={submitState} />
+        <div ref={resultRef}>
+          <RecommendationPanel state={submitState} />
+        </div>
       )}
     </div>
   );

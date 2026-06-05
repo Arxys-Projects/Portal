@@ -3,6 +3,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import Footer from "@/app/(app)/_components/footer";
 import RegisterDealForm from "./register-deal-form";
+import HelpModal from "./help-modal";
 import { groupIntoDeals, computeWeightedForecast, type SubmissionRow } from "@/lib/pipeline/forecast";
 import { STATUS_META, type SubmissionStatus } from "@/app/(app)/submissions/status";
 
@@ -77,9 +78,12 @@ export default async function DashboardPage() {
   return (
     <div className="min-h-screen bg-neutral-50">
       <div className="mx-auto max-w-4xl px-4 py-10">
-        <h1 className="text-3xl font-semibold text-neutral-900">
-          Arxys Partner Dashboard
-        </h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-3xl font-semibold text-neutral-900">
+            Arxys Partner Dashboard
+          </h1>
+          <HelpModal />
+        </div>
         {partner?.company_name && (
           <p className="mt-1 text-sm text-neutral-500">
             for: {partner.company_name}
