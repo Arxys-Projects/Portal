@@ -258,6 +258,58 @@ export async function resendInvite(
   return { status: "ok", message: `Invite re-sent to ${email}.` };
 }
 
+const nameFieldSchema = z.string().trim().min(1).max(120);
+
+// Admin-only edit of a partner's display name fields. Used to correct test
+// records and align names with the matching Pipedrive organization/contact.
+// The partners table is the source of truth the portal reads everywhere
+// (calculator, submissions, PDF), so updating it here is sufficient — the
+// names copied into auth user_metadata at invite time are never read after the
+// invite.
+async function updatePartnerNameField(
+  formData: FormData,
+  column: "company_name" | "contact_name",
+  formField: string,
+  label: string,
+): Promise<SimpleActionState> {
+  const gate = await requireAdmin();
+  if (!gate.ok) return { status: "error", error: gate.error };
+  const targetId = String(formData.get("id") ?? "");
+  if (!targetId) return { status: "error", error: "Missing partner id." };
+
+  const parsed = nameFieldSchema.safeParse(formData.get(formField));
+  if (!parsed.success) {
+    return {
+      status: "error",
+      error: `${label} must be between 1 and 120 characters.`,
+    };
+  }
+
+  const admin = createSupabaseAdminClient();
+  const { error } = await admin
+    .from("partners")
+    .update({ [column]: parsed.data })
+    .eq("id", targetId);
+  if (error) return { status: "error", error: error.message };
+
+  revalidatePath("/admin/partners");
+  return { status: "ok", message: `${label} updated.` };
+}
+
+export async function updatePartnerCompanyName(
+  _prev: SimpleActionState | null,
+  formData: FormData,
+): Promise<SimpleActionState> {
+  return updatePartnerNameField(formData, "company_name", "companyName", "Company name");
+}
+
+export async function updatePartnerContactName(
+  _prev: SimpleActionState | null,
+  formData: FormData,
+): Promise<SimpleActionState> {
+  return updatePartnerNameField(formData, "contact_name", "contactName", "Contact name");
+}
+
 // Phase 7 Step 1 — mark/unmark a partner as an internal Arxys user. Needed to
 // retrofit staff who were invited as plain partners before this flag existed.
 // is_internal authorizes running calcs on behalf of other partners.

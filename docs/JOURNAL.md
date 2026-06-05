@@ -4,6 +4,34 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-06-05 — Admin-editable partner company + contact name
+
+### Work done
+
+Admins can now edit a partner's (or internal user's) display **company name and contact name** from the partners list, to fix test records and align names with the matching Pipedrive organization/contact.
+
+- **`src/app/(app)/admin/partners/actions.ts`** — `updatePartnerCompanyName` and `updatePartnerContactName` server actions, both thin wrappers over a shared `updatePartnerNameField(formData, column, formField, label)` helper. Gated by the local admin-only `requireAdmin()` (not `requireAdminOrInternal`, matching suspend/reactivate/internal-toggle). Validates with `nameFieldSchema` (`z.string().trim().min(1).max(120)`, same bounds as the invite form), writes the target column via the service-role admin client, then `revalidatePath("/admin/partners")`.
+- **`src/app/(app)/admin/partners/partner-row-actions.tsx`** — `EditableName` client component, generic over the field: takes `value`, `fieldName`, `label`, and the server `action` as props so one component serves both columns. Display mode shows the value plus an "Edit" button; edit mode swaps in a text input with Save / Cancel.
+- **`src/app/(app)/admin/partners/page.tsx`** — the Company and Contact cells each render `EditableName` (with the matching action) when `isAdmin`, otherwise plain text (internal users keep read-only access, same gating as the other row controls).
+
+No migration and no RLS change: both columns already exist, and every admin mutation on this page already goes through the service-role client (which bypasses RLS). Admin-only is enforced server-side in the action, not just in the UI. The names copied into auth `user_metadata` at invite time are intentionally left untouched — they are never read after the invite; the `partners` table is the source of truth everywhere the portal reads it (calculator, submissions, PDF).
+
+**Manual verification:** as an admin, open `/admin/partners`, click **Edit** on a row's Company or Contact cell, change the value, and **Save** — the row refreshes with the new value and it flows through to that partner's submissions/PDF. Confirm an internal (non-admin) user sees both names as plain text with no Edit control.
+
+### Detours & fixes
+
+- **`setState` in `useEffect` rejected by lint.** First pass closed the editor from a `useEffect` watching the action result; the React 19 `react-hooks/set-state-in-effect` rule errors on that, and it also mishandled re-editing after a save (stale "ok" state). Reworked to call the action inside `useTransition` and collapse the editor (or set the error) from the transition callback — no effect, and the state resets cleanly per edit.
+
+### Verification gates
+
+| Gate | Result |
+|---|---|
+| `npx eslint` (3 changed files) | ✅ 0 errors |
+| `npm run build` | ✅ Clean |
+| `npm test` | ✅ 77/77 (no test-covered logic changed) |
+
+---
+
 ## 2026-06-05 — Phase 9 Step 1: System estimate PDF
 
 ### Work done

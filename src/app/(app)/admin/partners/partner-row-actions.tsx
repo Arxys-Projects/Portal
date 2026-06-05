@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState, useTransition } from "react";
 import {
   reactivatePartner,
   resendInvite,
@@ -97,6 +97,104 @@ export function InternalToggle({
       </button>
       {state.status === "error" ? (
         <span className="max-w-[12rem] text-xs text-red-600">{state.error}</span>
+      ) : null}
+    </form>
+  );
+}
+
+// Admin-only inline edit of a partner name field (company or contact). Display
+// mode shows the value with an Edit affordance; edit mode swaps in a text input
+// with Save / Cancel. The server action is passed in so one component serves
+// both columns. revalidatePath in the action refreshes the server component, so
+// the `value` prop reflects the saved name; we collapse back to display on a
+// successful save.
+export function EditableName({
+  id,
+  value,
+  fieldName,
+  label,
+  action,
+}: {
+  id: string;
+  value: string;
+  fieldName: string;
+  label: string;
+  action: (
+    prev: SimpleActionState | null,
+    formData: FormData,
+  ) => Promise<SimpleActionState>;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+
+  // Call the action in a transition so we can close the editor on success
+  // (and surface the error otherwise) from the callback — not from an effect.
+  function onSubmit(formData: FormData) {
+    startTransition(async () => {
+      const res = await action(null, formData);
+      if (res.status === "error") {
+        setError(res.error);
+      } else {
+        setError(null);
+        setEditing(false);
+      }
+    });
+  }
+
+  if (!editing) {
+    return (
+      <div className="inline-flex items-center gap-2">
+        <span className="text-neutral-900">{value}</span>
+        <button
+          type="button"
+          onClick={() => {
+            setError(null);
+            setEditing(true);
+          }}
+          className="rounded border border-neutral-300 px-1.5 py-0.5 text-xs font-medium text-neutral-600 hover:bg-neutral-100"
+          title={`Edit ${label}`}
+        >
+          Edit
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <form action={onSubmit} className="inline-flex flex-col items-start gap-1">
+      <input type="hidden" name="id" value={id} />
+      <div className="inline-flex items-center gap-1">
+        <input
+          name={fieldName}
+          defaultValue={value}
+          autoFocus
+          maxLength={120}
+          required
+          aria-label={label}
+          className="w-48 rounded border border-neutral-300 px-2 py-1 text-sm text-neutral-900 focus:border-blue-400 focus:outline-none"
+        />
+        <button
+          type="submit"
+          disabled={pending}
+          className="rounded border border-blue-300 px-2 py-1 text-xs font-medium text-blue-700 hover:bg-blue-50 disabled:opacity-50"
+        >
+          {pending ? "…" : "Save"}
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setError(null);
+            setEditing(false);
+          }}
+          disabled={pending}
+          className="rounded border border-neutral-300 px-2 py-1 text-xs font-medium text-neutral-600 hover:bg-neutral-100 disabled:opacity-50"
+        >
+          Cancel
+        </button>
+      </div>
+      {error ? (
+        <span className="max-w-[16rem] text-xs text-red-600">{error}</span>
       ) : null}
     </form>
   );

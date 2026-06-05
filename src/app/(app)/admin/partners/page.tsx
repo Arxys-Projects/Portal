@@ -2,7 +2,8 @@ import Link from "next/link";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireAdminOrInternal } from "@/lib/auth/require-admin-or-internal";
-import { InternalToggle, PartnerRowActions } from "./partner-row-actions";
+import { EditableName, InternalToggle, PartnerRowActions } from "./partner-row-actions";
+import { updatePartnerCompanyName, updatePartnerContactName } from "./actions";
 
 function formatDate(value: string | null | undefined): string {
   if (!value) return "—";
@@ -112,8 +113,32 @@ export default async function AdminPartnersPage() {
             <tbody className="divide-y divide-neutral-100">
               {partners.map((p) => (
                 <tr key={p.id}>
-                  <td className="px-4 py-3 text-neutral-900">{p.company_name}</td>
-                  <td className="px-4 py-3 text-neutral-700">{p.contact_name}</td>
+                  <td className="px-4 py-3 text-neutral-900">
+                    {isAdmin ? (
+                      <EditableName
+                        id={p.id}
+                        value={p.company_name}
+                        fieldName="companyName"
+                        label="company name"
+                        action={updatePartnerCompanyName}
+                      />
+                    ) : (
+                      p.company_name
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-neutral-700">
+                    {isAdmin ? (
+                      <EditableName
+                        id={p.id}
+                        value={p.contact_name}
+                        fieldName="contactName"
+                        label="contact name"
+                        action={updatePartnerContactName}
+                      />
+                    ) : (
+                      p.contact_name
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-neutral-600">
                     {emailById.get(p.id) ?? "—"}
                   </td>
