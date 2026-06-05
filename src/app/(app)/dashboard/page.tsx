@@ -15,7 +15,7 @@ export default async function DashboardPage() {
   const { data: partner } = user
     ? await supabase
         .from("partners")
-        .select("id, role, company_name, contact_name, email")
+        .select("id, role, company_name, contact_name")
         .eq("id", user.id)
         .maybeSingle()
     : { data: null };
@@ -265,7 +265,7 @@ export default async function DashboardPage() {
                 partnerId={partner?.id ?? ""}
                 companyName={partner?.company_name ?? ""}
                 contactName={partner?.contact_name ?? ""}
-                partnerEmail={partner?.email ?? user?.email ?? ""}
+                partnerEmail={user?.email ?? ""}
               />
             </div>
           </div>

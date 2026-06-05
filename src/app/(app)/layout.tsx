@@ -88,7 +88,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
                 href="/submissions"
                 className="px-3 py-1.5 text-neutral-600 hover:text-neutral-900 rounded hover:bg-neutral-100"
               >
-                My Pipeline
+                Pipeline
               </Link>
               <Link
                 href="/videox-compare"
@@ -108,7 +108,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
                     href="/admin/submissions?groupBy=partner"
                     className="px-3 py-1.5 text-neutral-600 hover:text-neutral-900 rounded hover:bg-neutral-100"
                   >
-                    All Submissions
+                    Submissions
                   </Link>
                   <Link
                     href="/admin/partners"

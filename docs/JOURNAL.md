@@ -4,6 +4,27 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-06-05 — Fix: dashboard deal registration + header nav labels
+
+### Work done
+
+- **Register a Deal was broken** — submitting failed with the raw Zod message "Too small: expected string to have >=1 characters". Root cause: `dashboard/page.tsx` selected a non-existent `email` column from `partners` (emails live on `auth.users`, not `partners`). Supabase returned an error, but only `data` was destructured so the error was swallowed and `partner` came back `null`. That made the hidden `partnerId` field empty, so the action's `partnerId: z.string().min(1)` check failed with its default message. Fixed by dropping `email` from the select and sourcing the partner email from `user?.email` (the form's existing fallback). The form's other partner fields now populate correctly too.
+- **Header nav wrapped to two lines** — renamed "My Pipeline" → "Pipeline" and "All Submissions" → "Submissions" in `layout.tsx` so the admin/internal nav fits on one line.
+
+### Detours & fixes
+
+- The swallowed-error pattern (`const { data } = await supabase...`, no `error`) is what hid this for so long — the page rendered fine apart from the empty partner context, so it only surfaced when the deal form tried to use `partnerId`. Worth watching for elsewhere, but not refactored here.
+
+### Verification gates
+
+| Gate | Result |
+|---|---|
+| `npx eslint` (2 changed files) | ✅ 0 errors (pre-existing `<img>` warning in layout.tsx unchanged) |
+| `npm run build` | ✅ Clean |
+| Confirmed `partners` has no `email` column (initial schema migration) | ✅ |
+
+---
+
 ## 2026-06-05 — Admin-editable partner company + contact name
 
 ### Work done
