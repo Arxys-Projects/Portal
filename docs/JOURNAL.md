@@ -4,6 +4,43 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-06-04 — Phase 8 Step C: internal user role escalation
+
+### Work done
+
+- **Migration `20260604000002_internal_user_read_submissions.sql`** — additive. One `submissions_select_internal` policy that grants SELECT to any partner with `is_internal = true`. Postgres OR's permissive SELECT policies, so `submissions_select_own_or_admin` keeps covering regular partners and admins unchanged. Mutating policies (`submissions_update_own`, `submissions_delete_own_draft`) are untouched, so internal users get read-only cross-partner access. Paired rollback at `supabase/rollback/phase-8-step-c-rollback.sql` drops exactly the new policy.
+- **`src/lib/auth/require-admin-or-internal.ts`** — new shared helper. Returns `{ ok: true, userId, isAdmin, isInternal }` on pass, `{ ok: false, error }` otherwise. Status must be `active`; admin OR internal qualifies. Used by the admin layout, the partners list/invite pages, and the admin submissions page.
+- **`src/app/(app)/admin/layout.tsx`** — gate switched from inline `role === "admin"` check to `requireAdminOrInternal()`. Same `notFound()` failure mode, so non-admin-non-internal partners get a 404, not a 403. Internal users now reach `/admin/partners`, `/admin/submissions`, and `/admin` (the overview is read-only RLS-scoped, so it shows the same partner + submission counts admins see).
+- **Invite flow** — `invitePartner` action now calls `requireAdminOrInternal()`. The `isInternal` form input is honoured only when `gate.isAdmin` is true; non-admin callers get `is_internal = false` written regardless of what they submit (server-side enforcement, defence-in-depth on top of the now-conditional UI). The "Internal user" checkbox in `invite-form.tsx` is gated behind a new `showInternalToggle` prop; the new-partner page passes `gate.isAdmin` into it. Other partner actions (`suspendPartner`, `reactivatePartner`, `resendInvite`, `setPartnerInternal`) keep the local admin-only `requireAdmin()` helper.
+- **`admin/partners/page.tsx`** — page-level `requireAdminOrInternal()` to compute `isAdmin`. Internal users see the table but the `InternalToggle` is replaced with a static "Internal ✓" / "—" label, and `PartnerRowActions` is replaced with "—". The "Invite partner" link stays for both.
+- **`admin/submissions/page.tsx`** — page-level `requireAdminOrInternal()` to compute `isAdmin`. The XLSX export button (`showExport`) is gated on `isAdmin`. In the flat project view, the per-row `RowControls` (status select + Delete) is replaced for non-admins by a plain `STATUS_META[...].label` span. The partner-grouped view has no edit controls of its own, so internal users see the full accordion + drill-down read-only. The XLSX route (`/api/admin/forecast/xlsx`) already gates on `role = admin` → 403 for internal users; no change needed there. Action handlers (`adminUpdateStatus`, `adminDeleteSubmission`) keep their `role = admin` re-check.
+- **`src/app/(app)/layout.tsx`** — `partner` SELECT now pulls `is_internal`. New `isAdminOrInternal` flag exposes nav links to `/admin/submissions?groupBy=partner` ("All Submissions") and `/admin/partners` ("Partners") whenever the flag is true. The orange "Admin" pill remains admin-only.
+- **`scripts/test-rls.ts`** — `provisionPersona()` gains an `isInternal` option; a new `internalPersona` is provisioned alongside A, B, and the admin persona. Four new assertions: 8d (internal SELECTs B's submissions), 8e (internal UPDATE on B's row → 0 affected), 8f (internal DELETE on B's row → 0 affected), 8g (regular partner A still cannot SELECT B's submissions — confirms the policy doesn't leak). Cleanup tears down the internal persona too.
+
+### Detours & fixes
+
+- **Where the gate lives.** The brief reads as "change `requireAdmin()` to `requireAdminOrInternal()` at the page level," but the admin pages don't have page-level `requireAdmin()` calls in the first place — gating is done by `admin/layout.tsx` for the whole subtree, plus per-action checks. Moved the layout gate to the new helper (which fail-closes the same way for non-admin-non-internal) and added per-page `requireAdminOrInternal()` calls only where the page needs `isAdmin` as data to gate sub-controls (partners list, submissions list). The new-partner page gets a defence-in-depth re-call so the `isAdmin` it passes to `InviteForm` can't be spoofed by editing the URL.
+- **Suspended-internal-user case.** The helper requires `status = "active"` for both paths. A suspended internal user falls through to "Not authorized." → layout `notFound()` → same behaviour as a suspended admin. The RLS policy itself is unguarded by status (it only checks `is_internal = true`), but the layout closes the door before the page can issue any queries. If we ever needed to enforce this purely at the policy level, the policy would also need `and partners.status = 'active'` — flagged here, not changed today.
+- **Internal user reaching `/admin` overview.** Brief is silent on this. The overview is read-only and shows the same data internal users will see via the explicit nav links anyway; gating it separately would add a special-case rendering path for no obvious benefit. Left it accessible.
+- **RLS tests not run in this session.** `scripts/test-rls.ts` needs service-role creds (same constraint flagged in the Phase 7 Step 1 journal entry). The test additions are reviewed visually and the policy is constructively safe (no `for all`, only `for select`; admin/own-row policies are unchanged). Andy will run the script after `supabase db push` per the verification recipe.
+
+### Verification gates
+
+| Gate | Result |
+|---|---|
+| `npm test` | ✅ 76/76 green (no test changes; covers existing forecast/recommend suites) |
+| `npm run build` | ✅ Clean — 22 routes, 0 errors |
+| `npx eslint` (8 changed files + the RLS script) | ✅ 0 errors (1 pre-existing `<img>` warning in `app/(app)/layout.tsx` unchanged) |
+| Migration review | ✅ One additive `create policy`; no table changes, no policy drops. Paired rollback drops exactly that policy. |
+| `scripts/test-rls.ts` | ⏭ Not run (no service-role creds in this session). 4 new assertions added; runs as part of Andy's pre-push checklist. |
+| `no-ai-slop` audit on new user-facing strings (`All Submissions`, `Partners` nav labels, `Internal ✓` / `—` cell placeholders) | ✅ No banned phrases. |
+
+### Decisions captured
+
+- No new ADR. The choice is mechanically additive (one RLS policy, layout gate widening, per-control admin gates) and follows the precedent set by ADR 0045 / Phase 7 Step 1 — `is_internal` already exists as the authorization flag. No alternative was seriously considered.
+
+---
+
 ## 2026-06-04 — Phase 8 Steps A + B: CSS/copy fixes + submissions dollar totals
 
 ### Work done

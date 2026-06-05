@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { requireAdminOrInternal } from "@/lib/auth/require-admin-or-internal";
 import {
   STATUS_META,
   SUBMISSION_STATUSES,
@@ -80,6 +81,12 @@ export default async function AdminSubmissionsPage({
   } = await searchParams;
 
   const isPartnerGrouped = groupBy === "partner";
+
+  // Phase 8 Step C — internal users see this page read-only. isAdmin gates
+  // the XLSX export and per-row status / delete controls. The action handlers
+  // themselves still re-check role = admin (defense in depth).
+  const gate = await requireAdminOrInternal();
+  const isAdmin = gate.ok && gate.isAdmin;
 
   const supabase = await createSupabaseServerClient();
 
@@ -215,7 +222,7 @@ export default async function AdminSubmissionsPage({
           statusParam={statusParam}
           fromDate={fromDate}
           toDate={toDate}
-          showExport
+          showExport={isAdmin}
         />
         <PartnerGroupView
           groups={groups}
@@ -364,10 +371,16 @@ export default async function AdminSubmissionsPage({
                       {recommendationLabel}
                     </td>
                     <td className="px-4 py-2">
-                      <RowControls
-                        submissionId={r.id}
-                        status={r.status as SubmissionStatus | null}
-                      />
+                      {isAdmin ? (
+                        <RowControls
+                          submissionId={r.id}
+                          status={r.status as SubmissionStatus | null}
+                        />
+                      ) : (
+                        <span className="text-xs text-neutral-600">
+                          {r.status ? STATUS_META[r.status as SubmissionStatus].label : "—"}
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-2">
                       <div className="flex justify-center">

@@ -11,7 +11,7 @@ function FieldError({ errors }: { errors?: string[] }) {
   return <p className="mt-1 text-xs text-red-600">{errors[0]}</p>;
 }
 
-export function InviteForm() {
+export function InviteForm({ showInternalToggle = false }: { showInternalToggle?: boolean }) {
   const [state, formAction, pending] = useActionState<InviteState, FormData>(
     invitePartner,
     INITIAL,
@@ -69,23 +69,25 @@ export function InviteForm() {
         />
         <FieldError errors={fieldErrors?.companyName} />
       </div>
-      <div>
-        <label className="flex items-start gap-2 text-sm text-neutral-700">
-          <input
-            id="isInternal"
-            name="isInternal"
-            type="checkbox"
-            className="mt-0.5 h-4 w-4 rounded border-neutral-300"
-          />
-          <span>
-            <span className="font-medium">Internal user</span>
-            <span className="block text-xs text-neutral-500">
-              An Arxys staff member who can run sizing calculations on behalf of
-              partners. Leave unchecked for an external partner.
+      {showInternalToggle ? (
+        <div>
+          <label className="flex items-start gap-2 text-sm text-neutral-700">
+            <input
+              id="isInternal"
+              name="isInternal"
+              type="checkbox"
+              className="mt-0.5 h-4 w-4 rounded border-neutral-300"
+            />
+            <span>
+              <span className="font-medium">Internal user</span>
+              <span className="block text-xs text-neutral-500">
+                An Arxys staff member who can run sizing calculations on behalf
+                of partners. Leave unchecked for an external partner.
+              </span>
             </span>
-          </span>
-        </label>
-      </div>
+          </label>
+        </div>
+      ) : null}
 
       {state.status === "error" && !state.fieldErrors ? (
         <p role="alert" className="text-sm text-red-600">

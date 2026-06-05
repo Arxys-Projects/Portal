@@ -31,6 +31,7 @@ type Persona = {
 type PersonaOptions = {
   role?: "partner" | "admin";
   status?: "active" | "invited" | "suspended";
+  isInternal?: boolean;
 };
 
 async function provisionPersona(
@@ -39,6 +40,7 @@ async function provisionPersona(
 ): Promise<Persona> {
   const role = options.role ?? "partner";
   const status = options.status ?? "active";
+  const isInternal = options.isInternal ?? false;
   const email = `rls-test-${suffix}-${Date.now()}@arxys-rls-test.invalid`;
   const password = `RLS_test_${suffix}_${Math.random().toString(36).slice(2)}`;
 
@@ -59,6 +61,7 @@ async function provisionPersona(
     contact_name: `Tester ${suffix}`,
     role,
     status,
+    is_internal: isInternal,
   });
   if (partnerErr) throw new Error(`partners insert failed: ${partnerErr.message}`);
 
@@ -114,6 +117,8 @@ async function run() {
   const a = await provisionPersona("A");
   const b = await provisionPersona("B");
   const adminPersona = await provisionPersona("ADMIN", { role: "admin" });
+  // Phase 8 Step C — internal users are role=partner with is_internal=true.
+  const internalPersona = await provisionPersona("INT", { isInternal: true });
 
   try {
     // Test 6a: A sees own partners row, not B's.
@@ -495,10 +500,80 @@ async function run() {
         );
       }
     }
+    // --- Phase 8 Step C: internal-user SELECT-only escalation ----------------
+    // submissions_select_internal lets is_internal partners read every
+    // submission. UPDATE/DELETE policies are unchanged: still own-only.
+
+    // Seed one B-owned submission (won, undeleteable by own-draft policy) so
+    // the internal persona has cross-partner rows to read and (attempt to)
+    // mutate. The 7c block already seeded a B-owned row, but tests 11-14
+    // mutate it; seed a fresh one here to keep this block self-contained.
+    const internalTargetId = await seedSubmission(b.id, "won");
+
+    // Test 8d: internal user SELECTs another partner's submissions.
+    {
+      const { data, error } = await internalPersona.client
+        .from("submissions")
+        .select("id, partner_id")
+        .eq("partner_id", b.id);
+      if (error) {
+        record("8d: internal SELECT B submissions", false, error.message);
+      } else {
+        record(
+          "8d: internal user SELECTs another partner's submissions",
+          (data?.length ?? 0) >= 1 && data!.every((r) => r.partner_id === b.id),
+          `count=${data?.length}`,
+        );
+      }
+    }
+
+    // Test 8e: internal user UPDATE of B's submission is blocked.
+    // submissions_update_own is unchanged → zero affected rows.
+    {
+      const { data, error } = await internalPersona.client
+        .from("submissions")
+        .update({ project_name: "internal-cross-update-attempt" })
+        .eq("id", internalTargetId)
+        .select("id");
+      record(
+        "8e: internal cannot UPDATE another partner's submission",
+        !error && (data?.length ?? 0) === 0,
+        error ? `error: ${error.message}` : `affected=${data?.length}`,
+      );
+    }
+
+    // Test 8f: internal user DELETE of B's submission is blocked.
+    {
+      const { data, error } = await internalPersona.client
+        .from("submissions")
+        .delete()
+        .eq("id", internalTargetId)
+        .select("id");
+      record(
+        "8f: internal cannot DELETE another partner's submission",
+        !error && (data?.length ?? 0) === 0,
+        error ? `error: ${error.message}` : `affected=${data?.length}`,
+      );
+    }
+
+    // Test 8g: regular (non-internal) partner A still cannot SELECT B's
+    // submissions — confirms the new policy doesn't leak.
+    {
+      const { data, error } = await a.client
+        .from("submissions")
+        .select("id, partner_id")
+        .eq("partner_id", b.id);
+      record(
+        "8g: regular partner still cannot SELECT another partner's submissions",
+        !error && (data?.length ?? 0) === 0,
+        error ? `error: ${error.message}` : `count=${data?.length}`,
+      );
+    }
   } finally {
     await teardownPersona(a);
     await teardownPersona(b);
     await teardownPersona(adminPersona);
+    await teardownPersona(internalPersona);
   }
 
   console.log("\n=== RLS test results ===");

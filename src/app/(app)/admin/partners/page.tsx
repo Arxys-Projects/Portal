@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { requireAdminOrInternal } from "@/lib/auth/require-admin-or-internal";
 import { InternalToggle, PartnerRowActions } from "./partner-row-actions";
 
 function formatDate(value: string | null | undefined): string {
@@ -29,6 +30,8 @@ function statusPill(status: string) {
 }
 
 export default async function AdminPartnersPage() {
+  const gate = await requireAdminOrInternal();
+  const isAdmin = gate.ok && gate.isAdmin;
   const supabase = await createSupabaseServerClient();
   const { data: rows, error } = await supabase
     .from("partners")
@@ -117,16 +120,26 @@ export default async function AdminPartnersPage() {
                   <td className="px-4 py-3 text-neutral-700">{p.role}</td>
                   <td className="px-4 py-3">{statusPill(p.status)}</td>
                   <td className="px-4 py-3">
-                    <InternalToggle id={p.id} isInternal={Boolean(p.is_internal)} />
+                    {isAdmin ? (
+                      <InternalToggle id={p.id} isInternal={Boolean(p.is_internal)} />
+                    ) : (
+                      <span className="text-xs text-neutral-500">
+                        {p.is_internal ? "Internal ✓" : "—"}
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-neutral-600">
                     {formatDate(p.created_at)}
                   </td>
                   <td className="px-4 py-3">
-                    <PartnerRowActions
-                      id={p.id}
-                      status={p.status as "active" | "invited" | "suspended"}
-                    />
+                    {isAdmin ? (
+                      <PartnerRowActions
+                        id={p.id}
+                        status={p.status as "active" | "invited" | "suspended"}
+                      />
+                    ) : (
+                      <span className="text-xs text-neutral-400">—</span>
+                    )}
                   </td>
                 </tr>
               ))}

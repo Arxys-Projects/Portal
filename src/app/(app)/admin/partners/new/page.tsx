@@ -1,7 +1,12 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
+import { requireAdminOrInternal } from "@/lib/auth/require-admin-or-internal";
 import { InviteForm } from "./invite-form";
 
-export default function NewPartnerPage() {
+export default async function NewPartnerPage() {
+  const gate = await requireAdminOrInternal();
+  if (!gate.ok) notFound();
+
   return (
     <div className="max-w-xl">
       <div className="mb-4">
@@ -19,7 +24,7 @@ export default function NewPartnerPage() {
         &lsquo;invited&rsquo; to &lsquo;active&rsquo; on their first sign-in.
       </p>
       <div className="mt-6 rounded-lg border border-neutral-200 bg-white p-6">
-        <InviteForm />
+        <InviteForm showInternalToggle={gate.isAdmin} />
       </div>
     </div>
   );

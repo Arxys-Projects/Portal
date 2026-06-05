@@ -16,7 +16,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
 
   const { data: partner } = await supabase
     .from("partners")
-    .select("company_name, contact_name, role, status")
+    .select("company_name, contact_name, role, status, is_internal")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -42,6 +42,10 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   }
 
   const isAdmin = partner?.role === "admin";
+  const isInternal = Boolean(partner?.is_internal);
+  // Phase 8 Step C — internal users get the same partner-grouped pipeline
+  // view + invite-partner flow as admins, read-only.
+  const isAdminOrInternal = isAdmin || isInternal;
 
   return (
     <div className="min-h-screen bg-neutral-50">
@@ -98,6 +102,22 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
               >
                 Price Book
               </Link>
+              {isAdminOrInternal ? (
+                <>
+                  <Link
+                    href="/admin/submissions?groupBy=partner"
+                    className="px-3 py-1.5 text-neutral-600 hover:text-neutral-900 rounded hover:bg-neutral-100"
+                  >
+                    All Submissions
+                  </Link>
+                  <Link
+                    href="/admin/partners"
+                    className="px-3 py-1.5 text-neutral-600 hover:text-neutral-900 rounded hover:bg-neutral-100"
+                  >
+                    Partners
+                  </Link>
+                </>
+              ) : null}
             </nav>
             {isAdmin ? (
               <Link

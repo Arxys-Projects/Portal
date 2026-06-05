@@ -1,29 +1,15 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { requireAdminOrInternal } from "@/lib/auth/require-admin-or-internal";
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    notFound();
-  }
-
-  const { data: partner } = await supabase
-    .from("partners")
-    .select("role, status")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  // Defensive re-check — RLS already prevents non-admins from reading the rows
-  // we'd load, but failing closed at the layout avoids partial-render leaks
-  // and gives admin-only existence (404, not 403).
-  if (partner?.role !== "admin" || partner.status !== "active") {
-    notFound();
-  }
+  // Phase 8 Step C — admins and is_internal users both reach /admin/*.
+  // Mutating actions and the XLSX export still gate on isAdmin inside their
+  // own handlers / components. Failing closed at the layout gives the same
+  // admin-only existence (404, not 403) for everyone else.
+  const gate = await requireAdminOrInternal();
+  if (!gate.ok) notFound();
 
   return (
     <div className="grid grid-cols-1 gap-6 md:grid-cols-[200px_1fr]">

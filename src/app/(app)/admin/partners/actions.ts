@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { requireAdminOrInternal } from "@/lib/auth/require-admin-or-internal";
 
 const inviteSchema = z.object({
   email: z.email().max(254),
@@ -59,7 +60,10 @@ export async function invitePartner(
   _prev: InviteState | null,
   formData: FormData,
 ): Promise<InviteState> {
-  const gate = await requireAdmin();
+  // Phase 8 Step C — internal users may also invite partners. Only admins may
+  // flip the is_internal flag on the new partner; for non-admin callers we
+  // force it false on the server regardless of what the client sends.
+  const gate = await requireAdminOrInternal();
   if (!gate.ok) return { status: "error", error: gate.error };
 
   const parsed = inviteSchema.safeParse({
@@ -82,7 +86,9 @@ export async function invitePartner(
   const { email, contactName, companyName } = parsed.data;
   // Phase 7 Step 1 — internal Arxys users can run calcs on behalf of partners.
   // Checkboxes are absent from FormData when unchecked.
-  const isInternal = formData.get("isInternal") === "on";
+  // Phase 8 Step C — only admins may set is_internal at invite time.
+  const isInternal =
+    gate.isAdmin && formData.get("isInternal") === "on";
 
   const admin = createSupabaseAdminClient();
   const redirectTo = await inviteRedirectUrl();
