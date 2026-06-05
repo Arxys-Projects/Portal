@@ -25,6 +25,8 @@ function fixture(): SubmissionPdfInput {
     vms: "Milestone XProtect",
     retentionDays: 30,
     totals: { cameras: 150, bandwidthMbps: 540.25, storageGb: 80500 },
+    storageTb: 80.5,
+    bandwidthMbps: 540.25,
     groups: [
       {
         name: "Lobby cameras",
@@ -62,6 +64,22 @@ function fixture(): SubmissionPdfInput {
         "Solution stacks 2 units — verify rack space and power before quoting.",
       ],
     },
+    serverSpec: {
+      sku: "VX5-V200-96",
+      modelName: "VideoX V200",
+      formFactor: "1U Rackmount",
+      maxCameras: 100,
+      maxBandwidthMbps: 1000,
+      driveBays: 4,
+      cpuModelFull: "AMD EPYC 4005 4.0Ghz 6/12 Core",
+      ramSpec: "16GB ECC DDR5",
+      osEdition: "Windows Server 2022 OR 2025 WKGP LTSC",
+      warranty: "5yr NBD, Advanced Replacement",
+      msrp: 12500,
+      usablePerUnitTb: 54,
+    },
+    logoDataUri: null,
+    heroDataUri: null,
   };
 }
 
@@ -72,5 +90,12 @@ describe("SubmissionPdf renders via @react-pdf/renderer", () => {
     assert.ok(buf.length > 1000, `PDF buffer suspiciously small: ${buf.length} bytes`);
     const header = buf.subarray(0, 5).toString("utf8");
     assert.equal(header, "%PDF-", `expected %PDF- header, got ${JSON.stringify(header)}`);
+  });
+
+  it("renders without a resolved server spec (legacy submission, null specs)", async () => {
+    const legacy: SubmissionPdfInput = { ...fixture(), serverSpec: null };
+    const buf = await renderToBuffer(createElement(SubmissionPdf, { data: legacy }));
+    assert.ok(buf.length > 1000, `PDF buffer suspiciously small: ${buf.length} bytes`);
+    assert.equal(buf.subarray(0, 5).toString("utf8"), "%PDF-");
   });
 });

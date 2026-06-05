@@ -2,7 +2,12 @@ import "server-only";
 import { type DocumentProps, renderToBuffer } from "@react-pdf/renderer";
 import { type ReactElement, createElement } from "react";
 import { SubmissionPdf } from "./SubmissionPdf";
-import type { SubmissionPdfGroup, SubmissionPdfInput } from "./types";
+import type {
+  SubmissionPdfGroup,
+  SubmissionPdfInput,
+  SubmissionPdfServerSpec,
+} from "./types";
+import { loadHeroDataUri, loadLogoDataUri } from "./assets";
 import { GB_PER_TB } from "@/lib/recommend/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -71,7 +76,7 @@ export async function loadSubmissionPdfInput(
   };
   const submission = row as unknown as SubmissionRow;
 
-  const [{ data: partnerRow }, productLookup, warnings] = await Promise.all([
+  const [{ data: partnerRow }, productLookup, specRow, warnings] = await Promise.all([
     supabase
       .from("partners")
       .select("company_name, contact_name")
@@ -79,6 +84,9 @@ export async function loadSubmissionPdfInput(
       .maybeSingle(),
     submission.recommended_product_id
       ? loadProductBySku(supabase, submission.recommended_product_id)
+      : Promise.resolve(null),
+    submission.recommended_product_id
+      ? loadProductSpec(supabase, submission.recommended_product_id)
       : Promise.resolve(null),
     Promise.resolve(extractWarnings(submission.groups_payload)),
   ]);
@@ -108,6 +116,9 @@ export async function loadSubmissionPdfInput(
   // groups_payload only has the per-group inputs; totals come straight off
   // the row to stay consistent with what was emailed/saved.
   const totalsStorageGb = Number(submission.storage_tb) * GB_PER_TB;
+  const modelCode = productLookup?.product?.product_group ?? (isLegacy ? "(legacy)" : "(unknown)");
+
+  const serverSpec = specRow ? mapServerSpec(specRow, modelCode) : null;
 
   return {
     generatedAt,
@@ -126,15 +137,48 @@ export async function loadSubmissionPdfInput(
       storageGb: totalsStorageGb,
     },
     groups,
+    storageTb: Number(submission.storage_tb),
+    bandwidthMbps: Number(submission.bandwidth_mbps),
     recommendation: {
       units: recommendedUnits,
-      modelCode: productLookup?.product?.product_group ?? (isLegacy ? "(legacy)" : "(unknown)"),
+      modelCode,
       productDescription,
       coveredCameras,
       coveredStorageTb,
       warnings,
     },
+    serverSpec,
+    logoDataUri: loadLogoDataUri(),
+    heroDataUri: loadHeroDataUri(modelCode),
   };
+}
+
+// Usable (net) capacity in TB after RAID parity overhead.
+//
+// No usable-capacity utility existed in the calculator or recommendation
+// engine (those work off the products table's pre-computed max_storage_tb),
+// so this approximates from product_specs.storage_raw_tb + the RAID level and
+// drive count. Parity drives lost per level:
+//   RAID 5  → 1   (usable = raw × (n-1)/n)
+//   RAID 6  → 2   (usable = raw × (n-2)/n)
+//   RAID 60 → 4   (two RAID 6 spans, usable = raw × (n-4)/n)
+// Anything else (RAID 1, "NA", software RAID, null) falls back to the brief's
+// simple RAID 5 formula. Returns raw when drive count is unknown or too small
+// for the parity math to make sense.
+export function usableCapacityTb(
+  rawTb: number | null,
+  hddCount: number | null,
+  raidLevelDisplay: string | null,
+): number | null {
+  if (rawTb == null) return null;
+  const n = hddCount ?? 0;
+  const level = (raidLevelDisplay ?? "").trim();
+  let parity: number;
+  if (level === "6") parity = 2;
+  else if (level === "60") parity = 4;
+  else parity = 1; // RAID 5 and the documented fallback
+  if (n <= parity) return rawTb;
+  return (rawTb * (n - parity)) / n;
 }
 
 // A UUID-shaped recommended_product_id signals a pre-Step-3+4 submission whose
@@ -215,4 +259,98 @@ async function loadProductBySku(
       max_storage_tb: product.max_storage_tb === null ? null : Number(product.max_storage_tb),
     },
   };
+}
+
+type ProductSpecRow = {
+  id: string;
+  model_name: string;
+  form_factor: string;
+  storage_raw_tb: number;
+  max_cameras: number;
+  msrp: number;
+  max_bandwidth_mbps: number | null;
+  drive_bays: number | null;
+  cpu_model_full: string | null;
+  ram_spec: string | null;
+  os_edition: string | null;
+  hdd_count: number | null;
+  raid_level_display: string | null;
+};
+
+// product_specs.id IS the SKU (e.g. "VX5-V500-240"), matching submissions'
+// recommended_product_id post-migration. QuickCompare columns (Phase 6) are
+// nullable — callers render "—" for nulls. Legacy UUID-shaped ids match no row
+// and return null.
+async function loadProductSpec(
+  supabase: SupabaseClient,
+  sku: string,
+): Promise<ProductSpecRow | null> {
+  const { data } = await supabase
+    .from("product_specs")
+    .select(
+      [
+        "id",
+        "model_name",
+        "form_factor",
+        "storage_raw_tb",
+        "max_cameras",
+        "msrp",
+        "max_bandwidth_mbps",
+        "drive_bays",
+        "cpu_model_full",
+        "ram_spec",
+        "os_edition",
+        "hdd_count",
+        "raid_level_display",
+      ].join(","),
+    )
+    .eq("id", sku)
+    .maybeSingle();
+  if (!data) return null;
+  const row = data as unknown as ProductSpecRow;
+  return {
+    ...row,
+    storage_raw_tb: Number(row.storage_raw_tb),
+    msrp: Number(row.msrp),
+  };
+}
+
+// Pure mapping from a product_specs row to the PDF server-spec view model.
+function mapServerSpec(specRow: ProductSpecRow, modelCode: string): SubmissionPdfServerSpec {
+  return {
+    sku: specRow.id,
+    // Family-level name ("VideoX V500"), not the per-tier model_name string
+    // which embeds the capacity ("VideoX V500 240TB 2U 12Bay").
+    modelName:
+      modelCode.startsWith("V") || modelCode.startsWith("S")
+        ? `VideoX ${modelCode}`
+        : specRow.model_name,
+    formFactor: specRow.form_factor,
+    maxCameras: specRow.max_cameras,
+    maxBandwidthMbps: specRow.max_bandwidth_mbps,
+    driveBays: specRow.drive_bays,
+    cpuModelFull: specRow.cpu_model_full,
+    ramSpec: specRow.ram_spec,
+    osEdition: specRow.os_edition,
+    warranty: "5yr NBD, Advanced Replacement",
+    msrp: specRow.msrp,
+    usablePerUnitTb: usableCapacityTb(
+      specRow.storage_raw_tb,
+      specRow.hdd_count,
+      specRow.raid_level_display,
+    ),
+  };
+}
+
+// Fetch + map the recommended server's spec for a SKU. Shared by the download
+// Route Handler (via loadSubmissionPdfInput) and the calculator Server Action
+// (which assembles the emailed PDF's view model in-memory).
+export async function buildServerSpec(
+  supabase: SupabaseClient,
+  sku: string | null,
+  modelCode: string,
+): Promise<SubmissionPdfServerSpec | null> {
+  if (!sku) return null;
+  const specRow = await loadProductSpec(supabase, sku);
+  return specRow ? mapServerSpec(specRow, modelCode) : null;
 }

@@ -4,6 +4,47 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-06-05 — Phase 9 Step 1: System estimate PDF
+
+### Work done
+
+Replaced the basic calculator PDF (`src/lib/pdf/SubmissionPdf.tsx`) with a polished, customer-ready "System Estimate" document. The download route (`/api/submissions/[id]/pdf`) and render entry points are unchanged; the template and its view model grew.
+
+- **`src/lib/pdf/SubmissionPdf.tsx` rebuilt** with seven sections top to bottom: (1) header — Arxys logo image, "Purpose-built video surveillance infrastructure" tagline, and a right-aligned block with a navy "SYSTEM ESTIMATE" pill, date, project, and "Prepared for" company, separated by a navy rule; (2) camera schedule table (group, cameras, resolution, codec, FPS, scene complexity, recording hours, bandwidth, storage) with a highlighted Totals row and an italic retention + even-distribution note; (3) three capacity bars (Total storage, Bandwidth, System utilization) rendered as nested `<View>` rectangles with percentage-width fills — navy for storage/bandwidth, gold for utilization, plus a "20% headroom built in" note; (4) recommended-server block — product hero image (left) and model name + SKU line + 2-column spec grid (right); (5) navy pricing row (Unit MSRP / Quantity / Deployment total, total in gold); (6) five value-prop badges (navy circle + letter abbreviation, since `@react-pdf/renderer` has no icon-font support); (7) footer with the standard planning-estimate disclaimer and company line.
+- **`src/lib/pdf/assets.ts` (new)** — loads the logo (`public/email/arxys-logo.png`) and the recommended product's hero (`public/price-book/*.png`) off disk into cached base64 data URIs. Hero selection reuses the canonical `productGroupToFamilySlug` → `families.ts heroImage` mapping. Returns `null` on a missing file so the template degrades to text rather than crashing.
+- **`next.config.ts`** — added `outputFileTracingIncludes` for `/api/submissions/*/pdf` so the logo and price-book PNGs ship with the serverless function (the hero path is dynamic and can't be statically traced). See ADR 0046.
+- **`src/lib/pdf/render.ts`** — `loadSubmissionPdfInput` now also joins `product_specs` on `id = recommended_product_id` (the migration made `product_specs.id` the SKU, so this is a direct key match — no `product_sku` indirection needed). New exported helpers: `buildServerSpec()` (fetch + map a SKU's spec, shared with the calculator action) and `usableCapacityTb()` (RAID-net capacity from `storage_raw_tb` + `hdd_count` + `raid_level_display`). The view model carries the resolved `serverSpec`, the logo/hero data URIs, and the submission's `storageTb`/`bandwidthMbps` for the capacity bars.
+- **`src/lib/pdf/types.ts`** — added `SubmissionPdfServerSpec` plus the new top-level fields. QuickCompare columns are nullable; the template renders "—" for any null (per brief).
+- **`src/app/(app)/calculator/actions.ts`** — the in-memory view model built for the emailed PDF now calls `buildServerSpec()` and the asset loaders too, so the attachment matches the downloadable PDF.
+- **`src/lib/pdf/colors.ts`** — added `ARXYS_NAVY` (#1a365d) and `TRACK_GRAY`.
+- **`src/lib/pdf/render.test.ts`** — fixture updated for the new required fields; added a second case that renders with `serverSpec: null` (legacy submission) to lock in the no-crash-on-null contract. 77/77 green.
+
+**Manual verification:** navigate to `/submissions`, click **PDF** on any submission, and confirm the downloaded file shows all seven sections with real data — logo and product image render, the camera schedule totals reconcile with the rows, the capacity bars fill proportionally, and the pricing row multiplies MSRP by unit count. Multi-server (`recommended_units > 1`) shows "N × SKU" in the SKU line and per-deployment totals in the bars. During development the layout was rasterized with `pdftoppm` and inspected page-by-page for a single-group (one page) and a three-group (two pages, clean section break) calc.
+
+### Detours & fixes
+
+- **One-page fit fought the fixed footer.** The brief wants a single-group / single-server calc on one page. With everything in, the five value badges (a `wrap={false}` block) kept jumping to page 2 even with visible whitespace above the footer, because the footer is `position: absolute` + `fixed` and `paddingBottom` governs where content stops flowing. Tightening `paddingBottom` to 50 pulled the badges back onto page 1, but then the badge subtitles painted *under* the fixed footer. The fix was a second pass trimming ~15pt of inter-section margins (capacity bars, recommended block, pricing) so the badges end above the footer band. Single-group now fits one page cleanly; three-group breaks between the recommended-server block and the pricing row (a whole-section boundary, never mid-section).
+- **`product_specs` vs `products`.** The brief refers to `product_specs` and its QuickCompare columns. The recommendation engine and the old PDF used the separate `products` table (SKU-PK). The Phase 6 migration set `product_specs.id` to the SKU string, so joining the spec is a direct `id = recommended_product_id` match — confirmed by reading the migration's `where id like 'VX5-V%-%'` clauses. Both tables are now queried: `products` for covered cameras/storage (existing behavior preserved as a fallback), `product_specs` for the spec grid + RAID inputs.
+- **No usable-capacity utility existed.** Implemented `usableCapacityTb()` as a RAID-level approximation (ADR 0047) rather than reaching for the Price Book's per-SKU net-usable strings.
+- **Dropped the warnings note box.** The old template rendered `recommendation.warnings` (e.g. "verify rack space and power before quoting") in a yellow note box. Those are integrator/sales-facing, not end-customer-facing, so they are intentionally omitted from this customer-ready document. The multi-unit signal they carried is now conveyed structurally by the "N × SKU" line and the capacity bars. No data or algorithm changed — only what the customer PDF surfaces.
+
+### Decisions captured
+
+- [`0046-pdf-image-assets-via-file-tracing.md`](./decisions/0046-pdf-image-assets-via-file-tracing.md)
+- [`0047-raid-usable-capacity-approximation.md`](./decisions/0047-raid-usable-capacity-approximation.md)
+
+### Verification gates
+
+| Gate | Result |
+|---|---|
+| `npm test` | ✅ 77/77 (added one PDF null-spec render test) |
+| `npm run build` | ✅ Clean — 18 routes, 0 errors |
+| `npx eslint` (8 changed files) | ✅ 0 errors (two react-pdf `<Image>` a11y warnings suppressed inline — not HTML img, no alt concept) |
+| `no-ai-slop` audit on template strings | ✅ No banned phrases; no em dashes in prose. The only "—" are the brief-mandated null placeholders and the middot "·" separators match the comparison-PDF footer. |
+| Manual PDF inspection (single- and three-group) | ✅ All 7 sections render with images; single-group fits one page; multi-group breaks on a section boundary. |
+
+---
+
 ## 2026-06-04 — Phase 8 Step C: internal user role escalation
 
 ### Work done

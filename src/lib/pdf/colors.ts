@@ -4,6 +4,8 @@
 // inside the renderer.
 
 export const ARXYS_GOLD = "#fbb040";
+export const ARXYS_NAVY = "#1a365d";
+export const TRACK_GRAY = "#e2e8f0";
 export const CAMERAS_BLUE = "#2563eb";
 export const BANDWIDTH_CYAN = "#0891b2";
 export const STORAGE_GREEN = "#16a34a";

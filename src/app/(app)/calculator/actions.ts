@@ -14,7 +14,8 @@ import { INPUT_STATE_VERSION } from "@/lib/calculator/rehydrate";
 import { recommend } from "@/lib/recommend/algorithm";
 import { GB_PER_TB, type ServerSpec, type RecommendationResult } from "@/lib/recommend/types";
 import { sendSubmissionNotification } from "@/lib/email/submission-notification";
-import { pdfFilename, renderSubmissionPdfBuffer } from "@/lib/pdf/render";
+import { buildServerSpec, pdfFilename, renderSubmissionPdfBuffer } from "@/lib/pdf/render";
+import { loadHeroDataUri, loadLogoDataUri } from "@/lib/pdf/assets";
 import type { SubmissionPdfInput } from "@/lib/pdf/types";
 import { createDealFromSubmission, updateDealFromRevision } from "@/lib/pipedrive/deal";
 import { PipedriveError } from "@/lib/pipedrive/client";
@@ -299,6 +300,11 @@ export async function submitCalculation(
   // sales still gets the plain-text notification, and the partner can fetch
   // the PDF later from the Download button.
   const partnerEmail = user.email ?? undefined;
+  const pdfServerSpec = await buildServerSpec(
+    supabase,
+    recommendation.winner.sku,
+    recommendation.winner.productGroup,
+  );
   const pdfInput: SubmissionPdfInput = {
     generatedAt: new Date(),
     submissionId: inserted.id,
@@ -315,6 +321,8 @@ export async function submitCalculation(
       bandwidthMbps: totals.bandwidthMbps,
       storageGb: totals.storageGb,
     },
+    storageTb: totals.storageGb / GB_PER_TB,
+    bandwidthMbps: totals.bandwidthMbps,
     groups: computed.map((r) => ({
       name: r.input.name,
       cameras: r.input.cameras,
@@ -344,6 +352,9 @@ export async function submitCalculation(
         warnings: recommendation.warnings,
       };
     })(),
+    serverSpec: pdfServerSpec,
+    logoDataUri: loadLogoDataUri(),
+    heroDataUri: loadHeroDataUri(recommendation.winner.productGroup),
   };
 
   // A fresh submit renders the PDF and emails sales. A revision deliberately
