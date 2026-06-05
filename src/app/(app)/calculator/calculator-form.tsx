@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useActionState, useEffect, useMemo, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import {
   CODECS,
   COMPLEXITIES,
@@ -135,6 +136,13 @@ export function CalculatorForm({
     submitCalculation,
     INITIAL_STATE,
   );
+
+  const [isSaving, setIsSaving] = useState(false);
+  useEffect(() => {
+    if (submitState.status === "ok" || submitState.status === "error") {
+      setIsSaving(false);
+    }
+  }, [submitState.status]);
 
   const resultRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -379,9 +387,10 @@ export function CalculatorForm({
           <button
             type="button"
             className="ax-save-btn"
-            disabled={!hasInteracted || isSubmitting}
-            data-saving={isSubmitting || undefined}
+            disabled={!hasInteracted || isSaving}
+            data-saving={isSaving || undefined}
             onClick={() => {
+              flushSync(() => setIsSaving(true));
               setResultDismissed(false);
               submitAction({
                 projectName: projectName.trim() || null,
@@ -405,13 +414,13 @@ export function CalculatorForm({
               });
             }}
           >
-            {isSubmitting && (
+            {isSaving && (
               <svg className="ax-save-spinner" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeOpacity="0.25" />
                 <path d="M22 12a10 10 0 0 0-10-10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
               </svg>
             )}
-            {isSubmitting ? "Saving…" : "Save & request quote"}
+            {isSaving ? "Saving…" : "Save & request quote"}
           </button>
           <button
             type="button"
