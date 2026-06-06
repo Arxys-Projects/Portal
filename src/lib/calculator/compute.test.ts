@@ -1,6 +1,13 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { formatNumber, formatStorageGb, formatBandwidthMbps } from "./compute";
+import {
+  applyMotionAdjustment,
+  estimateFrameKb,
+  formatNumber,
+  formatStorageGb,
+  formatBandwidthMbps,
+} from "./compute";
+import { COMPLEXITIES, RESOLUTIONS } from "./tables";
 
 describe("formatNumber", () => {
   it("formats numbers below 1000 to two decimals", () => {
@@ -47,5 +54,70 @@ describe("formatBandwidthMbps", () => {
 
   it("formats values >= 1000 as Gbps with two decimals", () => {
     assert.equal(formatBandwidthMbps(1500), "1.50 Gbps");
+  });
+});
+
+// VERIFICATION GATE — re-anchors the bitrate engine to Milestone's XProtect
+// calculator. Per-camera bitrate for all six complexity levels must land within
+// ±2% of the live-audited Milestone numbers at the reference point below.
+//
+// DO NOT relax the tolerance or edit the EXPECTED numbers to match output — they
+// are the audited ground truth. A failure here means the codec factor
+// (CODEC_BITRATE.h265) or a complexity multiplier has drifted; fix the source,
+// not the test.
+describe("bitrate verification gate (Milestone XProtect audit)", () => {
+  // Reference: 4MP = 2560×1440 (the resolution Milestone's tool used for "4MP";
+  // the table also has a 2688×1520 "4MP" — the 0.037 anchor is for 2560×1440).
+  const ref = RESOLUTIONS.find((r) => r.width === 2560 && r.height === 1440);
+  if (!ref) throw new Error("2560×1440 reference resolution missing from RESOLUTIONS");
+  const FPS = 15;
+  const TOL = 0.02; // ±2%
+
+  // frameKb is in KB; ×8 ⇒ Kbit/frame; ×fps ⇒ Kbit/s. Same derivation the UI uses.
+  const bitrateKbit = (frameKb: number): number => frameKb * 8 * FPS;
+
+  // Milestone-verified at 4MP/15fps/H.265/Constant/100% motion. The first five
+  // are read straight off the live tool; the sixth (×7.0) is the documented
+  // edge-case-protection extrapolation = 1966 × 7.0 = 13762.
+  const EXPECTED: ReadonlyArray<{ label: string; multiplier: number; kbit: number }> = [
+    { label: "Low detail, low motion",     multiplier: 1.0,   kbit: 1966 },
+    { label: "Low detail, high motion",    multiplier: 1.5,   kbit: 2950 },
+    { label: "Medium detail, low motion",  multiplier: 2.25,  kbit: 4424 },
+    { label: "Medium detail, high motion", multiplier: 3.375, kbit: 6637 },
+    { label: "High detail, low motion",    multiplier: 5.0,   kbit: 9832 },
+    { label: "High detail, high motion",   multiplier: 7.0,   kbit: 13762 },
+  ];
+
+  for (const { label, multiplier, kbit: expected } of EXPECTED) {
+    it(`matches Milestone at "${label}" (±2%)`, () => {
+      const c = COMPLEXITIES.find((x) => x.label === label);
+      if (!c) throw new Error(`complexity level "${label}" missing from COMPLEXITIES`);
+      // The table multiplier must be exactly the audited value.
+      assert.equal(
+        c.multiplier,
+        multiplier,
+        `${label}: COMPLEXITIES multiplier ${c.multiplier} != audited ${multiplier}`,
+      );
+      // motion 100% ⇒ adjustment ×1.0, so estimateFrameKb alone is the event rate.
+      const actual = bitrateKbit(estimateFrameKb(ref, "h265", c.multiplier));
+      const rel = Math.abs(actual - expected) / expected;
+      assert.ok(
+        rel <= TOL,
+        `${label}: computed ${actual.toFixed(0)} Kbit/s vs expected ${expected} Kbit/s (${(rel * 100).toFixed(2)}% off, tol ±2%)`,
+      );
+    });
+  }
+
+  it("applies the 20% motion idle floor (Low/low at motion 20% ⇒ ~708 Kbit/s)", () => {
+    const low = COMPLEXITIES.find((x) => x.label === "Low detail, low motion");
+    if (!low) throw new Error("\"Low detail, low motion\" missing from COMPLEXITIES");
+    const frameKb = applyMotionAdjustment(estimateFrameKb(ref, "h265", low.multiplier), 20);
+    const actual = bitrateKbit(frameKb);
+    const expected = 1966 * (0.2 + 0.8 * 0.2); // 1966 × 0.36 ≈ 708
+    const rel = Math.abs(actual - expected) / expected;
+    assert.ok(
+      rel <= TOL,
+      `motion floor: computed ${actual.toFixed(0)} Kbit/s vs expected ${expected.toFixed(0)} Kbit/s (${(rel * 100).toFixed(2)}% off, tol ±2%)`,
+    );
   });
 });

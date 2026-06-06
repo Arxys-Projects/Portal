@@ -30,10 +30,11 @@ const GROUP_DEFAULTS = {
   cameras: 1,
   resolutionIdx: 14, // 4MP (2560×1440)
   codecIdx: 0, // H.265
-  complexityIdx: 1, // Medium
+  complexityIdx: 2, // Medium detail, low motion (realistic typical scene)
   fps: 15,
-  recordingPercent: 100,
-  motionPercent: 50,
+  recordingMode: "constant" as const,
+  recordingPercent: 100, // 24 h/day
+  motionPercent: 100, // N/A under Constant; the safe default mode
 } as const;
 
 const RETENTION_DEFAULT = 30;
@@ -45,6 +46,7 @@ export type InitialGroup = {
   codecIdx: number;
   complexityIdx: number;
   fps: number;
+  recordingMode: "constant" | "motion";
   recordingPercent: number;
   motionPercent: number;
 };
@@ -88,6 +90,14 @@ function coerceVms(value: unknown): string {
 
 type RawGroup = Record<string, unknown>;
 
+// Recording mode is the one genuinely new persisted field. Anything that isn't
+// the literal "motion" (including absent on a pre-change row) reads as the safe
+// "constant" default. Operation Hours and Motion/Event % round-trip via the
+// existing recordingPercent / motionPercent fields.
+function coerceRecordingMode(value: unknown): "constant" | "motion" {
+  return value === "motion" ? "motion" : "constant";
+}
+
 function normalizeGroup(g: RawGroup, i: number): InitialGroup {
   const name = typeof g.name === "string" && g.name.trim() ? g.name : `Camera Group ${i + 1}`;
   return {
@@ -97,8 +107,11 @@ function normalizeGroup(g: RawGroup, i: number): InitialGroup {
     codecIdx: clampIdx(g.codecIdx, CODECS.length, GROUP_DEFAULTS.codecIdx),
     complexityIdx: clampIdx(g.complexityIdx, COMPLEXITIES.length, GROUP_DEFAULTS.complexityIdx),
     fps: clampInt(g.fps, 1, 60, GROUP_DEFAULTS.fps),
+    recordingMode: coerceRecordingMode(g.recordingMode),
     recordingPercent: clampInt(g.recordingPercent, 1, 100, GROUP_DEFAULTS.recordingPercent),
-    motionPercent: clampInt(g.motionPercent, 1, 100, GROUP_DEFAULTS.motionPercent),
+    // Motion floor is 20 (UI domain); a stray sub-20 value from an old row
+    // clamps up rather than tripping the submit-side schema on resubmission.
+    motionPercent: clampInt(g.motionPercent, 20, 100, GROUP_DEFAULTS.motionPercent),
   };
 }
 
@@ -129,7 +142,8 @@ export function normalizeInputState(raw: unknown): NormalizedInputState {
 type BankedGroup = {
   resolutionLabel?: string;
   codec?: string;
-  complexity?: string;
+  complexity?: string;      // tier (low/med/high) — legacy, ambiguous across 6 levels
+  complexityLabel?: string; // unique label — preferred for exact 1-of-6 recovery
 };
 
 function extractBankedGroups(payload: unknown): BankedGroup[] {
@@ -142,6 +156,7 @@ function extractBankedGroups(payload: unknown): BankedGroup[] {
       resolutionLabel: typeof o.resolutionLabel === "string" ? o.resolutionLabel : undefined,
       codec: typeof o.codec === "string" ? o.codec : undefined,
       complexity: typeof o.complexity === "string" ? o.complexity : undefined,
+      complexityLabel: typeof o.complexityLabel === "string" ? o.complexityLabel : undefined,
     };
   });
 }
@@ -162,7 +177,18 @@ function resolveCodecIdx(value: string | undefined, rawIdx: number): number {
   return clampIdx(rawIdx, CODECS.length, GROUP_DEFAULTS.codecIdx);
 }
 
-function resolveComplexityIdx(tier: string | undefined, rawIdx: number): number {
+// Prefer the unique label (recovers the exact 1-of-6 level and survives table
+// reordering); fall back to the tier (ambiguous post-six-levels — resolves to
+// the first level of that tier, fine for legacy rows); finally the raw index.
+function resolveComplexityIdx(
+  label: string | undefined,
+  tier: string | undefined,
+  rawIdx: number,
+): number {
+  if (label) {
+    const found = COMPLEXITIES.findIndex((c) => c.label === label);
+    if (found >= 0) return found;
+  }
   if (tier) {
     const found = COMPLEXITIES.findIndex((c) => c.tier === tier);
     if (found >= 0) return found;
@@ -181,7 +207,7 @@ export function fromStoredSubmission(row: StoredSubmissionRow): CalculatorInitia
       ...g,
       resolutionIdx: resolveResolutionIdx(b.resolutionLabel, g.resolutionIdx),
       codecIdx: resolveCodecIdx(b.codec, g.codecIdx),
-      complexityIdx: resolveComplexityIdx(b.complexity, g.complexityIdx),
+      complexityIdx: resolveComplexityIdx(b.complexityLabel, b.complexity, g.complexityIdx),
     };
   });
 

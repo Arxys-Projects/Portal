@@ -4,6 +4,160 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-06-05 — Calculator: control-row layout + UX fixes (post-review)
+
+### Work done
+
+Follow-up polish on the camera-group control row after a UI review of the
+recording/complexity rework (entry below).
+
+- **Save hint reworded** — "Configure a camera group below, then save to notify
+  Arxys sales." → "Configure all cameras, then save to send the project to
+  Arxys for review and a quote." (reflects the actual save-and-quote flow).
+- **Complexity column widened** (`wx` 170→212px) so its longest label,
+  "Medium detail, high motion", reads in full instead of truncating.
+- **Motion/Event % is now a number box, not a slider** — simpler and less
+  confusing per the review. Number input (20–100, step 5), disabled and greyed
+  under Constant recording (shows 100). Removed the now-dead range-slider
+  disabled CSS.
+- **Tooltips no longer clip at the card edge** — root cause was
+  `overflow: hidden` on `.ax-cam`, which clipped the column-header tooltips
+  (the reason their copy had been forced to one line). Removed it and rounded
+  the header (`.ax-ch`) top corners and results row (`.ax-cr`) bottom corners
+  instead, so the card still reads as a rounded panel while tooltips escape its
+  bounds. Verified all three right-edge tooltips render fully within the
+  viewport with no clipping ancestor.
+- **Control row stays on ONE line** — switched `.ax-cb` to `flex-wrap: nowrap`
+  at desktop with shrinkable cells (`flex: 0 1 <basis>`); the ≤1024px breakpoint
+  still uses `flex-wrap: wrap` + `flex: 1` for tablet/mobile. Also tightened
+  padding (40→20) / gap (16→10) and dropped control font 14→13, and aligned the
+  example line + results row padding to the control row.
+
+### Detours & fixes
+
+- **`flex-shrink` doesn't prevent wrapping under `flex-wrap: wrap`** — first
+  attempt kept `wrap` and made cells shrinkable, expecting them to compress onto
+  one line. They didn't: flexbox wraps overflowing items first and only shrinks
+  *within* each resulting line, so Motion/Event % still dangled. The real fix is
+  `flex-wrap: nowrap` (shrink-to-fit on one line) for the desktop range, letting
+  the existing ≤1024px media query take over below that.
+- **Fixed-width fitting was flaky** — the panel's content width fluctuates a few
+  dozen px between measurements, so a "just-fits" no-shrink row wrapped
+  unpredictably ("regardless of window size"). `nowrap` + shrinkable bases makes
+  it width-robust: full size when there's room, graceful compression when tight.
+
+### Verification gates
+
+| Gate | Result |
+|---|---|
+| Single-line @1440px (panel 1234) | ✅ 8 cells one row, 86px headroom, full Complexity label |
+| Single-line @1080px (just above breakpoint) | ✅ one row, Complexity shrinks 212→177, no overflow / no page scroll |
+| ≤1024px | ✅ falls back to balanced wrap (tablet layout) |
+| Motion number box | ✅ greyed/disabled under Constant; enabled under Motion-only, 40% → storage 2.68→1.40 TB |
+| Tooltip clipping | ✅ right-edge tooltips fully within viewport, no clipping ancestor |
+| `npm run build` / `npm test` / `npx eslint` | ✅ clean / 86 pass / 0 errors |
+
+---
+
+## 2026-06-05 — Calculator: fix two pre-existing ESLint errors in `calculator-form.tsx`
+
+### Work done
+
+- Drove the Save button's saving state off `useActionState`'s own pending flag (renamed the unused third binding `isSubmitting` → `isSaving`), deleting the redundant `isSaving` `useState`, the status-watching `useEffect` (`react-hooks/set-state-in-effect`), and the now-orphaned `flushSync` import/call — same pattern as `partner-row-actions.tsx`. UX unchanged: the pending flag flips true on dispatch, so the spinner still paints immediately. Verified `eslint` clean, `npm run build` + `npm test` (86/86) green.
+
+## 2026-06-05 — Calculator: re-anchor bitrate engine, six-level complexity, motion/recording rework
+
+### Work done
+
+Re-derived the calculator's math against Milestone's XProtect calculator (the
+agnostic-bridge conservative bound) and reworked the recording/motion UX. Did
+the math behind a hard verification gate first, then the UI. Files live under
+`src/lib/calculator/` and `src/app/(app)/calculator/` (the brief referenced
+`src/lib/calc/` — corrected to the real path).
+
+- **Six-level complexity** (`tables.ts`) — replaced the 3 vague levels with six
+  descriptive Avigilon-style scene labels (multipliers 1.0 / 1.5 / 2.25 / 3.375
+  / 5.0 / 7.0), each carrying an `example` field on the `Complexity` type for
+  tooltips/helper text. New default is index 2, "Medium detail, low motion".
+- **Codec re-anchor** (`compute.ts`) — `CODEC_BITRATE.h265` 0.07 → **0.037**
+  (h264 0.0634, smart 0.0444, derived from H.265 by the prior ratios). The old
+  factors ran ~2× hot vs Milestone. Anchored so 4MP (2560×1440)/15fps/H.265/Low
+  lands ~1966 Kbit/s.
+- **Motion idle floor** (`compute.ts`) — `applyMotionAdjustment` 30% → **20%**
+  (`0.2 + 0.8·P`). Documented as a weighted-average bitrate model and that it is
+  bitrate-weighting only — it never touches recorded hours (those are
+  `recordingPercent` / Operation Hours, left unchanged).
+- **Verification gate** (`compute.test.ts`) — new `describe` asserting all six
+  levels' per-camera bitrate within ±2% of the audited Milestone numbers (sixth
+  = 1966×7.0 = 13762 by construction) plus the 20% floor (motion 20% ⇒ ~708).
+  Computed values land at a uniform +1.63% (the conservative bias from rounding
+  the factor up to 0.037).
+- **UI** (`calculator-form.tsx`, `calculator.css`) — complexity dropdown now has
+  an info tooltip and a per-card example line that updates on selection. Added a
+  **Recording** mode selector (Constant | Motion-only; no Speedup — out of
+  scope). Relabeled Hrs/Day → **Operation** hours (1–24, always active). The
+  **Motion/Event %** slider is now 20–100 and is disabled+greyed under Constant
+  (which pins motion to 100%), mirroring the Milestone UI.
+- **Persistence / round-trip** (`actions.ts`, `rehydrate.ts`) — added
+  `recordingMode` to the group schema (defaults `"constant"` for old rows) and
+  banked `complexityLabel` in `groups_payload`. Rehydration now resolves
+  complexity by unique label first (tier alone is ambiguous across six levels →
+  it would collapse the two med/low levels to one), then tier, then raw index.
+  Operation Hours and Motion% round-trip via the existing `recordingPercent` /
+  `motionPercent` fields, so the PDF, Pipedrive sync, and submission-detail view
+  needed **no changes** (they still read those two fields). Server-side, Constant
+  pins `motionPercent` to 100 as defense-in-depth against a hand-crafted POST.
+
+### Detours & fixes
+
+- **"One combined hours field" in the brief didn't match the live UI** — the
+  form already had separate Hrs/Day and Motion controls. Followed the real
+  structure: added the Recording selector and rewired motion gating rather than
+  splitting a field that wasn't combined.
+- **Complexity round-trip would have silently collapsed** — the existing
+  rehydrate resolves complexity by `tier`, but six levels map to three tiers, so
+  a re-opened "Medium detail, high motion" quote would have come back as
+  "Medium detail, low motion". Fixed by banking and resolving on the unique
+  `complexityLabel`; added a regression test proving the disambiguation.
+- **No version bump needed** — rehydration *defaults* the absent `recordingMode`
+  rather than branching on a version, so `INPUT_STATE_VERSION` stayed 1.
+- **Two pre-existing ESLint errors in `calculator-form.tsx`** (unused
+  `isSubmitting`; `react-hooks/set-state-in-effect` in the save-spinner effect)
+  — confirmed present on `HEAD` via a one-file stash, unrelated to this change.
+  Left untouched: the set-state-in-effect fix is a behavioral refactor of the
+  save spinner, outside this task's scope. Flagged for a separate cleanup.
+- **Browser verification of `/calculator` was initially blocked by the auth
+  gate** — the preview session started unauthenticated and there is no static
+  dev account. First verified the UI's *data path* via `computeGroup` directly
+  (per-level bitrate matches the gate; Motion-only @50%/@20% drops storage to
+  60%/36% of Constant; Operation hours scales linearly). Once a session was
+  available, completed the live in-browser check: complexity dropdown renders
+  all six levels with the example line updating on selection; Low/low shows 1.95
+  Mbps and Med/low 4.39 Mbps; switching to Motion-only enables the slider and
+  drops storage to 60% at 50% motion; switching back to Constant re-greys it at
+  100% and restores storage; zero console errors.
+
+### Decisions captured
+
+- [`0049-milestone-complexity-curve.md`](./decisions/0049-milestone-complexity-curve.md)
+  — Milestone curve + codec damping over a vendor blend; six descriptive levels.
+- [`0050-codec-bitrate-reanchor.md`](./decisions/0050-codec-bitrate-reanchor.md)
+  — re-anchor to the live Milestone audit; 20% motion floor; motion = bitrate
+  weighting, hours = Operation Hours.
+
+### Verification gates
+
+| Gate | Result |
+|---|---|
+| Bitrate verification gate (6 levels + motion floor, ±2%) | ✅ All land +1.63%, within ±2% |
+| `npm test` | ✅ 86/86 (was 77; +7 gate, +2 rehydrate round-trip) |
+| `npm run build` | ✅ Clean (TypeScript passed) |
+| `npx eslint` (changed files) | ✅ 0 new errors; 2 pre-existing in `calculator-form.tsx` (confirmed on HEAD, unrelated, left per scope) |
+| UI data-path check (`computeGroup`) | ✅ Bitrate/storage/hours behavior correct |
+| In-browser `/calculator` visual + interaction check | ✅ 6 levels, example updates, bitrate matches, motion gating + storage drop, no console errors |
+
+---
+
 ## 2026-06-05 — Fix: dashboard deal registration + header nav labels
 
 ### Work done

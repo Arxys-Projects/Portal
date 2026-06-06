@@ -4,7 +4,12 @@
 
 export type Resolution = { label: string; width: number; height: number };
 export type Codec = { label: string; value: "h265" | "h264" | "smart"; note: string };
-export type Complexity = { label: string; multiplier: number; tier: "low" | "med" | "high" };
+export type Complexity = {
+  label: string;
+  multiplier: number;
+  tier: "low" | "med" | "high";
+  example: string;
+};
 
 export const RESOLUTIONS: readonly Resolution[] = [
   { label: "QVGA (320×240)", width: 320, height: 240 },
@@ -41,10 +46,20 @@ export const CODECS: readonly Codec[] = [
   { label: "H.264-Smart", value: "smart", note: "Axis Zipstream / Avigilon HDSM" },
 ];
 
+// Six descriptive scene levels modeled on Avigilon's example-scene UX, with
+// multipliers following Milestone's (steeper, conservative) encoder-bitrate
+// curve rather than abstract Low/Medium/High adjectives — users guess wrong on
+// adjectives, so concrete example scenes anchor the choice. The codec selector
+// (CODEC_BITRATE.smart) models the smart-compression damping that flattens the
+// curve on real cameras; we deliberately do NOT blend the two vendor curves.
+// See docs/decisions/0049-milestone-complexity-curve.md.
 export const COMPLEXITIES: readonly Complexity[] = [
-  { label: "Low (office)", multiplier: 0.5, tier: "low" },
-  { label: "Medium (retail)", multiplier: 1.0, tier: "med" },
-  { label: "High (outdoor)", multiplier: 1.5, tier: "high" },
+  { label: "Low detail, low motion",     multiplier: 1.0,   tier: "low",  example: "Reception, stairway, hallway, garages" },
+  { label: "Low detail, high motion",    multiplier: 1.5,   tier: "low",  example: "Lobby, main entry" },
+  { label: "Medium detail, low motion",  multiplier: 2.25,  tier: "med",  example: "Construction site, parking lots, hospital, museum" },
+  { label: "Medium detail, high motion", multiplier: 3.375, tier: "med",  example: "Malls, clothing stores, restaurants, train stations, warehouse" },
+  { label: "High detail, low motion",    multiplier: 5.0,   tier: "high", example: "Airport terminals, convenience stores" },
+  { label: "High detail, high motion",   multiplier: 7.0,   tier: "high", example: "Concert hall, amusement park, stadium seating" },
 ];
 
 export const VMS_OPTIONS: readonly string[] = [

@@ -27,8 +27,15 @@ const groupSchema = z.object({
   codecIdx: z.number().int().min(0).max(CODECS.length - 1),
   complexityIdx: z.number().int().min(0).max(COMPLEXITIES.length - 1),
   fps: z.number().int().min(1).max(60),
+  // Recording mode: Constant (24/7 at full event rate) vs Motion-only (records
+  // full hours but at a reduced bitrate during quiet periods). The client
+  // resolves motionPercent from this (Constant ⇒ 100); old rows default here.
+  recordingMode: z.enum(["constant", "motion"]).default("constant"),
+  // Operation Hours, encoded as a percent of the day = (hours / 24) × 100.
   recordingPercent: z.number().int().min(1).max(100),
-  motionPercent: z.number().int().min(1).max(100),
+  // Motion/Event % — clamped 20–100 at the UI; the 0.2 idle floor in
+  // applyMotionAdjustment is the math-side safety net if a bad value slips in.
+  motionPercent: z.number().int().min(20).max(100),
 });
 
 const submissionSchema = z.object({
@@ -153,6 +160,16 @@ export async function submitCalculation(
   }
 
   // Server-side recompute. Client totals are never trusted.
+  //
+  // Constant recording always writes at the full event rate, so motion% is
+  // pinned to 100 server-side regardless of any value a scripted client sends;
+  // only Motion-only honors the entered motion%. The legitimate form already
+  // sends 100 under Constant, so this only bites a hand-crafted POST trying to
+  // under-size. We normalize input.groups so the banked state, PDF, and
+  // Pipedrive sync all agree with the figure the math used.
+  for (const g of input.groups) {
+    if (g.recordingMode === "constant") g.motionPercent = 100;
+  }
   const computed = input.groups.map((g) => {
     const gi: GroupInput = {
       cameras: g.cameras,
@@ -254,8 +271,13 @@ export async function submitCalculation(
         resolutionIdx: r.input.resolutionIdx,
         resolutionLabel: RESOLUTIONS[r.input.resolutionIdx].label,
         codec: CODECS[r.input.codecIdx].value,
+        // `complexity` stays the tier (low/med/high) for the scalar column and
+        // legacy readers; `complexityLabel` is the unique label so rehydration
+        // recovers the exact 1-of-6 level (tier alone now collapses 2→1).
         complexity: COMPLEXITIES[r.input.complexityIdx].tier,
+        complexityLabel: COMPLEXITIES[r.input.complexityIdx].label,
         fps: r.input.fps,
+        recordingMode: r.input.recordingMode,
         recordingPercent: r.input.recordingPercent,
         motionPercent: r.input.motionPercent,
         computed: r.computed,

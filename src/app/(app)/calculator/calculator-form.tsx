@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useActionState, useEffect, useMemo, useRef, useState } from "react";
-import { flushSync } from "react-dom";
 import {
   CODECS,
   COMPLEXITIES,
@@ -41,8 +40,11 @@ type Group = {
   codecIdx: number;
   complexityIdx: number;
   fps: number;
-  recordingPercent: number;
-  motionPercent: number;
+  // "constant" = records 24/7 at the full event rate (motion% pinned to 100);
+  // "motion" = records full hours but at a reduced bitrate during quiet periods.
+  recordingMode: "constant" | "motion";
+  recordingPercent: number; // Operation Hours, encoded as (hours / 24) × 100
+  motionPercent: number;    // Motion/Event % (20–100); only live under "motion"
 };
 
 function freshId(): string {
@@ -54,13 +56,23 @@ function newGroup(seqNumber: number): Group {
     id: freshId(),
     name: `Camera Group ${seqNumber}`,
     cameras: 1,
-    resolutionIdx: 14, // 4MP (2560×1440) — same default as legacy
-    codecIdx: 0,       // H.265
-    complexityIdx: 1,  // Medium
+    resolutionIdx: 14,    // 4MP (2560×1440) — same default as legacy
+    codecIdx: 0,          // H.265
+    complexityIdx: 2,     // Medium detail, low motion (realistic typical scene)
     fps: 15,
-    recordingPercent: 100,
-    motionPercent: 50,
+    recordingMode: "constant", // safe default: Constant, 24 h, 100%
+    recordingPercent: 100,     // 24 h/day
+    motionPercent: 100,
   };
+}
+
+// Operation Hours ⇄ recordingPercent. The persisted source of truth is the
+// percent; the UI presents it as whole hours/day.
+function hoursFromPercent(recordingPercent: number): number {
+  return Math.round((recordingPercent / 100) * 24);
+}
+function percentFromHours(hours: number): number {
+  return Math.round((Math.max(1, Math.min(24, hours)) / 24) * 100);
 }
 
 // Rehydration (Phase 4 Step 3): turn a stored group into a form Group, minting
@@ -132,17 +144,13 @@ export function CalculatorForm({
     new Map(),
   );
 
-  const [submitState, submitAction, isSubmitting] = useActionState<SubmissionState, unknown>(
+  // The action's own pending flag is the saving state: it flips true the moment
+  // submitAction is dispatched and false when the action resolves, so no
+  // separate isSaving state (or an effect to reset it) is needed.
+  const [submitState, submitAction, isSaving] = useActionState<SubmissionState, unknown>(
     submitCalculation,
     INITIAL_STATE,
   );
-
-  const [isSaving, setIsSaving] = useState(false);
-  useEffect(() => {
-    if (submitState.status === "ok" || submitState.status === "error") {
-      setIsSaving(false);
-    }
-  }, [submitState.status]);
 
   const resultRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -225,7 +233,8 @@ export function CalculatorForm({
           complexity: COMPLEXITIES[g.complexityIdx],
           fps: Math.max(1, g.fps),
           recordingPercent: g.recordingPercent,
-          motionPercent: g.motionPercent,
+          // Constant always sizes at the full event rate, matching the server.
+          motionPercent: g.recordingMode === "constant" ? 100 : g.motionPercent,
         };
         return { group: g, computed: computeGroup(input, retentionDays) };
       }),
@@ -382,7 +391,7 @@ export function CalculatorForm({
 
         <div className="ax-save" style={{ marginLeft: "auto", marginTop: 0 }}>
           <span className="ax-save-hint">
-            Configure a camera group below, then save to notify Arxys sales.
+            Configure all cameras, then save to send the project to Arxys for review and a quote.
           </span>
           <button
             type="button"
@@ -390,7 +399,6 @@ export function CalculatorForm({
             disabled={!hasInteracted || isSaving}
             data-saving={isSaving || undefined}
             onClick={() => {
-              flushSync(() => setIsSaving(true));
               setResultDismissed(false);
               submitAction({
                 projectName: projectName.trim() || null,
@@ -408,8 +416,10 @@ export function CalculatorForm({
                   codecIdx: g.codecIdx,
                   complexityIdx: g.complexityIdx,
                   fps: g.fps,
+                  recordingMode: g.recordingMode,
                   recordingPercent: g.recordingPercent,
-                  motionPercent: g.motionPercent,
+                  // Constant pins motion% to 100; the server re-enforces this.
+                  motionPercent: g.recordingMode === "constant" ? 100 : g.motionPercent,
                 })),
               });
             }}
@@ -563,7 +573,10 @@ export function CalculatorForm({
                 />
               </div>
               <div className="ax-f wx">
-                <label className="ax-fl">Complexity</label>
+                <label className="ax-fl">
+                  Complexity
+                  <Tooltip text="How detailed and how busy the scene is — it scales the bitrate. Pick the closest example scene below rather than guessing Low/Medium/High." side="r" />
+                </label>
                 <select
                   value={group.complexityIdx}
                   onChange={(e) =>
@@ -579,10 +592,33 @@ export function CalculatorForm({
                   ))}
                 </select>
               </div>
+              <div className="ax-f wd">
+                <label className="ax-fl">
+                  Recording
+                  <Tooltip text="Constant = records continuously 24/7 at the full bitrate (most storage). Motion-only = records the full hours but at a reduced bitrate during quiet periods; enter the expected motion % at right." side="r" />
+                </label>
+                <select
+                  value={group.recordingMode}
+                  onChange={(e) => {
+                    touch();
+                    // Switching to Constant pins motion% to 100 (the full event
+                    // rate); switching to Motion-only re-enables the slider.
+                    updateGroup(
+                      group.id,
+                      e.target.value === "motion"
+                        ? { recordingMode: "motion" }
+                        : { recordingMode: "constant", motionPercent: 100 },
+                    );
+                  }}
+                >
+                  <option value="constant">Constant</option>
+                  <option value="motion">Motion-only</option>
+                </select>
+              </div>
               <div className="ax-f wh">
                 <label className="ax-fl">
-                  Hrs/Day
-                  <Tooltip text="Hours per day cameras record." side="r" />
+                  Operation
+                  <Tooltip text="Hours per day the cameras are powered and recording at all. Reduces stored hours linearly — separate from motion." side="r" />
                 </label>
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                   <input
@@ -591,7 +627,7 @@ export function CalculatorForm({
                     max={24}
                     value={getDraft(
                       `${group.id}.recording`,
-                      Math.round((group.recordingPercent / 100) * 24),
+                      hoursFromPercent(group.recordingPercent),
                     )}
                     onChange={(e) => {
                       setDraft(`${group.id}.recording`, e.target.value);
@@ -599,9 +635,7 @@ export function CalculatorForm({
                       const h = parseInt(e.target.value, 10);
                       if (!isNaN(h)) {
                         updateGroup(group.id, {
-                          recordingPercent: Math.round(
-                            (Math.max(1, Math.min(24, h)) / 24) * 100,
-                          ),
+                          recordingPercent: percentFromHours(h),
                         });
                       }
                     }}
@@ -609,9 +643,7 @@ export function CalculatorForm({
                       clearDraft(`${group.id}.recording`);
                       const h = parseInt(e.target.value, 10);
                       updateGroup(group.id, {
-                        recordingPercent: Math.round(
-                          (isNaN(h) ? 24 : Math.max(1, Math.min(24, h))) / 24 * 100,
-                        ),
+                        recordingPercent: percentFromHours(isNaN(h) ? 24 : h),
                       });
                     }}
                     style={{ width: 56, textAlign: "center" }}
@@ -621,26 +653,51 @@ export function CalculatorForm({
               </div>
               <div className="ax-f wm">
                 <label className="ax-fl">
-                  Motion
-                  <Tooltip text="Scene motion level" side="r" />
+                  Motion/Event %
+                  <Tooltip text="Expected share of time the scene has motion/events. Weights the bitrate between a 20% idle floor and the full event rate. Only applies to Motion-only recording." side="r" />
                 </label>
-                <div className="ax-sr">
-                  <input
-                    type="range"
-                    min={1}
-                    max={100}
-                    value={group.motionPercent}
-                    aria-label={`Scene motion level for ${group.name}, ${group.motionPercent}%`}
-                    onChange={(e) =>
-                      updateGroup(group.id, {
-                        motionPercent: parseInt(e.target.value, 10),
-                      })
-                    }
-                    style={{ maxWidth: 80 }}
-                  />
-                  <span className="ax-svl">{group.motionPercent}%</span>
-                </div>
+                {(() => {
+                  const isConstant = group.recordingMode === "constant";
+                  return (
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <input
+                        type="number"
+                        min={20}
+                        max={100}
+                        step={5}
+                        disabled={isConstant}
+                        value={isConstant ? 100 : getDraft(`${group.id}.motion`, group.motionPercent)}
+                        aria-label={`Motion/event percentage for ${group.name}${isConstant ? " (fixed at 100% under Constant recording)" : ""}`}
+                        onChange={(e) => {
+                          setDraft(`${group.id}.motion`, e.target.value);
+                          touch();
+                          const n = parseInt(e.target.value, 10);
+                          if (!isNaN(n)) {
+                            updateGroup(group.id, {
+                              motionPercent: Math.max(20, Math.min(100, n)),
+                            });
+                          }
+                        }}
+                        onBlur={(e) => {
+                          clearDraft(`${group.id}.motion`);
+                          const n = parseInt(e.target.value, 10);
+                          updateGroup(group.id, {
+                            motionPercent: isNaN(n) ? 100 : Math.max(20, Math.min(100, n)),
+                          });
+                        }}
+                        style={{ width: 56, textAlign: "center" }}
+                      />
+                      <span style={{ fontSize: 12, color: "var(--td)" }}>%</span>
+                    </div>
+                  );
+                })()}
               </div>
+            </div>
+
+            <div className="ax-cx-ex">
+              <strong>{COMPLEXITIES[group.complexityIdx].label}</strong>
+              {" — e.g. "}
+              {COMPLEXITIES[group.complexityIdx].example}
             </div>
 
             <div className="ax-cr">

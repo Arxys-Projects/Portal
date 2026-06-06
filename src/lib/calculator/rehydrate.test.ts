@@ -25,16 +25,18 @@ describe("normalizeInputState", () => {
     assert.equal(n.addOnFailoverRecorder, false);
     assert.equal(n.addOnManagementServer, false);
     assert.equal(n.groups.length, 1);
-    // The single default group matches newGroup() in the form.
+    // The single default group matches newGroup() in the form: a 4MP H.265
+    // "Medium detail, low motion" camera recording Constant 24/7.
     assert.deepEqual(n.groups[0], {
       name: "Camera Group 1",
       cameras: 1,
       resolutionIdx: 14,
       codecIdx: 0,
-      complexityIdx: 1,
+      complexityIdx: 2,
       fps: 15,
+      recordingMode: "constant",
       recordingPercent: 100,
-      motionPercent: 50,
+      motionPercent: 100,
     });
   });
 
@@ -59,7 +61,8 @@ describe("normalizeInputState", () => {
     assert.equal(n.groups[0].cameras, 1);
     assert.equal(n.groups[0].fps, 1);
     assert.equal(n.groups[0].recordingPercent, 100);
-    assert.equal(n.groups[0].motionPercent, 1);
+    // Motion floor is now 20 (the UI domain), so a sub-floor value clamps up.
+    assert.equal(n.groups[0].motionPercent, 20);
   });
 
   it("clamps out-of-bounds table indices to current array bounds", () => {
@@ -89,6 +92,14 @@ describe("normalizeInputState", () => {
     });
     assert.equal(n.addOnFailoverRecorder, true);
     assert.equal(n.addOnManagementServer, false);
+  });
+
+  it("reads recordingMode, defaulting absent/garbage to constant", () => {
+    assert.equal(normalizeInputState({ groups: [{ recordingMode: "motion" }] }).groups[0].recordingMode, "motion");
+    assert.equal(normalizeInputState({ groups: [{ recordingMode: "constant" }] }).groups[0].recordingMode, "constant");
+    // Absent (pre-change row) and any non-"motion" value read as constant.
+    assert.equal(normalizeInputState({ groups: [{}] }).groups[0].recordingMode, "constant");
+    assert.equal(normalizeInputState({ groups: [{ recordingMode: "speedup" }] }).groups[0].recordingMode, "constant");
   });
 });
 
@@ -154,6 +165,30 @@ describe("fromStoredSubmission", () => {
     assert.equal(g.name, "Lobby");
     assert.equal(g.cameras, 12);
     assert.equal(g.fps, 20);
+  });
+
+  it("recovers the exact 1-of-6 complexity level from complexityLabel when the tier is ambiguous", () => {
+    // The "med" tier now maps to TWO levels (low- and high-motion). The banked
+    // complexityLabel disambiguates; tier alone would collapse to the first med.
+    const medHighIdx = COMPLEXITIES.findIndex((c) => c.label === "Medium detail, high motion");
+    const medLowIdx = COMPLEXITIES.findIndex((c) => c.label === "Medium detail, low motion");
+    assert.notEqual(medHighIdx, medLowIdx); // sanity: two distinct "med" levels
+    const row = {
+      input_state: {
+        version: 1,
+        groups: [{ complexityIdx: 0, recordingMode: "motion", recordingPercent: 50, motionPercent: 40 }],
+      },
+      groups_payload: {
+        groups: [{ complexity: "med", complexityLabel: "Medium detail, high motion" }],
+      },
+    };
+    const g = fromStoredSubmission(row).groups[0];
+    assert.equal(g.complexityIdx, medHighIdx); // label wins
+    assert.notEqual(g.complexityIdx, medLowIdx);
+    // recordingMode + the hours/motion knobs round-trip from input_state.
+    assert.equal(g.recordingMode, "motion");
+    assert.equal(g.recordingPercent, 50);
+    assert.equal(g.motionPercent, 40);
   });
 
   it("falls back to the raw index when groups_payload is absent", () => {

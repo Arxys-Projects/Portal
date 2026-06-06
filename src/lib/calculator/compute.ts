@@ -5,11 +5,17 @@ import {
   STORAGE_OVERHEAD,
 } from "./tables";
 
-// Bitrate coefficient per codec (bits per pixel, ish — empirically tuned).
+// Bitrate coefficient per codec (bits per pixel, ish). Re-anchored to
+// Milestone's XProtect calculator: at the audited reference point — 4MP
+// (2560×1440), 15fps, H.265, "Low detail, low motion" (multiplier 1.0), 100%
+// motion — h265 lands per-camera bitrate at ~1966 Kbit/s, matching the live
+// Milestone tool. H.264 and Smart keep their prior RATIOS to H.265 so the
+// codec selector still models smart-compression damping the same way.
+// See docs/decisions/0050-codec-bitrate-reanchor.md.
 const CODEC_BITRATE: Record<Codec["value"], number> = {
-  h265: 0.07,
-  h264: 0.12,
-  smart: 0.084,
+  h265: 0.037,   // audited: lands 4MP/15fps/Low at ~1966 Kbit vs live Milestone tool
+  h264: 0.0634,  // 0.037 × (0.12/0.07), preserves prior codec ratio
+  smart: 0.0444, // 0.037 × (0.084/0.07), preserves prior codec ratio
 };
 
 /**
@@ -30,17 +36,25 @@ export function estimateFrameKb(
 }
 
 /**
- * Smart-codec motion adjustment. At 0% motion, frame size scales to 30%;
- * at 100% it stays at 100%. Linear in between. Mirrors the inline expression
- * `fk *= .3 + .7*(mot/100)` in the legacy calculator.
+ * Motion/event bitrate weighting. This is the weighted-average bitrate model
+ *
+ *   avg = event_rate × (idle_fraction + (1 − idle_fraction) × P)
+ *
+ * with an idle floor of 20%: at 0% motion the camera still records full hours
+ * but writes frames at 20% of the event rate; at 100% it writes at the full
+ * event rate; linear in between. (Was a 30% floor — lowered to 20% so quiet
+ * scenes size more aggressively against smart-codec idle bitrates.)
  *
  * Applied to all three supported codecs because they all benefit from motion
  * scaling in practice (even non-Smart H.264/H.265 encoders ramp bitrate with
  * motion in real deployments).
+ *
+ * NOTE: this is bitrate weighting only — it never reduces recorded HOURS. Hours
+ * are reduced separately and linearly via `recordingPercent` (Operation Hours).
  */
 export function applyMotionAdjustment(frameKb: number, motionPercent: number): number {
   const m = Math.max(0, Math.min(100, motionPercent)) / 100;
-  return frameKb * (0.3 + 0.7 * m);
+  return frameKb * (0.2 + 0.8 * m); // 20% idle floor (was 0.3 + 0.7*m)
 }
 
 /**
