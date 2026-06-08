@@ -260,15 +260,24 @@ export function CalculatorForm({
       {/* Summary cards */}
       <div className="ax-sum">
         <div className="ax-s bl">
-          <div className="ax-sl">Total Cameras</div>
+          <div className="ax-sl">
+            Total Cameras
+            <Tooltip text="Every camera stream across all your groups, added together." />
+          </div>
           <div className="ax-sv bl">{totals.cameras}</div>
         </div>
         <div className="ax-s cy">
-          <div className="ax-sl">Total Bandwidth</div>
+          <div className="ax-sl">
+            Total Bandwidth
+            <Tooltip text="The combined network speed all cameras need at the same time. Size your network switches and any uplink to handle at least this much." />
+          </div>
           <div className="ax-sv cy">{formatBandwidthMbps(totals.bandwidthMbps)}</div>
         </div>
         <div className="ax-s gn">
-          <div className="ax-sl">Total Storage</div>
+          <div className="ax-sl">
+            Total Storage
+            <Tooltip text="Total drive space needed to keep every camera's footage for the full retention period. Already includes the 20% VMS overhead." side="r" />
+          </div>
           <div className="ax-sv gn">{formatStorageGb(totals.storageGb)}</div>
           <div style={{ fontSize: 11, color: "var(--td)", marginTop: 4 }}>
             (includes 20% overhead)
@@ -279,7 +288,10 @@ export function CalculatorForm({
       {/* Global settings */}
       <div className="ax-gl">
         <div className="ax-f" style={{ minWidth: 160 }}>
-          <label className="ax-fl">Project Name</label>
+          <label className="ax-fl">
+            Project Name
+            <Tooltip text="A label for this estimate — e.g. the site or customer name. Just helps you find and revise it later; it doesn't affect the math." />
+          </label>
           <input
             type="text"
             list="ax-project-names"
@@ -328,7 +340,10 @@ export function CalculatorForm({
           </div>
         )}
         <div className="ax-f" style={{ minWidth: 160 }}>
-          <label className="ax-fl">Which VMS?</label>
+          <label className="ax-fl">
+            Which VMS?
+            <Tooltip text="The video management software the cameras record into (Milestone, Genetec, etc.). Each platform compresses video a little differently, so picking yours makes the storage and bandwidth estimates track your real system." />
+          </label>
           <select value={vms} onChange={(e) => { touch(); setVms(e.target.value); }}>
             <option value="">— Select —</option>
             {VMS_OPTIONS.map((v) => (
@@ -370,7 +385,10 @@ export function CalculatorForm({
 
         {/* Add-on toggles */}
         <div className="ax-f" style={{ gap: 8 }}>
-          <label className="ax-fl">Add-ons</label>
+          <label className="ax-fl">
+            Add-ons
+            <Tooltip text="Optional extra hardware for resilience and scale. Tick what the project needs — we'll factor it into the quote." />
+          </label>
           <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", fontSize: 13 }}>
             <input
               type="checkbox"
@@ -378,6 +396,7 @@ export function CalculatorForm({
               onChange={(e) => { touch(); setAddOnFailoverRecorder(e.target.checked); }}
             />
             Failover Recorder
+            <Tooltip text="A standby recorder that automatically takes over if a main recorder fails, so you keep recording during an outage." />
           </label>
           <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", fontSize: 13 }}>
             <input
@@ -386,6 +405,7 @@ export function CalculatorForm({
               onChange={(e) => { touch(); setAddOnManagementServer(e.target.checked); }}
             />
             Management Server
+            <Tooltip text="A dedicated server that runs the VMS software and management, separate from the recorders. Common on larger systems for performance and easier administration." />
           </label>
         </div>
 
@@ -482,7 +502,10 @@ export function CalculatorForm({
 
             <div className="ax-cb">
               <div className="ax-f wc">
-                <label className="ax-fl">Video Streams</label>
+                <label className="ax-fl">
+                  Video Streams
+                  <Tooltip text="How many cameras (camera feeds) share these same settings. Every number below — bandwidth, storage — multiplies by this count." />
+                </label>
                 <input
                   type="number"
                   min={1}
@@ -509,7 +532,10 @@ export function CalculatorForm({
                 />
               </div>
               <div className="ax-f wr">
-                <label className="ax-fl">Resolution</label>
+                <label className="ax-fl">
+                  Resolution
+                  <Tooltip text="The camera's image size in megapixels (e.g. 4MP). Higher resolution means sharper, more detailed footage — and more storage and bandwidth to match." side="r" />
+                </label>
                 <select
                   value={group.resolutionIdx}
                   onChange={(e) =>
@@ -546,7 +572,10 @@ export function CalculatorForm({
                 </select>
               </div>
               <div className="ax-f wf">
-                <label className="ax-fl">FPS</label>
+                <label className="ax-fl">
+                  FPS
+                  <Tooltip text="Frames per second — how smooth the video looks. Higher FPS captures fast motion better but uses more storage. 15 is typical for surveillance; 30 for fast scenes like checkout lanes." side="r" />
+                </label>
                 <input
                   type="number"
                   min={1}
@@ -702,7 +731,10 @@ export function CalculatorForm({
 
             <div className="ax-cr">
               <div className="ax-ci">
-                <span className="ax-cil">Bitrate:</span>
+                <span className="ax-cil">
+                  Bitrate:
+                  <Tooltip text="How much data one camera in this group produces every second. Resolution, FPS, and how busy the scene is all push it up or down." side="r" />
+                </span>
                 <span className="ax-civ" style={{ color: "var(--pu)" }}>
                   {computed.bitrateMbps >= 1
                     ? `${formatNumber(computed.bitrateMbps)} Mbps`
@@ -710,19 +742,28 @@ export function CalculatorForm({
                 </span>
               </div>
               <div className="ax-ci">
-                <span className="ax-cil">Bandwidth:</span>
+                <span className="ax-cil">
+                  Bandwidth:
+                  <Tooltip text="Network speed this whole group needs at once (one camera's bitrate × the number of cameras)." side="r" />
+                </span>
                 <span className="ax-civ" style={{ color: "var(--cy)" }}>
                   {formatBandwidthMbps(computed.bandwidthMbps)}
                 </span>
               </div>
               <div className="ax-ci">
-                <span className="ax-cil">Storage:</span>
+                <span className="ax-cil">
+                  Storage:
+                  <Tooltip text="Drive space this group needs to hold its footage for the full retention period, with the 20% VMS overhead added." side="r" />
+                </span>
                 <span className="ax-civ" style={{ color: "var(--gn)" }}>
                   {formatStorageGb(computed.storageGb)}
                 </span>
               </div>
               <div className="ax-ci">
-                <span className="ax-cil">Daily:</span>
+                <span className="ax-cil">
+                  Daily:
+                  <Tooltip text="How much footage this group records each day. Multiply by your retention days to get total storage." side="r" />
+                </span>
                 <span className="ax-civ" style={{ color: "var(--am)" }}>
                   {formatStorageGb(computed.storageGb / Math.max(retentionDays, 1))}/day
                 </span>
@@ -848,6 +889,47 @@ export function CalculatorForm({
       <div className="ax-fn">
         <strong>Note:</strong> Storage includes ~20% overhead for VMS best practices.
       </div>
+
+      {/* Plain-speak FAQ — every field explained without leaving the page */}
+      <details className="ax-faq">
+        <summary>
+          <InfoIcon />
+          How this calculator works — what each field means
+        </summary>
+        <div className="ax-faq-body">
+          <div className="ax-faq-col">
+            <h4>What you enter</h4>
+            <ul>
+              <li><strong>Project Name</strong> — a label so you can find and revise this estimate later. Doesn&apos;t change the math.</li>
+              <li><strong>Which VMS?</strong> — the recording software (Milestone, Genetec, etc.). Each compresses video a bit differently, so picking yours keeps the estimate realistic.</li>
+              <li><strong>Retention</strong> — how many days of footage you keep before it&apos;s overwritten. More days = more storage, in a straight line.</li>
+              <li><strong>Add-ons</strong> — optional hardware. <em>Failover Recorder</em> is a standby that takes over if a recorder dies; <em>Management Server</em> runs the VMS separately from the recorders on bigger systems.</li>
+              <li><strong>Video Streams</strong> — how many cameras share these settings. Everything below multiplies by this count.</li>
+              <li><strong>Resolution</strong> — image size in megapixels. Higher = sharper footage, but more storage and bandwidth.</li>
+              <li><strong>Codec</strong> — the compression method. Newer codecs (H.265) pack the same picture into roughly half the space of older ones (H.264).</li>
+              <li><strong>FPS</strong> — frames per second, i.e. how smooth the video is. 15 suits most scenes; raise it only where fast motion matters.</li>
+              <li><strong>Complexity</strong> — how detailed and busy the scene is. A quiet hallway compresses small; a crowded stadium needs far more data. Pick the closest example scene.</li>
+              <li><strong>Recording</strong> — <em>Constant</em> records 24/7 at full quality (most storage). <em>Motion-only</em> records the full hours but drops quality during quiet periods to save space.</li>
+              <li><strong>Operation</strong> — hours per day the cameras actually record. Fewer hours cuts storage proportionally.</li>
+              <li><strong>Motion/Event %</strong> — on Motion-only, how much of the time something is actually happening. Higher % means more high-quality footage, so more storage.</li>
+            </ul>
+          </div>
+          <div className="ax-faq-col">
+            <h4>What we calculate</h4>
+            <ul>
+              <li><strong>Bitrate</strong> — the data one camera produces per second. The building block for everything else; resolution, FPS, codec, and complexity all feed into it.</li>
+              <li><strong>Bandwidth</strong> — network speed a group (or the whole system) needs at once. Make sure your switches and uplinks can carry the total.</li>
+              <li><strong>Storage</strong> — drive space to keep all footage for the retention period, including a 20% overhead the VMS needs for its database and indexes.</li>
+              <li><strong>Daily</strong> — footage recorded per day. A quick gut-check: daily × retention days ≈ total storage.</li>
+              <li><strong>Totals</strong> — the summary cards at the top add up every group, so you see the project-wide camera count, bandwidth, and storage at a glance.</li>
+              <li><strong>Recommendation</strong> — after you save, we match these totals to the Arxys appliance that fits, plus alternatives and room to grow.</li>
+            </ul>
+          </div>
+        </div>
+        <p className="ax-faq-foot">
+          Rough estimate for planning. Real-world figures vary with scene content and camera settings — your Arxys team confirms the final sizing on the quote.
+        </p>
+      </details>
 
       {submitState.status === "error" && !resultDismissed && (
         <div className="ax-rec-err">{submitState.error}</div>
