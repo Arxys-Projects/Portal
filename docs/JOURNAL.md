@@ -4,6 +4,42 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-06-08 — Calculator field explainers (inline tooltips + FAQ panel)
+
+### Work done
+
+Partners had no in-page guidance for the calculator's many fields after the
+recent bitrate/complexity/recording rework — they'd have to ask or guess. Added
+plain-speak help everywhere, reusing the existing `Tooltip` (ⓘ) component so
+nothing new had to be learned.
+
+- **Filled every tooltip gap** in [`calculator-form.tsx`](../src/app/(app)/calculator/calculator-form.tsx):
+  inputs that previously had none (Project Name, Which VMS?, Add-ons + each
+  checkbox, Video Streams, Resolution, FPS) and **all** calculated outputs that
+  had none (the three summary cards — Total Cameras/Bandwidth/Storage — and the
+  four per-group results — Bitrate/Bandwidth/Storage/Daily). The 7 pre-existing
+  tooltips were left as-is (already good voice).
+- **Output copy is plain-speak + "why it matters"**, deliberately no formulas
+  (e.g. Bitrate: "how much data one camera produces per second… resolution, FPS,
+  and how busy the scene is all push it up or down").
+- **New collapsible FAQ panel** (`<details className="ax-faq">`) at the bottom:
+  a two-column "What you enter / What we calculate" bullet reference covering
+  every field, ending with a "rough estimate for planning, your Arxys team
+  confirms the final sizing" disclaimer. Native `<details>` — no JS, keyboard-
+  accessible. Styling added to [`calculator.css`](../src/app/(app)/calculator/calculator.css)
+  to match the existing card/tooltip look; collapses to one column ≤1024px.
+
+Verified: ESLint clean on the route; `tsc` shows only pre-existing errors in
+unrelated test files. Andy eyeballed tooltips + FAQ in the local preview.
+
+### Decisions captured
+
+No ADR — additive UX using the established tooltip pattern; the "tooltips +
+FAQ panel both" and "no formulas in output copy" choices were Andy's calls
+captured here rather than as a standalone decision.
+
+---
+
 ## 2026-06-08 — Partner onboarding/login fixes
 
 ### Work done

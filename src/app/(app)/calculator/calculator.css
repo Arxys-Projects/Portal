@@ -238,6 +238,26 @@
 #arxys-calc-root .ax-tip-r .ax-tt { left: auto; right: 0; transform: none; }
 #arxys-calc-root .ax-tip-r .ax-tt::after { left: auto; right: 14px; transform: none; }
 
+/* Plain-speak FAQ accordion */
+#arxys-calc-root .ax-faq { margin-top: 15px; background: var(--cd); border: 1px solid var(--bd); border-radius: var(--r); box-shadow: var(--ss); overflow: hidden; }
+#arxys-calc-root .ax-faq > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 10px; padding: 16px 22px; font-size: 15px; font-weight: 700; color: var(--tp); user-select: none; }
+#arxys-calc-root .ax-faq > summary::-webkit-details-marker { display: none; }
+#arxys-calc-root .ax-faq > summary svg { color: var(--ac); flex-shrink: 0; }
+#arxys-calc-root .ax-faq > summary::after { content: "▾"; margin-left: auto; color: var(--td); font-size: 13px; transition: transform 0.2s; }
+#arxys-calc-root .ax-faq[open] > summary::after { transform: rotate(180deg); }
+#arxys-calc-root .ax-faq > summary:hover { color: var(--ac); }
+#arxys-calc-root .ax-faq-body { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; padding: 0 22px 6px; }
+#arxys-calc-root .ax-faq-col h4 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.6px; color: var(--ts); margin-bottom: 10px; }
+#arxys-calc-root .ax-faq-col ul { list-style: none; display: flex; flex-direction: column; gap: 9px; }
+#arxys-calc-root .ax-faq-col li { font-size: 13px; color: var(--td); line-height: 1.5; padding-left: 14px; position: relative; }
+#arxys-calc-root .ax-faq-col li::before { content: ""; position: absolute; left: 0; top: 8px; width: 5px; height: 5px; border-radius: 50%; background: var(--ac); }
+#arxys-calc-root .ax-faq-col li strong { color: var(--tp); font-weight: 700; }
+#arxys-calc-root .ax-faq-col li em { font-style: normal; font-weight: 600; color: var(--ts); }
+#arxys-calc-root .ax-faq-foot { padding: 10px 22px 18px; font-size: 12px; color: var(--tl); line-height: 1.55; border-top: 1px solid var(--bd); margin-top: 10px; }
+@media (max-width: 1024px) {
+  #arxys-calc-root .ax-faq-body { grid-template-columns: 1fr; gap: 18px; }
+}
+
 /* Responsive — Tablet */
 @media (max-width: 1024px) {
   #arxys-calc-root .ax-cb { flex-wrap: wrap; }
