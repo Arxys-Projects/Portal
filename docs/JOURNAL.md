@@ -41,12 +41,21 @@ Root causes and fixes:
   state plainly that the user has no password yet and is creating one. These are
   the canonical source and must be re-pasted into the Supabase dashboard.
 - **Remediation** — `scripts/resend-onboarding.ts` re-sends working set-password
-  links to all 11 stuck partners (dry-run by default, `--send` to fire). Held
-  pending dashboard verification (see below); not yet executed.
+  links to all 11 stuck partners (dry-run by default, `--send` to fire; `--test
+  <email>` previews the flow against one address).
 
 Verified the four auth states render correctly in the dev preview (login panel,
 expired banner, interstitial without token consumption, create-password screen)
 and that a bad-token POST fails gracefully to `/login?error=expired_or_invalid`.
+
+**Rollout (same day):** confirmed the Supabase dashboard Site URL =
+`https://portal.arxys.com` (canonical since the 2026-05-26 cutover) and that the
+updated templates were pasted in; sent a `--test` recovery email to
+`andy.newbom@arxys.com` and clicked the full chain (branded email → interstitial
+→ set-password) successfully; then ran `--send` to all 11 stuck partners — every
+address returned ✓, no failures. Also aligned all email-link/logo references in
+the repo from the `portal-arxys.vercel.app` fallback to the canonical
+`portal.arxys.com` (templates, README, RUNBOOK).
 
 ### Detours & fixes
 
@@ -54,12 +63,14 @@ and that a bad-token POST fails gracefully to `/login?error=expired_or_invalid`.
   never completing set-password, not corruption. The auto-activate (invited →
   active on first app-page load, shipped 2026-05-20) works; the stuck partners
   simply never reached an app page.
-- **Action needed outside this repo** — the token-scanner and link-validity
-  fixes depend on Supabase dashboard config that isn't in the repo. Before
-  running the remediation send, verify: Authentication → URL Configuration →
-  **Site URL** = the production portal URL; the **custom email templates** are
-  actually pasted in (with the updated copy); and the redirect allow-list
-  includes `/auth/confirm`.
+- **Dashboard config lives outside this repo** — the token-scanner and
+  link-validity fixes depend on Supabase dashboard settings. Verified at
+  rollout: Authentication → URL Configuration → **Site URL** =
+  `https://portal.arxys.com`; **custom email templates** pasted in with the
+  updated copy; redirect allow-list covers `/auth/confirm`. Remaining drift: the
+  repo templates' logo URL was changed to `portal.arxys.com` *after* the
+  dashboard paste, so a fresh re-paste is needed to make the live email logo
+  match (cosmetic — the vercel.app logo still resolves).
 
 ### Decisions captured
 
