@@ -51,7 +51,7 @@ async function inviteRedirectUrl(): Promise<string> {
     h.get("origin") ??
     (h.get("host")
       ? `https://${h.get("host")}`
-      : "https://portal-arxys.vercel.app");
+      : "https://portal.arxys.com");
   // /auth/confirm handles type=invite and redirects to ?next= after verifyOtp.
   return `${origin}/auth/confirm?next=/reset-password`;
 }
@@ -103,7 +103,7 @@ export async function invitePartner(
       return {
         status: "error",
         error:
-          "A user with that email already exists. Use Resend Invite from the partners list if their status is still 'invited'.",
+          "A user with that email already exists. Use 'Resend sign-in link' from the partners list if their status is still 'invited'.",
       };
     }
     return { status: "error", error: `Invite failed: ${msg}` };
@@ -249,13 +249,22 @@ export async function resendInvite(
   const email = userLookup.data.user.email;
   const redirectTo = await inviteRedirectUrl();
 
-  const invite = await admin.auth.admin.inviteUserByEmail(email, { redirectTo });
-  if (invite.error) {
-    return { status: "error", error: `Resend failed: ${invite.error.message}` };
+  // We cannot re-run inviteUserByEmail here: Supabase rejects it with "a user
+  // with this email address has already been registered" because the invite
+  // already created the auth user. Instead send a recovery email, which works
+  // for any existing user (confirmed or not) and lands them on the same
+  // create-password screen. The branded "Reset Password" template covers both
+  // first-time and returning users. See ADR 0051.
+  const supabase = await createSupabaseServerClient();
+  const { error: recoverErr } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo,
+  });
+  if (recoverErr) {
+    return { status: "error", error: `Resend failed: ${recoverErr.message}` };
   }
 
   revalidatePath("/admin/partners");
-  return { status: "ok", message: `Invite re-sent to ${email}.` };
+  return { status: "ok", message: `A fresh sign-in link was sent to ${email}.` };
 }
 
 const nameFieldSchema = z.string().trim().min(1).max(120);

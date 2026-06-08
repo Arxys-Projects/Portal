@@ -224,7 +224,7 @@ export function PartnerRowActions({ id, status }: Props) {
         <ActionButton
           action={resendInvite}
           id={id}
-          label="Resend invite"
+          label="Resend sign-in link"
           variant="neutral"
         />
       ) : null}
