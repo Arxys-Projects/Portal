@@ -3,7 +3,7 @@
 import { useActionState } from "react";
 import { updatePassword, type ResetState } from "./actions";
 
-export function ResetForm() {
+export function ResetForm({ isNew = false }: { isNew?: boolean }) {
   const [state, formAction, pending] = useActionState<ResetState, FormData>(
     updatePassword,
     null,
@@ -16,7 +16,7 @@ export function ResetForm() {
           htmlFor="password"
           className="block text-sm font-medium text-neutral-700"
         >
-          New password
+          {isNew ? "Password" : "New password"}
         </label>
         <input
           id="password"
@@ -33,7 +33,7 @@ export function ResetForm() {
           htmlFor="confirm"
           className="block text-sm font-medium text-neutral-700"
         >
-          Confirm new password
+          {isNew ? "Confirm password" : "Confirm new password"}
         </label>
         <input
           id="confirm"
@@ -55,7 +55,13 @@ export function ResetForm() {
         disabled={pending}
         className="w-full rounded bg-arxys-gold px-3 py-2 text-sm font-medium text-arxys-text-on-gold shadow-sm hover:bg-arxys-gold-hover disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {pending ? "Updating…" : "Update password"}
+        {pending
+          ? isNew
+            ? "Creating…"
+            : "Updating…"
+          : isNew
+            ? "Create password"
+            : "Update password"}
       </button>
     </form>
   );

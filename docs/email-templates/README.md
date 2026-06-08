@@ -10,7 +10,7 @@ See [`docs/decisions/0025-supabase-custom-smtp-and-branded-templates.md`](../dec
 |---|---|---|
 | [`invite.html`](./invite.html) | Invite user | `You're invited to the Arxys Partner Portal` |
 | [`magic-link.html`](./magic-link.html) | Magic Link | `Your sign-in link for Arxys Partner Portal` |
-| [`reset-password.html`](./reset-password.html) | Reset Password | `Reset your Arxys Partner Portal password` |
+| [`reset-password.html`](./reset-password.html) | Reset Password | `Set or reset your Arxys Partner Portal password` |
 | [`confirm-signup.html`](./confirm-signup.html) | Confirm Signup | `Confirm your Arxys Partner Portal account` |
 
 ## Template variables and the CTA URL
@@ -32,7 +32,7 @@ In the HTML these appear with `&amp;` for ampersands (XML-escaped) — Supabase 
 
 ## Logo hosting
 
-Logo is `public/email/arxys-logo.png` in this repo, served absolutely as `https://portal-arxys.vercel.app/email/arxys-logo.png`. When the `portal.arxys.com` custom domain ships, update every occurrence in these four files **and** re-paste into Supabase.
+Logo is `public/email/arxys-logo.png` in this repo, served absolutely as `https://portal.arxys.com/email/arxys-logo.png` (the canonical custom domain, live since 2026-05-26). If the canonical domain ever changes, update every occurrence in these four files **and** re-paste into Supabase.
 
 ## Brand tokens (locked)
 

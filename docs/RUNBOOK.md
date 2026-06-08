@@ -144,10 +144,11 @@ If you don't have `tsx` installed yet: `npm install --save-dev tsx`.
 
 In the dashboard at **Authentication → URL Configuration**:
 
-- **Site URL**: `https://portal-arxys.vercel.app` (swap to `https://portal.arxys.com` once the custom domain is wired)
+- **Site URL**: `https://portal.arxys.com` (canonical custom domain, live since 2026-05-26). This is the host baked into every email link via `{{ .SiteURL }}`, so it must be the production domain — not the vercel.app fallback.
 - **Redirect URLs** (Allow List):
   - `http://localhost:3000/**`
-  - `https://portal-arxys.vercel.app/**`
+  - `https://portal.arxys.com/**`
+  - `https://portal-arxys.vercel.app/**` (no-cost fallback domain)
   - `https://*.vercel.app/**` (covers preview deployments)
 
 These control which URLs Supabase will redirect to from email links (invites, password resets). Save before bootstrapping any users — otherwise the email links will refuse to land on the portal.

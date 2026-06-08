@@ -12,8 +12,8 @@ export function ForgotForm() {
   if (state?.status === "sent") {
     return (
       <p className="rounded border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-800">
-        If an account exists for that email, a reset link has been sent. Check
-        your inbox.
+        If an account exists for that email, a secure sign-in link has been
+        sent. Check your inbox — the link lets you set or reset your password.
       </p>
     );
   }
@@ -43,7 +43,7 @@ export function ForgotForm() {
         disabled={pending}
         className="w-full rounded bg-arxys-gold px-3 py-2 text-sm font-medium text-arxys-text-on-gold shadow-sm hover:bg-arxys-gold-hover disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {pending ? "Sending…" : "Send reset link"}
+        {pending ? "Sending…" : "Send me a link"}
       </button>
     </form>
   );

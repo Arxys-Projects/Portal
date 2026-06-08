@@ -4,6 +4,67 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-06-08 — Partner onboarding/login fixes
+
+### Work done
+
+Partners reported they couldn't log in, and the admin partners list showed
+*"A user with this email address has already been registered"* on Resend. A
+read-only diagnostic (`scripts/diagnose-partners.ts`, cross-referencing
+`partners` against `auth.users`) confirmed it was **not** DB corruption — 17
+partners, 17 auth users, no orphans. Every *external* partner was stranded at
+`status='invited'`: six had confirmed + signed in but never reached
+`/dashboard`; five never confirmed at all (corporate domains). Internal/admin
+accounts had all auto-activated fine.
+
+Root causes and fixes:
+
+- **Onboarding confusion** — invite link logs the user in and drops them on a
+  "set password" screen they didn't understand; they abandoned it and then tried
+  to "sign in" with a password that never existed. *Fix:* one-page approach with
+  clearer copy. Login page gained a "First time here? You don't have a password
+  yet" panel and a friendly expired-link banner; `/reset-password?new=1` now
+  reads "Create your password" for invitees vs "Set a new password" for
+  returners; forgot-password reframed as "Get a sign-in link" that works for
+  first-timers too.
+- **Single-use tokens burned by email scanners** — `/auth/confirm` ran
+  `verifyOtp` on GET, so Safe Links / Mimecast / Proofpoint pre-fetches consumed
+  the token before the human clicked. *Fix:* converted `/auth/confirm` to a
+  click-through interstitial (page + server action under the `(auth)` group, URL
+  unchanged); the token is only verified on the explicit POST. `type=invite`
+  routes to `/reset-password?new=1`.
+- **Resend was structurally broken** — `resendInvite` re-called
+  `inviteUserByEmail`, which Supabase always rejects for an existing user. *Fix:*
+  switched to `resetPasswordForEmail` (recovery), which works for any existing
+  user; button relabelled "Resend sign-in link."
+- **Email copy** — invite + recovery templates (`docs/email-templates/`) now
+  state plainly that the user has no password yet and is creating one. These are
+  the canonical source and must be re-pasted into the Supabase dashboard.
+- **Remediation** — `scripts/resend-onboarding.ts` re-sends working set-password
+  links to all 11 stuck partners (dry-run by default, `--send` to fire). Held
+  pending dashboard verification (see below); not yet executed.
+
+Verified the four auth states render correctly in the dev preview (login panel,
+expired banner, interstitial without token consumption, create-password screen)
+and that a bad-token POST fails gracefully to `/login?error=expired_or_invalid`.
+
+### Detours & fixes
+
+- **"DB issue" was a misdiagnosis** — the `invited` status is a *symptom* of
+  never completing set-password, not corruption. The auto-activate (invited →
+  active on first app-page load, shipped 2026-05-20) works; the stuck partners
+  simply never reached an app page.
+- **Action needed outside this repo** — the token-scanner and link-validity
+  fixes depend on Supabase dashboard config that isn't in the repo. Before
+  running the remediation send, verify: Authentication → URL Configuration →
+  **Site URL** = the production portal URL; the **custom email templates** are
+  actually pasted in (with the updated copy); and the redirect allow-list
+  includes `/auth/confirm`.
+
+### Decisions captured
+
+- [`0051-auth-onboarding-interstitial.md`](./decisions/0051-auth-onboarding-interstitial.md)
+
 ## 2026-06-05 — Calculator: control-row layout + UX fixes (post-review)
 
 ### Work done
