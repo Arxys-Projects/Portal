@@ -4,6 +4,75 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-06-09 — Human-readable PDF filename + Pipedrive deal title
+
+### Work done
+
+The downloaded estimate's filename ended in the submission UUID and the
+Pipedrive deal title was just the project name — neither was scannable.
+
+- **PDF filename** ([`pdfFilename` in render.ts](../src/lib/pdf/render.ts)):
+  `Arxys-Report-YYYY-MM-DD-<UUID>.pdf` → `Company - Project - YYYY-MM-DD.pdf`
+  (dashes, UUID dropped). Company/project run through `sanitizeFilenamePart`
+  (strips `\ / : * ? " < > |` and collapses whitespace) so a name can't break
+  the filename. Blank project → "Untitled Project". Both the download route and
+  the email attachment pick up the new name (they already pass the full
+  `SubmissionPdfInput`).
+- **Pipedrive deal title** ([`deal.ts`](../src/lib/pipedrive/deal.ts)):
+  `Company Name | Project Name | YYYY-MM-DD` (pipes), "Untitled Project" when
+  blank. Added a `submissionDate` field to `DealSubmissionInput`, supplied by
+  [`actions.ts`](../src/app/(app)/calculator/actions.ts) from the same
+  `generatedAt` the PDF filename uses, so the file and the deal always show one
+  date.
+- Updated the two title assertions + fixture in `deal.test.ts`. `npm run build`,
+  `npm test` (86 pass), `eslint` all clean.
+
+---
+
+## 2026-06-09 — System Estimate PDF: surface new calculator labels + restructure camera schedule
+
+### Work done
+
+The customer-facing System Estimate PDF still spoke the pre-rework calculator
+language (tier words "high"/"low", "REC HRS") and its camera-schedule table was
+too narrow for the new long descriptive complexity labels. Fixed both —
+**labels, copy and layout only; no calculation touched.**
+
+- **Verification gate first.** Traced `groups_payload` → `render.ts` → PDF.
+  Found `complexityLabel` and `recordingMode` were already banked at write time
+  ([actions.ts](../src/app/(app)/calculator/actions.ts)) but dropped by
+  `mapGroups` — the PDF's `GroupsPayload` / `SubmissionPdfGroup` types simply
+  omitted them, so it fell back to the legacy `complexity` tier. No upstream
+  plumbing needed; the gap was the mapping layer only.
+- **Surfaced the banked fields.** Added `complexityLabel` + `recordingMode` to
+  [`types.ts`](../src/lib/pdf/types.ts) and the `render.ts` `GroupsPayload` type,
+  and mapped them in `mapGroups` with a coarse fallback for legacy rows
+  (`fallbackComplexityLabel`, `recordingMode ?? "constant"`). The second PDF
+  builder in `actions.ts` (email-attachment path) was updated to pass the full
+  label + mode from `r.input` directly.
+- **Restructured the camera schedule** ([`SubmissionPdf.tsx`](../src/lib/pdf/SubmissionPdf.tsx))
+  from wide per-group rows into two-tier blocks: one column-header row at the
+  top; per group a full-width header line (`Group name · N camera streams`,
+  count lifted out of its own column); then a full-width 7-column specs row with
+  room for the long scene label and the operation-hours text. Totals row stays
+  as the bottom summary, now reading "N camera streams" and aligned under the
+  Bandwidth/Storage columns.
+- **Copy fixes:** scene cell shows the full descriptive label; recording mode is
+  folded into the operation-hours cell (`18 (motion 40%)` / `24 (constant)`);
+  column header "REC HRS" → "Operation hrs"; footer disclaimer reworded
+  "industry-standard compression ratios" → "validated compression modeling"
+  (no vendor name, no "certified").
+- **Verified** by rendering a 7-group new submission (motion group + six-level
+  label) and a legacy submission (null serverSpec, coarse fallback label) to
+  PDF — both render correctly, blocks don't split across the page break.
+  `npm run build`, `npm test` (86 pass), `eslint` all clean.
+
+### Decisions captured
+
+- [`0052-pdf-reads-banked-complexity-recording-fields.md`](./decisions/0052-pdf-reads-banked-complexity-recording-fields.md)
+
+---
+
 ## 2026-06-08 — Calculator field explainers (inline tooltips + FAQ panel)
 
 ### Work done

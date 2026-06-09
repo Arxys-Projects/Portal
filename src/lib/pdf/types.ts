@@ -9,7 +9,14 @@ export type SubmissionPdfGroup = {
   resolutionLabel: string;
   codec: string;
   fps: number;
-  complexity: string;
+  // Full descriptive scene label (e.g. "Medium detail, high motion"), banked
+  // as complexityLabel since the 2026-06 six-level rework. Legacy rows that
+  // stored only a tier word ("low"/"med"/"high") fall back to a coarse label
+  // in render.ts.
+  complexityLabel: string;
+  // "constant" = continuous 24/7 recording; "motion" = event-triggered. Rows
+  // that predate the Recording-mode field default to "constant" in render.ts.
+  recordingMode: "constant" | "motion";
   hoursPerDay: number;
   motionPercent: number;
   bandwidthMbps: number;

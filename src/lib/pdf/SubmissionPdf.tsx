@@ -95,24 +95,43 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: BORDER_LIGHT,
   },
-  trAlt: {
-    flexDirection: "row",
-    backgroundColor: BG_LIGHT,
-    borderBottomWidth: 1,
-    borderBottomColor: BORDER_LIGHT,
-  },
   td: { fontSize: 8, padding: 5 },
   totalsRow: { flexDirection: "row", backgroundColor: "#dbe4f0" },
   totalsCell: { fontSize: 8, padding: 5, fontFamily: "Helvetica-Bold" },
-  colGroup: { width: "18%" },
-  colCams: { width: "8%", textAlign: "right" },
-  colRes: { width: "12%" },
-  colCodec: { width: "9%" },
-  colFps: { width: "6%", textAlign: "right" },
-  colScene: { width: "12%" },
-  colHrs: { width: "9%", textAlign: "right" },
-  colBw: { width: "13%", textAlign: "right" },
-  colSt: { width: "13%", textAlign: "right" },
+
+  // Each camera group renders as a two-tier block: a full-width header line
+  // (group name + stream count), then a full-width specs row. The count lives
+  // on the header line, so the specs grid has room for the long descriptive
+  // scene labels and the operation-hours text.
+  groupHeaderRow: {
+    backgroundColor: BG_LIGHT,
+    paddingVertical: 4,
+    paddingHorizontal: 5,
+    borderBottomWidth: 1,
+    borderBottomColor: BORDER_LIGHT,
+  },
+  groupHeaderText: {
+    fontSize: 9,
+    fontFamily: "Helvetica-Bold",
+    color: ARXYS_NAVY,
+  },
+  groupHeaderCount: {
+    fontFamily: "Helvetica",
+    color: TEXT_MUTED,
+  },
+
+  // 7-column specs grid (widths sum to 100). Group name + count are lifted out
+  // onto the header line above, freeing width for Scene complexity / Operation
+  // hrs. Totals label spans the first five columns so the Bandwidth / Storage
+  // totals stay aligned under their headers.
+  colRes: { width: "15%" },
+  colCodec: { width: "12%" },
+  colFps: { width: "7%", textAlign: "right" },
+  colScene: { width: "26%" },
+  colHrs: { width: "16%" },
+  colBw: { width: "12%", textAlign: "right" },
+  colSt: { width: "12%", textAlign: "right" },
+  colTotalsLabel: { width: "76%" },
   tableNote: {
     fontSize: 7.5,
     fontStyle: "italic",
@@ -272,16 +291,24 @@ function dash(v: string | number | null | undefined): string {
 }
 
 const SCHEDULE_COLUMNS: ReadonlyArray<{ key: keyof typeof styles; label: string }> = [
-  { key: "colGroup", label: "Group" },
-  { key: "colCams", label: "Cameras" },
   { key: "colRes", label: "Resolution" },
   { key: "colCodec", label: "Codec" },
   { key: "colFps", label: "FPS" },
   { key: "colScene", label: "Scene complexity" },
-  { key: "colHrs", label: "Rec hrs" },
+  { key: "colHrs", label: "Operation hrs" },
   { key: "colBw", label: "Bandwidth (Mb/s)" },
   { key: "colSt", label: "Storage (TB)" },
 ];
+
+// Operation-hours cell text: the daily hours figure plus the recording mode.
+// Motion-only groups surface their motion percentage; constant groups record
+// continuously. Numbers are unchanged — this only labels what's already there.
+function operationHoursText(g: SubmissionPdfInput["groups"][number]): string {
+  if (g.recordingMode === "motion") {
+    return `${g.hoursPerDay} (motion ${g.motionPercent}%)`;
+  }
+  return `${g.hoursPerDay} (constant)`;
+}
 
 const VALUE_BADGES: ReadonlyArray<{ letter: string; title: string; subtitle: string }> = [
   { letter: "U", title: "Made in USA", subtitle: "San Diego, CA" },
@@ -422,17 +449,25 @@ export function SubmissionPdf({ data }: { data: SubmissionPdfInput }) {
               </Text>
             ))}
           </View>
-          {data.groups.map((g, i) => {
-            const rowStyle = i % 2 === 1 ? styles.trAlt : styles.tr;
-            return (
-              <View key={i} style={rowStyle} wrap={false}>
-                <Text style={[styles.td, styles.colGroup]}>{g.name}</Text>
-                <Text style={[styles.td, styles.colCams]}>{g.cameras}</Text>
+          {data.groups.map((g, i) => (
+            // Group block: header line + specs row stay together across page
+            // breaks so a group is never split from its own header.
+            <View key={i} wrap={false}>
+              <View style={styles.groupHeaderRow}>
+                <Text style={styles.groupHeaderText}>
+                  {g.name}
+                  <Text style={styles.groupHeaderCount}>
+                    {"   ·   "}
+                    {g.cameras} camera streams
+                  </Text>
+                </Text>
+              </View>
+              <View style={styles.tr}>
                 <Text style={[styles.td, styles.colRes]}>{g.resolutionLabel}</Text>
                 <Text style={[styles.td, styles.colCodec]}>{g.codec}</Text>
                 <Text style={[styles.td, styles.colFps]}>{g.fps}</Text>
-                <Text style={[styles.td, styles.colScene]}>{g.complexity}</Text>
-                <Text style={[styles.td, styles.colHrs]}>{g.hoursPerDay}</Text>
+                <Text style={[styles.td, styles.colScene]}>{g.complexityLabel}</Text>
+                <Text style={[styles.td, styles.colHrs]}>{operationHoursText(g)}</Text>
                 <Text style={[styles.td, styles.colBw]}>{fmtMbps(g.bandwidthMbps)}</Text>
                 <Text style={[styles.td, styles.colSt]}>
                   {(g.storageGb / 1000).toLocaleString("en-US", {
@@ -441,16 +476,12 @@ export function SubmissionPdf({ data }: { data: SubmissionPdfInput }) {
                   })}
                 </Text>
               </View>
-            );
-          })}
+            </View>
+          ))}
           <View style={styles.totalsRow} wrap={false}>
-            <Text style={[styles.totalsCell, styles.colGroup]}>Totals</Text>
-            <Text style={[styles.totalsCell, styles.colCams]}>{totalCameras}</Text>
-            <Text style={[styles.totalsCell, styles.colRes]} />
-            <Text style={[styles.totalsCell, styles.colCodec]} />
-            <Text style={[styles.totalsCell, styles.colFps]} />
-            <Text style={[styles.totalsCell, styles.colScene]} />
-            <Text style={[styles.totalsCell, styles.colHrs]} />
+            <Text style={[styles.totalsCell, styles.colTotalsLabel]}>
+              Totals · {totalCameras} camera streams
+            </Text>
             <Text style={[styles.totalsCell, styles.colBw]}>
               {fmtMbps(totalBandwidthMbps)}
             </Text>
@@ -571,10 +602,10 @@ export function SubmissionPdf({ data }: { data: SubmissionPdfInput }) {
         <View style={styles.footer} fixed>
           <Text style={styles.footerDisclaimer}>
             This system estimate is provided for planning purposes. Storage and
-            bandwidth figures are calculated using industry-standard compression
-            ratios and may vary based on actual camera models, scene conditions,
-            and VMS configuration. Contact Arxys for an engineered quote
-            validated against your specific deployment requirements.
+            bandwidth figures are calculated using validated compression
+            modeling and may vary based on actual camera models, scene
+            conditions, and VMS configuration. Contact Arxys for an engineered
+            quote validated against your specific deployment requirements.
           </Text>
           <Text style={styles.footerCompany}>
             Arxys · San Diego, CA · arxys.com · portal.arxys.com

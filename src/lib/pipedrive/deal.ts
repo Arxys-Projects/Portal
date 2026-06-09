@@ -70,6 +70,9 @@ export type DealGroup = {
 
 export type DealSubmissionInput = {
   submissionId: string;
+  // Submission date as YYYY-MM-DD (local), supplied by the caller so the deal
+  // title and the PDF filename share one date.
+  submissionDate: string;
   projectName: string | null;
   vms: string | null;
   retentionDays: number;
@@ -252,9 +255,9 @@ export async function createDealFromSubmission(
         })
       : undefined;
 
-  const title =
-    submission.projectName?.trim() ||
-    `${partner.companyName} — submission ${submission.submissionId}`;
+  const title = `${partner.companyName} | ${
+    submission.projectName?.trim() || "Untitled Project"
+  } | ${submission.submissionDate}`;
 
   // Calculator-derived fields + the create-only routing/ownership/contact set.
   const payload: Record<string, string | number | undefined> = {

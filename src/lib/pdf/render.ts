@@ -22,11 +22,24 @@ export async function renderSubmissionPdfBuffer(
   return renderToBuffer(element);
 }
 
-export function pdfFilename(input: { generatedAt: Date; submissionId: string }): string {
+// Strip characters illegal in filenames across Windows/macOS/Linux and collapse
+// whitespace, so a company or project name can't break or split the filename.
+function sanitizeFilenamePart(value: string): string {
+  return value
+    .replace(/[\\/:*?"<>|]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+export function pdfFilename(
+  input: Pick<SubmissionPdfInput, "generatedAt" | "projectName" | "partner">,
+): string {
   const yyyy = input.generatedAt.getFullYear();
   const mm = String(input.generatedAt.getMonth() + 1).padStart(2, "0");
   const dd = String(input.generatedAt.getDate()).padStart(2, "0");
-  return `Arxys-Report-${yyyy}-${mm}-${dd}-${input.submissionId}.pdf`;
+  const company = sanitizeFilenamePart(input.partner.companyName) || "Arxys";
+  const project = sanitizeFilenamePart(input.projectName ?? "") || "Untitled Project";
+  return `${company} - ${project} - ${yyyy}-${mm}-${dd}.pdf`;
 }
 
 // Load a persisted submission and assemble its PDF view model. Used by the
@@ -198,6 +211,8 @@ type GroupsPayload = {
     resolutionLabel?: string;
     codec?: string;
     complexity?: string;
+    complexityLabel?: string;
+    recordingMode?: "constant" | "motion";
     fps?: number;
     recordingPercent?: number;
     motionPercent?: number;
@@ -205,6 +220,22 @@ type GroupsPayload = {
   }>;
   warnings?: string[];
 };
+
+// Coarse fallback label for legacy rows banked before the six-level rework,
+// which stored only a tier word and no `complexityLabel`. We never re-derive a
+// precise label from the multiplier — the tier is all the old data carries.
+function fallbackComplexityLabel(tier: string | undefined): string {
+  switch (tier) {
+    case "low":
+      return "Low detail";
+    case "med":
+      return "Medium detail";
+    case "high":
+      return "High detail";
+    default:
+      return "Standard";
+  }
+}
 
 function mapGroups(payload: GroupsPayload | null): SubmissionPdfGroup[] {
   if (!payload?.groups) return [];
@@ -214,7 +245,8 @@ function mapGroups(payload: GroupsPayload | null): SubmissionPdfGroup[] {
     resolutionLabel: g.resolutionLabel ?? "—",
     codec: g.codec ?? "—",
     fps: g.fps ?? 0,
-    complexity: g.complexity ?? "Medium",
+    complexityLabel: g.complexityLabel ?? fallbackComplexityLabel(g.complexity),
+    recordingMode: g.recordingMode === "motion" ? "motion" : "constant",
     hoursPerDay: Math.round(((g.recordingPercent ?? 0) / 100) * 24),
     motionPercent: g.motionPercent ?? 0,
     bandwidthMbps: g.computed?.bandwidthMbps ?? 0,

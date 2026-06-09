@@ -350,7 +350,8 @@ export async function submitCalculation(
       cameras: r.input.cameras,
       resolutionLabel: RESOLUTIONS[r.input.resolutionIdx].label,
       codec: CODECS[r.input.codecIdx].value,
-      complexity: COMPLEXITIES[r.input.complexityIdx].tier,
+      complexityLabel: COMPLEXITIES[r.input.complexityIdx].label,
+      recordingMode: r.input.recordingMode,
       fps: r.input.fps,
       hoursPerDay: Math.round((r.input.recordingPercent / 100) * 24),
       motionPercent: r.input.motionPercent,
@@ -428,6 +429,10 @@ export async function submitCalculation(
   // source has no deal / whose deal 404s) creates a new deal instead.
   const dealSubmission = {
     submissionId: inserted.id,
+    // Same date the PDF filename uses, so the deal title and the file agree.
+    submissionDate: `${pdfInput.generatedAt.getFullYear()}-${String(
+      pdfInput.generatedAt.getMonth() + 1,
+    ).padStart(2, "0")}-${String(pdfInput.generatedAt.getDate()).padStart(2, "0")}`,
     projectName: submissionRow.project_name,
     vms: submissionRow.vms,
     retentionDays: input.retentionDays,
