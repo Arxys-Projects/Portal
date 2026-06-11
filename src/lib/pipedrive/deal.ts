@@ -169,7 +169,7 @@ function buildDealFields(
   // below 100% duty cycle flips the whole deal to "On Motion"; all-continuous
   // stays "Continuous".
   const anyMotion = groups.some((g) => g.recordingPercent < 100);
-  set("Recording", anyMotion ? RECORDING_ON_MOTION_ID : RECORDING_CONTINUOUS_ID);
+  set("Recording New", anyMotion ? RECORDING_ON_MOTION_ID : RECORDING_CONTINUOUS_ID);
 
   // Free-text per-stream fields: list every distinct value across groups,
   // sorted ascending, rather than surfacing just one group's value.
@@ -201,7 +201,7 @@ function buildDealFields(
     }
   }
   const codecId = dominantCodec ? CODEC_OPTION_IDS[dominantCodec] : undefined;
-  if (codecId) set("CODEC", codecId);
+  if (codecId) set("CODEC New", codecId);
 
   set("Total Storage", `${totalStorageTb} TB`);
 
@@ -214,7 +214,7 @@ function buildDealFields(
         .filter((id): id is number => typeof id === "number"),
     ),
   ).sort((a, b) => a - b);
-  if (complexityIds.length) set("Scene Complexity", complexityIds.join(","));
+  if (complexityIds.length) set("Complexity Scene-Motion", complexityIds.join(","));
 
   // Recording hours: distinct per-group duty-cycle hours, sorted ascending.
   set(

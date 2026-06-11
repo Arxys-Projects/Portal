@@ -4,6 +4,60 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-06-11 — Pipedrive custom field rename (Recording / CODEC / Scene Complexity)
+
+### Work done
+
+Three admin-curated Pipedrive deal fields were renamed in the Pipedrive UI. The
+integration matches these fields **by display-name string** (not by hashed API
+key): [`CALCULATOR_FIELD_NAMES`](../src/lib/pipedrive/lookups.ts) is matched
+against the live `/v1/dealFields` `name` to discover each field's hashed key at
+runtime, and the `set("Display Name", …)` call-sites in
+[`deal.ts`](../src/lib/pipedrive/deal.ts) look the key up by that same string. A
+label rename therefore breaks the name match — the field would be logged as
+missing and silently skipped, saving the deal without it. So the rename did
+require a code change.
+
+- **Display-name strings updated** in both source files, in lockstep with the
+  derived `CalculatorFieldName` union:
+  - `Recording` → `Recording New`
+  - `CODEC` → `CODEC New`
+  - `Scene Complexity` → `Complexity Scene-Motion`
+- **Untouched on purpose:** the separate `Recording hours` field (partial-match
+  hazard — a naive `Recording` → `Recording New` replace would have corrupted
+  it); all numeric **option IDs** (CODEC 138/139/286, Recording 118/119,
+  Complexity 287/288/289) — those are keyed by ID and a label rename doesn't
+  touch them; the calculator UI's own "Recording" mode selector and the
+  codec/complexity *concepts* in the form (not Pipedrive fields).
+- **Tests** ([`deal.test.ts`](../src/lib/pipedrive/deal.test.ts)): the
+  `CALC_FIELD_KEYS` fixture keys and all assertions updated to the new names,
+  including switching `CALC_FIELD_KEYS.Recording` / `.CODEC` dot-access to
+  bracket notation (the new names contain spaces).
+- **ADR [0041](./decisions/0041-multi-group-pipedrive-field-aggregation.md)**
+  amended: an `Amended: 2026-06-11` note added and the three field-name tokens
+  in the body rewritten. Older dated JOURNAL entries and the phase-2 planning
+  snapshot were **left as historical record** — they describe what was true at
+  the time; this entry supersedes them.
+- `npm run build`, `npm test` (86 pass), `eslint` on the pipedrive module all
+  clean. (Pre-existing unrelated `tsc` noise in `pdf/render.test.ts` and
+  `price-book/xlsx.test.ts` is untouched and excluded from the production build.)
+
+### Detours & fixes
+
+- **Old-name strings from the brief didn't exist in the repo.** The rename
+  brief listed the old names as `Recording old` / `CODEC old` / `Scene old`, but
+  grep (case-sensitive and insensitive, whole repo) found zero matches — the
+  code referenced `Recording` / `CODEC` / `Scene Complexity`. Confirmed with Andy
+  that these were the real current Pipedrive labels and mapped accordingly,
+  rather than assuming a latent skip bug.
+- **Test failures after the first pass.** The fixture-key rename broke
+  `CALC_FIELD_KEYS.Recording` / `.CODEC` dot-access (the new keys have spaces),
+  so those lookups returned `undefined` and four assertions failed. Root cause:
+  the initial grep only caught the quoted `"Scene Complexity"` form, missing the
+  dot-notation. Fixed by switching to bracket notation.
+
+---
+
 ## 2026-06-09 — Human-readable PDF filename + Pipedrive deal title
 
 ### Work done
