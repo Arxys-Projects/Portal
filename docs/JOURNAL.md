@@ -4,6 +4,46 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-06-11 — Supabase Security Advisor hardening
+
+### Work done
+
+Cleared the function-related Security Advisor findings and captured a piece of
+live-DB drift, via migration
+[`20260611000001_security_advisor_hardening.sql`](../supabase/migrations/20260611000001_security_advisor_hardening.sql)
+(written + `supabase db push`ed to prod):
+
+- **Search path:** pinned `search_path = ''` on `public.set_updated_at`.
+- **EXECUTE grants:** revoked `EXECUTE` from `anon` (and defensively `public`)
+  on `is_admin`, `is_internal`, `rls_auto_enable`, and `set_updated_at`; also
+  revoked `authenticated` on the two trigger/event-trigger helpers. **Kept
+  `authenticated` on `is_admin`/`is_internal`** — verified every RLS policy
+  using them is scoped `to authenticated`, so they must stay callable.
+- **Drift captured:** `rls_auto_enable` (event-trigger fn behind `ensure_rls`,
+  auto-enables RLS on new `public` tables) lived only in the live DB. Pulled its
+  exact definition into the migration + an `if not exists`-guarded event-trigger
+  create, so blank-machine rebuilds are faithful and the revoke can't fail on a
+  fresh DB.
+- **Leaked Password Protection:** dashboard-only Auth toggle — added to the
+  RUNBOOK as a manual step (not code).
+
+### Detours & fixes
+
+- **The old `revoke ... from public` was a no-op.** Prior migrations revoked
+  `is_admin`/`is_internal` from `PUBLIC`, yet live grants still showed
+  `{anon, authenticated, ...}`. Root cause: Supabase grants `EXECUTE` directly
+  to the `anon`/`authenticated`/`service_role` roles via default privileges, not
+  through the `PUBLIC` pseudo-role — so revoking `PUBLIC` never touched them.
+  Fix: revoke the explicit role names.
+- **Event-trigger privilege risk on push.** A naive `drop/create event trigger`
+  could fail if the migration role can't manage event triggers. Sidestepped with
+  an `if not exists` guard so prod (where `ensure_rls` already exists) runs no
+  event-trigger DDL at all; only a fresh rebuild creates it.
+
+### Decisions captured
+
+- [`0053-security-advisor-function-grants.md`](./decisions/0053-security-advisor-function-grants.md)
+
 ## 2026-06-11 — Remove SFP28 NIC upgrades from V200 / V250 / V260
 
 ### Work done

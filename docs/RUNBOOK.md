@@ -181,6 +181,10 @@ For the Portal project: **Settings → Deployment Protection → Vercel Authenti
 - **Production**: **Disabled** — invitees with no Vercel account need to reach `/login` on the live host.
 - **Preview**: **Only Vercel Team** (or default) — keeps preview deploys gated to the org.
 
+## 8c. Supabase: enable leaked-password protection
+
+In the dashboard at **Authentication → Sign In / Providers → Password** (Auth settings), enable **Leaked password protection**. This rejects passwords found in the HaveIBeenPwned breach corpus at signup/reset. It's off by default and is flagged by the Security Advisor; the Portal is invite-only with passwords, so it's a free hardening win. Dashboard-only — there is no migration for it. See ADR [0053](./decisions/0053-security-advisor-function-grants.md).
+
 Verify by opening `https://portal-arxys.vercel.app` in an incognito browser window. Must land on the portal's `/login` page, not Vercel's SSO.
 
 ## 9. Create the first admin user
