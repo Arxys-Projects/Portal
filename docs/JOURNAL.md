@@ -4,6 +4,26 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-06-11 — Remove SFP28 NIC upgrades from V200 / V250 / V260
+
+### Work done
+
+Dropped the two SFP28 NIC upgrade lines — `VX5-NIC-SFP28` (SFP28 optical NIC
+card, $670) and `VX5-NIC-SFP28x10` (2× 10Gb SFP28 transceivers, $300) — from
+three families' `upgradeSkus` in [`families.ts`](../src/lib/price-book/families.ts):
+
+- **V200** (`v200`): `["VX5-GPU-A1000", "VX5-NIC-SFP28", "VX5-NIC-SFP28x10"]` → `["VX5-GPU-A1000"]` (GPU upgrade retained).
+- **V250** (`v250`): `["VX5-NIC-SFP28", "VX5-NIC-SFP28x10"]` → `[]`.
+- **V260** (`v260`): `["VX5-NIC-SFP28", "VX5-NIC-SFP28x10"]` → `[]`.
+
+The family-page Upgrade section is already guarded by `upgradeSkus.length > 0`
+([`page.tsx`](<../src/app/(app)/price-book/[slug]/page.tsx>) lines 160 and 336),
+so V250/V260 now render with no Upgrades section rather than an empty heading.
+The SKU/price rows themselves live in the products table and are untouched —
+this only removes the upgrade options surfaced on these three product pages;
+V400–V800 keep their SFP28 options. `npm run build`, `npm test` (86 pass),
+`eslint` all clean.
+
 ## 2026-06-11 — Pipedrive custom field rename (Recording / CODEC / Scene Complexity)
 
 ### Work done
