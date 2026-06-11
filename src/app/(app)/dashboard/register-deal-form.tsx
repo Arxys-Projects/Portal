@@ -3,21 +3,9 @@
 import { useActionState, useState } from "react";
 import { registerDealAction, type DealRegState } from "./actions";
 
-type Props = {
-  partnerId: string;
-  companyName: string;
-  contactName: string;
-  partnerEmail: string;
-};
-
 const initial: DealRegState = { status: "idle" };
 
-export default function RegisterDealForm({
-  partnerId,
-  companyName,
-  contactName,
-  partnerEmail,
-}: Props) {
+export default function RegisterDealForm() {
   const [open, setOpen] = useState(false);
   const [state, formAction, pending] = useActionState(registerDealAction, initial);
 
@@ -43,12 +31,6 @@ export default function RegisterDealForm({
 
   return (
     <form action={formAction} className="space-y-3">
-      {/* Hidden partner fields */}
-      <input type="hidden" name="partnerId" value={partnerId} />
-      <input type="hidden" name="companyName" value={companyName} />
-      <input type="hidden" name="contactName" value={contactName} />
-      <input type="hidden" name="partnerEmail" value={partnerEmail} />
-
       <div>
         <label
           htmlFor="dealProjectName"

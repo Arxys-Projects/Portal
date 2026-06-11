@@ -39,11 +39,12 @@ export default async function AdminPartnersPage() {
     .select("id, company_name, contact_name, role, status, is_internal, created_at")
     .order("created_at", { ascending: false });
   if (error) {
+    console.error("[load partners]", error);
     return (
       <div>
         <h1 className="text-2xl font-semibold text-neutral-900">Partners</h1>
         <p className="mt-3 text-sm text-red-600">
-          Failed to load partners: {error.message}
+          Failed to load partners. Please try again.
         </p>
       </div>
     );

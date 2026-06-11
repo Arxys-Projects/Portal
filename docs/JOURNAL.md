@@ -4,6 +4,148 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-06-11 — AUDIT-01 L-1 + L-2 + L-6: hardening batch
+
+### Work done
+
+Closed [AUDIT-01](../AUDIT-01-security.md) findings **L-1**, **L-2**, and **L-6**.
+
+**L-1 — raw DB/Supabase error messages replaced with generic client-facing string:**
+
+- New helper [`src/lib/errors/safe-message.ts`](../src/lib/errors/safe-message.ts):
+  `dbError(err, context)` — `console.error`s the full error server-side with a
+  context label, returns `"Something went wrong — please try again."`.
+- Applied to 23 raw `error.message` / `.message` returns across 9 files:
+  `admin/partners/actions.ts` (11 sites), `admin/submissions/actions.ts` (2),
+  `submissions/actions.ts` (5), `calculator/actions.ts` (2),
+  `reset-password/actions.ts` (1), `api/admin/forecast/xlsx/route.ts` (1),
+  `api/price-book/xlsx/route.ts` (1).
+- Three server-component pages (`admin/partners/page.tsx`,
+  `submissions/page.tsx`, `admin/submissions/page.tsx` ×2) use inline
+  `console.error` + static string instead of the helper (JSX context; no
+  function call needed).
+- Left alone: zod `issue.message` field-validation feedback (safe and useful),
+  `PipedriveError.message` (application-level controlled error), and any
+  `.message` already only going to `console.error`.
+- The `invitePartner` fallback branch (`Invite failed: ${msg}`) was replaced
+  with `dbError()`; the regex branch that detects "already exists" and shows a
+  crafted user-friendly message was preserved unchanged.
+
+**L-2 — `api/comparison/pdf` now validates its body and wraps the render:**
+
+- [`api/comparison/pdf/route.ts`](../src/app/(app)/api/comparison/pdf/route.ts):
+  replaced the compile-time `PdfRequestBody` cast with a `pdfBodySchema` (zod)
+  matching all `ComparisonPdfInput` fields with tight bounds (strings max'd,
+  `specs` array capped at 50, numeric fields bounded). Returns 400 on validation
+  failure. `renderComparisonPdfBuffer` wrapped in `try/catch` → clean 500.
+
+**L-6 — `requireAdmin` in admin/submissions now checks `status === 'active'`:**
+
+- [`admin/submissions/actions.ts`](../src/app/(app)/admin/submissions/actions.ts):
+  select widened to `"role, status"`, type annotation updated, `isAdmin`
+  condition now `partner?.role === "admin" && partner?.status === "active"` —
+  identical to `admin/partners/actions.ts:42` and the other reference gates.
+
+Scope held to L-1/L-2/L-6. `tsc --noEmit` clean (zero new errors).
+
+---
+
+## 2026-06-11 — AUDIT-01 L-3 + L-4: CRM deal-value integrity
+
+### Work done
+
+Closed [AUDIT-01](../AUDIT-01-security.md) findings **L-3** and **L-4**.
+
+**L-3 — comparison deal value now derived from catalog, not client:**
+
+- Reconnaissance confirmed `arxysModelId` is `product_specs.id` (the same table
+  the comparison page loads server-side). `arxysMsrp` was `product_specs.msrp`
+  passed back through the client — now ignored.
+- In [`comparison/actions.ts`](<../src/app/(app)/comparison/actions.ts>): removed
+  `arxysMsrp` from `quoteSchema`; added a `product_specs` lookup by
+  `.eq("id", input.arxysModelId)` using the existing user-scoped `supabase`
+  client (same client already used for partner identity). Returns
+  `"Arxys model not found in catalog."` if the ID is absent. `catalogMsrp`
+  (from the DB) replaces `input.arxysMsrp` in the `createComparisonDeal` call
+  and in both MSRP/deal-value lines of the notification email body.
+- In [`comparison-form.tsx`](<../src/app/(app)/comparison/comparison-form.tsx>):
+  removed `arxysMsrp` from the `requestComparisonQuote` payload — it is no longer
+  part of the server action's contract.
+
+**L-4 — on-behalf ilike wildcard eliminated:**
+
+- In [`calculator/actions.ts`](<../src/app/(app)/calculator/actions.ts>): escaped
+  `%` → `\%` and `_` → `\_` in `onBehalfRaw` before passing to `.ilike()`.
+  Case-insensitive matching is fully preserved; only LIKE metacharacters in a
+  company name are now treated as literals rather than wildcards.
+
+Scope held to L-3 and L-4 only. `tsc --noEmit` clean.
+
+---
+
+## 2026-06-11 — AUDIT-01 M-2: open redirect via protocol-relative `next`
+
+### Work done
+
+Closed [AUDIT-01](../AUDIT-01-security.md) finding **M-2** — the post-auth
+redirect target was validated with `next.startsWith("/")`, which admits
+protocol-relative URLs (`//evil.com`) that browsers resolve off-site, giving a
+crafted `?next=//attacker.tld` link a redirect/phishing primitive on the trusted
+domain.
+
+- **New shared helper** [`src/lib/auth/safe-next.ts`](../src/lib/auth/safe-next.ts)
+  — `isSafeNext(next)` admits a value only if it starts with a single `/`, does
+  **not** start with `//`, and does **not** contain `://`. Centralised so the two
+  security-critical call sites can't drift.
+- **[`login/actions.ts`](<../src/app/(auth)/login/actions.ts>)** and
+  **[`auth/confirm/actions.ts`](<../src/app/(auth)/auth/confirm/actions.ts>)** now
+  gate the supplied `next` through `isSafeNext(...)`, falling back to the existing
+  `/dashboard` default when it fails. Behaviour for valid relative paths is
+  unchanged; only `//host` and `scheme://host` values are now rejected. The
+  `invite` → `/reset-password?new=1` special-case in `confirm` is downstream of
+  `next` and untouched.
+
+Scope held to M-2 only. `tsc --noEmit` clean for the changed files (pre-existing
+test-file type errors unrelated).
+
+---
+
+## 2026-06-11 — AUDIT-01 M-1: registerDealAction auth + identity trust
+
+### Work done
+
+Closed [AUDIT-01](../AUDIT-01-security.md) finding **M-1** — `registerDealAction`
+authenticated nothing and trusted client-supplied partner identity, so any
+authenticated user could POST forged `companyName`/`partnerEmail`/`partnerId`
+and attribute a deal registration to any company in the internal sales
+notification. Fixed by mirroring `requestComparisonQuote`'s identity pattern:
+
+- **Auth check added** in [`dashboard/actions.ts`](<../src/app/(app)/dashboard/actions.ts>):
+  `getUser()` at the top, returns the action's `{ status: "error" }` shape if
+  there's no session ("Not authenticated.").
+- **Identity re-derived server-side:** `company_name`/`contact_name` loaded from
+  `partners` by `user.id` (`.maybeSingle()`, rejects if missing), email taken
+  from `user.email`, partner id from `user.id`. The email builder
+  ([`deal-registration.ts`](../src/lib/email/deal-registration.ts)) is unchanged —
+  only the *source* of its fields moved from client FormData to the session.
+- **Client identity removed entirely:** dropped `partnerId`/`companyName`/
+  `contactName`/`partnerEmail` from the FormData reads and from `DealRegSchema`;
+  removed the four hidden inputs and the component props from
+  [`register-deal-form.tsx`](<../src/app/(app)/dashboard/register-deal-form.tsx>);
+  the call site in [`dashboard/page.tsx`](<../src/app/(app)/dashboard/page.tsx>)
+  is now `<RegisterDealForm />`. `partner`/`user` are still used elsewhere on the
+  page, so nothing was orphaned and the server-rendered page is unaffected.
+- **Schema tightened:** `partnerEmail` was `z.string()`; rather than upgrade it to
+  `z.email()`, it (and the other identity fields) was removed since email is now
+  session-derived. The remaining free-text fields that flow into the email
+  subject/body — `projectName` (≤200) and `notes` (≤1000) — already carry length
+  caps.
+
+Scope held to M-1 only; no other audit finding touched. `tsc --noEmit` clean for
+the changed files (pre-existing test-file type errors unrelated).
+
+---
+
 ## 2026-06-11 — Supabase Security Advisor hardening
 
 ### Work done

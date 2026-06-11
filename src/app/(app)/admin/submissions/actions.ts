@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { dbError } from "@/lib/errors/safe-message";
 import { SUBMISSION_STATUSES, type SubmissionStatus } from "@/app/(app)/submissions/status";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
@@ -20,10 +21,10 @@ async function requireAdmin() {
   if (!user) return { supabase, user: null, isAdmin: false };
   const { data: partner } = await supabase
     .from("partners")
-    .select("role")
+    .select("role, status")
     .eq("id", user.id)
-    .maybeSingle<{ role: string }>();
-  return { supabase, user, isAdmin: partner?.role === "admin" };
+    .maybeSingle<{ role: string; status: string }>();
+  return { supabase, user, isAdmin: partner?.role === "admin" && partner?.status === "active" };
 }
 
 export async function adminUpdateStatus(
@@ -41,7 +42,7 @@ export async function adminUpdateStatus(
     .from("submissions")
     .update({ status: parsed.data })
     .eq("id", submissionId);
-  if (error) return { ok: false, error: `Failed to update status: ${error.message}` };
+  if (error) return { ok: false, error: dbError(error, "admin update submission status") };
 
   revalidatePath("/admin/submissions");
   return { ok: true };
@@ -58,7 +59,7 @@ export async function adminDeleteSubmission(
     .from("submissions")
     .delete()
     .eq("id", submissionId);
-  if (error) return { ok: false, error: `Failed to delete: ${error.message}` };
+  if (error) return { ok: false, error: dbError(error, "admin delete submission") };
 
   revalidatePath("/admin/submissions");
   return { ok: true };

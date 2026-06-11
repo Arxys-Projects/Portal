@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { dbError } from "@/lib/errors/safe-message";
 import {
   generatePriceBookXlsx,
   priceBookFilename,
@@ -28,7 +29,7 @@ export async function GET() {
     .eq("active", true)
     .order("sort_order");
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: dbError(error, "price-book load products") }, { status: 500 });
   }
 
   const rows = (data ?? []) as PriceBookRow[];

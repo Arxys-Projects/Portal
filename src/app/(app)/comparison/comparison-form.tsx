@@ -201,7 +201,6 @@ export function ComparisonForm({
       vendorName: `${competitor.brand_name} ${competitor.product_line}`,
       vendorModelName: competitor.model_name,
       arxysModelId: arxysModel.id,
-      arxysMsrp: arxysModel.msrp,
       serverCount,
     });
     if (result.status === "ok") {

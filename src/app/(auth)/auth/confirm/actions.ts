@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import type { EmailOtpType } from "@supabase/supabase-js";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { isSafeNext } from "@/lib/auth/safe-next";
 
 // The single-use token from an auth email is only consumed HERE, on an explicit
 // POST from the interstitial button — never on the GET that renders the page.
@@ -14,7 +15,7 @@ export async function confirmToken(formData: FormData): Promise<void> {
   const token_hash = String(formData.get("token_hash") ?? "");
   const type = (String(formData.get("type") ?? "") || null) as EmailOtpType | null;
   const nextRaw = String(formData.get("next") ?? "/dashboard");
-  const next = nextRaw.startsWith("/") ? nextRaw : "/dashboard";
+  const next = isSafeNext(nextRaw) ? nextRaw : "/dashboard";
 
   if (!token_hash || !type) {
     redirect("/login?error=missing_token");

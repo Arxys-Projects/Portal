@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { dbError } from "@/lib/errors/safe-message";
 
 const schema = z
   .object({
@@ -40,7 +41,7 @@ export async function updatePassword(
     password: parsed.data.password,
   });
   if (error) {
-    return { error: error.message };
+    return { error: dbError(error, "update password") };
   }
 
   redirect("/dashboard");

@@ -121,7 +121,8 @@ export default async function AdminSubmissionsPage({
 
     const { data: allRows, error } = await q;
     if (error) {
-      return <ErrorMessage message={error.message} />;
+      console.error("[admin load submissions]", error);
+      return <ErrorMessage message="Something went wrong — please try again." />;
     }
 
     const submissions = (allRows ?? []) as SubmissionRow[];
@@ -265,7 +266,8 @@ export default async function AdminSubmissionsPage({
 
   const { data, error, count } = await query;
   if (error) {
-    return <ErrorMessage message={error.message} />;
+    console.error("[admin load submissions paginated]", error);
+    return <ErrorMessage message="Something went wrong — please try again." />;
   }
 
   type Row = {

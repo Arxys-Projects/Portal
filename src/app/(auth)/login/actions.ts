@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { isSafeNext } from "@/lib/auth/safe-next";
 
 const schema = z.object({
   email: z.email(),
@@ -34,8 +35,6 @@ export async function signIn(
     return { error: "Invalid email or password." };
   }
 
-  const target = parsed.data.next && parsed.data.next.startsWith("/")
-    ? parsed.data.next
-    : "/dashboard";
+  const target = isSafeNext(parsed.data.next) ? parsed.data.next : "/dashboard";
   redirect(target);
 }

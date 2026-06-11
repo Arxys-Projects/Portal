@@ -1,6 +1,7 @@
 "use server";
 
 import { z } from "zod";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { sendDealRegistrationEmail } from "@/lib/email/deal-registration";
 
 const DealRegSchema = z.object({
@@ -12,10 +13,6 @@ const DealRegSchema = z.object({
     .string()
     .max(1000, "Notes must be 1000 characters or fewer")
     .optional(),
-  partnerId: z.string().min(1),
-  companyName: z.string(),
-  contactName: z.string(),
-  partnerEmail: z.string(),
 });
 
 export type DealRegState =
@@ -30,10 +27,6 @@ export async function registerDealAction(
   const raw = {
     projectName: formData.get("projectName"),
     notes: formData.get("notes") ?? undefined,
-    partnerId: formData.get("partnerId"),
-    companyName: formData.get("companyName"),
-    contactName: formData.get("contactName"),
-    partnerEmail: formData.get("partnerEmail"),
   };
 
   const parsed = DealRegSchema.safeParse(raw);
@@ -42,18 +35,35 @@ export async function registerDealAction(
     return { status: "error", message: first?.message ?? "Invalid input." };
   }
 
-  const { projectName, notes, partnerId, companyName, contactName, partnerEmail } =
-    parsed.data;
+  const { projectName, notes } = parsed.data;
+
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { status: "error", message: "Not authenticated." };
+  }
+
+  const { data: partner } = await supabase
+    .from("partners")
+    .select("company_name, contact_name")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (!partner) {
+    return { status: "error", message: "Partner record not found." };
+  }
 
   try {
     await sendDealRegistrationEmail({
       projectName,
       notes: notes ?? "",
       partner: {
-        id: partnerId,
-        company_name: companyName,
-        contact_name: contactName,
-        email: partnerEmail,
+        id: user.id,
+        company_name: partner.company_name as string,
+        contact_name: partner.contact_name as string,
+        email: user.email ?? "",
       },
     });
   } catch (err) {

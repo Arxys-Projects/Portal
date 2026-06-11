@@ -4,6 +4,7 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { SUBMISSION_STATUSES, type SubmissionStatus } from "./status";
+import { dbError } from "@/lib/errors/safe-message";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
 
@@ -42,7 +43,7 @@ export async function updateSubmissionStatus(
     .update({ status: parsed.data })
     .eq("id", submissionId)
     .select("id");
-  if (error) return { ok: false, error: `Failed to update status: ${error.message}` };
+  if (error) return { ok: false, error: dbError(error, "update submission status") };
   if (!data || data.length === 0) return { ok: false, error: NOT_YOURS };
 
   revalidatePath("/submissions");
@@ -59,7 +60,7 @@ export async function togglePreferred(submissionId: string): Promise<ActionResul
     .select("id, project_name, is_preferred")
     .eq("id", submissionId)
     .maybeSingle<{ id: string; project_name: string | null; is_preferred: boolean }>();
-  if (loadError) return { ok: false, error: `Failed to load submission: ${loadError.message}` };
+  if (loadError) return { ok: false, error: dbError(loadError, "load submission") };
   if (!target) return { ok: false, error: NOT_YOURS };
 
   // Already preferred → un-prefer. Single toggle, no project-wide work.
@@ -69,7 +70,7 @@ export async function togglePreferred(submissionId: string): Promise<ActionResul
       .update({ is_preferred: false })
       .eq("id", submissionId)
       .select("id");
-    if (error) return { ok: false, error: `Failed to update: ${error.message}` };
+    if (error) return { ok: false, error: dbError(error, "toggle preferred unset") };
     revalidatePath("/submissions");
     return { ok: true };
   }
@@ -82,7 +83,7 @@ export async function togglePreferred(submissionId: string): Promise<ActionResul
     .update({ is_preferred: true })
     .eq("id", submissionId)
     .select("id");
-  if (setError) return { ok: false, error: `Failed to update: ${setError.message}` };
+  if (setError) return { ok: false, error: dbError(setError, "toggle preferred set") };
   if (!setData || setData.length === 0) return { ok: false, error: NOT_YOURS };
 
   // Clear any other preferred in the same project (case-insensitive). NULL/empty
@@ -121,7 +122,7 @@ export async function deleteSubmission(submissionId: string): Promise<ActionResu
     .delete()
     .eq("id", submissionId)
     .select("id");
-  if (error) return { ok: false, error: `Failed to delete: ${error.message}` };
+  if (error) return { ok: false, error: dbError(error, "delete submission") };
   if (!data || data.length === 0) {
     return {
       ok: false,

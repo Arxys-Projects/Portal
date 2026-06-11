@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import ExcelJS from "exceljs";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { dbError } from "@/lib/errors/safe-message";
 import {
   groupIntoDeals,
   computeWeightedForecast,
@@ -51,7 +52,7 @@ export async function GET() {
     ]);
 
   if (subError) {
-    return NextResponse.json({ error: subError.message }, { status: 500 });
+    return NextResponse.json({ error: dbError(subError, "forecast load submissions") }, { status: 500 });
   }
 
   const submissions = (subRows ?? []) as SubmissionRow[];

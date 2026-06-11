@@ -265,12 +265,7 @@ export default async function DashboardPage() {
               Lock in partner protection on a specific opportunity. Andy will follow up.
             </p>
             <div className="mt-4">
-              <RegisterDealForm
-                partnerId={partner?.id ?? ""}
-                companyName={partner?.company_name ?? ""}
-                contactName={partner?.contact_name ?? ""}
-                partnerEmail={user?.email ?? ""}
-              />
+              <RegisterDealForm />
             </div>
           </div>
 

@@ -43,11 +43,12 @@ export default async function PartnerSubmissionsPage({
   const { data, error } = await query;
 
   if (error) {
+    console.error("[load submissions]", error);
     return (
       <div>
         <h1 className="text-2xl font-semibold text-neutral-900">My Pipeline</h1>
         <p className="mt-3 text-sm text-red-600">
-          Failed to load submissions: {error.message}
+          Failed to load submissions. Please try again.
         </p>
       </div>
     );

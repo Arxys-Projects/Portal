@@ -11,7 +11,6 @@ const quoteSchema = z.object({
   vendorName: z.string().min(1).max(100),
   vendorModelName: z.string().min(1).max(200),
   arxysModelId: z.string().min(1).max(50),
-  arxysMsrp: z.number().positive(),
   serverCount: z.number().int().min(1).max(25),
 });
 
@@ -52,13 +51,24 @@ export async function requestComparisonQuote(
   const companyName = partner.company_name as string;
   const contactName = partner.contact_name as string;
 
+  const { data: catalogProduct } = await supabase
+    .from("product_specs")
+    .select("msrp")
+    .eq("id", input.arxysModelId)
+    .maybeSingle();
+
+  if (!catalogProduct) {
+    return { status: "error", error: "Arxys model not found in catalog." };
+  }
+  const catalogMsrp = catalogProduct.msrp as number;
+
   let dealId: number;
   try {
     const result = await createComparisonDeal({
       vendorName: input.vendorName,
       vendorModelName: input.vendorModelName,
       arxysModelId: input.arxysModelId,
-      arxysMsrp: input.arxysMsrp,
+      arxysMsrp: catalogMsrp,
       serverCount: input.serverCount,
       partner: { companyName, contactName, email: partnerEmail },
     });
@@ -88,8 +98,8 @@ export async function requestComparisonQuote(
         `Competitor model: ${input.vendorName} ${input.vendorModelName}`,
         `Arxys match: ${input.arxysModelId}`,
         `Server count: ${input.serverCount}`,
-        `Arxys MSRP: $${input.arxysMsrp.toLocaleString("en-US")}`,
-        `Deal value: $${(input.arxysMsrp * input.serverCount).toLocaleString("en-US")}`,
+        `Arxys MSRP: $${catalogMsrp.toLocaleString("en-US")}`,
+        `Deal value: $${(catalogMsrp * input.serverCount).toLocaleString("en-US")}`,
         "",
         `Pipedrive deal ID: ${dealId}`,
         "Open in portal: https://portal.arxys.com/dashboard",

@@ -19,6 +19,7 @@ import { loadHeroDataUri, loadLogoDataUri } from "@/lib/pdf/assets";
 import type { SubmissionPdfInput } from "@/lib/pdf/types";
 import { createDealFromSubmission, updateDealFromRevision } from "@/lib/pipedrive/deal";
 import { PipedriveError } from "@/lib/pipedrive/client";
+import { dbError } from "@/lib/errors/safe-message";
 
 const groupSchema = z.object({
   name: z.string().trim().max(80).default(""),
@@ -129,12 +130,13 @@ export async function submitCalculation(
     null;
 
   if (callerStatus.is_internal && onBehalfRaw) {
-    // Case-insensitive exact match (ilike with no wildcards is a literal match;
-    // partner company names don't contain % or _ in practice).
+    // Case-insensitive exact match. Metacharacters are escaped so % and _
+    // in a company name can't wildcard-match an unintended partner (L-4).
+    const escapedOnBehalf = onBehalfRaw.replace(/%/g, "\\%").replace(/_/g, "\\_");
     const { data: matches } = await admin
       .from("partners")
       .select("id, company_name, contact_name")
-      .ilike("company_name", onBehalfRaw)
+      .ilike("company_name", escapedOnBehalf)
       .limit(1);
     const matched = matches?.[0];
     if (matched) {
@@ -205,7 +207,7 @@ export async function submitCalculation(
     .not("max_storage_tb", "is", null)
     .order("sort_order");
   if (productError) {
-    return { status: "error", error: `Failed to load products: ${productError.message}` };
+    return { status: "error", error: dbError(productError, "load products") };
   }
   if (!productRows || productRows.length === 0) {
     return { status: "error", error: "No active numeric-priced SKUs are seeded. Contact an administrator." };
@@ -293,7 +295,7 @@ export async function submitCalculation(
   if (insertError || !inserted) {
     return {
       status: "error",
-      error: `Failed to save submission: ${insertError?.message ?? "unknown error"}`,
+      error: dbError(insertError, "save submission"),
     };
   }
 

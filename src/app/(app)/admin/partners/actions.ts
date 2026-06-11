@@ -6,6 +6,7 @@ import { z } from "zod";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireAdminOrInternal } from "@/lib/auth/require-admin-or-internal";
+import { dbError } from "@/lib/errors/safe-message";
 
 const inviteSchema = z.object({
   email: z.email().max(254),
@@ -106,7 +107,7 @@ export async function invitePartner(
           "A user with that email already exists. Use 'Resend sign-in link' from the partners list if their status is still 'invited'.",
       };
     }
-    return { status: "error", error: `Invite failed: ${msg}` };
+    return { status: "error", error: dbError(invite.error, "invite user") };
   }
   const authUserId = invite.data.user.id;
 
@@ -129,7 +130,7 @@ export async function invitePartner(
     }
     return {
       status: "error",
-      error: `Partner record could not be created: ${insert.error.message}`,
+      error: dbError(insert.error, "invite insert partner"),
     };
   }
 
@@ -164,7 +165,7 @@ export async function suspendPartner(
     .select("id, role, status")
     .eq("id", targetId)
     .maybeSingle();
-  if (targetErr) return { status: "error", error: targetErr.message };
+  if (targetErr) return { status: "error", error: dbError(targetErr, "suspend load partner") };
   if (!target) return { status: "error", error: "Partner not found." };
 
   if (target.role === "admin" && target.status === "active") {
@@ -173,7 +174,7 @@ export async function suspendPartner(
       .select("id", { count: "exact", head: true })
       .eq("role", "admin")
       .eq("status", "active");
-    if (countErr) return { status: "error", error: countErr.message };
+    if (countErr) return { status: "error", error: dbError(countErr, "suspend count admins") };
     if ((count ?? 0) <= 1) {
       return {
         status: "error",
@@ -187,7 +188,7 @@ export async function suspendPartner(
     .from("partners")
     .update({ status: "suspended" })
     .eq("id", targetId);
-  if (updateErr) return { status: "error", error: updateErr.message };
+  if (updateErr) return { status: "error", error: dbError(updateErr, "suspend update partner") };
 
   revalidatePath("/admin/partners");
   return { status: "ok", message: "Partner suspended." };
@@ -207,7 +208,7 @@ export async function reactivatePartner(
     .from("partners")
     .update({ status: "active" })
     .eq("id", targetId);
-  if (error) return { status: "error", error: error.message };
+  if (error) return { status: "error", error: dbError(error, "reactivate partner") };
 
   revalidatePath("/admin/partners");
   return { status: "ok", message: "Partner reactivated." };
@@ -230,7 +231,7 @@ export async function resendInvite(
     .select("status")
     .eq("id", targetId)
     .maybeSingle();
-  if (targetErr) return { status: "error", error: targetErr.message };
+  if (targetErr) return { status: "error", error: dbError(targetErr, "resend invite load partner") };
   if (!target) return { status: "error", error: "Partner not found." };
   if (target.status !== "invited") {
     return {
@@ -243,7 +244,7 @@ export async function resendInvite(
   if (userLookup.error || !userLookup.data.user?.email) {
     return {
       status: "error",
-      error: `Could not look up partner email: ${userLookup.error?.message ?? "no email on auth user"}`,
+      error: dbError(userLookup.error, "resend invite get user"),
     };
   }
   const email = userLookup.data.user.email;
@@ -260,7 +261,7 @@ export async function resendInvite(
     redirectTo,
   });
   if (recoverErr) {
-    return { status: "error", error: `Resend failed: ${recoverErr.message}` };
+    return { status: "error", error: dbError(recoverErr, "resend invite recovery email") };
   }
 
   revalidatePath("/admin/partners");
@@ -299,7 +300,7 @@ async function updatePartnerNameField(
     .from("partners")
     .update({ [column]: parsed.data })
     .eq("id", targetId);
-  if (error) return { status: "error", error: error.message };
+  if (error) return { status: "error", error: dbError(error, "update partner name field") };
 
   revalidatePath("/admin/partners");
   return { status: "ok", message: `${label} updated.` };
@@ -337,7 +338,7 @@ export async function setPartnerInternal(
     .from("partners")
     .update({ is_internal: value })
     .eq("id", targetId);
-  if (error) return { status: "error", error: error.message };
+  if (error) return { status: "error", error: dbError(error, "set partner internal") };
 
   revalidatePath("/admin/partners");
   return {
