@@ -33,8 +33,11 @@ export type PipelineRow = {
 export type PipelineGroup = {
   key: string;
   projectName: string | null; // null = ungrouped
-  // Set when the project was run on behalf of a partner (internal users only).
+  // Set when the viewer ran this project on behalf of a partner (internal only).
   onBehalfCompanyName?: string | null;
+  // Set when this project was prepared FOR the viewer by an Arxys rep (Phase 8).
+  preparedByArxys?: boolean;
+  preparedByRep?: string | null;
   rows: PipelineRow[];
 };
 
@@ -215,6 +218,12 @@ export function Pipeline({
                 {group.onBehalfCompanyName ? (
                   <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800">
                     On behalf of {group.onBehalfCompanyName}
+                  </span>
+                ) : null}
+                {group.preparedByArxys ? (
+                  <span className="rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-800">
+                    Prepared by Arxys
+                    {group.preparedByRep ? ` · ${group.preparedByRep}` : ""}
                   </span>
                 ) : null}
               </header>

@@ -94,20 +94,30 @@ function Tooltip({ text, side = "l" }: { text: string; side?: "l" | "r" }) {
   );
 }
 
+// An active, non-internal partner user an internal rep can run a calc for. The
+// id is a real portal user — binding it as the FK is what grants that user
+// visibility into the resulting submission (Phase 8).
+export type OnBehalfPartner = {
+  id: string;
+  companyName: string;
+  contactName: string;
+  email: string | null;
+};
+
 export function CalculatorForm({
   previousProjectNames = [],
   initialState,
   sourceSubmissionId,
   isInternal = false,
-  partnerCompanyNames = [],
+  onBehalfPartners = [],
 }: {
   previousProjectNames?: string[];
   initialState?: CalculatorInitialState;
   sourceSubmissionId?: string;
-  // Phase 7 Step 1 — internal users get a target-partner field to run a calc on
-  // behalf of a partner. Never rendered for external partners.
+  // Phase 7 Step 1 / Phase 8 — internal users get an on-behalf target picker.
+  // Never rendered for external partners.
   isInternal?: boolean;
-  partnerCompanyNames?: string[];
+  onBehalfPartners?: OnBehalfPartner[];
 }) {
   const [groups, setGroups] = useState<Group[]>(() =>
     groupsFromInitial(initialState?.groups),
@@ -120,8 +130,14 @@ export function CalculatorForm({
     () => initialState?.projectName ?? "",
   );
   // On-behalf-of target (internal users only). Not part of input_state, so it
-  // is always blank on a rehydrated revision — the rep retypes it if needed.
-  const [onBehalfOf, setOnBehalfOf] = useState("");
+  // is always blank on a rehydrated revision — the rep re-picks if needed.
+  // Two mutually-exclusive paths: pick an onboarded partner user (binds the FK
+  // → grants that user visibility), or type a not-yet-onboarded company name
+  // (org-only fallback, no FK, no portal visibility). The DB CHECK enforces at
+  // most one set; the UI clears the other whenever one is used.
+  const [onBehalfCompany, setOnBehalfCompany] = useState("");
+  const [onBehalfPartnerId, setOnBehalfPartnerId] = useState("");
+  const [onBehalfNewCompany, setOnBehalfNewCompany] = useState("");
   // A rehydrated form is immediately re-submittable, so it starts "interacted".
   const [hasInteracted, setHasInteracted] = useState(() => Boolean(initialState));
   const [resultDismissed, setResultDismissed] = useState(false);
@@ -182,6 +198,15 @@ export function CalculatorForm({
     });
   };
 
+  // On-behalf picker: distinct companies, then the users at the chosen company.
+  // Small lists, so derive per-render rather than memoize.
+  const onBehalfCompanies = [
+    ...new Set(onBehalfPartners.map((p) => p.companyName).filter(Boolean)),
+  ].sort((a, b) => a.localeCompare(b));
+  const onBehalfUsersInCompany = onBehalfPartners.filter(
+    (p) => p.companyName === onBehalfCompany,
+  );
+
   const addGroup = () => {
     touch();
     setGroups((p) => [...p, newGroup(p.length + 1)]);
@@ -214,7 +239,9 @@ export function CalculatorForm({
     setRetentionDays(30);
     setVms("");
     setProjectName("");
-    setOnBehalfOf("");
+    setOnBehalfCompany("");
+    setOnBehalfPartnerId("");
+    setOnBehalfNewCompany("");
     setHasInteracted(false);
     setResultDismissed(true);
     setAddOnFailoverRecorder(false);
@@ -309,32 +336,62 @@ export function CalculatorForm({
           )}
         </div>
         {isInternal && (
-          <div className="ax-f" style={{ minWidth: 180 }}>
+          <div className="ax-f" style={{ minWidth: 220 }}>
             <label className="ax-fl">
               On behalf of
-              <Tooltip text="Internal only. Type a partner's company to roll this calc and its deal up to them. Leave blank to file under your own account." />
+              <Tooltip text="Internal only. Pick the partner company, then the user this is for. They see it in their own pipeline and can revise it. Leave blank to file under your own account." />
             </label>
+            <select
+              value={onBehalfCompany}
+              onChange={(e) => {
+                touch();
+                setOnBehalfCompany(e.target.value);
+                setOnBehalfPartnerId("");
+                if (e.target.value) setOnBehalfNewCompany("");
+              }}
+            >
+              <option value="">— Select partner —</option>
+              {onBehalfCompanies.map((name) => (
+                <option key={name} value={name}>
+                  {name}
+                </option>
+              ))}
+            </select>
+            {onBehalfCompany && (
+              <select
+                style={{ marginTop: 6 }}
+                value={onBehalfPartnerId}
+                onChange={(e) => { touch(); setOnBehalfPartnerId(e.target.value); }}
+              >
+                <option value="">— Select user —</option>
+                {onBehalfUsersInCompany.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.contactName}
+                    {p.email ? ` (${p.email})` : ""}
+                  </option>
+                ))}
+              </select>
+            )}
+            <span style={{ fontSize: 11, color: "var(--td)", marginTop: 8 }}>
+              Company not onboarded yet?
+            </span>
             <input
               type="text"
-              list="ax-partner-names"
               maxLength={120}
-              placeholder="Partner company"
-              value={onBehalfOf}
-              onChange={(e) => { touch(); setOnBehalfOf(e.target.value); }}
+              placeholder="New company name"
+              value={onBehalfNewCompany}
+              onChange={(e) => {
+                touch();
+                setOnBehalfNewCompany(e.target.value);
+                if (e.target.value) {
+                  setOnBehalfCompany("");
+                  setOnBehalfPartnerId("");
+                }
+              }}
             />
-            {partnerCompanyNames.length > 0 && (
-              <datalist id="ax-partner-names">
-                {partnerCompanyNames.map((name) => (
-                  <option key={name} value={name} />
-                ))}
-              </datalist>
-            )}
-            {onBehalfOf.trim() &&
-            !partnerCompanyNames.some(
-              (n) => n.toLowerCase() === onBehalfOf.trim().toLowerCase(),
-            ) ? (
+            {onBehalfNewCompany.trim() ? (
               <span style={{ fontSize: 11, color: "var(--td)", marginTop: 4 }}>
-                No matching partner — a new Pipedrive organization will be created.
+                A new Pipedrive organization is created. The deal rolls up to the company; no portal user sees it until that company is onboarded.
               </span>
             ) : null}
           </div>
@@ -422,7 +479,14 @@ export function CalculatorForm({
               setResultDismissed(false);
               submitAction({
                 projectName: projectName.trim() || null,
-                onBehalfOf: isInternal ? (onBehalfOf.trim() || null) : null,
+                // Picker id binds the FK (grants the named user visibility);
+                // the free-text fallback is org-only. Never both — the UI
+                // clears the other path when one is used. Ignored server-side
+                // for non-internal callers.
+                onBehalfOfPartnerId: isInternal ? (onBehalfPartnerId || null) : null,
+                onBehalfOfCompanyName: isInternal
+                  ? (onBehalfPartnerId ? null : onBehalfNewCompany.trim() || null)
+                  : null,
                 vms: vms || null,
                 retentionDays,
                 addOnFailoverRecorder,

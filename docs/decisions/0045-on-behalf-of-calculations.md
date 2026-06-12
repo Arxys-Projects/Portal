@@ -1,6 +1,6 @@
 # 0045 — Internal "on behalf of" calculations
 
-- **Status**: Accepted
+- **Status**: Accepted (extended by [0054](./0054-on-behalf-target-visibility.md) — the named partner can now see and revise on-behalf rows; the free-text match is replaced by a partner-user picker)
 - **Date**: 2026-06-04
 
 ## Context

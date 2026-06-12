@@ -41,10 +41,15 @@ const groupSchema = z.object({
 
 const submissionSchema = z.object({
   projectName: z.string().trim().max(50).optional().nullable(),
-  // Phase 7 Step 1 — internal-only target partner this calc is run on behalf of.
-  // Honored server-side only when the caller is an internal user; ignored
-  // otherwise (the field never renders for external partners).
-  onBehalfOf: z.string().trim().max(120).optional().nullable(),
+  // Phase 7 Step 1 / Phase 8 — internal-only on-behalf target. Two mutually
+  // exclusive paths, honored server-side only for internal callers (ignored
+  // otherwise; the picker never renders for external partners):
+  //   * onBehalfOfPartnerId  — a chosen onboarded partner user; binds the FK,
+  //     which is what grants that user portal visibility into the row.
+  //   * onBehalfOfCompanyName — a not-yet-onboarded company; org-only, no FK,
+  //     no visibility. The DB CHECK enforces at most one of the two columns.
+  onBehalfOfPartnerId: z.string().uuid().optional().nullable(),
+  onBehalfOfCompanyName: z.string().trim().max(120).optional().nullable(),
   vms: z.string().max(40).optional().nullable(),
   retentionDays: z.number().int().min(1).max(730),
   groups: z.array(groupSchema).min(1).max(50),
@@ -114,14 +119,14 @@ export async function submitCalculation(
     };
   }
 
-  // Phase 7 Step 1 — resolve the on-behalf-of target. Authorization is enforced
-  // here, server-side: only an internal user (is_internal) can direct a calc at
-  // another partner. A typed value that exactly matches an existing partner's
-  // company name binds the FK (so two reps targeting the same partner group
-  // together, and the deal attaches that partner's person); otherwise it is
-  // banked as a free-text company and the deal is created against the org only.
+  // Phase 7 Step 1 / Phase 8 — resolve the on-behalf-of target. Authorization is
+  // enforced here, server-side: only an internal user (is_internal) can direct a
+  // calc at another partner. The picker sends a partner-user id, which binds the
+  // FK (granting that user portal visibility and attaching the deal to their
+  // person); the not-yet-onboarded fallback sends a company name, banked as
+  // free text with the deal created against the org only. The two are mutually
+  // exclusive, matching the DB CHECK (at most one column set).
   const admin = createSupabaseAdminClient();
-  const onBehalfRaw = (input.onBehalfOf ?? "").trim();
   let onBehalfPartnerId: string | null = null;
   let onBehalfCompanyName: string | null = null;
   // Pipedrive identity to bill the deal against — the target when on-behalf,
@@ -129,35 +134,40 @@ export async function submitCalculation(
   let dealTarget: { companyName: string; contactName: string | null; email: string | null } | null =
     null;
 
-  if (callerStatus.is_internal && onBehalfRaw) {
-    // Case-insensitive exact match. Metacharacters are escaped so % and _
-    // in a company name can't wildcard-match an unintended partner (L-4).
-    const escapedOnBehalf = onBehalfRaw.replace(/%/g, "\\%").replace(/_/g, "\\_");
-    const { data: matches } = await admin
+  if (callerStatus.is_internal && input.onBehalfOfPartnerId) {
+    // Picker path: trust the id only after confirming it is a real, active,
+    // non-internal partner — the same eligibility the picker filters on. An
+    // ineligible or unknown id is dropped silently (no FK bound), so a crafted
+    // POST can't bind an arbitrary or stale target.
+    const { data: target } = await admin
       .from("partners")
-      .select("id, company_name, contact_name")
-      .ilike("company_name", escapedOnBehalf)
-      .limit(1);
-    const matched = matches?.[0];
-    if (matched) {
-      // Matched partner: bind the FK only (the "at most one set" invariant —
-      // grouped views resolve the display name from the partners table).
-      onBehalfPartnerId = matched.id;
+      .select("id, company_name, contact_name, status, is_internal")
+      .eq("id", input.onBehalfOfPartnerId)
+      .maybeSingle();
+    if (target && target.status === "active" && !target.is_internal) {
+      // Bind the FK only (the "at most one set" invariant — grouped views
+      // resolve the display name from the partners table).
+      onBehalfPartnerId = target.id as string;
       let targetEmail: string | null = null;
       try {
-        const u = await admin.auth.admin.getUserById(matched.id);
+        const u = await admin.auth.admin.getUserById(target.id as string);
         targetEmail = u.data.user?.email ?? null;
       } catch {
         // No email → deal attaches the org only; never blocks the submission.
       }
       dealTarget = {
-        companyName: matched.company_name,
-        contactName: matched.contact_name,
+        companyName: target.company_name as string,
+        contactName: target.contact_name as string,
         email: targetEmail,
       };
-    } else {
-      onBehalfCompanyName = onBehalfRaw;
-      dealTarget = { companyName: onBehalfRaw, contactName: null, email: null };
+    }
+  } else if (callerStatus.is_internal && input.onBehalfOfCompanyName) {
+    // Fallback: a company with no portal user yet. Org-only, no FK, no
+    // visibility — there is no user to grant it to.
+    const name = input.onBehalfOfCompanyName.trim();
+    if (name) {
+      onBehalfCompanyName = name;
+      dealTarget = { companyName: name, contactName: null, email: null };
     }
   }
 

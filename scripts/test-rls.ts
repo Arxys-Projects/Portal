@@ -569,6 +569,99 @@ async function run() {
         error ? `error: ${error.message}` : `count=${data?.length}`,
       );
     }
+
+    // --- Phase 8: per-user on-behalf target visibility ----------------------
+    // The internal user files a submission ON BEHALF OF partner A: partner_id
+    // stays the creator (internal), on_behalf_of_partner_id = A. The new
+    // submissions_select_on_behalf_target policy grants A read access to that
+    // row so A can view and revise it; B (an unrelated partner) gets nothing.
+    let onBehalfRowId = "";
+    {
+      const { data, error } = await admin
+        .from("submissions")
+        .insert({
+          partner_id: internalPersona.id,
+          on_behalf_of_partner_id: a.id,
+          project_name: "RLS-on-behalf-test",
+          cameras_count: 8,
+          resolution_code: "4K",
+          codec: "H.265",
+          complexity: "MED",
+          retention_days: 30,
+          bandwidth_mbps: 200,
+          storage_tb: 4,
+          status: "draft",
+        })
+        .select("id")
+        .single();
+      if (error || !data) {
+        throw new Error(`on-behalf seed failed: ${error?.message}`);
+      }
+      onBehalfRowId = data.id as string;
+    }
+
+    // Test 8h: target partner A can SELECT the on-behalf row prepared for them.
+    {
+      const { data, error } = await a.client
+        .from("submissions")
+        .select("id, partner_id, on_behalf_of_partner_id")
+        .eq("id", onBehalfRowId);
+      record(
+        "8h: on-behalf target A can SELECT the row prepared for them",
+        !error && data?.length === 1 && data[0].on_behalf_of_partner_id === a.id,
+        error ? `error: ${error.message}` : `count=${data?.length}`,
+      );
+    }
+
+    // Test 8i: unrelated partner B cannot SELECT the on-behalf row (no leak).
+    {
+      const { data, error } = await b.client
+        .from("submissions")
+        .select("id")
+        .eq("id", onBehalfRowId);
+      record(
+        "8i: unrelated partner B cannot SELECT the on-behalf row",
+        !error && (data?.length ?? 0) === 0,
+        error ? `error: ${error.message}` : `count=${data?.length}`,
+      );
+    }
+
+    // Test 8j: A can read the source row's revise payload (input_state). Read
+    // access is sufficient for the revise flow — A rehydrates and saves a fresh
+    // row they own; no in-place edit of the source is needed.
+    {
+      const { data, error } = await a.client
+        .from("submissions")
+        .select("id, input_state, groups_payload")
+        .eq("id", onBehalfRowId)
+        .maybeSingle();
+      record(
+        "8j: on-behalf target A can read the source row for the revise path",
+        !error && data?.id === onBehalfRowId,
+        error ? `error: ${error.message}` : `read=${Boolean(data)}`,
+      );
+    }
+
+    // Test 8k: A cannot UPDATE the source row in place — the grant is SELECT
+    // only. No UPDATE policy matches A on a row they don't own, so the update
+    // affects zero rows (RLS makes it invisible to the writer).
+    {
+      const { data, error } = await a.client
+        .from("submissions")
+        .update({ project_name: "on-behalf-edit-attempt" })
+        .eq("id", onBehalfRowId)
+        .select("id");
+      const { data: after } = await admin
+        .from("submissions")
+        .select("project_name")
+        .eq("id", onBehalfRowId)
+        .single();
+      record(
+        "8k: on-behalf target A cannot UPDATE the source row in place",
+        (data?.length ?? 0) === 0 && after?.project_name === "RLS-on-behalf-test",
+        error ? `error: ${error.message}` : `affected=${data?.length} name=${after?.project_name}`,
+      );
+    }
   } finally {
     await teardownPersona(a);
     await teardownPersona(b);

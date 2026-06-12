@@ -25,8 +25,14 @@ export default async function PartnerSubmissionsPage({
       ? (statusParam as StatusFilter)
       : "all";
 
-  // RLS scopes to the caller's own rows — no application filter on partner_id.
+  // RLS scopes the caller to rows they own OR rows prepared on their behalf
+  // (Phase 8: submissions_select_on_behalf_target). No application filter on
+  // partner_id — the viewer id is used only to tell the two apart for display.
   const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const viewerId = user?.id ?? null;
   let query = supabase
     .from("submissions")
     .select(
@@ -69,31 +75,61 @@ export default async function PartnerSubmissionsPage({
   };
   const rows = (data ?? []) as Row[];
 
-  // On-behalf target names. A free-typed target carries its name inline; a
-  // matched partner carries only the FK, which this RLS-scoped page can't read
-  // for other partners — resolve those few ids via the admin client.
-  const obFkIds = [
-    ...new Set(
-      rows
-        .map((r) => r.on_behalf_of_partner_id)
-        .filter((id): id is string => Boolean(id)),
-    ),
-  ];
-  const obNameById = new Map<string, string>();
-  if (obFkIds.length > 0) {
-    const admin = createSupabaseAdminClient();
-    const { data: targets } = await admin
-      .from("partners")
-      .select("id, company_name")
-      .in("id", obFkIds);
-    for (const t of targets ?? []) obNameById.set(t.id, t.company_name);
+  // A row is "incoming on-behalf" when it was prepared FOR the viewer by someone
+  // else (Phase 8 surfaces these): the FK target is the viewer, but the creator
+  // is not. These get a "Prepared by Arxys" marker, not an "On behalf of …"
+  // label — labeling the viewer's own company as the target reads as nonsense.
+  function isIncomingOnBehalf(r: Row): boolean {
+    return (
+      viewerId !== null &&
+      r.on_behalf_of_partner_id === viewerId &&
+      r.partner_id !== viewerId
+    );
   }
+
+  // Two sets of names to resolve via the admin client (RLS hides other
+  // partners): outgoing target company names (FK target, for rows the viewer
+  // prepared for someone) and incoming creator names (the rep, for rows
+  // prepared for the viewer). Both are off-RLS lookups by id.
+  const outgoingTargetIds = new Set<string>();
+  const incomingCreatorIds = new Set<string>();
+  for (const r of rows) {
+    if (isIncomingOnBehalf(r)) {
+      incomingCreatorIds.add(r.partner_id);
+    } else if (r.on_behalf_of_partner_id) {
+      outgoingTargetIds.add(r.on_behalf_of_partner_id);
+    }
+  }
+  const obNameById = new Map<string, string>();
+  const repNameById = new Map<string, string>();
+  const lookupIds = [...new Set([...outgoingTargetIds, ...incomingCreatorIds])];
+  if (lookupIds.length > 0) {
+    const admin = createSupabaseAdminClient();
+    const { data: partnersData } = await admin
+      .from("partners")
+      .select("id, company_name, contact_name")
+      .in("id", lookupIds);
+    for (const p of partnersData ?? []) {
+      obNameById.set(p.id, p.company_name);
+      repNameById.set(p.id, p.contact_name);
+    }
+  }
+
+  // Outgoing on-behalf target name for the group label. Incoming rows return
+  // null here — they carry the "Prepared by Arxys" marker instead.
   function onBehalfCompany(r: Row): string | null {
+    if (isIncomingOnBehalf(r)) return null;
     if (r.on_behalf_of_company_name) return r.on_behalf_of_company_name;
     if (r.on_behalf_of_partner_id) {
       return obNameById.get(r.on_behalf_of_partner_id) ?? null;
     }
     return null;
+  }
+
+  // "Prepared by Arxys" rep name for an incoming row, when known.
+  function preparedByRep(r: Row): string | null {
+    if (!isIncomingOnBehalf(r)) return null;
+    return repNameById.get(r.partner_id) ?? null;
   }
 
   // Phase 2 Step 3+4: recommended_product_id is TEXT (SKU or legacy UUID). The
@@ -142,17 +178,33 @@ export default async function PartnerSubmissionsPage({
   // Rows arrive newest-first, so each group's rows preserve that order.
   const grouped = new Map<
     string,
-    { projectName: string | null; onBehalfCompanyName: string | null; rows: PipelineRow[] }
+    {
+      projectName: string | null;
+      onBehalfCompanyName: string | null;
+      preparedByArxys: boolean;
+      preparedByRep: string | null;
+      rows: PipelineRow[];
+    }
   >();
   for (const r of rows) {
     const trimmed = r.project_name?.trim() ?? "";
     const key = trimmed.toLowerCase();
     if (!grouped.has(key)) {
-      grouped.set(key, { projectName: trimmed || null, onBehalfCompanyName: null, rows: [] });
+      grouped.set(key, {
+        projectName: trimmed || null,
+        onBehalfCompanyName: null,
+        preparedByArxys: false,
+        preparedByRep: null,
+        rows: [],
+      });
     }
     const g = grouped.get(key)!;
     g.rows.push(toPipelineRow(r));
     if (!g.onBehalfCompanyName) g.onBehalfCompanyName = onBehalfCompany(r);
+    if (isIncomingOnBehalf(r)) {
+      g.preparedByArxys = true;
+      if (!g.preparedByRep) g.preparedByRep = preparedByRep(r);
+    }
   }
 
   // Sort groups: ungrouped last; among the rest, groups with an active-status
@@ -162,6 +214,8 @@ export default async function PartnerSubmissionsPage({
       key: g.projectName ? g.projectName.toLowerCase() : "__ungrouped__",
       projectName: g.projectName,
       onBehalfCompanyName: g.onBehalfCompanyName,
+      preparedByArxys: g.preparedByArxys,
+      preparedByRep: g.preparedByRep,
       rows: g.rows,
     }))
     .sort((a, b) => {
