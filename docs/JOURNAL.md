@@ -4,6 +4,54 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-06-12 — Phase 8: per-user on-behalf target visibility
+
+### Work done
+
+- Closed the gap from ADR 0045: a partner the work is prepared *for* can now view and revise it from their own account. Per-user, read-only.
+- **RLS** — one additive SELECT policy `submissions_select_on_behalf_target`: `using (on_behalf_of_partner_id = auth.uid())`, mirroring `submissions_select_own_or_admin`'s caller mapping (`partners.id IS auth.uid()`). Permissive, OR's with the two existing SELECT policies; no insert/update/delete change, no new column. Migration `20260612155238_on_behalf_target_visibility.sql` + a paired rollback that drops exactly this policy.
+- **Picker** — replaced the free-text "On behalf of" datalist with a company → user selector (active, non-internal partners only, emails joined from `auth.users` via the admin client). Submit sends `on_behalf_of_partner_id` directly; the action re-verifies the id is active + non-internal before binding the FK, dropping the old company-name `ilike` match. Free-text entry retained as a clearly-separate "company not onboarded yet" fallback (sets `on_behalf_of_company_name` only — org-only, no FK, no visibility).
+- **Partner-side marker** — on-behalf rows surface in the target's `/submissions` pipeline with a "Prepared by Arxys · {rep}" badge. The page distinguishes incoming (FK = viewer, creator ≠ viewer) from outgoing on-behalf rows and suppresses the self-company "on behalf of" label on incoming ones.
+- **test-rls.ts** — added 8h–8k: target A can SELECT the row, B cannot (no leak), A can read it for the revise path, A cannot UPDATE the source in place. Seeded with `partner_id = internalPersona` so existing teardown cleans it.
+
+### Detours & fixes
+
+- **No local Supabase (Docker down) + cloud-only env** meant `test-rls.ts` could not go green without applying the policy, which is the gated `db push` itself. Resolved by approval: ran the pre-push `backup-tables.ts` (products 36 / submissions 13 / partners 35), `supabase db push` (only this one migration pending; CLI used cached credentials), then `test-rls.ts` against cloud — all assertions PASS, including the unchanged 8d–8g internal-read set.
+
+### Verification gates
+
+- `npm run build` clean (18 routes); `npm test` 86/86; `npx eslint` (6 changed files) 0 errors; `test-rls.ts` all PASS (8h–8k new + 8d–8g unchanged + 8g no self-serve leak).
+- Scope guard held: no mutating-policy change, `submissions_select_internal`/`_own_or_admin` byte-for-byte unchanged, no new column, no self-serve visibility change, calc engine / PDF / Pipedrive deal-field writes untouched.
+- Embed audit: all three `partners!` embeds were already pinned to `submissions_partner_id_fkey`; the two partner-facing read paths use no embed. No new pinning required.
+
+### Decisions captured
+
+- [`0054-on-behalf-target-visibility.md`](./decisions/0054-on-behalf-target-visibility.md); [`0045`](./decisions/0045-on-behalf-of-calculations.md) amended with a forward pointer.
+
+---
+
+## 2026-06-12 — Price/product update run (gated pipeline)
+
+### Work done
+
+- Ran the standing price-push pipeline end-to-end against the canonical Master Sheet (edited beforehand by Andy). Followed the gated procedure: validate → backup → dry-run review → live push.
+- **Validation** (`validate-prices-sheet.ts`): exit 0, zero violations. 36 data rows, all SKUs match `VX5-<GROUP>-<TIER>`, no duplicates, all MSRPs valid (numeric / MKT / Call for Quote / empty).
+- **Backups** written to `backups/`:
+  - Supabase → `manual-2026-06-12T18-56-33-148Z.json` (products 36, submissions 6, partners 34)
+  - Pipedrive → `pipedrive-products-pre-step-5-2026-06-12T18-56-39-858Z.json` (1021 products)
+- **Dry-run preview**: Supabase 0 new / 32 updated / 4 no-op / 0 removal; Pipedrive 0 new / 32 updated / 942 flagged-for-removal (flag-only, never auto-touched). **New=0 on both targets confirmed no SKU code changed** — all changes were price/description updates to existing SKUs, so nothing was orphaned.
+- **Live push** (after explicit go; instruction "ignore all removals" — already the script's default): CONFIRM gate cleared via stdin. Result: Supabase 36 ok / 0 errors, Pipedrive 36 ok / 0 errors. Script upserts the full 36-row sheet idempotently (32 changed + 4 no-op).
+
+### Detours & fixes
+
+- **Backups first failed with `Missing required environment variable`**: the literal commands in the request omitted `--env-file=.env.local`. The validator passed regardless because it only fetches a public CSV. Re-ran the backup + push commands with `--env-file=.env.local` per the RUNBOOK — no script or sheet changes needed.
+
+### Observed (not acted on)
+
+- Several **current-generation `VX5-*` SKUs** sit in the 942 Pipedrive flagged-for-removal list (e.g. `VX5-GPU-2000Ada`, `VX5-V100-28/-36/-44`, `VX5-V200-56/-72/-88`, `VX5-V400-96/-112/-144/-176`, `VX5-V252-DBA`, `VX5-RAM-16GB`, `VX5-V*-NCD` customs) — they exist in Pipedrive but are absent from the 36-row Master Sheet. Flagged only; surfaced to Andy as a possible sheet-coverage gap, not resolved here.
+
+---
+
 ## 2026-06-11 — AUDIT-01 L-1 + L-2 + L-6: hardening batch
 
 ### Work done
