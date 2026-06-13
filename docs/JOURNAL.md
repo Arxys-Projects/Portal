@@ -4,6 +4,28 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-06-12 — Calculator project panel: layout, pending state, save confirmation
+
+### Work done
+
+Three UI/client-state fixes to the calculator project panel (`calculator-form.tsx`, `calculator.css`, `icons.tsx`). No engine, RLS, migration, or action-logic change.
+
+- **Fix 1 — three-band layout.** Re-laid the bordered `.ax-gl` panel from a single five-across flex row (which left vertical dead space) into three stacked bands. Band 1 (internal only): an `On behalf of` header with an `internal only` tag, then two equal-width selects (Company / Partner user) in a grid, with the not-onboarded fallback now behind a subtle `+ Company not onboarded? Add a new name` text link that reveals the New company name input inline in its place. Band 2: one row of Project name (widest) / Which VMS? / Retention (narrow, `days` suffix), with the Add-ons checkboxes on a slim line below. Band 3: a divider, a muted hint on the left, Reset + primary button on the right. Non-internal users never render Band 1, so the panel opens at Project name.
+- **Fix 2 — pending state repair.** Root cause: the Phase 8 commit (`7cc0eb3`) swapped the working `flushSync`-painted `isSaving` for `useActionState`'s `isPending` to clear the lint, but per the 2026-06-05 fix (`756ba50`) a transition's pending flag never paints before the server action's synchronous payload serialization, so the spinner stopped appearing. Restored the immediate paint via `flushSync(() => setIsSaving(true))` and switched to a local `useState` submit state driven through `useTransition`, clearing `isSaving` from the transition callback — never a `useEffect` — so `react-hooks/set-state-in-effect` stays clean (same pattern as the admin `EditableName` rework).
+- **Fix 3 — above-the-fold confirmation.** On success the action band shows a green `Estimate saved and sent to Arxys` bar with a `View report PDF` link (opens `/api/submissions/[id]/pdf` in a new tab), locks the primary button into a disabled `Saved` state, and offers `Start new project` (full reset). Errors render in the same band. Built from `submitState.submissionId`, which the action already returned — no `actions.ts` change. Added a `CheckIcon`.
+
+### Detours & fixes
+
+- **Removed the auto-scroll-to-results effect.** The old `useEffect` smooth-scrolled to the recommendation box on success. That fights Fix 3's goal (keep the success signal next to the button without scrolling), so it was dropped along with its `resultRef`. The full recommendation panel still renders below for detail; the action-band bar is the primary signal.
+- **Em-dash note for the audit gate.** The only em dashes in changed strings are the decorative `— Select … —` empty-option placeholders, matching the three existing sibling selects (house style, not prose). The new `— Select a company first —` follows that convention; all newly authored prose is em-dash-free.
+
+### Verification gates
+
+- `npm run build` clean; `npm test` 86/86; `npx eslint` (changed TSX files) 0 errors incl. no `set-state-in-effect`; changed-string em-dash + no-ai-slop audits clean (see note above).
+- In-browser layout/save verification is auth-gated and the save path fires live Pipedrive + email side effects, so the manual checklist (internal three-band render, partner panel without Band 1, full pending state, success bar + working PDF link, Start new project reset, `/calculator?revise={id}` rehydration) is left for an authenticated session rather than triggering real submissions from a dev login.
+
+---
+
 ## 2026-06-12 — Phase 8: per-user on-behalf target visibility
 
 ### Work done

@@ -79,3 +79,11 @@ export function ResetIcon(props: IconProps) {
     </svg>
   );
 }
+
+export function CheckIcon(props: IconProps) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" {...props}>
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+  );
+}

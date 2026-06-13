@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
+import { flushSync } from "react-dom";
 import {
   CODECS,
   COMPLEXITIES,
@@ -22,6 +23,7 @@ import type { CalculatorInitialState, InitialGroup } from "@/lib/calculator/rehy
 import {
   BarsIcon,
   CameraIcon,
+  CheckIcon,
   DuplicateIcon,
   InfoIcon,
   PlusIcon,
@@ -138,6 +140,9 @@ export function CalculatorForm({
   const [onBehalfCompany, setOnBehalfCompany] = useState("");
   const [onBehalfPartnerId, setOnBehalfPartnerId] = useState("");
   const [onBehalfNewCompany, setOnBehalfNewCompany] = useState("");
+  // The not-onboarded fallback is hidden behind a text link until clicked, then
+  // reveals the New company name input inline in its place (Fix 1, Band 1).
+  const [showNewCompany, setShowNewCompany] = useState(false);
   // A rehydrated form is immediately re-submittable, so it starts "interacted".
   const [hasInteracted, setHasInteracted] = useState(() => Boolean(initialState));
   const [resultDismissed, setResultDismissed] = useState(false);
@@ -160,20 +165,12 @@ export function CalculatorForm({
     new Map(),
   );
 
-  // The action's own pending flag is the saving state: it flips true the moment
-  // submitAction is dispatched and false when the action resolves, so no
-  // separate isSaving state (or an effect to reset it) is needed.
-  const [submitState, submitAction, isSaving] = useActionState<SubmissionState, unknown>(
-    submitCalculation,
-    INITIAL_STATE,
-  );
-
-  const resultRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (submitState.status === "ok" && !resultDismissed) {
-      resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
-  }, [submitState.status, submitState, resultDismissed]);
+  // Submit state is held locally and updated from the transition callback so the
+  // saving flag can be cleared there (never from a useEffect — that tripped the
+  // react-hooks/set-state-in-effect rule during the admin EditableName rework).
+  const [submitState, setSubmitState] = useState<SubmissionState>(INITIAL_STATE);
+  const [isSaving, setIsSaving] = useState(false);
+  const [, startTransition] = useTransition();
 
   const touch = () => {
     if (!hasInteracted) setHasInteracted(true);
@@ -242,12 +239,58 @@ export function CalculatorForm({
     setOnBehalfCompany("");
     setOnBehalfPartnerId("");
     setOnBehalfNewCompany("");
+    setShowNewCompany(false);
     setHasInteracted(false);
     setResultDismissed(true);
     setAddOnFailoverRecorder(false);
     setAddOnManagementServer(false);
     setRevisionSourceId(null);
     setNumericDrafts(new Map());
+    setSubmitState(INITIAL_STATE);
+    setIsSaving(false);
+  };
+
+  const handleSave = () => {
+    // flushSync paints the disabled + spinner state before the server action's
+    // synchronous payload serialization blocks the main thread; a transition's
+    // pending flag alone does not paint in time here (the 2026-06-05 spinner
+    // fix). The saving flag is cleared from the transition callback below, not a
+    // useEffect, so react-hooks/set-state-in-effect stays clean.
+    flushSync(() => setIsSaving(true));
+    setResultDismissed(false);
+    const payload = {
+      projectName: projectName.trim() || null,
+      // Picker id binds the FK (grants the named user visibility); the free-text
+      // fallback is org-only. Never both — the UI clears the other path when one
+      // is used. Ignored server-side for non-internal callers.
+      onBehalfOfPartnerId: isInternal ? (onBehalfPartnerId || null) : null,
+      onBehalfOfCompanyName: isInternal
+        ? (onBehalfPartnerId ? null : onBehalfNewCompany.trim() || null)
+        : null,
+      vms: vms || null,
+      retentionDays,
+      addOnFailoverRecorder,
+      addOnManagementServer,
+      isRevision: Boolean(revisionSourceId),
+      sourceSubmissionId: revisionSourceId,
+      groups: groups.map((g) => ({
+        name: g.name,
+        cameras: g.cameras,
+        resolutionIdx: g.resolutionIdx,
+        codecIdx: g.codecIdx,
+        complexityIdx: g.complexityIdx,
+        fps: g.fps,
+        recordingMode: g.recordingMode,
+        recordingPercent: g.recordingPercent,
+        // Constant pins motion% to 100; the server re-enforces this.
+        motionPercent: g.recordingMode === "constant" ? 100 : g.motionPercent,
+      })),
+    };
+    startTransition(async () => {
+      const res = await submitCalculation(INITIAL_STATE, payload);
+      setSubmitState(res);
+      setIsSaving(false);
+    });
   };
 
   const groupResults = useMemo(
@@ -312,218 +355,256 @@ export function CalculatorForm({
         </div>
       </div>
 
-      {/* Global settings */}
+      {/* Project panel — three bands: attribution (internal), setup, action */}
       <div className="ax-gl">
-        <div className="ax-f" style={{ minWidth: 160 }}>
-          <label className="ax-fl">
-            Project Name
-            <Tooltip text="A label for this estimate — e.g. the site or customer name. Just helps you find and revise it later; it doesn't affect the math." />
-          </label>
-          <input
-            type="text"
-            list="ax-project-names"
-            maxLength={50}
-            placeholder="e.g. Main Campus"
-            value={projectName}
-            onChange={(e) => { touch(); setProjectName(e.target.value); }}
-          />
-          {previousProjectNames.length > 0 && (
-            <datalist id="ax-project-names">
-              {previousProjectNames.map((name) => (
-                <option key={name} value={name} />
-              ))}
-            </datalist>
-          )}
-        </div>
+        {/* Band 1 — on-behalf attribution (internal users only) */}
         {isInternal && (
-          <div className="ax-f" style={{ minWidth: 220 }}>
-            <label className="ax-fl">
-              On behalf of
-              <Tooltip text="Internal only. Pick the partner company, then the user this is for. They see it in their own pipeline and can revise it. Leave blank to file under your own account." />
-            </label>
-            <select
-              value={onBehalfCompany}
-              onChange={(e) => {
-                touch();
-                setOnBehalfCompany(e.target.value);
-                setOnBehalfPartnerId("");
-                if (e.target.value) setOnBehalfNewCompany("");
-              }}
-            >
-              <option value="">— Select partner —</option>
-              {onBehalfCompanies.map((name) => (
-                <option key={name} value={name}>
-                  {name}
-                </option>
-              ))}
-            </select>
-            {onBehalfCompany && (
-              <select
-                style={{ marginTop: 6 }}
-                value={onBehalfPartnerId}
-                onChange={(e) => { touch(); setOnBehalfPartnerId(e.target.value); }}
+          <div className="ax-band">
+            <div className="ax-attr-head">
+              <span className="ax-attr-title">On behalf of</span>
+              <span className="ax-attr-tag">internal only</span>
+              <Tooltip text="Pick the partner company, then the user this is for. They see it in their own pipeline and can revise it. Leave blank to file under your own account." />
+            </div>
+            <div className="ax-attr-grid">
+              <div className="ax-f">
+                <label className="ax-fl">Company</label>
+                <select
+                  value={onBehalfCompany}
+                  onChange={(e) => {
+                    touch();
+                    setOnBehalfCompany(e.target.value);
+                    setOnBehalfPartnerId("");
+                    if (e.target.value) setOnBehalfNewCompany("");
+                  }}
+                >
+                  <option value="">— Select partner —</option>
+                  {onBehalfCompanies.map((name) => (
+                    <option key={name} value={name}>
+                      {name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="ax-f">
+                <label className="ax-fl">Partner user</label>
+                <select
+                  value={onBehalfPartnerId}
+                  disabled={!onBehalfCompany}
+                  onChange={(e) => { touch(); setOnBehalfPartnerId(e.target.value); }}
+                >
+                  <option value="">
+                    {onBehalfCompany ? "— Select user —" : "— Select a company first —"}
+                  </option>
+                  {onBehalfUsersInCompany.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.contactName}
+                      {p.email ? ` (${p.email})` : ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            {showNewCompany ? (
+              <div className="ax-f ax-attr-new">
+                <label className="ax-fl">New company name</label>
+                <input
+                  type="text"
+                  maxLength={120}
+                  placeholder="Company name"
+                  autoFocus
+                  value={onBehalfNewCompany}
+                  onChange={(e) => {
+                    touch();
+                    setOnBehalfNewCompany(e.target.value);
+                    if (e.target.value) {
+                      setOnBehalfCompany("");
+                      setOnBehalfPartnerId("");
+                    }
+                  }}
+                />
+                {onBehalfNewCompany.trim() ? (
+                  <span className="ax-attr-note">
+                    A new Pipedrive organization is created. The deal rolls up to the company; no portal user sees it until that company is onboarded.
+                  </span>
+                ) : null}
+              </div>
+            ) : (
+              <button
+                type="button"
+                className="ax-attr-newlink"
+                onClick={() => setShowNewCompany(true)}
               >
-                <option value="">— Select user —</option>
-                {onBehalfUsersInCompany.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.contactName}
-                    {p.email ? ` (${p.email})` : ""}
+                + Company not onboarded? Add a new name
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Band 2 — project setup */}
+        <div className="ax-band">
+          <div className="ax-setup-row">
+            <div className="ax-f ax-f-project">
+              <label className="ax-fl">
+                Project Name
+                <Tooltip text="A label for this estimate — e.g. the site or customer name. Just helps you find and revise it later; it doesn't affect the math." />
+              </label>
+              <input
+                type="text"
+                list="ax-project-names"
+                maxLength={50}
+                placeholder="e.g. Main Campus"
+                value={projectName}
+                onChange={(e) => { touch(); setProjectName(e.target.value); }}
+              />
+              {previousProjectNames.length > 0 && (
+                <datalist id="ax-project-names">
+                  {previousProjectNames.map((name) => (
+                    <option key={name} value={name} />
+                  ))}
+                </datalist>
+              )}
+            </div>
+            <div className="ax-f ax-f-vms">
+              <label className="ax-fl">
+                Which VMS?
+                <Tooltip text="The video management software the cameras record into (Milestone, Genetec, etc.). Each platform compresses video a little differently, so picking yours makes the storage and bandwidth estimates track your real system." />
+              </label>
+              <select value={vms} onChange={(e) => { touch(); setVms(e.target.value); }}>
+                <option value="">— Select —</option>
+                {VMS_OPTIONS.map((v) => (
+                  <option key={v} value={v}>
+                    {v}
                   </option>
                 ))}
               </select>
-            )}
-            <span style={{ fontSize: 11, color: "var(--td)", marginTop: 8 }}>
-              Company not onboarded yet?
+            </div>
+            <div className="ax-f ax-f-ret">
+              <label className="ax-fl">
+                Retention
+                <Tooltip text="Days of footage to store." />
+              </label>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <input
+                  type="number"
+                  min={1}
+                  max={730}
+                  value={getDraft("retention", retentionDays)}
+                  onChange={(e) => {
+                    touch();
+                    setDraft("retention", e.target.value);
+                    const n = parseInt(e.target.value, 10);
+                    if (!isNaN(n)) {
+                      setRetentionDays(Math.max(1, Math.min(730, n)));
+                    }
+                  }}
+                  onBlur={(e) => {
+                    clearDraft("retention");
+                    const n = parseInt(e.target.value, 10);
+                    setRetentionDays(isNaN(n) ? 30 : Math.max(1, Math.min(730, n)));
+                  }}
+                  style={{ width: 80 }}
+                />
+                <span style={{ color: "var(--td)", fontSize: 13 }}>days</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Add-on toggles */}
+          <div className="ax-addons-row">
+            <span className="ax-addons-label">
+              Add-ons
+              <Tooltip text="Optional extra hardware for resilience and scale. Tick what the project needs — we'll factor it into the quote." />
             </span>
-            <input
-              type="text"
-              maxLength={120}
-              placeholder="New company name"
-              value={onBehalfNewCompany}
-              onChange={(e) => {
-                touch();
-                setOnBehalfNewCompany(e.target.value);
-                if (e.target.value) {
-                  setOnBehalfCompany("");
-                  setOnBehalfPartnerId("");
-                }
-              }}
-            />
-            {onBehalfNewCompany.trim() ? (
-              <span style={{ fontSize: 11, color: "var(--td)", marginTop: 4 }}>
-                A new Pipedrive organization is created. The deal rolls up to the company; no portal user sees it until that company is onboarded.
-              </span>
-            ) : null}
-          </div>
-        )}
-        <div className="ax-f" style={{ minWidth: 160 }}>
-          <label className="ax-fl">
-            Which VMS?
-            <Tooltip text="The video management software the cameras record into (Milestone, Genetec, etc.). Each platform compresses video a little differently, so picking yours makes the storage and bandwidth estimates track your real system." />
-          </label>
-          <select value={vms} onChange={(e) => { touch(); setVms(e.target.value); }}>
-            <option value="">— Select —</option>
-            {VMS_OPTIONS.map((v) => (
-              <option key={v} value={v}>
-                {v}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="ax-f" style={{ minWidth: 130 }}>
-          <label className="ax-fl">
-            Retention
-            <Tooltip text="Days of footage to store." />
-          </label>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <input
-              type="number"
-              min={1}
-              max={730}
-              value={getDraft("retention", retentionDays)}
-              onChange={(e) => {
-                touch();
-                setDraft("retention", e.target.value);
-                const n = parseInt(e.target.value, 10);
-                if (!isNaN(n)) {
-                  setRetentionDays(Math.max(1, Math.min(730, n)));
-                }
-              }}
-              onBlur={(e) => {
-                clearDraft("retention");
-                const n = parseInt(e.target.value, 10);
-                setRetentionDays(isNaN(n) ? 30 : Math.max(1, Math.min(730, n)));
-              }}
-              style={{ width: 80 }}
-            />
-            <span style={{ color: "var(--td)", fontSize: 13 }}>days</span>
+            <label className="ax-addon-chk">
+              <input
+                type="checkbox"
+                checked={addOnFailoverRecorder}
+                onChange={(e) => { touch(); setAddOnFailoverRecorder(e.target.checked); }}
+              />
+              Failover Recorder
+              <Tooltip text="A standby recorder that automatically takes over if a main recorder fails, so you keep recording during an outage." />
+            </label>
+            <label className="ax-addon-chk">
+              <input
+                type="checkbox"
+                checked={addOnManagementServer}
+                onChange={(e) => { touch(); setAddOnManagementServer(e.target.checked); }}
+              />
+              Management Server
+              <Tooltip text="A dedicated server that runs the VMS software and management, separate from the recorders. Common on larger systems for performance and easier administration." />
+            </label>
           </div>
         </div>
 
-        {/* Add-on toggles */}
-        <div className="ax-f" style={{ gap: 8 }}>
-          <label className="ax-fl">
-            Add-ons
-            <Tooltip text="Optional extra hardware for resilience and scale. Tick what the project needs — we'll factor it into the quote." />
-          </label>
-          <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", fontSize: 13 }}>
-            <input
-              type="checkbox"
-              checked={addOnFailoverRecorder}
-              onChange={(e) => { touch(); setAddOnFailoverRecorder(e.target.checked); }}
-            />
-            Failover Recorder
-            <Tooltip text="A standby recorder that automatically takes over if a main recorder fails, so you keep recording during an outage." />
-          </label>
-          <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", fontSize: 13 }}>
-            <input
-              type="checkbox"
-              checked={addOnManagementServer}
-              onChange={(e) => { touch(); setAddOnManagementServer(e.target.checked); }}
-            />
-            Management Server
-            <Tooltip text="A dedicated server that runs the VMS software and management, separate from the recorders. Common on larger systems for performance and easier administration." />
-          </label>
-        </div>
-
-        <div className="ax-save" style={{ marginLeft: "auto", marginTop: 0 }}>
-          <span className="ax-save-hint">
-            Configure all cameras, then save to send the project to Arxys for review and a quote.
-          </span>
-          <button
-            type="button"
-            className="ax-save-btn"
-            disabled={!hasInteracted || isSaving}
-            data-saving={isSaving || undefined}
-            onClick={() => {
-              setResultDismissed(false);
-              submitAction({
-                projectName: projectName.trim() || null,
-                // Picker id binds the FK (grants the named user visibility);
-                // the free-text fallback is org-only. Never both — the UI
-                // clears the other path when one is used. Ignored server-side
-                // for non-internal callers.
-                onBehalfOfPartnerId: isInternal ? (onBehalfPartnerId || null) : null,
-                onBehalfOfCompanyName: isInternal
-                  ? (onBehalfPartnerId ? null : onBehalfNewCompany.trim() || null)
-                  : null,
-                vms: vms || null,
-                retentionDays,
-                addOnFailoverRecorder,
-                addOnManagementServer,
-                isRevision: Boolean(revisionSourceId),
-                sourceSubmissionId: revisionSourceId,
-                groups: groups.map((g) => ({
-                  name: g.name,
-                  cameras: g.cameras,
-                  resolutionIdx: g.resolutionIdx,
-                  codecIdx: g.codecIdx,
-                  complexityIdx: g.complexityIdx,
-                  fps: g.fps,
-                  recordingMode: g.recordingMode,
-                  recordingPercent: g.recordingPercent,
-                  // Constant pins motion% to 100; the server re-enforces this.
-                  motionPercent: g.recordingMode === "constant" ? 100 : g.motionPercent,
-                })),
-              });
-            }}
-          >
-            {isSaving && (
-              <svg className="ax-save-spinner" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeOpacity="0.25" />
-                <path d="M22 12a10 10 0 0 0-10-10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-              </svg>
+        {/* Band 3 — action */}
+        <div className="ax-band ax-band-action">
+          <div className="ax-divider" />
+          {submitState.status === "error" && !resultDismissed && (
+            <div className="ax-rec-err" style={{ marginTop: 0 }}>
+              {submitState.error}
+            </div>
+          )}
+          {submitState.status === "ok" && !resultDismissed && (
+            <div className="ax-saved-bar">
+              <CheckIcon />
+              <span>Estimate saved and sent to Arxys</span>
+              <a
+                className="ax-saved-link"
+                href={`/api/submissions/${submitState.submissionId}/pdf`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                View report PDF
+              </a>
+            </div>
+          )}
+          <div className="ax-action-row">
+            <span className="ax-save-hint">
+              Configure all cameras, then save to send to Arxys for review.
+            </span>
+            {submitState.status === "ok" && !resultDismissed ? (
+              <div className="ax-action-btns">
+                <button
+                  type="button"
+                  className="ax-ib"
+                  onClick={reset}
+                  style={{ gap: 6 }}
+                >
+                  <ResetIcon /> Start new project
+                </button>
+                <button type="button" className="ax-save-btn" disabled>
+                  <CheckIcon /> Saved
+                </button>
+              </div>
+            ) : (
+              <div className="ax-action-btns">
+                <button
+                  type="button"
+                  className="ax-ib"
+                  onClick={reset}
+                  disabled={isSaving}
+                  style={{ gap: 6 }}
+                >
+                  <ResetIcon /> Reset
+                </button>
+                <button
+                  type="button"
+                  className="ax-save-btn"
+                  disabled={!hasInteracted || isSaving}
+                  data-saving={isSaving || undefined}
+                  onClick={handleSave}
+                >
+                  {isSaving && (
+                    <svg className="ax-save-spinner" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeOpacity="0.25" />
+                      <path d="M22 12a10 10 0 0 0-10-10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+                    </svg>
+                  )}
+                  {isSaving ? "Saving…" : "Save & request quote"}
+                </button>
+              </div>
             )}
-            {isSaving ? "Saving…" : "Save & request quote"}
-          </button>
-          <button
-            type="button"
-            className="ax-ib"
-            onClick={reset}
-            style={{ gap: 6 }}
-          >
-            <ResetIcon /> Reset
-          </button>
+          </div>
         </div>
       </div>
 
@@ -995,14 +1076,8 @@ export function CalculatorForm({
         </p>
       </details>
 
-      {submitState.status === "error" && !resultDismissed && (
-        <div className="ax-rec-err">{submitState.error}</div>
-      )}
-
       {submitState.status === "ok" && !resultDismissed && (
-        <div ref={resultRef}>
-          <RecommendationPanel state={submitState} />
-        </div>
+        <RecommendationPanel state={submitState} />
       )}
     </div>
   );
