@@ -4,6 +4,50 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-06-15 — Price Book above-the-fold layout compression
+
+### Work done
+
+Layout-only refactor of the Price Book page. No logic, API, or Supabase changes.
+
+- Hero band padding reduced from ~40px to 20px top and bottom.
+- Hero description trimmed from a 5-sentence paragraph to 2 lines, preserving the four core differentiators (purpose-built, H.265, camera count, margin).
+- "Effective From" date moved inline with the "View all" link in the hero meta row.
+- Enterprise Grade bullets changed from 3-column to `grid-cols-2` with 8 items. "NDAA Compliant" and "American Made" combined into a single bullet to hit the 2x4 grid.
+- H.265 feature block moved from a full-width band below Enterprise Grade to the left 38% column of a new two-column row (`grid [grid-template-columns:38%_62%]` or flex equivalent). Enterprise Grade occupies the right 62%. H.265 column background set to `#1E4E8C`.
+- Net result: intro section height reduced from approximately 650px to approximately 380px; products visible approximately 280px sooner on a standard desktop viewport.
+
+### Decisions captured
+
+- [`0056-price-book-above-fold-layout-compression.md`](./decisions/0056-price-book-above-fold-layout-compression.md)
+
+---
+
+## 2026-06-15 — RLS performance-advisor consolidation (authored, deploy pending)
+
+### Work done
+
+- Authored migration `20260615000001_rls_perf_consolidation.sql` to clear the Supabase Performance Advisor WARNs on `partners` / `products` / `submissions`. Two lints, both PERFORMANCE-only, no authorization change:
+  - **`auth_rls_initplan` (11 WARNs)** — wrapped every bare `auth.uid()` as `(select auth.uid())`, including the argument to the `is_admin`/`is_internal` helpers, so the planner hoists it to a once-per-statement InitPlan instead of per-row.
+  - **`multiple_permissive_policies` (8 WARNs)** — collapsed each over-subscribed role+action into one OR'd PERMISSIVE policy: `partners` SELECT (2→1, `partners_select_self_admin_internal`), `submissions` SELECT (3→1, `submissions_select_authorized`), `submissions` UPDATE (2→1, `submissions_update_authorized`), `submissions` DELETE (2→1, `submissions_delete_authorized`). Permissive policies OR together, so the merge is byte-equivalent in authorization. The DELETE draft gate (ADR 0037) is preserved on the self branch only: `(own AND draft) OR admin`.
+- Re-scoped the two Phase 8 SELECT policies (`submissions_select_internal`, `submissions_select_on_behalf_target`) to `to authenticated` while merging — they had been created without a `to` clause, applying to PUBLIC, which is what produced the extra per-role lint rows (`anon`, `authenticator`, `dashboard_user`, …). Behaviour-neutral: `anon` holds no table grant on `submissions` and `auth.uid()` is null for it.
+- Paired rollback `supabase/rollback/rls-perf-consolidation-rollback.sql` restores the exact pre-consolidation policy set.
+- Triaged the rest of the advisor output and deliberately took **no** action: the 5 `unused_index` INFOs are the known small/young-DB false signal (seq scans on tiny tables) — the indexes back real filter columns and stay; `auth_db_connections_absolute` is a dashboard toggle that only matters on instance upsize; the two `is_admin`/`is_internal` SECURITY DEFINER WARNs are minor info-disclosure, not escalation, and revoking EXECUTE from `authenticated` would break the policies that call them.
+
+### Detours & fixes
+
+- **`server_specs` not touched.** It carries an identical bare-`auth.uid()` policy in the initial schema and looked like a fix candidate, but it was dropped in `20260521190350` (`drop table ... cascade`) during the SKU-PK redesign, so no policy exists and the advisor never flagged it.
+
+### Verification gates (PENDING — for the next work pass)
+
+- Not yet deployed. Per the cloud-only workflow, the next pass runs: `backup-tables.ts` → `supabase db push` (this one migration) → `scripts/test-rls.ts` against cloud. Authorization is unchanged, so the existing 8x assertion set (own/admin/internal/on-behalf SELECT, draft-gated DELETE, no cross-partner leak) should stay green with no test edits; confirm before reporting done.
+
+### Decisions captured
+
+- [`0055-rls-policy-consolidation-and-initplan-wrapping.md`](./decisions/0055-rls-policy-consolidation-and-initplan-wrapping.md)
+
+---
+
 ## 2026-06-12 — Calculator project panel: layout, pending state, save confirmation
 
 ### Work done

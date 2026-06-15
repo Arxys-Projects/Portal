@@ -55,7 +55,7 @@ export default async function PriceBookIndexPage() {
   return (
     <div>
       {/* ── Page hero ── */}
-      <section className="bg-[#054A91] text-white -mx-4 -mt-8 px-4 py-12">
+      <section className="bg-[#054A91] text-white -mx-4 -mt-8 px-4 py-5">
         <div className="mx-auto max-w-5xl flex flex-col md:flex-row md:items-center md:justify-between gap-8">
           {/* Left: copy */}
           <div className="flex-1">
@@ -68,21 +68,15 @@ export default async function PriceBookIndexPage() {
               </h1>
             </div>
             <p className="mt-3 text-white/90 max-w-2xl text-sm leading-relaxed">
-              VideoX Enterprise IP video servers give security professionals a
-              winning competitive edge with AI-optimized performance,
-              ultra-reliable uptime, and plug-and-play scalability—purpose-built
-              to handle today&apos;s demanding VMS workloads without compromise.
-              Run modern CODECS at line speed, double your camera counts per
-              server, and deliver advanced analytics—while protecting 30% more
-              margin than quoting VMS branded Dell. That&apos;s your competitive
-              edge.
+              Purpose-built IP video servers for demanding VMS workloads. Run
+              H.265 at line speed, double camera counts per server, and protect
+              30% more margin than Dell-branded quotes.
             </p>
-            <div className="mt-5 flex flex-col gap-1.5">
-              <p className="text-sm font-bold text-white tracking-wide">
-                Effective From: 05/05/2026
-              </p>
-            </div>
-            <div className="mt-4">
+            <div className="mt-4 flex items-center gap-2 flex-wrap">
+              <span className="text-sm font-bold text-white tracking-wide">
+                Effective: 05/05/2026
+              </span>
+              <span className="text-white/60">·</span>
               <a
                 href="https://www.arxys.com/videox-appliances/"
                 target="_blank"
@@ -114,63 +108,11 @@ export default async function PriceBookIndexPage() {
         </div>
       </section>
 
-      {/* ── Enterprise Grade + Compliance (combined) ── */}
+      {/* ── H.265 + Enterprise Grade (two-column row) ── */}
       <div className="mx-auto max-w-5xl mt-8">
-        <div className="rounded-lg border-l-4 border-[#fbb040] bg-white border border-neutral-200 p-6">
-          <p className="font-bold text-neutral-900 text-sm mb-3">
-            Enterprise Grade:{" "}
-            <span className="font-normal">
-              Arxys VideoX servers come standard with:
-            </span>
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-1.5 text-sm text-neutral-900">
-            {/* Column 1 */}
-            <ul className="space-y-1.5">
-              {[
-                "Microsoft Windows Server 2022 or 2025",
-                "Hot-swap, enterprise class HDDs and SSDs",
-                "Hot-swap and redundant power and cooling",
-              ].map((item) => (
-                <li key={item} className="flex items-start gap-2">
-                  <span className="mt-1 w-2 h-2 rounded-full bg-[#fbb040] shrink-0" />
-                  {item}
-                </li>
-              ))}
-            </ul>
-            {/* Column 2 */}
-            <ul className="space-y-1.5">
-              {[
-                "Dedicated secure remote management",
-                "Resilient Hardware RAID with cachevault protection",
-                "Rack slide rails, and lockable drive access",
-              ].map((item) => (
-                <li key={item} className="flex items-start gap-2">
-                  <span className="mt-1 w-2 h-2 rounded-full bg-[#fbb040] shrink-0" />
-                  {item}
-                </li>
-              ))}
-            </ul>
-            {/* Column 3 — compliance */}
-            <ul className="space-y-1.5">
-              {[
-                "Multi-VMS Validated: Milestone, Avigilon, Genetec, NXWitness, Hanwha, Exacq, Axxonsoft",
-                "NDAA Compliant",
-                "American Made",
-              ].map((item) => (
-                <li key={item} className="flex items-start gap-2">
-                  <span className="mt-1 w-2 h-2 rounded-full bg-[#fbb040] shrink-0" />
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      </div>
-
-      {/* ── H.265 performance banner (B5) ── */}
-      <section className="bg-[#03396f] text-white -mx-4 px-4 py-10 mt-8">
-        <div className="mx-auto max-w-5xl flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-          <div className="flex-1">
+        <div className="grid grid-cols-1 md:[grid-template-columns:38%_62%] rounded-lg border border-neutral-200 overflow-hidden">
+          {/* Left 38% — H.265 performance */}
+          <section className="bg-[#1E4E8C] text-white border-r border-white/10 p-5">
             <div className="flex items-center gap-3 mb-3">
               <span className="inline-block rounded border border-[#fbb040] px-2 py-0.5 text-xs font-bold text-[#fbb040] tracking-widest uppercase">
                 H.265 HEVC
@@ -179,25 +121,63 @@ export default async function PriceBookIndexPage() {
             <h2 className="text-2xl font-semibold leading-snug">
               VideoX V5 Drives H.265 Performance
             </h2>
-            <p className="mt-2 text-white/85 text-sm leading-relaxed max-w-2xl">
+            <p className="mt-2 text-white/85 text-sm leading-relaxed">
               V5&apos;s AMD Zen5 architecture delivers 2.3x more H.265 streams
               per server, eliminating the performance penalty that forces most
               NVRs to fall back to H.264. Run modern codecs at full speed
               without compromising camera counts or analytics.
             </p>
-          </div>
-          <div className="shrink-0">
-            <a
-              href="https://www.arxys.com/videox-v5-launch-deliver-on-the-promise-of-h-265-today/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center rounded bg-[#fbb040] px-5 py-2.5 text-sm font-semibold text-[#1a1a1a] transition hover:bg-[#e69e2c]"
-            >
-              Learn More →
-            </a>
+            <div className="mt-4">
+              <a
+                href="https://www.arxys.com/videox-v5-launch-deliver-on-the-promise-of-h-265-today/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center rounded bg-[#fbb040] px-5 py-2.5 text-sm font-semibold text-[#1a1a1a] transition hover:bg-[#e69e2c]"
+              >
+                Learn More →
+              </a>
+            </div>
+          </section>
+
+          {/* Right 62% — Enterprise Grade */}
+          <div className="bg-white p-5">
+            <p className="font-bold text-neutral-900 text-sm mb-3">
+              Enterprise Grade:{" "}
+              <span className="font-normal">
+                Arxys VideoX servers come standard with:
+              </span>
+            </p>
+            <div className="grid grid-cols-2 gap-x-8 gap-y-1.5 text-sm text-neutral-900">
+              <ul className="space-y-1.5">
+                {[
+                  "Microsoft Windows Server 2022 or 2025",
+                  "Dedicated secure remote management",
+                  "Hot-swap, enterprise-class HDDs and SSDs",
+                  "Resilient Hardware RAID with cachevault protection",
+                ].map((item) => (
+                  <li key={item} className="flex items-start gap-2">
+                    <span className="mt-1 w-2 h-2 rounded-full bg-[#fbb040] shrink-0" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+              <ul className="space-y-1.5">
+                {[
+                  "Hot-swap and redundant power and cooling",
+                  "Rack slide rails, and lockable drive access",
+                  "Multi-VMS Validated: Milestone, Avigilon, Genetec, NXWitness, Hanwha, Exacq, Axxonsoft",
+                  "NDAA Compliant · American Made",
+                ].map((item) => (
+                  <li key={item} className="flex items-start gap-2">
+                    <span className="mt-1 w-2 h-2 rounded-full bg-[#fbb040] shrink-0" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
         </div>
-      </section>
+      </div>
 
       {/* ── Family grid ── */}
       <div className="mx-auto max-w-5xl py-10">
