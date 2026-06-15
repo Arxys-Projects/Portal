@@ -4,6 +4,105 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-06-15 — Phase 10 Step 1: camera_specs migration + validator (authored, deploy pending)
+
+### Work done
+
+Authored the Phase 10 Step 1 build item. Stop-and-flag: nothing migrated, pushed, backed up, or committed. The RLS policy block and the new `pg_trgm` extension install are held for human review before any `db push`.
+
+- **Migration `20260615000002_phase10_camera_specs.sql`.** New table `camera_specs` mirroring the `product_specs` reference-table pattern. Columns: `id` (uuid PK `gen_random_uuid()`), `vendor` (text, CHECK in Axis | Hanwha | Avigilon), `model` (text), `model_aliases` (text[] default `'{}'`), `sensor_count` (int CHECK >= 1), `max_width` / `max_height` (int CHECK > 0), `sensor_detail` (jsonb null), `currently_shipping` (bool default true), `source_url` (text null), `as_of_date` (date null). Natural key `unique (vendor, model)`. No `created_at` / `updated_at` — the sibling `product_specs` carries neither.
+- **RLS.** SELECT open to `authenticated` (`using (true)`, mirroring `product_specs_select_all`); INSERT / UPDATE / DELETE admin-only via `public.is_admin((select auth.uid()))`, wrapped per the 2026-06-15 InitPlan consolidation (ADR 0055). Privileges granted to `authenticated` and gated by the policies, matching how `submissions` exposes admin writes. `anon` gets nothing.
+- **Search indexing in the same migration** (keeps Step 3 pure UI): enabled `pg_trgm` (first use in the project — only `pgcrypto` was enabled before), GIN trigram on `model`, GIN trigram expression index on `array_to_string(model_aliases, ' ')`, and a btree on `vendor`.
+- **Paired rollback `supabase/rollback/phase-10-step-1-rollback.sql`** drops the policies, indexes, table, and `pg_trgm` (which this migration created). Carries a note to remove the `drop extension` line if any later migration starts depending on `pg_trgm`.
+- **Shared mapping `src/lib/calculator/camera-resolution.ts`.** `mapPixelsToBucket(width, height)` resolves native pixels to a RESOLUTIONS bucket under the Option C round-up rule (ADR 0058), returning null when pixels exceed the largest bucket (29MP). Single source of truth: both the validator and the Step-3 loader import it. Reads `tables.ts` read-only.
+- **Validator `scripts/validate-camera-specs.ts`.** Gates a JSON seed file before any admin load (JSON, not CSV, because `model_aliases` and `sensor_detail` are nested — matches `data/server-specs.json`). Checks vendor set, non-empty model, alias array shape, `sensor_count >= 1`, positive integer dimensions, pixel-to-bucket mapping via the shared function, boolean/date/URL/JSON shape of optional fields, and `(vendor, model)` uniqueness across the file. Exit 0 clean / 1 violations / 2 crash, in the `[PASS]`/`[FAIL]` style of `validate-prices-sheet.ts`.
+- **ADRs 0057 and 0058** promoted from Proposed stubs to full Accepted ADRs (Context / Options considered / Decision / Consequences).
+
+### Detours & fixes
+
+- **Type guard did not narrow through a boolean variable.** First draft assigned `const widthOk = isPosInt(r.max_width)` then branched on it; TypeScript does not narrow an object property through a separate boolean, so `mapPixelsToBucket(r.max_width, ...)` failed the build type-check (`unknown` not assignable to `number`). Inlining the guard into the `if` condition restored narrowing. Lint and build clean after the fix.
+
+### Verification gates (read-only / local)
+
+- `npm run build` clean (type-check passes); `npx eslint` on both new TS files 0 errors.
+- Validator run against hand-made samples: clean 2-row file exits 0; a 4-row file with a bad vendor, empty model, malformed aliases, `sensor_count` 0, negative dimension, oversized pixels, bad URL, bad date, and a duplicate key exits 1 reporting all 9 violations. The 4MP-overlap dimension 2688x1520 maps to its exact bucket and passes. Samples not committed.
+- Not run, per the stop-and-flag scope: migration, `supabase db push`, backups, git.
+
+### Decisions captured
+
+- [`0057-camera-specs-table-design.md`](./decisions/0057-camera-specs-table-design.md); [`0058-option-c-sizing-and-pixel-bucket-round-up.md`](./decisions/0058-option-c-sizing-and-pixel-bucket-round-up.md)
+
+---
+
+## 2026-06-15 — Phase 10 planned: camera-model calculator lookup (scope locked)
+
+### Work done
+
+Locked the scope for Phase 10. No code yet; details recorded here to survive session-compaction and context switches.
+
+- **Goal:** let a partner or internal user load a camera by vendor and model in each calculator group, auto-filling resolution and sensor count. Users work the way they think, by camera model, and the calculator responds with a large camera library behind it. Optional everywhere; the existing free-text camera-group-name path is preserved without change.
+
+- **Data model:** a new Supabase table `camera_specs` (planned) mirrors the `product_specs` pattern. RLS: read-open to authenticated, admin-only write. Columns: `id`, `vendor` (Axis | Hanwha | Avigilon), `model`, `model_aliases` (text[], for search), `sensor_count`, `max_width`, `max_height` (native pixels of the highest-MP sensor), `sensor_detail` (jsonb, nullable; per-sensor breakdown stored but unused by phase-1 math), `currently_shipping` (bool, seed filter only), `source_url`, `as_of_date`.
+
+- **Sizing rule (Option C):** every sensor on a model is sized at that model's highest-MP sensor. Conservative by design. Resolution maps by native pixel count (width x height) rather than marketing MP, because several MP tiers correspond to two distinct RESOLUTIONS buckets at different pixel counts; when a model's pixels fall in the overlap range, the higher-pixel bucket is chosen (round up).
+
+- **Engine impact:** none. The calculator engine consumes a single `cameras` integer, confirmed in `compute.ts` via `GroupInput.cameras`. Units x sensorsPerCamera resolves to `cameras` before the engine sees it. No change to `compute.ts` math.
+
+- **UI, inline per group card:** Camera Group name (free text, unchanged), vendor select, model search. The vendor select gates and filters the model typeahead, preventing brand mistypes. On model select: resolution bucket set but editable with a provenance chip; sensors-per-camera set from `sensor_count`, editable on demand, defaulting to 1 on the no-model path; camera total shown as "units x sensors = total". CODEC is not auto-filled; a camera's supported codecs do not determine the recording codec. "Model not found" is the graceful no-match; nothing is wiped on clear.
+
+- **Persistence:** four nullable per-group fields (`cameraVendor`, `cameraModel`, `units`, `sensorsPerCamera`) round-trip through `input_state` (raw, for rehydration) and `groups_payload` (resolved, for display). No `INPUT_STATE_VERSION` bump, using the default-on-absent approach matching `recordingMode`. No migration to the calc path; both are existing JSON columns. `normalizeGroup()` and `extractBankedGroups()` gain coerced readers.
+
+- **Everywhere it shows:** camera vendor and model always render on the System Estimate PDF camera schedule and on the submission detail view; FAQ and tooltips updated for the new fields. Not sent to Pipedrive (the deal already receives computed values).
+
+- **Acquisition (seed pipeline):** vendor-primary sources only; fixed-sensor cameras only (configurable-multisensor models such as Avigilon H5A are excluded from phase 1); currently-shipping models only as a seed filter. Per-model extract: vendor, model, `model_aliases`, `sensor_count`, `max_width` x `max_height`, `sensor_detail` (jsonb), `source_url`, `as_of_date`. A planned `validate-camera-specs.ts` checker gates every row before any admin-only load, verifying: vendor in the allowed three, `sensor_count` >= 1, plausible pixel ranges, pixels map to a real RESOLUTIONS bucket, no duplicate model codes. Vendor order: Axis, then Hanwha (via Hanwha's own price-list spreadsheet with datasheet backfill for pixel dimensions and multisensor exclusion), then Avigilon. Each vendor is a separately reviewed seed file.
+
+- **Build order (planned):** Step 1: `camera_specs` migration and validator (RLS-touching, stop-and-flag). Step 2: Axis seed (reviewed, admin-load). Step 3: calculator picker UI, units and sensors inputs, round-trip. Step 4: camera column folded into the unified PDF rework alongside the Project Quote work (see entry below). Step 5: FAQ and tooltips. Step 6: Hanwha then Avigilon seeds. The camera feature is usable on Axis data after Step 3.
+
+### Decisions captured
+
+ADRs to be authored at build time (stubs created now, status Proposed):
+
+- [`0057-camera-specs-table-design.md`](./decisions/0057-camera-specs-table-design.md)
+- [`0058-option-c-sizing-and-pixel-bucket-round-up.md`](./decisions/0058-option-c-sizing-and-pixel-bucket-round-up.md)
+
+---
+
+## 2026-06-15 — Project Quote planned: portal-rendered unified proposal + quote (scope locked)
+
+### Work done
+
+Locked the scope for the Project Quote feature. No code yet; details recorded here to survive session-compaction and context switches.
+
+- **What it is:** a single internal-only document that unifies the portal's sizing half (parameters block, camera schedule with Phase 10 models, capacity bars, primary-server hero) with the commercial half (line-item products, prices, discounts, totals, terms) read live from the linked Pipedrive deal. Replaces the current manual Google-Docs-template-plus-merge-fields quote flow, which requires per-user template installation, manual field sync, and manual sharing. Name: "Project Quote".
+
+- **Pricing direction:** prices flow Pipedrive to portal only. The portal reads the deal's already-computed line-item values and totals and displays them verbatim. Line-item order is preserved as Pipedrive holds it (deliberate). No-price/no-discount info lines (for example, legacy $0.00 warranty rows on old deals) render with product code, name, and qty only; price, %-off, discounted-price, and subtotal cells are blank. New deals no longer use such lines.
+
+- **Sizing source:** the sizing half comes from the portal submission only. The deal's custom sizing fields are not read by the Project Quote. This keeps sizing edits in the portal calculator and is consistent with making the portal the single authoring path for all quotes.
+
+- **New integration:** the portal currently only writes to Pipedrive. The Project Quote adds a net-new read path: the deal's product line items and the linked organization and person fields. This is the one genuinely new external-API surface; built and tested in isolation against a real deal before any UI wiring (stop-and-flag).
+
+- **Authoritative linkage:** the stored `pipedrive_deal_id` on the submission (captured from the API at deal creation) is the decider. Deal-ID-in-deal-name is a rep-facing convenience and is never parsed by the portal. One submission maps to one deal; a separate deal for the same project is a separate submission, matching current observed behavior.
+
+- **Enforcement by construction:** a Project Quote can only be generated for a submission the portal created and whose deal id it stored. Manually-created Pipedrive deals have no portal submission to generate from, which routes internal users through the portal without requiring an explicit guard. Generation refuses cleanly when the deal has zero product line items (empty-deal guard).
+
+- **Versioning and snapshot:** on generate, the portal pulls the deal live, snapshots the full pulled commercial data plus the in-force T&Cs version into a new `project_quotes` row (planned table), and assigns the next version number. "Current" is derived as the latest version (no mutable flag stored), so there is no demote step and no concurrency race. Viewing or downloading any existing quote re-renders deterministically from its stored snapshot and never from a live pull. "Make New Project Quote" is the only action that pulls live. Identifier format: DealID-V#-date. Validity is 7 days computed from generation date via a single configurable value (may shorten); validity renders on every PDF and is never stored as a flag.
+
+- **Storage decision:** store the snapshot data (JSON) and re-render on demand. This is a scoped supersession of ADR 0017's no-storage stance. System Estimates remain render-on-read from the local submission row. Project Quotes require a stored snapshot because they capture external, mutating Pipedrive state at a point in time and must reproduce the exact numbers and terms that were presented. A later PDF-template change would re-render an old snapshot with the new layout but identical numbers and terms, which is acceptable for a quote; the numbers and terms are what bind. Storing rendered bytes is held in reserve if exact visual fidelity of historical quotes is later required; Supabase Storage is available on the upgraded Pro tier.
+
+- **Shared PDF rework:** the PDF template is reworked exactly once. Phase 10's camera-schedule column and the Project Quote's new sections (line-item table, totals, partner block, verbatim version-stamped T&Cs) land together in that single rework.
+
+- **Build order (planned; steps continue the Phase 10 sequence):** Step 4: Pipedrive read integration (stop-and-flag). Step 5: `project_quotes` snapshot schema and unified PDF rework, where Phase 10's camera column converges. Step 6: internal-only Generate button, empty-deal guard, version and expiry and snapshot wiring, and email-back to the deal.
+
+### Decisions captured
+
+ADRs to be authored at build time (stubs created now, status Proposed):
+
+- [`0059-project-quote-architecture.md`](./decisions/0059-project-quote-architecture.md)
+- [`0060-snapshot-storage-for-project-quotes.md`](./decisions/0060-snapshot-storage-for-project-quotes.md)
+- [`0061-project-quote-versioning-and-derived-current.md`](./decisions/0061-project-quote-versioning-and-derived-current.md)
+
+---
+
 ## 2026-06-15 — Price Book above-the-fold layout compression
 
 ### Work done
