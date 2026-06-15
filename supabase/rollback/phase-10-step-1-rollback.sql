@@ -18,4 +18,8 @@ drop index if exists public.camera_specs_vendor_idx;
 
 drop table if exists public.camera_specs;
 
+-- the alias trigram index (dropped with the table above) depended on this
+-- IMMUTABLE helper; drop it after the table.
+drop function if exists public.camera_aliases_text(text[]);
+
 drop extension if exists "pg_trgm";

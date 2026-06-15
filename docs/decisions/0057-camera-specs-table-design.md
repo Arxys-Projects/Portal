@@ -19,12 +19,12 @@ A new table `camera_specs` with: `id` (uuid PK, `gen_random_uuid()` — the uuid
 
 RLS mirrors `product_specs`: SELECT open to `authenticated` (`using (true)`); INSERT, UPDATE, DELETE restricted to `public.is_admin(...)`. The `auth.uid()` argument is wrapped as `(select auth.uid())` per the InitPlan consolidation (ADR 0055). Table privileges are granted to `authenticated` and gated by the policies, matching how `submissions` exposes admin writes.
 
-Search indexing lands in this same migration (it keeps Step 3 pure UI): enable `pg_trgm`, a GIN trigram index on `model`, a GIN trigram expression index on `array_to_string(model_aliases, ' ')`, and a btree index on `vendor` for the vendor-scoped filter. `pg_trgm` is first enabled here, so the paired rollback drops it. A `scripts/validate-camera-specs.ts` checker gates every seed row before the admin load.
+Search indexing lands in this same migration (it keeps Step 3 pure UI): enable `pg_trgm`, a GIN trigram index on `model`, a GIN trigram expression index over the space-joined aliases, and a btree index on `vendor` for the vendor-scoped filter. `pg_trgm` is first enabled here, so the paired rollback drops it. `array_to_string` is only catalog-marked STABLE, so it cannot go directly in an expression index; an `IMMUTABLE` SQL helper `public.camera_aliases_text(text[])` wraps it (genuinely immutable for a `text[]` with a constant separator) and the index is built over that helper. The Step-3 alias search must query through the same helper for the planner to use the index. A `scripts/validate-camera-specs.ts` checker gates every seed row before the admin load.
 
 ## Consequences
 
 **Positive:** consistent with the existing reference-table and RLS patterns; admin-gated writes with open authenticated reads; trigram search ready before any UI work; one natural key the loader can upsert against.
 
-**Negative:** introduces a `pg_trgm` dependency the project did not previously carry; the alias trigram index relies on `array_to_string` being immutable (it is) and on aliases being maintained in the seed data. The vendor CHECK hard-codes the Phase 1 vendor set, so a new vendor is a follow-up migration, not a data edit.
+**Negative:** introduces a `pg_trgm` dependency the project did not previously carry; the alias trigram index needs an `IMMUTABLE` wrapper helper around `array_to_string` (which is only catalog-STABLE), so the Step-3 alias query is coupled to that helper, and aliases must be maintained in the seed data. The vendor CHECK hard-codes the Phase 1 vendor set, so a new vendor is a follow-up migration, not a data edit.
 
 **When to revisit:** if configurable-multisensor models (e.g. Avigilon H5A, excluded from phase 1) enter scope and need per-sensor rows, or if the vendor set grows often enough that a CHECK constraint becomes friction and a lookup table is warranted.

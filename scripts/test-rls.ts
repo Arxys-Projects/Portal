@@ -1,6 +1,6 @@
 // RLS verification suite for the Arxys Partner Portal.
 // Creates two ephemeral users (partner A and B), exercises the policies on
-// partners / products / server_specs / submissions, and tears the users down.
+// partners / products / submissions / camera_specs, and tears the users down.
 // Run with: npx tsx scripts/test-rls.ts
 
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
@@ -661,6 +661,156 @@ async function run() {
         (data?.length ?? 0) === 0 && after?.project_name === "RLS-on-behalf-test",
         error ? `error: ${error.message}` : `affected=${data?.length} name=${after?.project_name}`,
       );
+    }
+    // --- Phase 10 Step 1: camera_specs read-open / admin-write -------------
+    // SELECT is open to every authenticated user (mirrors product_specs);
+    // INSERT/UPDATE/DELETE are admin-only. Writes are admin-only, NOT internal:
+    // internal users read the camera library but cannot load it (ADR 0057).
+    {
+      const seedModel = `RLS-CAM-${Date.now()}`;
+      const { error: seedErr } = await admin.from("camera_specs").insert({
+        vendor: "Axis",
+        model: seedModel,
+        sensor_count: 1,
+        max_width: 1920,
+        max_height: 1080,
+      });
+      if (seedErr) {
+        record("12: seed camera_specs row (service-role)", false, seedErr.message);
+      }
+
+      // Test 12a: partner A can SELECT camera_specs (read-open).
+      {
+        const { data, error } = await a.client
+          .from("camera_specs")
+          .select("id, vendor, model")
+          .eq("model", seedModel);
+        record(
+          "12a: partner can SELECT camera_specs (read-open)",
+          !error && data?.length === 1 && data[0].vendor === "Axis",
+          error ? `error: ${error.message}` : `count=${data?.length}`,
+        );
+      }
+
+      // Test 12b: internal user can SELECT camera_specs (authenticated read).
+      {
+        const { data, error } = await internalPersona.client
+          .from("camera_specs")
+          .select("id")
+          .eq("model", seedModel);
+        record(
+          "12b: internal user can SELECT camera_specs",
+          !error && data?.length === 1,
+          error ? `error: ${error.message}` : `count=${data?.length}`,
+        );
+      }
+
+      // Test 12c: partner A cannot INSERT camera_specs. An RLS with-check
+      // violation returns an error, not a silent no-op.
+      {
+        const { error } = await a.client.from("camera_specs").insert({
+          vendor: "Axis",
+          model: `RLS-CAM-PARTNER-${Date.now()}`,
+          sensor_count: 1,
+          max_width: 1920,
+          max_height: 1080,
+        });
+        record(
+          "12c: partner cannot INSERT camera_specs (admin-only)",
+          Boolean(error),
+          error ? `blocked: ${error.message}` : "INSERT unexpectedly succeeded",
+        );
+      }
+
+      // Test 12d: internal user cannot INSERT camera_specs — writes are
+      // admin-only, NOT internal. This is the boundary the library load relies on.
+      {
+        const { error } = await internalPersona.client
+          .from("camera_specs")
+          .insert({
+            vendor: "Axis",
+            model: `RLS-CAM-INTERNAL-${Date.now()}`,
+            sensor_count: 1,
+            max_width: 1920,
+            max_height: 1080,
+          });
+        record(
+          "12d: internal user cannot INSERT camera_specs (admin-only, not internal)",
+          Boolean(error),
+          error ? `blocked: ${error.message}` : "INSERT unexpectedly succeeded",
+        );
+      }
+
+      // Test 12e: partner A cannot UPDATE camera_specs — no matching policy,
+      // zero rows affected and the value is unchanged.
+      {
+        const { data, error } = await a.client
+          .from("camera_specs")
+          .update({ max_width: 9999 })
+          .eq("model", seedModel)
+          .select("id");
+        const { data: after } = await admin
+          .from("camera_specs")
+          .select("max_width")
+          .eq("model", seedModel)
+          .single();
+        record(
+          "12e: partner cannot UPDATE camera_specs",
+          (data?.length ?? 0) === 0 && after?.max_width === 1920,
+          error
+            ? `error: ${error.message}`
+            : `affected=${data?.length} max_width=${after?.max_width}`,
+        );
+      }
+
+      // Test 12f: partner A cannot DELETE camera_specs — zero rows affected and
+      // the seeded row survives.
+      {
+        const { data, error } = await a.client
+          .from("camera_specs")
+          .delete()
+          .eq("model", seedModel)
+          .select("id");
+        const { count } = await admin
+          .from("camera_specs")
+          .select("id", { count: "exact", head: true })
+          .eq("model", seedModel);
+        record(
+          "12f: partner cannot DELETE camera_specs",
+          (data?.length ?? 0) === 0 && count === 1,
+          error ? `error: ${error.message}` : `affected=${data?.length} remaining=${count}`,
+        );
+      }
+
+      // Test 12g: admin CAN INSERT camera_specs (the write path works for admin).
+      // Test 8c suspended adminPersona and never restored it, so is_admin would
+      // return false here; reactivate before exercising the admin write path.
+      {
+        await admin
+          .from("partners")
+          .update({ status: "active" })
+          .eq("id", adminPersona.id);
+        const adminModel = `RLS-CAM-ADMIN-${Date.now()}`;
+        const { data, error } = await adminPersona.client
+          .from("camera_specs")
+          .insert({
+            vendor: "Hanwha",
+            model: adminModel,
+            sensor_count: 2,
+            max_width: 2592,
+            max_height: 1944,
+          })
+          .select("id");
+        record(
+          "12g: admin can INSERT camera_specs",
+          !error && (data?.length ?? 0) === 1,
+          error ? `error: ${error.message}` : `inserted=${data?.length}`,
+        );
+      }
+
+      // Cleanup every RLS-CAM* row (seed, admin insert, and any that leaked
+      // past a write policy) via service-role.
+      await admin.from("camera_specs").delete().like("model", "RLS-CAM%");
     }
   } finally {
     await teardownPersona(a);

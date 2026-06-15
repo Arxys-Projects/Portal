@@ -39,10 +39,20 @@ create index camera_specs_model_trgm_idx
   on public.camera_specs using gin (model gin_trgm_ops);
 
 -- model_aliases is text[]; index the space-joined alias text so trigram search
--- covers aliases the same way it covers model. array_to_string(text[], text)
--- is immutable, which an expression index requires.
+-- covers aliases the same way it covers model. array_to_string is only marked
+-- STABLE in the catalog (its general form can depend on element output
+-- functions), so Postgres rejects it in an expression index. For a text[] with
+-- a constant separator the result is genuinely immutable, so we wrap it in an
+-- IMMUTABLE SQL helper and index that. The Step-3 alias search must query
+-- through the same helper so the planner can use this index.
+create or replace function public.camera_aliases_text(aliases text[])
+returns text
+language sql
+immutable
+as $$ select array_to_string(aliases, ' ') $$;
+
 create index camera_specs_aliases_trgm_idx
-  on public.camera_specs using gin (array_to_string(model_aliases, ' ') gin_trgm_ops);
+  on public.camera_specs using gin (public.camera_aliases_text(model_aliases) gin_trgm_ops);
 
 -- vendor gates and filters every model lookup; back the filter with a btree.
 create index camera_specs_vendor_idx

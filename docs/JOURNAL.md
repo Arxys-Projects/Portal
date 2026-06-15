@@ -4,11 +4,11 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
-## 2026-06-15 — Phase 10 Step 1: camera_specs migration + validator (authored, deploy pending)
+## 2026-06-15 — Phase 10 Step 1: camera_specs migration + validator (deployed)
 
 ### Work done
 
-Authored the Phase 10 Step 1 build item. Stop-and-flag: nothing migrated, pushed, backed up, or committed. The RLS policy block and the new `pg_trgm` extension install are held for human review before any `db push`.
+Authored the Phase 10 Step 1 build item as a stop-and-flag, then deployed it to cloud after review. The RLS policy (read-open / admin-write) and the newly-enabled `pg_trgm` extension were reviewed and approved before the push.
 
 - **Migration `20260615000002_phase10_camera_specs.sql`.** New table `camera_specs` mirroring the `product_specs` reference-table pattern. Columns: `id` (uuid PK `gen_random_uuid()`), `vendor` (text, CHECK in Axis | Hanwha | Avigilon), `model` (text), `model_aliases` (text[] default `'{}'`), `sensor_count` (int CHECK >= 1), `max_width` / `max_height` (int CHECK > 0), `sensor_detail` (jsonb null), `currently_shipping` (bool default true), `source_url` (text null), `as_of_date` (date null). Natural key `unique (vendor, model)`. No `created_at` / `updated_at` — the sibling `product_specs` carries neither.
 - **RLS.** SELECT open to `authenticated` (`using (true)`, mirroring `product_specs_select_all`); INSERT / UPDATE / DELETE admin-only via `public.is_admin((select auth.uid()))`, wrapped per the 2026-06-15 InitPlan consolidation (ADR 0055). Privileges granted to `authenticated` and gated by the policies, matching how `submissions` exposes admin writes. `anon` gets nothing.
@@ -20,13 +20,16 @@ Authored the Phase 10 Step 1 build item. Stop-and-flag: nothing migrated, pushed
 
 ### Detours & fixes
 
+- **`array_to_string` is not immutable; the alias trigram index was rejected on push.** The first migration draft built the alias GIN index directly over `array_to_string(model_aliases, ' ')`. `supabase db push` failed at that statement with `ERROR: functions in index expression must be marked IMMUTABLE (SQLSTATE 42P17)` — `array_to_string` is only catalog-marked STABLE because its general form can depend on element output functions, even though for a `text[]` with a constant separator the result is genuinely immutable. The migration runs in a transaction, so it rolled back atomically (no table, no `pg_trgm`, no partial index); the earlier `20260615000001` consolidation had already committed in its own transaction. Fixed by wrapping the join in an `IMMUTABLE` SQL helper `public.camera_aliases_text(text[])` and indexing over that; the rollback now also drops the helper. Step-3 alias search must query through the same helper for the planner to use the index.
 - **Type guard did not narrow through a boolean variable.** First draft assigned `const widthOk = isPosInt(r.max_width)` then branched on it; TypeScript does not narrow an object property through a separate boolean, so `mapPixelsToBucket(r.max_width, ...)` failed the build type-check (`unknown` not assignable to `number`). Inlining the guard into the `if` condition restored narrowing. Lint and build clean after the fix.
+- **Cached Supabase CLI creds were stale at deploy time.** `supabase link` failed with `{"message":"Unauthorized"}` (expired Personal Access Token) and `supabase db push` failed SASL auth (stale DB password) — the cached credentials that worked for the Phase 8 push had been invalidated by account churn. Fixed per RUNBOOK step 5: `supabase login --token sbp_...` with a fresh PAT, then `SUPABASE_DB_PASSWORD='...' supabase link --project-ref ...`. Neither the Vercel/GitHub user change nor the Pro upgrade touches these; they are independent credentials.
+- **`test-rls.ts` 12g failed on first run from leftover persona state.** The new admin-write assertion ran after test 8c, which suspends `adminPersona` and never restores it, so `is_admin` (which requires `status = 'active'`) correctly returned false and the admin INSERT was blocked. Policy was right; the test reactivates the admin before 12g.
 
-### Verification gates (read-only / local)
+### Verification gates
 
-- `npm run build` clean (type-check passes); `npx eslint` on both new TS files 0 errors.
+- `npm run build` clean (type-check passes); `npx eslint` on the new TS files 0 errors.
 - Validator run against hand-made samples: clean 2-row file exits 0; a 4-row file with a bad vendor, empty model, malformed aliases, `sensor_count` 0, negative dimension, oversized pixels, bad URL, bad date, and a duplicate key exits 1 reporting all 9 violations. The 4MP-overlap dimension 2688x1520 maps to its exact bucket and passes. Samples not committed.
-- Not run, per the stop-and-flag scope: migration, `supabase db push`, backups, git.
+- Deployed against cloud (the cloud-only workflow): pre-push backup `backups/phase-10-step-1-*.json` (products / submissions / partners); `supabase db push` applied `20260615000001` (the RLS consolidation, also previously deploy-pending) then `20260615000002` (camera_specs). `scripts/test-rls.ts` all green — the existing assertion set unchanged (confirms the consolidation is authorization-neutral) plus new `camera_specs` assertions 12a-12g: partner and internal users read OK; partner, internal, and suspended-admin writes blocked; active-admin write OK.
 
 ### Decisions captured
 
