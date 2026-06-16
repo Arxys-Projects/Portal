@@ -1182,6 +1182,7 @@ export function CalculatorForm({
               <li><strong>Which VMS?</strong> — the recording software (Milestone, Genetec, etc.). Each compresses video a bit differently, so picking yours keeps the estimate realistic.</li>
               <li><strong>Retention</strong> — how many days of footage you keep before it&apos;s overwritten. More days = more storage, in a straight line.</li>
               <li><strong>Add-ons</strong> — optional hardware. <em>Failover Recorder</em> is a standby that takes over if a recorder dies; <em>Management Server</em> runs the VMS separately from the recorders on bigger systems.</li>
+              <li><strong>Camera Model Lookup</strong>: Pick a vendor, then type a model name to auto-fill resolution and sensor count. Optional. Every field stays editable by hand; the manual path works exactly as before. <em>Units vs. sensors:</em> units is how many cameras, sensors is lenses per camera. A multisensor camera has multiple lenses in one housing, and each lens counts as a stream. Example: 10 units of a 4-sensor camera gives 40 video streams. Resolution fills to the closest matching level and stays editable. If a model does not appear in the search, enter the specs manually.</li>
               <li><strong>Video Streams</strong> — how many cameras share these settings. Everything below multiplies by this count.</li>
               <li><strong>Resolution</strong> — image size in megapixels. Higher = sharper footage, but more storage and bandwidth.</li>
               <li><strong>Codec</strong> — the compression method. Newer codecs (H.265) pack the same picture into roughly half the space of older ones (H.264).</li>
@@ -1343,6 +1344,7 @@ function CameraModelPicker({
           </option>
         ))}
       </select>
+      <Tooltip text="Pick the camera brand first to search that vendor's models. Leave blank to enter specs manually." />
 
       {group.cameraModel ? (
         <span
@@ -1392,6 +1394,7 @@ function CameraModelPicker({
               setTimeout(() => setOpen(false), 120);
             }}
           />
+          <Tooltip text="Search by model to auto-fill resolution and sensor count. Optional. You can skip this and enter everything by hand." />
           {open && (query.trim() !== "" || loading) && (
             <ul className="ax-cmp-list" id={listId} role="listbox">
               {loading && results.length === 0 ? (
@@ -1491,7 +1494,7 @@ function CamerasField({
     <div className="ax-f wc wc-model">
       <label className="ax-fl">
         Video Streams
-        <Tooltip text="Units of this camera model. Total streams = units × sensors per camera; every number below multiplies by that total. Editing sensors overrides the model's value." />
+        <Tooltip text="Total camera feeds for this group, calculated as units times sensors per camera. This is what bandwidth and storage multiply by." />
       </label>
       <div className="ax-units-row">
         <input
@@ -1513,6 +1516,7 @@ function CamerasField({
           }}
           style={{ width: 52, textAlign: "center" }}
         />
+        <Tooltip text="How many of this camera model. Multiplied by the sensors per camera to give total video streams." />
         <span className="ax-units-x">units ×</span>
         {editingSensors ? (
           <input
@@ -1546,6 +1550,7 @@ function CamerasField({
             {group.sensorsPerCamera} {group.sensorsPerCamera === 1 ? "sensor" : "sensors"}
           </button>
         )}
+        <Tooltip text="Lenses (image sensors) on each camera. Auto-filled from the model. A single-lens camera is 1, a multisensor camera is 2 or more. Editable if you need to adjust." />
         <span className="ax-units-eq">= {group.cameras}</span>
       </div>
     </div>

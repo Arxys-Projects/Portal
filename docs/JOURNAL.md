@@ -4,6 +4,28 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-06-16 — Phase 10 Step 5: calculator camera-model picker tooltips + FAQ entry (authored, build-verified)
+
+### Work done
+
+Copy-only additions to `calculator-form.tsx`. No logic, state, schema, or behavior changed.
+
+- **Vendor select tooltip** — added to `CameraModelPicker`, immediately after the `</select>` tag: explains that picking the vendor gates the model search and that leaving it blank keeps the manual path.
+- **Camera model search tooltip** — added inside the `ax-cmp-search` div, after the combobox `<input>`, before the listbox: explains that the search is optional and the manual path is unchanged.
+- **Units tooltip** — added to the model-loaded `ax-units-row` in `CamerasField`, between the units input and the "units ×" text.
+- **Sensors per camera tooltip** — added in the same row, between the sensors button/input and the "= N" derived display.
+- **Video Streams (model-loaded) tooltip updated** — the existing placeholder text ("Units of this camera model…") was replaced with the Step-5 copy: "Total camera feeds for this group, calculated as units times sensors per camera. This is what bandwidth and storage multiply by." The no-model-path Video Streams tooltip is unchanged.
+- **FAQ item added** — "Camera Model Lookup" inserted before the existing "Video Streams" item in the "What you enter" column. Covers: optional lookup, units vs. sensors distinction, concrete 10-unit × 4-sensor = 40-stream example, resolution auto-fill with editability, and "model not found" graceful fallback.
+- **House rules** — no em dashes; no "not X but Y" constructions; "validated" not used (not applicable here). All copy peer-checked against the house rules in the brief.
+
+### Verification gates
+
+- `npm run build` clean (18 routes, TypeScript + Compiled pass).
+- `npx eslint src/app/(app)/calculator/calculator-form.tsx` 0 errors.
+- No browser verification performed: the calculator is auth-gated and the live model-picker path requires the not-yet-deployed search RPC (matching the standing practice from Step 3).
+
+---
+
 ## 2026-06-16 — Phase 10 Step 3: calculator camera-model picker + units/sensors + round-trip (authored, build-verified)
 
 ### Work done
