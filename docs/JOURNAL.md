@@ -4,6 +4,39 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-06-16 — Phase 10 / Project Quote Step 4: Pipedrive READ integration (authored, verified, not deployed)
+
+### Work done
+
+Built the headless read layer for the future Project Quote. It pulls one deal's commercial surface from Pipedrive and returns a validated, typed structure. It renders nothing, stores nothing, writes nothing, and adds no UI; Steps 5 and 6 own those. Authored and verified locally (tests / build / lint / one read-only live call); nothing pushed, migrated, or committed.
+
+- **New entry point `getDealForQuote(dealId)`** ([`src/lib/pipedrive/quote.ts`](../src/lib/pipedrive/quote.ts)). Takes a deal id and reads exactly that deal — no search, no guess. Returns a discriminated `GetDealForQuoteResult` (`{ ok: true; deal: DealQuote } | { ok: false; error: QuoteError }`). `DealQuote` is `{ dealId, dealTitle, updatedAt, owner, organization, person, lineItems[], productTotal, additionalDiscounts, currency, isEmpty }`.
+- **Reuses the existing client/auth pattern verbatim.** Added three read-only GETs (`getDeal`, `getDealProducts`, `getProduct`) to the shared [`pipedriveClient`](../src/lib/pipedrive/client.ts) — same token-appending `request()` wrapper, same `PipedriveError` surface the write path uses. No new HTTP client, no new auth path. Added the read-shape types (`PdDealDetail`, `PdDealProduct`, `PdProduct`, plus the inlined `PdDealOwnerRef`/`PdDealPersonRef`/`PdDealOrgRef`).
+- **Three surfaces read.** (1) Deal products → per line `productCode` (from the product record, see below), `productName`, `unitPrice` (item_price), `discount`/`discountType`/`discountPercent`, `quantity`, `lineAmount` (sum), `currency`, `orderNr`, `isInfoOnly`. (2) Linked org + person + owner, all taken from the deal detail which INLINES them (`user_id`/`person_id`/`org_id` arrive expanded — no extra traversal). (3) Metadata: `dealId`, `dealTitle`, `updatedAt` (update_time, captured for later staleness logic, not acted on).
+- **Prices are passed through verbatim (binding rule).** Every money value is returned exactly as Pipedrive gives it. The layer never sums lines, derives a total, or computes a discounted unit price. `productTotal` is the deal `value` (the deal-level total Pipedrive holds), NOT the line sum — a unit test asserts this with a fixture whose value deliberately differs from the line sum.
+- **Line order preserved exactly as the API returns it** (deliberate, per the locked decision). The layer does NOT re-sort; `order_nr` is exposed as a passthrough field for the renderer.
+- **Graceful empty / missing cases, never throws.** Empty deal → `ok` with `lineItems: []` and `isEmpty: true` (the empty-deal *guard* is Step 6; this layer only reports the state). No linked org / no person / missing person phone / missing org address → the relevant field or sub-field is `null`. API errors map to typed `QuoteError` kinds (`not_found` 404, `auth` 401/403, `rate_limit` 429, `network`, `api`).
+- **`pipedrive_deal_id` IS already persisted** — confirmed, no gap. It is a `bigint` on `submissions` ([`20260515193702_initial_schema.sql`](../supabase/migrations/20260515193702_initial_schema.sql):119), written immediately after deal create/update in [`calculator/actions.ts`](../src/app/(app)/calculator/actions.ts):542. This read layer's authoritative key is therefore already in place.
+- **Tests** ([`quote.test.ts`](../src/lib/pipedrive/quote.test.ts), 17 cases, fetch-mock idiom from `deal.test.ts`, fully fake PII): multi-line deal with order + code resolution; verbatim total (value != line sum); no tariff field; $0 info-only line; priced `[MKT]` custom line; empty deal; missing org / missing person / missing phone / missing org address; per-product code-read failure degrades to `null` without failing the quote; 404/401/429 typed errors; invalid id rejected with zero network calls.
+
+### Detours & fixes
+
+- **The "additional discounts / tariff" deal field does not exist as structured Pipedrive data.** The planning entry lists a deal-level additional-discounts/tariff value. Verification (live, read-only) found no matching entry in `/v1/dealFields`, an empty `/api/v2/deals/{id}/discounts`, and a real 10-line deal whose `value` equals the exact sum of its line amounts. The account models discounts per-line (`discount` + `discount_type: "percentage"`), not deal-level. So `additionalDiscounts` resolves to `null` via a pinned `ADDITIONAL_DISCOUNTS_DEAL_FIELD_KEY = null` constant (documented in place): when Arxys adds the field, pin its hashed key there. **Flag for Step 5 review.**
+- **Product code is not on the line attachment.** `GET /deals/{id}/products` carries `name`/`item_price`/`discount`/`sum`/`quantity`/`order_nr` but no `code`; the SKU code lives on the product record. The layer fetches `GET /products/{id}` once per DISTINCT `product_id` (concurrent, `Promise.all`), and a per-product failure degrades that code to `null` rather than failing the whole read.
+- **No discounted-unit-price field exists.** Pipedrive exposes the unit price (`item_price`), the discount, and the discounted line total (`sum`) — not a discounted unit price. Deriving one would recompute a price, which is forbidden, so `discountedUnitPrice` is always `null`; the renderer shows unit price, discount, and line amount instead. **Flag for Step 5 review.**
+- **API array order differs from `order_nr`.** The live v1 products endpoint returned deal 4822's lines in array order 6,2,3,4,5,7,8,1,… (not `order_nr` order). The layer preserves the API's returned array order literally per "as Pipedrive returns it" and exposes `orderNr` so Step 5 can re-sort to the rep's Pipedrive display order if that is what the quote should show. **Flag for Step 5 review.**
+
+### Verification gates
+
+- `npm test` 108/108 (17 new in `quote.test.ts`); `npm run build` clean (18 routes, Compiled + TypeScript pass); `npx eslint` on the three changed/new files 0 errors.
+- One read-only live call against the real deal 4822 (the Kean example named in the Step-4 brief; note it is referenced in the brief, not in this journal). The full `getDealForQuote` pipeline resolved end-to-end: 10 lines in the API's returned order, codes resolved (`VX5-V800-720`, `VX5-V255-MGM`, `VX5-NIC-SFP28`, …), the two $0 warranty lines flagged `isInfoOnly`, all 45% discounts passed through, `productTotal` 347699.2 verbatim, `additionalDiscounts` null, org/person/owner resolved. PII scrubbed from the probe output; the throwaway probe script was deleted after the run. No write, no deploy.
+
+### Decisions captured
+
+The reserved Project Quote ADRs ([`0059`](./decisions/0059-project-quote-architecture.md)/[`0060`](./decisions/0060-snapshot-storage-for-project-quotes.md)/[`0061`](./decisions/0061-project-quote-versioning-and-derived-current.md)) stay Proposed; they are finalized at the Step 5/6 build where the schema, render, and generate paths land. This step's read-layer design notes are captured above.
+
+---
+
 ## 2026-06-16 — Phase 10 Step 5: calculator camera-model picker tooltips + FAQ entry (authored, build-verified)
 
 ### Work done

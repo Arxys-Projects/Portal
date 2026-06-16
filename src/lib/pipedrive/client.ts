@@ -35,6 +35,70 @@ export type PdOrganization = { id: number; name: string };
 export type PdDealField = { id: number; name: string; key: string; field_type: string };
 export type PdDeal = { id: number; title: string; value: number };
 
+// ---------------------------------------------------------------------------
+// Read shapes for the Project Quote read path (Phase 10 Step 4).
+//
+// These mirror the live `/v1/deals/{id}`, `/v1/deals/{id}/products`, and
+// `/v1/products/{id}` response shapes confirmed against a real deal on
+// 2026-06-16. Only the fields the quote reads are typed; every money/text
+// field is nullable because Pipedrive omits or nulls them on incomplete deals.
+// The deal detail INLINES the linked person/org/owner (no extra traversal
+// needed): user_id/person_id/org_id come back as expanded objects.
+// ---------------------------------------------------------------------------
+
+// A {value,label,primary} contact entry as it appears in person_id.email /
+// person_id.phone arrays on the deal detail.
+export type PdContactValue = { value: string; primary?: boolean; label?: string };
+
+export type PdDealOwnerRef = { id: number; name: string | null; email?: string | null };
+
+export type PdDealPersonRef = {
+  value: number;
+  name: string | null;
+  email?: PdContactValue[] | null;
+  phone?: PdContactValue[] | null;
+};
+
+export type PdDealOrgRef = {
+  value: number;
+  name: string | null;
+  address?: string | null;
+};
+
+// GET /v1/deals/{id}. Custom-field values arrive under their hashed keys, hence
+// the index signature alongside the named fields.
+export type PdDealDetail = {
+  id: number;
+  title: string | null;
+  value: number | null;
+  currency: string | null;
+  update_time: string | null;
+  user_id: PdDealOwnerRef | null;
+  person_id: PdDealPersonRef | null;
+  org_id: PdDealOrgRef | null;
+  products_count?: number | null;
+} & Record<string, unknown>;
+
+// One item from GET /v1/deals/{id}/products. `item_price` is the unit price
+// (MSRP), `sum` is the discounted line amount, `discount` is the discount value
+// interpreted by `discount_type` ("percentage" | "amount"). The product `code`
+// is NOT here — it lives on the product record (PdProduct).
+export type PdDealProduct = {
+  id: number;
+  product_id: number;
+  name: string | null;
+  item_price: number | null;
+  discount: number | null;
+  discount_type?: string | null;
+  quantity: number | null;
+  sum: number | null;
+  currency?: string | null;
+  order_nr: number | null;
+};
+
+// GET /v1/products/{id} — read only for the product code.
+export type PdProduct = { id: number; code: string | null; name: string | null };
+
 export type PersonSearchItem = { item: { id: number } };
 export type OrgSearchItem = { item: { id: number } };
 
@@ -186,6 +250,17 @@ export const pipedriveClient = {
   },
   createNote(payload: CreateNotePayload): Promise<PdNote> {
     return request<PdNote>("POST", "/notes", { body: payload });
+  },
+  // Read path (Phase 10 Step 4). Read-only GETs against a single deal.
+  getDeal(id: number): Promise<PdDealDetail> {
+    return request<PdDealDetail>("GET", `/deals/${id}`);
+  },
+  getDealProducts(id: number): Promise<PdDealProduct[] | null> {
+    // `data` comes back null (not []) when a deal has no products attached.
+    return request<PdDealProduct[] | null>("GET", `/deals/${id}/products`);
+  },
+  getProduct(id: number): Promise<PdProduct> {
+    return request<PdProduct>("GET", `/products/${id}`);
   },
 };
 
