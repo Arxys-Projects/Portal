@@ -25,6 +25,10 @@ import {
 // stored, so they default to false.
 export const INPUT_STATE_VERSION = 1;
 
+// Camera vendors offered by the model picker (Phase 10 Step 3). A loaded model
+// always carries one of these; anything else coerces to null (no model loaded).
+const CAMERA_VENDORS = ["Axis", "Hanwha", "Avigilon"] as const;
+
 // New-group defaults — kept in sync with newGroup() in calculator-form.tsx.
 const GROUP_DEFAULTS = {
   cameras: 1,
@@ -35,6 +39,14 @@ const GROUP_DEFAULTS = {
   recordingMode: "constant" as const,
   recordingPercent: 100, // 24 h/day
   motionPercent: 100, // N/A under Constant; the safe default mode
+  // Phase 10 Step 3 — camera-model picker. Pre-feature rows have none of these,
+  // so they default to the no-model path: cameras stays the direct input, and
+  // the group renders exactly as it did before the feature existed.
+  cameraVendor: null as string | null,
+  cameraModel: null as string | null,
+  units: 1,
+  sensorsPerCamera: 1,
+  cameraModelModified: false,
 } as const;
 
 const RETENTION_DEFAULT = 30;
@@ -49,6 +61,12 @@ export type InitialGroup = {
   recordingMode: "constant" | "motion";
   recordingPercent: number;
   motionPercent: number;
+  // Phase 10 Step 3 — null vendor/model = no model loaded (no-model path).
+  cameraVendor: string | null;
+  cameraModel: string | null;
+  units: number;
+  sensorsPerCamera: number;
+  cameraModelModified: boolean;
 };
 
 export type CalculatorInitialState = {
@@ -98,6 +116,18 @@ function coerceRecordingMode(value: unknown): "constant" | "motion" {
   return value === "motion" ? "motion" : "constant";
 }
 
+// A loaded camera vendor is one of the fixed three or null. The model is any
+// non-empty string or null. Either being null means "no model loaded", and the
+// form renders the no-model (direct-cameras) path.
+function coerceCameraVendor(value: unknown): string | null {
+  return typeof value === "string" && (CAMERA_VENDORS as readonly string[]).includes(value)
+    ? value
+    : null;
+}
+function coerceCameraModel(value: unknown): string | null {
+  return typeof value === "string" && value.trim() ? value : null;
+}
+
 function normalizeGroup(g: RawGroup, i: number): InitialGroup {
   const name = typeof g.name === "string" && g.name.trim() ? g.name : `Camera Group ${i + 1}`;
   return {
@@ -112,6 +142,15 @@ function normalizeGroup(g: RawGroup, i: number): InitialGroup {
     // Motion floor is 20 (UI domain); a stray sub-20 value from an old row
     // clamps up rather than tripping the submit-side schema on resubmission.
     motionPercent: clampInt(g.motionPercent, 20, 100, GROUP_DEFAULTS.motionPercent),
+    // Phase 10 Step 3 — camera-model picker fields. units/sensors are finite
+    // ints >= 1; cameras itself is NOT recomputed from them here (a banked
+    // quote's cameras is authoritative). cameraModelModified is a stored fact,
+    // read as a strict boolean (never recomputed against camera_specs).
+    cameraVendor: coerceCameraVendor(g.cameraVendor),
+    cameraModel: coerceCameraModel(g.cameraModel),
+    units: clampInt(g.units, 1, 9999, GROUP_DEFAULTS.units),
+    sensorsPerCamera: clampInt(g.sensorsPerCamera, 1, 64, GROUP_DEFAULTS.sensorsPerCamera),
+    cameraModelModified: g.cameraModelModified === true,
   };
 }
 
@@ -144,6 +183,14 @@ type BankedGroup = {
   codec?: string;
   complexity?: string;      // tier (low/med/high) — legacy, ambiguous across 6 levels
   complexityLabel?: string; // unique label — preferred for exact 1-of-6 recovery
+  // Phase 10 Step 3 — camera-model picker. Banked resolved into groups_payload
+  // (preferred on rehydration over the raw input_state copy), undefined when the
+  // row predates the feature.
+  cameraVendor?: string | null;
+  cameraModel?: string | null;
+  units?: number;
+  sensorsPerCamera?: number;
+  cameraModelModified?: boolean;
 };
 
 function extractBankedGroups(payload: unknown): BankedGroup[] {
@@ -157,6 +204,15 @@ function extractBankedGroups(payload: unknown): BankedGroup[] {
       codec: typeof o.codec === "string" ? o.codec : undefined,
       complexity: typeof o.complexity === "string" ? o.complexity : undefined,
       complexityLabel: typeof o.complexityLabel === "string" ? o.complexityLabel : undefined,
+      // Present only on rows written by Step 3+. `has` distinguishes "banked as
+      // absent/null" (a no-model group) from "field never written" (pre-feature
+      // row) so the raw fallback only kicks in for the latter.
+      cameraVendor: "cameraVendor" in o ? coerceCameraVendor(o.cameraVendor) : undefined,
+      cameraModel: "cameraModel" in o ? coerceCameraModel(o.cameraModel) : undefined,
+      units: typeof o.units === "number" ? o.units : undefined,
+      sensorsPerCamera: typeof o.sensorsPerCamera === "number" ? o.sensorsPerCamera : undefined,
+      cameraModelModified:
+        typeof o.cameraModelModified === "boolean" ? o.cameraModelModified : undefined,
     };
   });
 }
@@ -208,6 +264,21 @@ export function fromStoredSubmission(row: StoredSubmissionRow): CalculatorInitia
       resolutionIdx: resolveResolutionIdx(b.resolutionLabel, g.resolutionIdx),
       codecIdx: resolveCodecIdx(b.codec, g.codecIdx),
       complexityIdx: resolveComplexityIdx(b.complexityLabel, b.complexity, g.complexityIdx),
+      // Prefer the banked resolved camera fields over the raw input_state copy
+      // (same robustness pattern as resolution/codec/complexity). `undefined`
+      // means a pre-feature row that never banked them, so the raw value (which
+      // defaulted to no-model) carries through. cameras is NOT touched here:
+      // a banked quote's camera count is authoritative and never recomputed
+      // from units × sensors on rehydration.
+      cameraVendor: b.cameraVendor !== undefined ? b.cameraVendor : g.cameraVendor,
+      cameraModel: b.cameraModel !== undefined ? b.cameraModel : g.cameraModel,
+      units: b.units !== undefined ? clampInt(b.units, 1, 9999, g.units) : g.units,
+      sensorsPerCamera:
+        b.sensorsPerCamera !== undefined
+          ? clampInt(b.sensorsPerCamera, 1, 64, g.sensorsPerCamera)
+          : g.sensorsPerCamera,
+      cameraModelModified:
+        b.cameraModelModified !== undefined ? b.cameraModelModified : g.cameraModelModified,
     };
   });
 

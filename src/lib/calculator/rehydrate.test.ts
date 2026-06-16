@@ -37,6 +37,12 @@ describe("normalizeInputState", () => {
       recordingMode: "constant",
       recordingPercent: 100,
       motionPercent: 100,
+      // Phase 10 Step 3 — no model loaded by default.
+      cameraVendor: null,
+      cameraModel: null,
+      units: 1,
+      sensorsPerCamera: 1,
+      cameraModelModified: false,
     });
   });
 
@@ -249,5 +255,135 @@ describe("fromStoredSubmission", () => {
     assert.equal(state.addOnFailoverRecorder, false);
     assert.equal(state.addOnManagementServer, false);
     assert.equal(state.groups[0].resolutionIdx, IDX.res1080p);
+  });
+});
+
+describe("camera-model fields (Phase 10 Step 3)", () => {
+  it("defaults a pre-feature row to no-model, preserving cameras", () => {
+    // A row written before the picker existed carries none of the camera fields
+    // in input_state OR groups_payload. It must default to the no-model path and
+    // leave the stored camera count untouched.
+    const row = {
+      input_state: {
+        version: 1,
+        groups: [{ cameras: 17, resolutionIdx: 11, codecIdx: 0, complexityIdx: 2, fps: 15, recordingPercent: 100, motionPercent: 100 }],
+      },
+      groups_payload: {
+        groups: [{ resolutionLabel: "1080p Full HD (1920×1080)", codec: "h265", complexity: "med" }],
+      },
+    };
+    const g = fromStoredSubmission(row).groups[0];
+    assert.equal(g.cameraVendor, null);
+    assert.equal(g.cameraModel, null);
+    assert.equal(g.units, 1);
+    assert.equal(g.sensorsPerCamera, 1);
+    assert.equal(g.cameraModelModified, false);
+    // cameras is NOT recomputed from units × sensors — the banked count wins.
+    assert.equal(g.cameras, 17);
+  });
+
+  it("round-trips all five camera fields, preferring the banked (groups_payload) copy", () => {
+    const row = {
+      input_state: {
+        version: 1,
+        groups: [
+          {
+            name: "North Lot",
+            cameras: 12,
+            resolutionIdx: 19,
+            codecIdx: 0,
+            complexityIdx: 2,
+            fps: 15,
+            recordingPercent: 100,
+            motionPercent: 100,
+            // Stale raw camera values — the banked copy below should win.
+            cameraVendor: "Hanwha",
+            cameraModel: "OLD-MODEL",
+            units: 99,
+            sensorsPerCamera: 99,
+            cameraModelModified: false,
+          },
+        ],
+      },
+      groups_payload: {
+        groups: [
+          {
+            resolutionLabel: "4K/8MP (3840×2160)",
+            codec: "h265",
+            complexity: "med",
+            cameraVendor: "Axis",
+            cameraModel: "P3268-LV",
+            units: 6,
+            sensorsPerCamera: 2,
+            cameraModelModified: true,
+          },
+        ],
+      },
+    };
+    const g = fromStoredSubmission(row).groups[0];
+    assert.equal(g.cameraVendor, "Axis");
+    assert.equal(g.cameraModel, "P3268-LV");
+    assert.equal(g.units, 6);
+    assert.equal(g.sensorsPerCamera, 2);
+    // modified=true survives the round-trip (a stored fact, never recomputed).
+    assert.equal(g.cameraModelModified, true);
+    // cameras stays the banked count, not units × sensors.
+    assert.equal(g.cameras, 12);
+  });
+
+  it("falls back to the raw input_state camera fields when groups_payload omits them", () => {
+    const row = {
+      input_state: {
+        version: 1,
+        groups: [
+          {
+            cameras: 8,
+            cameraVendor: "Axis",
+            cameraModel: "M3215-LVE",
+            units: 4,
+            sensorsPerCamera: 2,
+            cameraModelModified: true,
+          },
+        ],
+      },
+      // groups_payload present but without the camera fields (e.g. a partial row)
+      groups_payload: { groups: [{ resolutionLabel: "4MP (2560×1440)" }] },
+    };
+    const g = fromStoredSubmission(row).groups[0];
+    assert.equal(g.cameraVendor, "Axis");
+    assert.equal(g.cameraModel, "M3215-LVE");
+    assert.equal(g.units, 4);
+    assert.equal(g.sensorsPerCamera, 2);
+    assert.equal(g.cameraModelModified, true);
+  });
+
+  it("coerces bad units/sensors/vendor/model/modified values", () => {
+    const n = normalizeInputState({
+      groups: [
+        {
+          cameraVendor: "Sony", // not one of the three → null
+          cameraModel: "   ", // blank → null
+          units: -5, // < 1 → 1
+          sensorsPerCamera: 0, // < 1 → 1
+          cameraModelModified: "yes", // not strict boolean → false
+        },
+      ],
+    });
+    const g = n.groups[0];
+    assert.equal(g.cameraVendor, null);
+    assert.equal(g.cameraModel, null);
+    assert.equal(g.units, 1);
+    assert.equal(g.sensorsPerCamera, 1);
+    assert.equal(g.cameraModelModified, false);
+  });
+
+  it("clamps an oversized sensor count to the 64 ceiling and accepts a valid vendor", () => {
+    const g = normalizeInputState({
+      groups: [{ cameraVendor: "Avigilon", cameraModel: "H6A", sensorsPerCamera: 9999, units: 3 }],
+    }).groups[0];
+    assert.equal(g.cameraVendor, "Avigilon");
+    assert.equal(g.cameraModel, "H6A");
+    assert.equal(g.sensorsPerCamera, 64);
+    assert.equal(g.units, 3);
   });
 });

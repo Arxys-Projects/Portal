@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useRef, useState, useTransition, type KeyboardEvent } from "react";
 import { flushSync } from "react-dom";
 import {
   CODECS,
@@ -9,6 +9,7 @@ import {
   RESOLUTIONS,
   VMS_OPTIONS,
 } from "@/lib/calculator/tables";
+import { mapPixelsToBucket } from "@/lib/calculator/camera-resolution";
 import {
   computeGroup,
   formatBandwidthMbps,
@@ -16,7 +17,12 @@ import {
   formatStorageGb,
   type GroupInput,
 } from "@/lib/calculator/compute";
-import { submitCalculation, type SubmissionState } from "./actions";
+import {
+  searchCameraModels,
+  submitCalculation,
+  type CameraModelResult,
+  type SubmissionState,
+} from "./actions";
 import { productGroupToFamilySlug } from "@/lib/price-book/families";
 import { pickHeadroomOption } from "@/lib/recommend/headroom";
 import type { CalculatorInitialState, InitialGroup } from "@/lib/calculator/rehydrate";
@@ -34,6 +40,15 @@ import {
 
 const INITIAL_STATE: SubmissionState = { status: "idle" };
 
+// Camera vendors offered by the model picker. Only Axis returns results today
+// (Hanwha / Avigilon are seeded in a later step), but all three are shown so the
+// menu reflects the planned library rather than hiding empty vendors.
+const CAMERA_VENDORS = ["Axis", "Hanwha", "Avigilon"] as const;
+
+// Matches the auto-assigned "Camera Group N" name, used to decide whether a
+// model select may prefill the group name (a user-edited name is never touched).
+const DEFAULT_NAME_RE = /^Camera Group \d+$/;
+
 type Group = {
   id: string;
   name: string;
@@ -47,6 +62,19 @@ type Group = {
   recordingMode: "constant" | "motion";
   recordingPercent: number; // Operation Hours, encoded as (hours / 24) × 100
   motionPercent: number;    // Motion/Event % (20–100); only live under "motion"
+  // Phase 10 Step 3 — camera-model picker. null vendor/model = no model loaded,
+  // in which case `cameras` is the direct editable input and the group behaves
+  // exactly as before the feature. When a model IS loaded, `cameras` is derived
+  // = units × sensorsPerCamera (still the engine input + payload field); units
+  // is the user's free count, sensorsPerCamera comes from the model's sensor
+  // count (editable on demand). cameraModelModified records that the user
+  // overrode the auto-filled resolution or sensors after loading — a stored
+  // fact, never recomputed against camera_specs.
+  cameraVendor: string | null;
+  cameraModel: string | null;
+  units: number;
+  sensorsPerCamera: number;
+  cameraModelModified: boolean;
 };
 
 function freshId(): string {
@@ -65,7 +93,30 @@ function newGroup(seqNumber: number): Group {
     recordingMode: "constant", // safe default: Constant, 24 h, 100%
     recordingPercent: 100,     // 24 h/day
     motionPercent: 100,
+    // No model loaded by default — the no-model (direct-cameras) path.
+    cameraVendor: null,
+    cameraModel: null,
+    units: 1,
+    sensorsPerCamera: 1,
+    cameraModelModified: false,
   };
+}
+
+// Map a camera's native pixels to a RESOLUTIONS index via mapPixelsToBucket
+// (ADR 0058 round-up — the single source of truth, never reimplemented here).
+// Returns null when pixels exceed the largest bucket, so the caller leaves
+// resolutionIdx untouched and surfaces a non-blocking notice.
+function resolutionIdxForPixels(width: number, height: number): number | null {
+  const match = mapPixelsToBucket(width, height);
+  if (!match) return null;
+  const idx = RESOLUTIONS.findIndex((r) => r.label === match.bucket.label);
+  return idx >= 0 ? idx : null;
+}
+
+// Result-row resolution label for the picker dropdown (same bucket mapping).
+function bucketLabelForRow(r: CameraModelResult): string {
+  const match = mapPixelsToBucket(r.maxWidth, r.maxHeight);
+  return match ? match.bucket.label : "above largest bucket";
 }
 
 // Operation Hours ⇄ recordingPercent. The persisted source of truth is the
@@ -231,6 +282,87 @@ export function CalculatorForm({
     touch();
     setGroups((p) => p.map((g) => (g.id === id ? { ...g, ...patch } : g)));
   };
+
+  // Camera-model picker handlers. `cameras` stays the source of truth: on the
+  // model-loaded path it is kept equal to units × sensorsPerCamera here, so the
+  // compute map and submit payload (which both read `cameras`) need no change.
+  const derivedCameras = (units: number, sensors: number) =>
+    Math.max(1, Math.min(9999, units * sensors));
+
+  // Load a model: fill resolution (via mapPixelsToBucket) + sensors, reset the
+  // modified flag, recompute cameras, and prefill the name only if still the
+  // default. Returns false when the pixel→bucket map yields null so the picker
+  // can show a non-blocking notice (cannot happen with the Axis seed; defensive).
+  const loadCameraModel = (id: string, r: CameraModelResult): boolean => {
+    touch();
+    const idx = resolutionIdxForPixels(r.maxWidth, r.maxHeight);
+    setGroups((p) =>
+      p.map((g) => {
+        if (g.id !== id) return g;
+        return {
+          ...g,
+          cameraVendor: r.vendor,
+          cameraModel: r.model,
+          sensorsPerCamera: r.sensorCount,
+          cameraModelModified: false,
+          cameras: derivedCameras(g.units, r.sensorCount),
+          // CODEC is never auto-filled from a model (constraint #2). A null
+          // bucket leaves resolutionIdx untouched (constraint #3).
+          ...(idx !== null ? { resolutionIdx: idx } : {}),
+          name: DEFAULT_NAME_RE.test(g.name.trim()) ? `${r.vendor} ${r.model}` : g.name,
+        };
+      }),
+    );
+    return idx !== null;
+  };
+
+  // Detach the model: unlock fields, clear vendor/model, reset sensors→1 and the
+  // modified flag. Non-destructive — the group name and the current resolution
+  // are left as-is, and cameras keeps its last value (now directly editable).
+  const clearCameraModel = (id: string) => {
+    touch();
+    setGroups((p) =>
+      p.map((g) =>
+        g.id === id
+          ? {
+              ...g,
+              cameraVendor: null,
+              cameraModel: null,
+              sensorsPerCamera: 1,
+              cameraModelModified: false,
+            }
+          : g,
+      ),
+    );
+  };
+
+  const setUnits = (id: string, units: number) => {
+    setGroups((p) =>
+      p.map((g) =>
+        g.id === id
+          ? { ...g, units, cameras: derivedCameras(units, g.sensorsPerCamera) }
+          : g,
+      ),
+    );
+  };
+
+  // An explicit override of the auto-filled sensor count marks the group
+  // modified and recomputes the derived camera total.
+  const setSensorsPerCamera = (id: string, sensors: number) => {
+    setGroups((p) =>
+      p.map((g) =>
+        g.id === id
+          ? {
+              ...g,
+              sensorsPerCamera: sensors,
+              cameraModelModified: true,
+              cameras: derivedCameras(g.units, sensors),
+            }
+          : g,
+      ),
+    );
+  };
+
   const reset = () => {
     setGroups([newGroup(1)]);
     setRetentionDays(30);
@@ -275,6 +407,8 @@ export function CalculatorForm({
       sourceSubmissionId: revisionSourceId,
       groups: groups.map((g) => ({
         name: g.name,
+        // cameras stays the engine input + payload field; on the model-loaded
+        // path it already equals units × sensorsPerCamera (kept in sync above).
         cameras: g.cameras,
         resolutionIdx: g.resolutionIdx,
         codecIdx: g.codecIdx,
@@ -284,6 +418,13 @@ export function CalculatorForm({
         recordingPercent: g.recordingPercent,
         // Constant pins motion% to 100; the server re-enforces this.
         motionPercent: g.recordingMode === "constant" ? 100 : g.motionPercent,
+        // Phase 10 Step 3 — banked for rehydration (input_state) + display
+        // (groups_payload). The engine contract is unchanged; these are extra.
+        cameraVendor: g.cameraVendor,
+        cameraModel: g.cameraModel,
+        units: g.units,
+        sensorsPerCamera: g.sensorsPerCamera,
+        cameraModelModified: g.cameraModelModified,
       })),
     };
     startTransition(async () => {
@@ -623,6 +764,12 @@ export function CalculatorForm({
                   }
                   placeholder="Enter group name..."
                 />
+                <CameraModelPicker
+                  group={group}
+                  onLoad={loadCameraModel}
+                  onClear={clearCameraModel}
+                  touch={touch}
+                />
               </div>
               <div className="ax-ca">
                 <button
@@ -646,36 +793,16 @@ export function CalculatorForm({
             </div>
 
             <div className="ax-cb">
-              <div className="ax-f wc">
-                <label className="ax-fl">
-                  Video Streams
-                  <Tooltip text="How many cameras (camera feeds) share these same settings. Every number below — bandwidth, storage — multiplies by this count." />
-                </label>
-                <input
-                  type="number"
-                  min={1}
-                  max={9999}
-                  value={getDraft(`${group.id}.cameras`, group.cameras)}
-                  onChange={(e) => {
-                    setDraft(`${group.id}.cameras`, e.target.value);
-                    touch();
-                    const n = parseInt(e.target.value, 10);
-                    if (!isNaN(n)) {
-                      updateGroup(group.id, {
-                        cameras: Math.max(1, Math.min(9999, n)),
-                      });
-                    }
-                  }}
-                  onBlur={(e) => {
-                    clearDraft(`${group.id}.cameras`);
-                    const n = parseInt(e.target.value, 10);
-                    updateGroup(group.id, {
-                      cameras: isNaN(n) ? 1 : Math.max(1, Math.min(9999, n)),
-                    });
-                  }}
-                  style={{ textAlign: "center" }}
-                />
-              </div>
+              <CamerasField
+                group={group}
+                getDraft={getDraft}
+                setDraft={setDraft}
+                clearDraft={clearDraft}
+                touch={touch}
+                updateGroup={updateGroup}
+                setUnits={setUnits}
+                setSensorsPerCamera={setSensorsPerCamera}
+              />
               <div className="ax-f wr">
                 <label className="ax-fl">
                   Resolution
@@ -683,11 +810,17 @@ export function CalculatorForm({
                 </label>
                 <select
                   value={group.resolutionIdx}
-                  onChange={(e) =>
-                    updateGroup(group.id, {
-                      resolutionIdx: parseInt(e.target.value, 10),
-                    })
-                  }
+                  onChange={(e) => {
+                    const resolutionIdx = parseInt(e.target.value, 10);
+                    // Overriding the auto-filled resolution after a model is
+                    // loaded marks the group modified (a stored fact).
+                    updateGroup(
+                      group.id,
+                      group.cameraModel
+                        ? { resolutionIdx, cameraModelModified: true }
+                        : { resolutionIdx },
+                    );
+                  }}
                 >
                   {RESOLUTIONS.map((r, i) => (
                     <option key={r.label} value={i}>
@@ -1079,6 +1212,342 @@ export function CalculatorForm({
       {submitState.status === "ok" && !resultDismissed && (
         <RecommendationPanel state={submitState} />
       )}
+    </div>
+  );
+}
+
+// Vendor-gated camera-model typeahead + provenance chip. One instance per group
+// card (keyed by the card), so its search scope/query state is per group. The
+// alias-aware search runs through the searchCameraModels server action (which
+// queries the camera_aliases_text-backed RPC). A minimal accessible combobox —
+// no new dependency.
+function CameraModelPicker({
+  group,
+  onLoad,
+  onClear,
+  touch,
+}: {
+  group: Group;
+  onLoad: (id: string, r: CameraModelResult) => boolean;
+  onClear: (id: string) => void;
+  touch: () => void;
+}) {
+  const [vendor, setVendor] = useState<string>(() => group.cameraVendor ?? "");
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<CameraModelResult[]>([]);
+  const [open, setOpen] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(-1);
+  const [loading, setLoading] = useState(false);
+  const [searched, setSearched] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Monotonic request id so a slow earlier response can't overwrite a newer one.
+  const seqRef = useRef(0);
+  const listId = `cmp-list-${group.id}`;
+
+  const runSearch = (v: string, q: string) => {
+    const trimmed = q.trim();
+    if (!v || !trimmed) {
+      setResults([]);
+      setSearched(false);
+      setOpen(false);
+      return;
+    }
+    const seq = ++seqRef.current;
+    setLoading(true);
+    searchCameraModels(v, trimmed)
+      .then((rows) => {
+        if (seq !== seqRef.current) return;
+        setResults(rows);
+        setActiveIndex(rows.length ? 0 : -1);
+        setSearched(true);
+        setLoading(false);
+        setOpen(true);
+      })
+      .catch(() => {
+        if (seq !== seqRef.current) return;
+        setResults([]);
+        setSearched(true);
+        setLoading(false);
+        setOpen(true);
+      });
+  };
+
+  const onQueryChange = (val: string) => {
+    touch();
+    setQuery(val);
+    setNotice(null);
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => runSearch(vendor, val), 200);
+  };
+
+  const select = (r: CameraModelResult) => {
+    const filled = onLoad(group.id, r);
+    setNotice(
+      filled
+        ? null
+        : `${r.model}: native resolution is above the largest bucket, so resolution was left unchanged.`,
+    );
+    setQuery("");
+    setResults([]);
+    setOpen(false);
+    setSearched(false);
+    setActiveIndex(-1);
+  };
+
+  const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      if (!open && results.length) {
+        setOpen(true);
+        return;
+      }
+      setActiveIndex((i) => Math.min(results.length - 1, i + 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActiveIndex((i) => Math.max(0, i - 1));
+    } else if (e.key === "Enter") {
+      if (open && activeIndex >= 0 && results[activeIndex]) {
+        e.preventDefault();
+        select(results[activeIndex]);
+      }
+    } else if (e.key === "Escape") {
+      setOpen(false);
+    }
+  };
+
+  return (
+    <div className="ax-cmp">
+      <select
+        className="ax-cmp-vendor"
+        aria-label="Camera vendor"
+        value={group.cameraModel ? (group.cameraVendor ?? "") : vendor}
+        onChange={(e) => {
+          touch();
+          const v = e.target.value;
+          setVendor(v);
+          setQuery("");
+          setResults([]);
+          setOpen(false);
+          setSearched(false);
+          setNotice(null);
+          // Changing vendor while a model is loaded detaches it (the loaded
+          // model belonged to the previous vendor scope).
+          if (group.cameraModel) onClear(group.id);
+        }}
+      >
+        <option value="">Vendor</option>
+        {CAMERA_VENDORS.map((v) => (
+          <option key={v} value={v}>
+            {v}
+          </option>
+        ))}
+      </select>
+
+      {group.cameraModel ? (
+        <span
+          className="ax-cmp-chip"
+          data-modified={group.cameraModelModified || undefined}
+        >
+          from {group.cameraVendor} {group.cameraModel}
+          {group.cameraModelModified ? " · modified" : ""}
+          <button
+            type="button"
+            className="ax-cmp-x"
+            aria-label={`Detach ${group.cameraVendor} ${group.cameraModel}`}
+            onClick={() => {
+              touch();
+              onClear(group.id);
+              setVendor(group.cameraVendor ?? "");
+            }}
+          >
+            ×
+          </button>
+        </span>
+      ) : (
+        <div className="ax-cmp-search">
+          <input
+            type="text"
+            className="ax-cmp-input"
+            role="combobox"
+            aria-expanded={open}
+            aria-controls={listId}
+            aria-autocomplete="list"
+            aria-activedescendant={
+              open && activeIndex >= 0 && results[activeIndex]
+                ? `${listId}-opt-${activeIndex}`
+                : undefined
+            }
+            disabled={!vendor}
+            placeholder={vendor ? "Search model…" : "Pick a vendor"}
+            value={query}
+            onChange={(e) => onQueryChange(e.target.value)}
+            onKeyDown={onKeyDown}
+            onFocus={() => {
+              if (results.length) setOpen(true);
+            }}
+            onBlur={() => {
+              if (timerRef.current) clearTimeout(timerRef.current);
+              // Defer the close so a mousedown on an option still registers.
+              setTimeout(() => setOpen(false), 120);
+            }}
+          />
+          {open && (query.trim() !== "" || loading) && (
+            <ul className="ax-cmp-list" id={listId} role="listbox">
+              {loading && results.length === 0 ? (
+                <li className="ax-cmp-empty">Searching…</li>
+              ) : results.length === 0 ? (
+                searched ? <li className="ax-cmp-empty">No models found</li> : null
+              ) : (
+                results.map((r, i) => (
+                  <li
+                    key={r.id}
+                    id={`${listId}-opt-${i}`}
+                    role="option"
+                    aria-selected={i === activeIndex}
+                    className={"ax-cmp-opt" + (i === activeIndex ? " active" : "")}
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      select(r);
+                    }}
+                    onMouseEnter={() => setActiveIndex(i)}
+                  >
+                    <span className="ax-cmp-opt-m">{r.model}</span>
+                    <span className="ax-cmp-opt-d">
+                      {bucketLabelForRow(r)} · {r.sensorCount}{" "}
+                      {r.sensorCount === 1 ? "sensor" : "sensors"}
+                    </span>
+                  </li>
+                ))
+              )}
+            </ul>
+          )}
+        </div>
+      )}
+      {notice && <span className="ax-cmp-notice">{notice}</span>}
+    </div>
+  );
+}
+
+// The Video Streams cell. No model → the original direct-cameras input (kept
+// byte-identical to pre-feature behavior). Model loaded → the decomposition
+// "units × sensors = cameras", where cameras is derived/read-only, units is the
+// user's free input, and sensors is read-only-by-default with an edit toggle.
+function CamerasField({
+  group,
+  getDraft,
+  setDraft,
+  clearDraft,
+  touch,
+  updateGroup,
+  setUnits,
+  setSensorsPerCamera,
+}: {
+  group: Group;
+  getDraft: (key: string, fallback: number) => string;
+  setDraft: (key: string, value: string) => void;
+  clearDraft: (key: string) => void;
+  touch: () => void;
+  updateGroup: (id: string, patch: Partial<Group>) => void;
+  setUnits: (id: string, units: number) => void;
+  setSensorsPerCamera: (id: string, sensors: number) => void;
+}) {
+  const [editingSensors, setEditingSensors] = useState(false);
+
+  if (!group.cameraModel) {
+    return (
+      <div className="ax-f wc">
+        <label className="ax-fl">
+          Video Streams
+          <Tooltip text="How many cameras (camera feeds) share these same settings. Every number below — bandwidth, storage — multiplies by this count." />
+        </label>
+        <input
+          type="number"
+          min={1}
+          max={9999}
+          value={getDraft(`${group.id}.cameras`, group.cameras)}
+          onChange={(e) => {
+            setDraft(`${group.id}.cameras`, e.target.value);
+            touch();
+            const n = parseInt(e.target.value, 10);
+            if (!isNaN(n)) {
+              updateGroup(group.id, { cameras: Math.max(1, Math.min(9999, n)) });
+            }
+          }}
+          onBlur={(e) => {
+            clearDraft(`${group.id}.cameras`);
+            const n = parseInt(e.target.value, 10);
+            updateGroup(group.id, {
+              cameras: isNaN(n) ? 1 : Math.max(1, Math.min(9999, n)),
+            });
+          }}
+          style={{ textAlign: "center" }}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="ax-f wc wc-model">
+      <label className="ax-fl">
+        Video Streams
+        <Tooltip text="Units of this camera model. Total streams = units × sensors per camera; every number below multiplies by that total. Editing sensors overrides the model's value." />
+      </label>
+      <div className="ax-units-row">
+        <input
+          type="number"
+          min={1}
+          max={9999}
+          aria-label={`Units of ${group.cameraModel}`}
+          value={getDraft(`${group.id}.units`, group.units)}
+          onChange={(e) => {
+            setDraft(`${group.id}.units`, e.target.value);
+            touch();
+            const n = parseInt(e.target.value, 10);
+            if (!isNaN(n)) setUnits(group.id, Math.max(1, Math.min(9999, n)));
+          }}
+          onBlur={(e) => {
+            clearDraft(`${group.id}.units`);
+            const n = parseInt(e.target.value, 10);
+            setUnits(group.id, isNaN(n) ? 1 : Math.max(1, Math.min(9999, n)));
+          }}
+          style={{ width: 52, textAlign: "center" }}
+        />
+        <span className="ax-units-x">units ×</span>
+        {editingSensors ? (
+          <input
+            type="number"
+            min={1}
+            max={64}
+            autoFocus
+            aria-label={`Sensors per camera for ${group.cameraModel}`}
+            value={getDraft(`${group.id}.sensors`, group.sensorsPerCamera)}
+            onChange={(e) => {
+              setDraft(`${group.id}.sensors`, e.target.value);
+              touch();
+              const n = parseInt(e.target.value, 10);
+              if (!isNaN(n)) setSensorsPerCamera(group.id, Math.max(1, Math.min(64, n)));
+            }}
+            onBlur={(e) => {
+              clearDraft(`${group.id}.sensors`);
+              const n = parseInt(e.target.value, 10);
+              setSensorsPerCamera(group.id, isNaN(n) ? 1 : Math.max(1, Math.min(64, n)));
+              setEditingSensors(false);
+            }}
+            style={{ width: 44, textAlign: "center" }}
+          />
+        ) : (
+          <button
+            type="button"
+            className="ax-sensor-ed"
+            title="Edit sensors per camera"
+            onClick={() => setEditingSensors(true)}
+          >
+            {group.sensorsPerCamera} {group.sensorsPerCamera === 1 ? "sensor" : "sensors"}
+          </button>
+        )}
+        <span className="ax-units-eq">= {group.cameras}</span>
+      </div>
     </div>
   );
 }

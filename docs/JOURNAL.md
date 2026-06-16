@@ -4,6 +4,31 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-06-16 — Phase 10 Step 3: calculator camera-model picker + units/sensors + round-trip (authored, build-verified)
+
+### Work done
+
+Added the per-group camera-model picker, the units/sensors decomposition, and full round-trip persistence to the calculator. Authored and verified locally (build / lint / tests); nothing pushed, migrated, or committed.
+
+- **State model (`calculator-form.tsx`).** Extended the `Group` type and `newGroup()` with five fields: `cameraVendor`, `cameraModel` (null = no model loaded), `units` (default 1), `sensorsPerCamera` (default 1), `cameraModelModified` (default false). `cameras` stays the engine input and payload field; on the model-loaded path it is kept equal to `units × sensorsPerCamera` by the load/units/sensors handlers, so the compute map and submit payload need no change. No-model path is byte-identical to before (the original direct-cameras input).
+- **Picker UI, inline in the group header.** New `CameraModelPicker` component: a vendor select (Axis | Hanwha | Avigilon, none hidden) gating a minimal accessible combobox (role=combobox / listbox / option, arrow + enter + escape keys, debounced 200ms, stale-response guard). Result rows show model + resolution bucket + sensor count. On select it fills `resolutionIdx` (via `mapPixelsToBucket`, reused not reimplemented), sets `sensorsPerCamera = sensor_count`, resets `cameraModelModified=false`, recomputes `cameras`, and prefills the group name only when it is still the default `Camera Group N`. A provenance chip ("from {vendor} {model}", with a subtle "· modified" state and a detach control) replaces the search box once a model is loaded. CODEC is never auto-filled. A null pixel→bucket map (impossible with the Axis seed; defensive) leaves resolution unchanged and shows a non-blocking notice.
+- **Units/sensors cell (`CamerasField`).** On the model-loaded path the Video Streams cell renders "{units} units × {sensors} sensors = {cameras}"; units is a free numeric input (same `numericDrafts` in-progress-typing pattern as cameras/fps, key `${id}.units`), sensors is read-only with an explicit edit affordance. Overriding the auto-filled resolution OR sensors after a model is loaded sets `cameraModelModified=true`. Detaching the model unlocks the fields, clears vendor/model, resets sensors→1 and modified→false, and is non-destructive (name and current resolution kept).
+- **Data access (constraint #1).** Alias search runs through the IMMUTABLE helper `public.camera_aliases_text(model_aliases)` inside a new `SECURITY INVOKER` RPC `public.search_camera_specs(p_vendor, p_query, p_limit)` (migration `20260616000001`, paired rollback `phase-10-step-3-rollback.sql`), so both Step-1 trigram indexes are used. The form calls it via a `searchCameraModels` server action (the app's authenticated-read path), debounced. RLS still applies. The RPC is **authored, not deployed** — it must land via the gated `db push` before the picker returns results.
+- **Persistence round-trip.** Submit payload (`calculator-form.tsx`) sends the five fields per group plus the derived `cameras`. `actions.ts` `groupSchema` parses them (all default cleanly on absent); they bank into `input_state` (raw, via `groups: input.groups`) and `groups_payload` (resolved, for Step-4 display). `rehydrate.ts` gained the coerced readers: `InitialGroup` + `GROUP_DEFAULTS` + `normalizeGroup` (vendor to the fixed three or null, model to non-empty string or null, units/sensors finite ints ≥1, modified strict boolean) and `extractBankedGroups`/`fromStoredSubmission` prefer the banked copy over raw (same pattern as resolution/codec/complexity). `cameras` rehydrates from its banked value and is never recomputed from units × sensors. Pre-feature rows default to no-model with cameras preserved.
+- **No `INPUT_STATE_VERSION` bump.** The five fields default cleanly on absent (null/null/1/1/false), the same default-on-absent approach used for `recordingMode`, so the version stays 1. Confirmed: no bump.
+
+### Verification gates
+
+- `npm test` 91/91 (5 new camera-field cases in `rehydrate.test.ts`: pre-feature defaults with cameras preserved, full five-field round-trip preferring banked, raw fallback, bad-value coercion, sensor-ceiling clamp; plus the existing default-group `deepEqual` updated for the five new fields).
+- `npm run build` clean (Compiled + TypeScript pass, 18 routes); `npx eslint` on the four changed TS/TSX files 0 errors.
+- Browser verification deferred: the calculator is auth-gated and the live typeahead depends on the not-yet-deployed search RPC against the cloud DB (which this task must not touch), matching the journal's standing practice of leaving auth-gated / live-side-effect UI checks for an authenticated session.
+
+### Decisions captured
+
+- [`0063-camera-picker-data-access-and-state-model.md`](./decisions/0063-camera-picker-data-access-and-state-model.md)
+
+---
+
 ## 2026-06-15 — Phase 10 Step 2: Axis camera seed (loaded)
 
 ### Work done

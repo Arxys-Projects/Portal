@@ -174,6 +174,115 @@
 #arxys-calc-root .ax-ib:disabled { cursor: not-allowed; opacity: 0.4; }
 #arxys-calc-root .ax-ib:disabled:hover { color: var(--ts); border-color: var(--bd); background: var(--bg); }
 
+/* Camera-model picker (Phase 10 Step 3) — inline in the group header next to
+   the name field, so it adds no vertical space. Vendor select gates a model
+   typeahead; once a model is loaded a provenance chip replaces the search box.
+   The results list is absolutely positioned so it never reflows the header. */
+#arxys-calc-root .ax-cmp { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+#arxys-calc-root .ax-cmp-vendor {
+  background: var(--bg);
+  border: 1px solid var(--bd);
+  border-radius: 6px;
+  color: var(--ts);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 6px;
+  outline: none;
+}
+#arxys-calc-root .ax-cmp-vendor:focus { border-color: var(--ac); box-shadow: 0 0 0 3px var(--ag); }
+#arxys-calc-root .ax-cmp-search { position: relative; }
+#arxys-calc-root .ax-cmp-input {
+  background: var(--bg);
+  border: 1px solid var(--bd);
+  border-radius: 6px;
+  color: var(--tp);
+  font-family: inherit;
+  font-size: 12px;
+  outline: none;
+  padding: 5px 8px;
+  width: 150px;
+  transition: border-color 0.2s;
+}
+#arxys-calc-root .ax-cmp-input:focus { border-color: var(--ac); box-shadow: 0 0 0 3px var(--ag); }
+#arxys-calc-root .ax-cmp-input:disabled { opacity: 0.5; cursor: not-allowed; background: var(--ip); color: var(--tl); }
+#arxys-calc-root .ax-cmp-input::placeholder { color: var(--tl); }
+#arxys-calc-root .ax-cmp-list {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 240px;
+  max-height: 260px;
+  overflow-y: auto;
+  list-style: none;
+  margin: 0;
+  padding: 4px;
+  background: var(--bg);
+  border: 1px solid var(--bd);
+  border-radius: 8px;
+  box-shadow: var(--sm);
+}
+#arxys-calc-root .ax-cmp-opt {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+#arxys-calc-root .ax-cmp-opt.active { background: var(--al); }
+#arxys-calc-root .ax-cmp-opt-m { font-size: 13px; font-weight: 600; color: var(--tp); }
+#arxys-calc-root .ax-cmp-opt-d { font-size: 11px; color: var(--td); }
+#arxys-calc-root .ax-cmp-empty { padding: 8px; font-size: 12px; color: var(--td); }
+#arxys-calc-root .ax-cmp-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ts);
+  background: var(--ip);
+  border: 1px solid var(--bd);
+  border-radius: 999px;
+  padding: 3px 6px 3px 10px;
+}
+#arxys-calc-root .ax-cmp-chip[data-modified] { color: var(--am); border-color: #fcd9a3; background: #fffbeb; }
+#arxys-calc-root .ax-cmp-x {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+#arxys-calc-root .ax-cmp-x:hover { background: rgba(0, 0, 0, 0.08); }
+#arxys-calc-root .ax-cmp-notice { font-size: 11px; color: var(--am); max-width: 260px; line-height: 1.35; }
+
+/* Model-loaded Video Streams cell — the "units × sensors = cameras" line. */
+#arxys-calc-root .ax-units-row { display: flex; align-items: center; gap: 6px; height: 38px; }
+#arxys-calc-root .ax-units-x { font-size: 12px; color: var(--td); white-space: nowrap; }
+#arxys-calc-root .ax-units-eq { font-size: 13px; font-weight: 700; color: var(--tp); white-space: nowrap; }
+#arxys-calc-root .ax-sensor-ed {
+  background: var(--bg);
+  border: 1px dashed var(--bd);
+  border-radius: 6px;
+  color: var(--ts);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 8px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+#arxys-calc-root .ax-sensor-ed:hover { border-color: var(--ac); color: var(--ac); }
+
 /* Camera Body — a dense, single-line control row. Cells use a fixed flex-basis
    but are allowed to SHRINK (flex: 0 1 basis), so the row stays on ONE line and
    compresses gracefully when the panel is narrow rather than dangling a control
@@ -183,6 +292,8 @@
    ("Medium detail, high motion") in full. */
 #arxys-calc-root .ax-cb { padding: 10px 20px; display: flex; flex-wrap: nowrap; gap: 10px 10px; align-items: flex-end; }
 #arxys-calc-root .ax-cb .ax-f.wc { flex: 0 1 110px; }
+/* Model-loaded variant needs room for "units × N sensors = M". */
+#arxys-calc-root .ax-cb .ax-f.wc.wc-model { flex: 0 1 260px; }
 #arxys-calc-root .ax-cb .ax-f.wr { flex: 0 1 168px; }
 #arxys-calc-root .ax-cb .ax-f.wk { flex: 0 1 142px; }
 #arxys-calc-root .ax-cb .ax-f.wf { flex: 0 1 64px; }

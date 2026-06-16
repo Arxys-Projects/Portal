@@ -37,6 +37,18 @@ const groupSchema = z.object({
   // Motion/Event % — clamped 20–100 at the UI; the 0.2 idle floor in
   // applyMotionAdjustment is the math-side safety net if a bad value slips in.
   motionPercent: z.number().int().min(20).max(100),
+  // Phase 10 Step 3 — camera-model picker. `cameras` above stays the engine
+  // input and equals units × sensorsPerCamera only on the model-loaded path;
+  // these five fields are banked for rehydration + display, never read by the
+  // engine. All default cleanly on absent, so a pre-feature client payload
+  // parses unchanged (no INPUT_STATE_VERSION bump needed). cameraVendor is left
+  // a permissive string rather than an enum so a future vendor never hard-fails
+  // an otherwise-valid submit.
+  cameraVendor: z.string().trim().max(20).nullable().optional().default(null),
+  cameraModel: z.string().trim().max(120).nullable().optional().default(null),
+  units: z.number().int().min(1).max(9999).optional().default(1),
+  sensorsPerCamera: z.number().int().min(1).max(64).optional().default(1),
+  cameraModelModified: z.boolean().optional().default(false),
 });
 
 const submissionSchema = z.object({
@@ -292,6 +304,14 @@ export async function submitCalculation(
         recordingMode: r.input.recordingMode,
         recordingPercent: r.input.recordingPercent,
         motionPercent: r.input.motionPercent,
+        // Phase 10 Step 3 — resolved camera-model provenance for the display
+        // path (PDF / submission view, Step 4) and preferred on rehydration.
+        // `cameras` above already carries the derived count; these explain it.
+        cameraVendor: r.input.cameraVendor ?? null,
+        cameraModel: r.input.cameraModel ?? null,
+        units: r.input.units,
+        sensorsPerCamera: r.input.sensorsPerCamera,
+        cameraModelModified: r.input.cameraModelModified,
         computed: r.computed,
       })),
     },
@@ -537,4 +557,60 @@ export async function submitCalculation(
       totals,
     },
   };
+}
+
+// Phase 10 Step 3 — camera-model typeahead. One match row for the picker.
+// max_width / max_height are native pixels; the client maps them to a
+// RESOLUTIONS bucket via mapPixelsToBucket (the single source of truth) for
+// both the result-row label and the on-select fill.
+export type CameraModelResult = {
+  id: string;
+  vendor: string;
+  model: string;
+  sensorCount: number;
+  maxWidth: number;
+  maxHeight: number;
+};
+
+// Authenticated read of camera_specs scoped to one vendor, matching model AND
+// model_aliases as the user types. The alias match runs through the IMMUTABLE
+// helper public.camera_aliases_text(model_aliases) inside the search_camera_specs
+// RPC so the expression GIN trigram index (20260615000002) is used — a naive
+// ILIKE on the array would not be index-backed. SECURITY INVOKER on the RPC
+// keeps the read under the caller's RLS (camera_specs SELECT is open to
+// authenticated). Matches the app's server-side data-access pattern; the client
+// calls this action debounced. A query that fails or returns nothing yields [].
+export async function searchCameraModels(
+  vendor: string,
+  query: string,
+): Promise<CameraModelResult[]> {
+  const v = (vendor ?? "").trim();
+  const q = (query ?? "").trim();
+  if (!v || q.length < 1) return [];
+
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  const { data, error } = await supabase.rpc("search_camera_specs", {
+    p_vendor: v,
+    p_query: q,
+    p_limit: 12,
+  });
+  if (error || !data) {
+    if (error) console.error("camera model search failed", error);
+    return [];
+  }
+
+  const rows = data as Array<Record<string, unknown>>;
+  return rows.map((row) => ({
+    id: String(row.id),
+    vendor: String(row.vendor),
+    model: String(row.model),
+    sensorCount: Number(row.sensor_count),
+    maxWidth: Number(row.max_width),
+    maxHeight: Number(row.max_height),
+  }));
 }
