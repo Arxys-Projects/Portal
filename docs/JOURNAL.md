@@ -4,6 +4,22 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-06-16 — Phase 10 / Project Quote Step 5a AMENDMENT: showcase predicate widened + VMS-edition audit
+
+### Work done
+
+Targeted amendment to two decisions from Step 5a; no migration, no table, no commit, no push.
+
+- **Showcase predicate widened** (`src/lib/project-quote/snapshot.ts`). Replaced the hardcoded `^V[1-8]00$` regex + `{SW10, SW20}` set with a single family-lookup check: `productGroupToFamilySlug(productGroup) !== null`. A product group is showcase-eligible if and only if it resolves to a price-book family (all V-series servers including V150 / V250 / V255 / V260 / V270, and all SW workstations SW10-SW35). Add-on cards, NICs, transceivers, and warranty SKUs have no price-book family and return null, keeping them off the showcase. The `productGroupToFamilySlug` helper was already imported; no new dependency. Adding a future model to the price-book `FAMILIES` array automatically includes it — no code change required.
+- **VMS-edition audit** (`types.ts`, `snapshot.ts`, `assemble.ts`, `terms.ts`, tests). Searched the full project-quote module for any "edition" reference implying a separate VMS edition field. No such field exists. The only "edition" hits are `os_edition` (the server hardware's OS edition — Windows Server LTSC — a spec field, not a VMS field) and the comment in `types.ts` already documenting the absence of a VMS edition. No change made to the VMS shape.
+- **Tests updated** (`snapshot.test.ts`). Rewrote the `isShowcaseProductGroup` suite: V150 / V250 / V255 / V260 / V270 and SW10-SW35 now assert true; NIC / RAM / GPU / WTY / SFP assert false. Rewrote the `buildShowcase` suite with a new fixture (V150, V255, V600, SW20, [MKT] custom, NIC card, transceiver, uncatalogued V700 SKU, duplicate V600): asserts the showcase contains exactly VX5-SW20-200, VX5-V150-ACM, VX5-V255-MGM, VX5-V600-320 and excludes the [MKT], NIC, transceiver, and uncatalogued V700. Hero path and spec highlights coverage retained.
+
+### Verification gates
+
+- `npm test` 128/128; `npm run build` clean; `npx eslint` 0 errors on changed files. No push, no migrate, no commit, no cloud-DB touch.
+
+---
+
 ## 2026-06-16 — Phase 10 / Project Quote Step 5a: project_quotes snapshot schema + assembly (authored, verified, not deployed)
 
 ### Work done

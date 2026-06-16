@@ -122,11 +122,11 @@ export type ProjectQuoteShowcaseSpecHighlights = {
   hddCount: number | null;
 };
 
-// One showcase product. Built ONLY from deal line items whose resolved SKU is a
-// VideoX server (V100-V800) or an SW10 / SW20 workstation AND that have a
-// catalog (products) record. Everything else (management / ACM tiers,
-// warranties, [MKT] custom lines, SKUs with no catalog record) is excluded from
-// the showcase and remains on the commercial line-item table (part 1).
+// One showcase product. Built ONLY from deal line items whose product group
+// resolves to a price-book family (all V-series servers and SW workstations)
+// AND that have a catalog (products) record. Everything else (add-on cards,
+// NICs, transceivers, warranties, [MKT] custom lines, SKUs with no catalog
+// record) is excluded and remains on the commercial line-item table (part 1).
 export type ProjectQuoteShowcaseItem = {
   sku: string;
   productName: string;

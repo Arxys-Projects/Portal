@@ -72,17 +72,15 @@ export function resolveHeroImagePath(productGroup: string | null | undefined): s
 // Showcase (page 2)
 // ---------------------------------------------------------------------------
 
-// Showcase eligibility: VideoX main server tiers V100-V800 and SW10 / SW20
-// workstations only. Excludes the management / ACM tiers (V250 / V255 / V260 /
-// V270), the other workstation tiers (SW25 / SW30 / SW35), and non-server SKUs
-// (NIC / RAM / GPU upgrades, warranties, [MKT] custom lines). See the Step 5a
-// report for the rationale and how to widen the set.
-const SHOWCASE_SERVER_GROUP = /^V[1-8]00$/;
-const SHOWCASE_WORKSTATION_GROUPS = new Set(["SW10", "SW20"]);
-
+// Showcase eligibility: any product group that resolves to a price-book family
+// (productGroupToFamilySlug returns non-null). That covers all V-series servers
+// (V100, V150, V200, V250, V255, V260, V270, V400-V800) and all SW workstations
+// (SW10-SW35). Add-on cards, NICs, transceivers, and warranty SKUs have no
+// price-book family and return null. [MKT] custom lines are excluded upstream
+// by the priceType check in buildShowcase.
 export function isShowcaseProductGroup(productGroup: string | null | undefined): boolean {
   if (!productGroup) return false;
-  return SHOWCASE_SERVER_GROUP.test(productGroup) || SHOWCASE_WORKSTATION_GROUPS.has(productGroup);
+  return productGroupToFamilySlug(productGroup) !== null;
 }
 
 // A resolved catalog record for one SKU, assembled by the orchestrator from the
