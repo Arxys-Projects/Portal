@@ -4,6 +4,41 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-06-16 — Phase 10 / Project Quote Step 5a: project_quotes snapshot schema + assembly (authored, verified, not deployed)
+
+### Work done
+
+Built the DATA-LAYER FOUNDATION for the Project Quote: the stored snapshot schema, the snapshot shape, and the assembly logic that 5b will render from. Renders nothing, adds no UI, no Generate button, no PDF, no email-back (those are 5b / Step 6). Authored and verified locally (build / lint / 20 new tests); nothing pushed, migrated, or committed. STOP-AND-FLAG: schema-touching, held for review.
+
+- **Migration `20260616000002_phase10_project_quotes.sql`** (next timestamp after `20260616000001`). Table `project_quotes`: `id` uuid PK, `submission_id` uuid FK -> submissions (on delete restrict, protects the issued-quote audit trail), `pipedrive_deal_id` bigint (matches submissions' column type), `version` integer (CHECK >= 1), `snapshot` jsonb, `terms_version` text, `generated_at` timestamptz, `validity_days` integer (CHECK > 0), `generated_by` uuid FK -> partners (on delete restrict), `created_at` timestamptz, and `unique (submission_id, version)`. Index on `pipedrive_deal_id`; the unique `(submission_id, version)` index backs both the derived-current read and version history, so no extra index. Paired rollback `supabase/rollback/phase-10-step-5a-rollback.sql`.
+- **RLS is INTERNAL-ONLY, not partner-readable.** A row holds pricing and customer PII, so SELECT is gated on `public.is_internal((select auth.uid())) or public.is_admin((select auth.uid()))` (admins covered explicitly per ADR 0059), distinct from the read-open `camera_specs` / `product_specs` reference tables. INSERT uses the same gate plus `generated_by = (select auth.uid())` (mirrors `submissions_insert_self`). `auth.uid()` wrapped as a scalar subquery per the ADR-0055 InitPlan idiom. Quotes are immutable: only SELECT and INSERT are granted, so UPDATE / DELETE are denied by default (a revision is a new version row, not an edit). No explicit restrictive deny policy, matching the repo's grant-plus-permissive idiom.
+- **Snapshot shape** (`src/lib/project-quote/types.ts`), five frozen parts: (1) COMMERCIAL = the verbatim successful `DealQuote` from Step 4's `getDealForQuote`, stored RAW (imported, not redefined); line items keep Pipedrive's returned order with `orderNr` preserved for render-time sorting. (2) SIZING = resolved values page 1 needs, frozen as resolved labels (mirrors `groups_payload`, never indices): parameters, the camera schedule extended with the Phase 10 camera fields (vendor / model / units / sensors) the current System Estimate view model lacks, capacity figures, and the resolved primary-server spec + hero path. (3) SHOWCASE = page-2 cards for V100-V800 servers and SW10 / SW20 workstations that are on the deal AND have a catalog record, with frozen image path + spec highlights. (4) TERMS = version + full text + sha256, frozen self-contained. (5) GENERATION META = version, generatedAt, validity_days in force, generatedBy, and the composed `DealID-V#-date` identifier. A `snapshotVersion` envelope field guards future shape changes.
+- **Terms frozen in full, not version-only** (`src/lib/project-quote/terms.ts`). Per the deterministic-reproduction requirement and that terms are legal text, the snapshot stores version + full text + sha256, and `terms_version` is also a queryable column for audit. Version-only would couple an old quote to an external versioned-terms archive still holding that version at re-render, which breaks the self-contained premise. Text seeded from the Arxys disclaimer already in the repo (price-book page + `docs/old-phase-3-plan.md`); flagged to replace with approved legal copy and set the real in-force version before go-live.
+- **Assembly logic** (`src/lib/project-quote/snapshot.ts` pure builders; `src/lib/project-quote/assemble.ts` orchestrator). `assembleProjectQuoteSnapshot(submissionId, supabase)` loads the submission, reads the deal via `getDealForQuote`, resolves the sizing joins and the showcase catalog, computes `version = max(version)+1`, stamps terms + meta, and returns the row READY to insert. It does NOT insert. Empty-deal (`deal.isEmpty`) and deal-read-error surface as typed `AssembleSnapshotResult` cases (`empty_deal` / `deal_read_error`), plus `submission_not_found` and `no_deal_link`, so Step 6 guards cleanly. The pure builders carry no Supabase / Pipedrive / react-pdf / server-only import (dependency direction stays render -> data), so the unit tests run with plain fixtures and no mocks.
+- **"Current" is derived, never stored.** `loadCurrentProjectQuote` reads `order by version desc limit 1`; there is no `is_current` column, no demote step, no race.
+- **No derived prices stored.** The snapshot copies the raw `DealQuote` verbatim; partner-price-each and any discounted-unit-price are derived at render by 5b. A test asserts the stored commercial line has exactly the raw `QuoteLineItem` keys (no `partnerPriceEach`) and that `discountedUnitPrice` stays null.
+
+### Detours & fixes
+
+- **Did not reuse `loadSubmissionPdfInput` for the sizing half.** It sources `partner.email` from the live `auth.getUser()` session (which for an internal-generated quote is the GENERATOR, not the partner) and stamps a volatile `generatedAt`, both wrong to freeze. Authored a dedicated sizing resolver instead, freezing partner company + contact (no email) and the snapshot's own generation meta. The contactable address is `commercial.person.email` on the deal half.
+- **Duplicated two small pure helpers** (`usableCapacityTb`, the server-spec mapping) from `src/lib/pdf/render.ts` into the data layer rather than importing them, because `render.ts` is `server-only` and pulls in `@react-pdf/renderer`. Importing it would invert the dependency direction and drag the renderer into a data-layer module. Frozen output means drift cannot corrupt old snapshots; flagged for 5b to converge during the PDF rework.
+
+### Flags for 5b review
+
+- **No VMS "edition" on the submission.** The submission stores a single `vms` name (`Milestone` etc.), no separate edition; the snapshot freezes `vms` only. If page 1 needs an edition, it must come from the server spec's VMS-validation field or a new submission field.
+- **Showcase group set is `^V[1-8]00$` + SW10 / SW20.** Excludes V150 and the management / ACM tiers (V250 / V255 / V260 / V270) and SW25 / SW30 / SW35 by design; widen the predicate in `snapshot.ts` if more tiers should appear on page 2.
+- **`additionalDiscounts` is null** (carried from Step 4: no such Pipedrive field configured) and **`discountedUnitPrice` is always null** (Pipedrive exposes no discounted unit price). 5b renders unit price, discount, and line amount.
+
+### Verification gates
+
+- `npm test` 128/128 (20 new in `project-quote/snapshot.test.ts`); `npm run build` clean (18 routes, TypeScript pass); `npx eslint` on the six new files 0 errors. No push, no migrate, no commit, no cloud-DB touch.
+
+### Decisions captured
+
+- [`0059-project-quote-architecture.md`](./decisions/0059-project-quote-architecture.md), [`0060-snapshot-storage-for-project-quotes.md`](./decisions/0060-snapshot-storage-for-project-quotes.md), [`0061-project-quote-versioning-and-derived-current.md`](./decisions/0061-project-quote-versioning-and-derived-current.md) promoted Proposed -> Accepted as the implementing change.
+
+---
+
 ## 2026-06-16 — Phase 10 / Project Quote Step 4: Pipedrive READ integration (authored, verified, not deployed)
 
 ### Work done
