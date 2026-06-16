@@ -4,6 +4,28 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-06-15 — Phase 10 Step 2: Axis camera seed (loaded)
+
+### Work done
+
+Loaded the first vendor camera library into `camera_specs`: 26 currently-shipping fixed Axis cameras, datasheet-verified.
+
+- **Loader `scripts/load-camera-specs.ts`.** Validates the seed with the shared `validate-camera-specs.ts` rules as a hard gate, prints a new/update preview, requires a typed CONFIRM, and upserts idempotently on the `(vendor, model)` natural key. Modeled on `update-comparison-data.ts` / `push-prices.ts`.
+- **Backup coverage.** Added `camera_specs` to `scripts/backup-tables.ts` so the standard pre-load backup gate covers the camera library.
+- **Data sourcing.** Used an LLM-generated Axis catalog as a candidate inventory only, then verified every model against its axis.com datasheet/product page for native pixel resolution, shipping status, and sensor count (fanned out across the M / P-box / P-multisensor / Q-V lines). Native `max_width x max_height` is read from the datasheet, never converted from marketing MP. `source_url` + `as_of_date` recorded per row. Seed file: `data/axis-camera-specs.json`.
+- **Curation.** Dropped EOL models (P3265/P3267/P3268-LVE, P1465/P1467/P1468-LE, P3727-PLE, M1075-L, M2026-LE Mk II), dropped P3827-PVE (only a stitched panorama resolution published, no per-sensor pixels), and — by review decision — excluded thermal (Q1961-TE) and PTZ/broadcast (Q6088-E, Q6135/Q6325/Q6225-LE, V5925, V5938) from the phase-1 fixed-camera library. Criteria captured in ADR 0062.
+- **Gated load.** Pre-load backup `backups/pre-axis-camera-seed-*.json` (camera_specs 0 rows before load); dry-run clean (26 new); CONFIRM load via stdin upserted 26 rows; verified by re-running the dry-run (0 new / 26 update, idempotent).
+
+### Detours & fixes
+
+- **Marketing MP is not native pixels.** The candidate catalog quoted MP tiers (4MP, 5MP, ...); since one MP tier maps to multiple RESOLUTIONS buckets (the round-up case from ADR 0058), each model's native pixel dimensions were re-read from the datasheet rather than derived. Several differed from the catalog's implied resolution.
+
+### Decisions captured
+
+- [`0062-camera-seed-curation-criteria.md`](./decisions/0062-camera-seed-curation-criteria.md)
+
+---
+
 ## 2026-06-15 — Phase 10 Step 1: camera_specs migration + validator (deployed)
 
 ### Work done

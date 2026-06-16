@@ -13,8 +13,9 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { env } from "../src/lib/env";
 
-// server_specs was dropped in Step 3+4 migration (ADR 0031).
-const TABLES = ["products", "submissions", "partners"] as const;
+// server_specs was dropped in Step 3+4 migration (ADR 0031). camera_specs added
+// in Phase 10 Step 1 so the pre-load gate covers the camera library too.
+const TABLES = ["products", "submissions", "partners", "camera_specs"] as const;
 
 async function dumpTable(admin: SupabaseClient, name: string): Promise<unknown[]> {
   // Service-role bypasses RLS. Use `range()` to be explicit about no row cap;
