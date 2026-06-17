@@ -163,6 +163,8 @@ export function CalculatorForm({
   sourceSubmissionId,
   isInternal = false,
   onBehalfPartners = [],
+  initialOnBehalfPartnerId = null,
+  initialOnBehalfCompanyName = null,
 }: {
   previousProjectNames?: string[];
   initialState?: CalculatorInitialState;
@@ -171,6 +173,9 @@ export function CalculatorForm({
   // Never rendered for external partners.
   isInternal?: boolean;
   onBehalfPartners?: OnBehalfPartner[];
+  // Pre-filled when revising a submission that had an on-behalf target.
+  initialOnBehalfPartnerId?: string | null;
+  initialOnBehalfCompanyName?: string | null;
 }) {
   const [groups, setGroups] = useState<Group[]>(() =>
     groupsFromInitial(initialState?.groups),
@@ -182,18 +187,29 @@ export function CalculatorForm({
   const [projectName, setProjectName] = useState(
     () => initialState?.projectName ?? "",
   );
-  // On-behalf-of target (internal users only). Not part of input_state, so it
-  // is always blank on a rehydrated revision — the rep re-picks if needed.
-  // Two mutually-exclusive paths: pick an onboarded partner user (binds the FK
-  // → grants that user visibility), or type a not-yet-onboarded company name
-  // (org-only fallback, no FK, no portal visibility). The DB CHECK enforces at
-  // most one set; the UI clears the other whenever one is used.
-  const [onBehalfCompany, setOnBehalfCompany] = useState("");
-  const [onBehalfPartnerId, setOnBehalfPartnerId] = useState("");
-  const [onBehalfNewCompany, setOnBehalfNewCompany] = useState("");
-  // The not-onboarded fallback is hidden behind a text link until clicked, then
-  // reveals the New company name input inline in its place (Fix 1, Band 1).
-  const [showNewCompany, setShowNewCompany] = useState(false);
+  // On-behalf-of target (internal users only). Pre-filled from
+  // initialOnBehalfPartnerId / initialOnBehalfCompanyName when revising a
+  // submission that had an on-behalf target. Two mutually-exclusive paths: pick
+  // an onboarded partner user (binds the FK → grants that user visibility), or
+  // type a not-yet-onboarded company name (org-only fallback, no FK, no portal
+  // visibility). The DB CHECK enforces at most one set; the UI clears the other
+  // whenever one is used.
+  const [onBehalfCompany, setOnBehalfCompany] = useState(() =>
+    initialOnBehalfPartnerId
+      ? (onBehalfPartners.find((p) => p.id === initialOnBehalfPartnerId)?.companyName ?? "")
+      : "",
+  );
+  const [onBehalfPartnerId, setOnBehalfPartnerId] = useState(
+    () => initialOnBehalfPartnerId ?? "",
+  );
+  const [onBehalfNewCompany, setOnBehalfNewCompany] = useState(
+    () => initialOnBehalfCompanyName ?? "",
+  );
+  // The not-onboarded fallback is hidden behind a text link; auto-shown when
+  // rehydrating a free-text (not-onboarded) company name from a prior revision.
+  const [showNewCompany, setShowNewCompany] = useState(
+    () => Boolean(initialOnBehalfCompanyName),
+  );
   // A rehydrated form is immediately re-submittable, so it starts "interacted".
   const [hasInteracted, setHasInteracted] = useState(() => Boolean(initialState));
   const [resultDismissed, setResultDismissed] = useState(false);

@@ -27,10 +27,12 @@ export default async function CalculatorPage({
   // yields a fresh calculator rather than an error.
   let initialState: CalculatorInitialState | undefined;
   let sourceSubmissionId: string | undefined;
+  let initialOnBehalfPartnerId: string | null = null;
+  let initialOnBehalfCompanyName: string | null = null;
   if (revise) {
     const { data: source } = await supabase
       .from("submissions")
-      .select("id, input_state, groups_payload")
+      .select("id, input_state, groups_payload, on_behalf_of_partner_id, on_behalf_of_company_name")
       .eq("id", revise)
       .maybeSingle();
     if (source) {
@@ -39,6 +41,8 @@ export default async function CalculatorPage({
         groups_payload: source.groups_payload,
       });
       sourceSubmissionId = source.id as string;
+      initialOnBehalfPartnerId = (source.on_behalf_of_partner_id as string | null) ?? null;
+      initialOnBehalfCompanyName = (source.on_behalf_of_company_name as string | null) ?? null;
     }
   }
 
@@ -127,6 +131,8 @@ export default async function CalculatorPage({
         sourceSubmissionId={sourceSubmissionId}
         isInternal={isInternal}
         onBehalfPartners={onBehalfPartners}
+        initialOnBehalfPartnerId={initialOnBehalfPartnerId}
+        initialOnBehalfCompanyName={initialOnBehalfCompanyName}
       />
     </div>
   );
