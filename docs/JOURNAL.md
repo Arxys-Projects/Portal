@@ -4,6 +4,36 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-06-17 — Regression fixes: on-behalf-of read attribution + Edit button for internal users
+
+### Work done
+
+**Bug 1 — On-behalf-of partner attribution lost on read side (regressing commit: `79de8f8` Phase 7 Step 1)**
+
+Phase 7 correctly wrote `on_behalf_of_partner_id` and `on_behalf_of_company_name` to submission rows. The read path was never updated to consume them.
+
+- Created `src/lib/pdf/partner-resolution.ts`: pure `resolveSubmissionPartner(submission, onBehalfRow, creatingRow)` with three-tier precedence: (1) `on_behalf_of_partner_id` FK target via admin client, (2) `on_behalf_of_company_name` free-text name, (3) creating partner as fallback.
+- `src/lib/pdf/render.ts` (`loadSubmissionPdfInput`): added `on_behalf_of_partner_id` and `on_behalf_of_company_name` to the SELECT; added admin-client lookup for the FK-linked on-behalf target; applied `resolveSubmissionPartner`. `partner.email` still comes from `auth.getUser()` (the authenticated viewer) — fixing this requires auth/identity plumbing that is out of scope.
+- `src/app/(app)/admin/submissions/page.tsx` flat list: added `on_behalf_of_partner_id` and `on_behalf_of_company_name` to the SELECT; batch-fetched on-behalf partner names via admin client; PARTNER column now shows the effective target name.
+- `src/app/(app)/admin/submissions/[id]/page.tsx`: added `on_behalf_of_partner_id` and `on_behalf_of_company_name` to the submission fetch; applied `resolveSubmissionPartner` so the "Partner:" header in the admin detail view shows the target, not the rep.
+
+Three regression tests added to `src/lib/pdf/render.test.ts` for all three precedence tiers.
+
+**Bug 2 — Edit / revise button absent for internal users in admin view (regressing commit: `a982384` Phase 8 Step C)**
+
+Phase 8 Step C gave internal users (`is_internal = true`) access to `/admin/submissions` and `/admin/submissions/[id]`. These views render `SubmissionDetail` with `mode="admin"`, which never showed the Edit/revise button. Before Phase 8 Step C, internal users only accessed their own submissions through `/submissions` (the partner pipeline), which has the Revise link. After Phase 8 Step C, they could navigate to the admin view but found no way to revise from there.
+
+- `src/app/(app)/_components/submission-detail.tsx`: added `canRevise?: boolean` prop; gate changed from `mode === "partner"` to `mode === "partner" || canRevise`.
+- `src/app/(app)/admin/submissions/[id]/page.tsx`: detects `is_internal` for the authenticated viewer; passes `canRevise={isInternal}` to `SubmissionDetail`. The Revise link in `/submissions` (pipeline.tsx) was never removed and remains correct for all users.
+
+### Verification
+
+- `npm test`: 144/144 pass (5 new regression tests for `resolveSubmissionPartner`)
+- `npm run build`: clean
+- `npx eslint` on all changed files: 0 errors
+
+---
+
 ## 2026-06-17 — Phase 10 / Project Quote Step 5b: unified Project Quote PDF renderer
 
 ### Work done

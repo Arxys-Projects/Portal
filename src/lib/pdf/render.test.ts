@@ -4,6 +4,7 @@ import { createElement } from "react";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { SubmissionPdf } from "./SubmissionPdf";
 import type { SubmissionPdfInput } from "./types";
+import { resolveSubmissionPartner } from "./partner-resolution";
 
 // Exercise the same composition that renderSubmissionPdfBuffer uses, without
 // importing render.ts directly — render.ts is marked `import "server-only"`
@@ -99,5 +100,42 @@ describe("SubmissionPdf renders via @react-pdf/renderer", () => {
     const buf = await renderToBuffer(createElement(SubmissionPdf, { data: legacy }));
     assert.ok(buf.length > 1000, `PDF buffer suspiciously small: ${buf.length} bytes`);
     assert.equal(buf.subarray(0, 5).toString("utf8"), "%PDF-");
+  });
+});
+
+// Regression tests for on-behalf-of partner resolution (Bug fix: Phase 7/8
+// write side was correct but loadSubmissionPdfInput read from partner_id only).
+describe("resolveSubmissionPartner — on-behalf-of three-tier precedence", () => {
+  const onBehalfRow = { company_name: "JCT Solutions", contact_name: "Clarence Hicks" };
+  const creatingRow = { company_name: "Arxys", contact_name: "Andy Newbom" };
+
+  it("tier 1: uses on_behalf_of_partner_id target when FK row is present", () => {
+    const result = resolveSubmissionPartner(
+      { on_behalf_of_partner_id: "some-uuid", on_behalf_of_company_name: null },
+      onBehalfRow,
+      creatingRow,
+    );
+    assert.equal(result.companyName, "JCT Solutions");
+    assert.equal(result.contactName, "Clarence Hicks");
+  });
+
+  it("tier 2: uses on_behalf_of_company_name when FK partner row is absent (not onboarded)", () => {
+    const result = resolveSubmissionPartner(
+      { on_behalf_of_partner_id: null, on_behalf_of_company_name: "West Coast AV LLC" },
+      null,
+      creatingRow,
+    );
+    assert.equal(result.companyName, "West Coast AV LLC");
+    assert.equal(result.contactName, "(not onboarded)");
+  });
+
+  it("tier 3: falls back to creating partner when no on-behalf fields are set", () => {
+    const result = resolveSubmissionPartner(
+      { on_behalf_of_partner_id: null, on_behalf_of_company_name: null },
+      null,
+      creatingRow,
+    );
+    assert.equal(result.companyName, "Arxys");
+    assert.equal(result.contactName, "Andy Newbom");
   });
 });

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { requireAdminOrInternal } from "@/lib/auth/require-admin-or-internal";
 import {
   STATUS_META,
@@ -247,7 +248,8 @@ export default async function AdminSubmissionsPage({
     .select(
       `id, project_name, cameras_count, recommended_units, total_list_price_usd,
        total_partner_price_usd, recommended_product_id, status, is_preferred,
-       created_at, partners!submissions_partner_id_fkey!inner(id, company_name)`,
+       created_at, on_behalf_of_partner_id, on_behalf_of_company_name,
+       partners!submissions_partner_id_fkey!inner(id, company_name)`,
       { count: "exact" },
     )
     .order("created_at", { ascending: false })
@@ -281,12 +283,37 @@ export default async function AdminSubmissionsPage({
     status: string | null;
     is_preferred: boolean;
     created_at: string;
+    on_behalf_of_partner_id: string | null;
+    on_behalf_of_company_name: string | null;
     partners:
       | { id: string; company_name: string }
       | { id: string; company_name: string }[]
       | null;
   };
   const rows = (data ?? []) as Row[];
+
+  // Batch-resolve on-behalf-of target company names. For FK-linked targets
+  // (on_behalf_of_partner_id set), the name comes from the partners table via
+  // the admin client (RLS would block a per-row lookup under the viewer's scope).
+  // Free-text targets (on_behalf_of_company_name set) are already in the row.
+  const onBehalfIds = [
+    ...new Set(
+      rows
+        .map((r) => r.on_behalf_of_partner_id)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
+  const onBehalfNameById = new Map<string, string>();
+  if (onBehalfIds.length > 0) {
+    const adminClient = createSupabaseAdminClient();
+    const { data: obPartners } = await adminClient
+      .from("partners")
+      .select("id, company_name")
+      .in("id", onBehalfIds);
+    for (const p of obPartners ?? []) {
+      onBehalfNameById.set(p.id as string, p.company_name as string);
+    }
+  }
 
   // Batch-fetch products by SKU for this page.
   const skuSet = new Set<string>();
@@ -346,6 +373,14 @@ export default async function AdminSubmissionsPage({
                 const partner = Array.isArray(r.partners)
                   ? r.partners[0]
                   : r.partners;
+                // Effective partner name: on-behalf target takes precedence.
+                const effectivePartnerName =
+                  (r.on_behalf_of_partner_id
+                    ? onBehalfNameById.get(r.on_behalf_of_partner_id)
+                    : null) ??
+                  r.on_behalf_of_company_name ??
+                  partner?.company_name ??
+                  "—";
                 const product = r.recommended_product_id
                   ? productBySku.get(r.recommended_product_id) ?? null
                   : null;
@@ -364,7 +399,7 @@ export default async function AdminSubmissionsPage({
                       {formatDate(r.created_at)}
                     </td>
                     <td className="px-4 py-2 text-neutral-900">
-                      {partner?.company_name ?? "—"}
+                      {effectivePartnerName}
                     </td>
                     <td className="px-4 py-2 text-neutral-900">
                       {r.project_name ?? "(untitled)"}

@@ -78,10 +78,12 @@ export function SubmissionDetail({
   submission,
   partner,
   mode,
+  canRevise,
 }: {
   submission: SubmissionDetailRow;
   partner?: SubmissionPartnerSummary;
   mode: "admin" | "partner";
+  canRevise?: boolean;
 }) {
   const groups = extractGroups(submission.groups_payload);
   // Phase 2 Step 3+4: a UUID-shaped recommended_product_id signals a
@@ -300,7 +302,7 @@ export function SubmissionDetail({
         >
           Download PDF
         </a>
-        {mode === "partner" ? (
+        {mode === "partner" || canRevise ? (
           <Link
             href={`/calculator?revise=${submission.id}`}
             className="rounded border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-100"

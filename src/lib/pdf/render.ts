@@ -10,7 +10,9 @@ import type {
 import { loadHeroDataUri, loadLogoDataUri } from "./assets";
 import { GB_PER_TB } from "@/lib/recommend/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { usableCapacityTb } from "@/lib/capacity-utils";
+import { resolveSubmissionPartner } from "./partner-resolution";
 
 export async function renderSubmissionPdfBuffer(
   input: SubmissionPdfInput,
@@ -60,6 +62,8 @@ export async function loadSubmissionPdfInput(
       [
         "id",
         "partner_id",
+        "on_behalf_of_partner_id",
+        "on_behalf_of_company_name",
         "project_name",
         "cameras_count",
         "bandwidth_mbps",
@@ -78,6 +82,8 @@ export async function loadSubmissionPdfInput(
   type SubmissionRow = {
     id: string;
     partner_id: string;
+    on_behalf_of_partner_id: string | null;
+    on_behalf_of_company_name: string | null;
     project_name: string | null;
     cameras_count: number;
     bandwidth_mbps: number;
@@ -90,20 +96,33 @@ export async function loadSubmissionPdfInput(
   };
   const submission = row as unknown as SubmissionRow;
 
-  const [{ data: partnerRow }, productLookup, specRow, warnings] = await Promise.all([
-    supabase
-      .from("partners")
-      .select("company_name, contact_name")
-      .eq("id", submission.partner_id)
-      .maybeSingle(),
-    submission.recommended_product_id
-      ? loadProductBySku(supabase, submission.recommended_product_id)
-      : Promise.resolve(null),
-    submission.recommended_product_id
-      ? loadProductSpec(supabase, submission.recommended_product_id)
-      : Promise.resolve(null),
-    Promise.resolve(extractWarnings(submission.groups_payload)),
-  ]);
+  // Tier 1: fetch the on-behalf-of target partner via admin client (bypasses RLS
+  // — the viewer may not have SELECT on the target's partner row under their own
+  // scope). Only fetched when the FK is set.
+  const onBehalfPartnerFetch = submission.on_behalf_of_partner_id
+    ? createSupabaseAdminClient()
+        .from("partners")
+        .select("company_name, contact_name")
+        .eq("id", submission.on_behalf_of_partner_id)
+        .maybeSingle()
+    : Promise.resolve({ data: null });
+
+  const [{ data: partnerRow }, { data: onBehalfPartnerRow }, productLookup, specRow, warnings] =
+    await Promise.all([
+      supabase
+        .from("partners")
+        .select("company_name, contact_name")
+        .eq("id", submission.partner_id)
+        .maybeSingle(),
+      onBehalfPartnerFetch,
+      submission.recommended_product_id
+        ? loadProductBySku(supabase, submission.recommended_product_id)
+        : Promise.resolve(null),
+      submission.recommended_product_id
+        ? loadProductSpec(supabase, submission.recommended_product_id)
+        : Promise.resolve(null),
+      Promise.resolve(extractWarnings(submission.groups_payload)),
+    ]);
 
   const { data: userRes } = await supabase.auth.getUser();
   const partnerEmail = userRes?.user?.email ?? "(no email on file)";
@@ -134,12 +153,24 @@ export async function loadSubmissionPdfInput(
 
   const serverSpec = specRow ? mapServerSpec(specRow, modelCode) : null;
 
+  // Resolve which partner to attribute the PDF to. Uses three-tier precedence:
+  // on_behalf_of_partner_id → on_behalf_of_company_name → creating partner.
+  // NOTE: partner.email is always the authenticated viewer's email (from
+  // auth.getUser()), not the target partner's email. This is a known limitation
+  // for on-behalf submissions — fixing it requires auth/identity changes that
+  // are out of scope here.
+  const resolvedPartner = resolveSubmissionPartner(
+    submission,
+    onBehalfPartnerRow as { company_name: string; contact_name: string } | null,
+    partnerRow as { company_name: string; contact_name: string } | null,
+  );
+
   return {
     generatedAt,
     submissionId: submission.id,
     partner: {
-      companyName: partnerRow?.company_name ?? "(unknown)",
-      contactName: partnerRow?.contact_name ?? "(unknown)",
+      companyName: resolvedPartner.companyName,
+      contactName: resolvedPartner.contactName,
       email: partnerEmail,
     },
     projectName: submission.project_name,
