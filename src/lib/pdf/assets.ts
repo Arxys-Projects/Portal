@@ -37,6 +37,12 @@ export function loadLogoDataUri(): string | null {
   return loadPngDataUri(LOGO_PUBLIC_PATH);
 }
 
+// Load any /public asset by its public path and return a PNG data URI. Used
+// by the Project Quote renderer to load frozen image paths from the snapshot.
+export function loadPngDataUriByPath(publicPath: string): string | null {
+  return loadPngDataUri(publicPath);
+}
+
 // Map a product group (e.g. "V500") to its Price Book hero image, returned as
 // a data URI. Returns null when the group has no family match or no hero (the
 // template then omits the image column).

@@ -29,26 +29,10 @@ import {
 // Shared resolvers
 // ---------------------------------------------------------------------------
 
-// Net usable TB after RAID parity overhead. Mirrors src/lib/pdf/render.ts
-// usableCapacityTb; kept local so this data-layer module does not import
-// render.ts (which pulls in @react-pdf/renderer). 5b can converge the two when
-// the PDF is reworked. Returns raw when the drive count is unknown or too small
-// to apply the parity math.
-export function usableCapacityTb(
-  rawTb: number | null,
-  hddCount: number | null,
-  raidLevelDisplay: string | null,
-): number | null {
-  if (rawTb == null) return null;
-  const n = hddCount ?? 0;
-  const level = (raidLevelDisplay ?? "").trim();
-  let parity: number;
-  if (level === "6") parity = 2;
-  else if (level === "60") parity = 4;
-  else parity = 1; // RAID 5 and the documented fallback
-  if (n <= parity) return rawTb;
-  return (rawTb * (n - parity)) / n;
-}
+// Converged into src/lib/capacity-utils.ts (Step 5b). Imported for internal
+// use in mapServerSpec and re-exported so snapshot.test.ts keeps working.
+import { usableCapacityTb } from "@/lib/capacity-utils";
+export { usableCapacityTb };
 
 // A UUID-shaped recommended_product_id signals a pre-SKU-PK submission whose
 // product reference no longer resolves. Mirrors src/lib/pdf/render.ts.

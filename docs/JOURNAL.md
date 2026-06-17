@@ -4,6 +4,53 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-06-17 — Phase 10 / Project Quote Step 5b: unified Project Quote PDF renderer
+
+### Work done
+
+Built the four-page portrait Project Quote PDF renderer from the frozen snapshot shape established in Step 5a. Renders nothing automatically; the Generate button, snapshot INSERT, and email-back are Step 6. All verification gates green; nothing pushed, migrated, or committed.
+
+- **`src/lib/capacity-utils.ts`** (new). Extracted `usableCapacityTb` from the two places it was duplicated (flagged in the Step 5a journal): a pure, server-only-free module importable by any layer. The function body is identical to both originals; no logic change.
+- **`src/lib/pdf/render.ts`** (modified). Removed the local `usableCapacityTb` definition; imports from `../capacity-utils` and re-exports it under the same name so any external caller (there are none today, but the export was public) continues to work without changes.
+- **`src/lib/project-quote/snapshot.ts`** (modified). Removed the local `usableCapacityTb` definition; imports from `../capacity-utils` for internal use in `mapServerSpec` and re-exports it so `snapshot.test.ts` continues to import from `./snapshot` without change. The `mapServerSpec` function still uses it via the local import.
+- **`src/lib/pdf/assets.ts`** (modified). Added `loadPngDataUriByPath(publicPath)` export — a thin wrapper over the private `loadPngDataUri` function. The Project Quote renderer calls it to load frozen image paths from the snapshot at render time (paths frozen per ADR 0060; bytes are not frozen in the row).
+- **`src/lib/project-quote/ProjectQuotePdf.tsx`** (new). The `@react-pdf/renderer` Document with four portrait US Letter pages. No `server-only` marker so tests can import it directly (matching the `SubmissionPdf.tsx` pattern). Exports `ProjectQuotePdfInput`, `sortLineItemsByOrderNr`, and `ProjectQuotePdf`. Zero Supabase / Pipedrive / data-layer imports — the renderer is pure given its input.
+  - **Page 1 — Sizing.** Project parameters block (name / VMS / retention / identifier); camera schedule table with the Phase 10 vendor / model / units / sensors columns converging here (the current System Estimate does not carry these); capacity bars (storage / bandwidth / utilization) using the same nested-`<View>` fill technique; primary server hero (image + model + SKU + spec grid including usable storage, CPU, RAM, OS, warranty). VMS is rendered as the single frozen label; no edition field exists on the submission (5a confirmed; no change needed).
+  - **Page 2 — Showcase.** Product cards for items the assembly layer froze in `snapshot.showcase`. No re-filtering at render time — eligibility ran at assembly. Each card: hero image (null falls back to a product-group text placeholder) + product name + SKU + spec highlights grid (null fields omitted; no spec row renders a "Specifications not available" note). Cards rendered in a 49%-wide two-column flex grid; empty showcase renders a single informational line.
+  - **Page 3 — Commercial.** Deal / customer info block (organization name + contact name + deal title); line-item table sorted by `orderNr` ascending (see decision below); info-only lines (`isInfoOnly === true`) render code / name / qty only with unit-price / discount / line-total cells blank; `productTotal` rendered verbatim as the table total; `additionalDiscounts` row appears only when non-null (always null today); `discountedUnitPrice` is never shown (always null, Pipedrive does not expose it).
+  - **Page 4 — Terms.** Identity block (identifier / generated date / expiry / terms version / "Prepared for" partner company and contact, no email per 5a resolver decision); full verbatim T&C text from `snapshot.terms.text`.
+  - **Fixed footer.** Renders on every page: `Arxys · arxys.com` | identifier | `Valid through {expiryDate}`. Expiry computed at render from `generation.generatedAt + generation.validityDays × 86400 s`; never a stored flag.
+- **`src/lib/project-quote/render.ts`** (new, `server-only`). `renderProjectQuotePdfBuffer(snapshot)` — loads logo and hero images from `/public` via `loadPngDataUriByPath`, assembles `ProjectQuotePdfInput`, and calls `renderToBuffer`. `projectQuotePdfFilename(snapshot)` — `Arxys Project Quote - {company} - {identifier}.pdf` (company from reseller, falling back to organization name).
+- **`src/lib/project-quote/render.test.ts`** (new). 13 tests following the `render.test.ts` idiom (imports `ProjectQuotePdf` + `renderToBuffer` directly, bypassing the `server-only` render module): golden render (buffer + `%PDF-` header); null serverSpec; empty showcase; multi-item showcase (including a card with null specHighlights); null `additionalDiscounts` / null `discountedUnitPrice`; non-null `additionalDiscounts`; info-only lines; multi-group camera schedule with manual-entry groups; `sortLineItemsByOrderNr` (ascending, nulls last, non-mutating); verbatim-total assertion (fixture with `productTotal` deliberately differing from line sum, confirms no re-sum crash); null `productTotal`.
+
+### Detours & fixes
+
+- **`mapServerSpec` duplication stays.** The `mapServerSpec` functions in `pdf/render.ts` and `project-quote/snapshot.ts` have different input shapes (`ProductSpecRow` vs `SizingProductSpecRow`, where the latter adds `rack_units`). Converging them would require a union input type with no net simplification benefit, and the output type (`SubmissionPdfServerSpec` = `ProjectQuoteServerSpec`) is already shared through the type alias in `types.ts`. The Step 5b convergence mandate is satisfied by `usableCapacityTb`; `mapServerSpec` stays duplicated and is noted in the code comments on both copies.
+- **`width` percentage strings in StyleSheet.** `@react-pdf/renderer` accepts `"17%"` strings as `DimensionValue`; TypeScript's `StyleSheet.create` enforces this correctly. Column widths declared as module-level constants (`COM_LINE_TOTAL`, `CAM_VENDOR`, etc.) rather than inlined, so the commercial and camera-schedule tables have a single authoritative source for their geometry.
+
+### Flags for Step 6
+
+- **Generate button + UI guard.** Step 6 wires the "Generate Project Quote" button on the submission detail page, the empty-deal guard (refuses generation on `empty_deal`), and the loading/error states.
+- **Snapshot INSERT.** Step 6 calls `assembleProjectQuoteSnapshot` and persists the returned row via the `project_quotes` table (migration `20260616000002`, STOP-AND-FLAG'd in Step 5a, not yet deployed).
+- **Email-back to Pipedrive.** Step 6 attaches the rendered PDF to the deal as a Pipedrive file attachment.
+- **Version/expiry display.** Step 6 shows the current quote version and expiry date on the submission detail page, reading from `loadCurrentProjectQuote`.
+- **Terms text.** The T&C text in `getProjectQuoteTerms()` is seeded from placeholder copy. Replace with approved legal text and set the real in-force version before go-live.
+
+### Verification gates
+
+- `npm test` 141/141 (13 new in `project-quote/render.test.ts`); 0 failures.
+- `npm run build` clean (18 routes, TypeScript + Compiled pass).
+- `npx eslint` 0 errors on the 7 changed / new files: `capacity-utils.ts`, `pdf/render.ts`, `pdf/assets.ts`, `project-quote/ProjectQuotePdf.tsx`, `project-quote/render.ts`, `project-quote/render.test.ts`, `project-quote/snapshot.ts`.
+- No push, no migrate, no commit, no cloud-DB touch.
+
+### Decisions captured
+
+- **Line-item sort order (Step 4 open flag resolved).** Lines are sorted by `orderNr` ascending at render time, nulls last. This matches the rep's Pipedrive display order. The alternative (preserving the API's returned array order) would produce an unpredictable display when Pipedrive's array order diverges from `orderNr` — as it did on the live deal 4822 probe (array order 6,2,3,4,5,7,8,1,… vs. `orderNr` 1–8). Sorting by `orderNr` is the correct customer-facing choice; the raw array order is still available via `snapshot.commercial.lineItems` without the sort if needed.
+- **Helper convergence path chosen (Step 5a open flag resolved).** `usableCapacityTb` extracted to `src/lib/capacity-utils.ts` (neutral, no server-only), imported by both `pdf/render.ts` and `project-quote/snapshot.ts`. `mapServerSpec` stays duplicated — different input types, no net gain from merging (rationale above). This satisfies the Step 5a mandate without inverting the dependency direction.
+- **No new ADR.** The line-sort and helper-convergence decisions are implementation choices within the locked Project Quote architecture (ADR 0059/0060/0061); they do not represent a new non-obvious architectural choice warranting a separate ADR.
+
+---
+
 ## 2026-06-16 — Phase 10 / Project Quote Step 5a AMENDMENT: showcase predicate widened + VMS-edition audit
 
 ### Work done

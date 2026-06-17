@@ -10,6 +10,7 @@ import type {
 import { loadHeroDataUri, loadLogoDataUri } from "./assets";
 import { GB_PER_TB } from "@/lib/recommend/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { usableCapacityTb } from "@/lib/capacity-utils";
 
 export async function renderSubmissionPdfBuffer(
   input: SubmissionPdfInput,
@@ -166,33 +167,10 @@ export async function loadSubmissionPdfInput(
   };
 }
 
-// Usable (net) capacity in TB after RAID parity overhead.
-//
-// No usable-capacity utility existed in the calculator or recommendation
-// engine (those work off the products table's pre-computed max_storage_tb),
-// so this approximates from product_specs.storage_raw_tb + the RAID level and
-// drive count. Parity drives lost per level:
-//   RAID 5  → 1   (usable = raw × (n-1)/n)
-//   RAID 6  → 2   (usable = raw × (n-2)/n)
-//   RAID 60 → 4   (two RAID 6 spans, usable = raw × (n-4)/n)
-// Anything else (RAID 1, "NA", software RAID, null) falls back to the brief's
-// simple RAID 5 formula. Returns raw when drive count is unknown or too small
-// for the parity math to make sense.
-export function usableCapacityTb(
-  rawTb: number | null,
-  hddCount: number | null,
-  raidLevelDisplay: string | null,
-): number | null {
-  if (rawTb == null) return null;
-  const n = hddCount ?? 0;
-  const level = (raidLevelDisplay ?? "").trim();
-  let parity: number;
-  if (level === "6") parity = 2;
-  else if (level === "60") parity = 4;
-  else parity = 1; // RAID 5 and the documented fallback
-  if (n <= parity) return rawTb;
-  return (rawTb * (n - parity)) / n;
-}
+// Re-exported for callers that import usableCapacityTb from this module.
+// The implementation now lives in src/lib/capacity-utils.ts (shared with the
+// Project Quote data layer). See Step 5b helper-convergence note in JOURNAL.md.
+export { usableCapacityTb };
 
 // A UUID-shaped recommended_product_id signals a pre-Step-3+4 submission whose
 // FK target no longer exists. After the migration, new submissions write SKU
