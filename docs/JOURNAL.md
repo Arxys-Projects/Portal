@@ -4,6 +4,46 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-06-17 — Bug fix: Pipedrive deal fields showing raw option IDs instead of human-readable labels
+
+### Work done
+
+Three Pipedrive deal fields were displaying raw numbers instead of descriptive text because the code was sending Pipedrive enum/set option IDs to fields configured as plain text in Pipedrive. VMS was unaffected (it IS a proper enum field and renders option IDs as labels); CODEC New, Complexity Scene-Motion, and Recording hours are text fields and stored whatever was sent verbatim.
+
+- **CODEC New** (was: `139`, `138`, `286` — Pipedrive option IDs) → now sends `"H.265"`, `"H.264"`, `"Smart"`. Removed `CODEC_OPTION_IDS` map, added `CODEC_LABELS`.
+- **Complexity Scene-Motion** (was: `"288"`, `"287,289"` — comma-joined option IDs) → now sends `"Medium"`, `"Low, High"` etc. in severity order. Removed `COMPLEXITY_OPTION_IDS` map, added `COMPLEXITY_LABELS` + `COMPLEXITY_ORDER`.
+- **Recording hours** (was: computed hours per day as a bare number, e.g. `"23"`) → now sends the recording mode label `"24 Hour Continuous"` or `"Record Only On Motion"`, mirroring the Recording New field in human-readable form.
+
+Updated all affected test assertions in `src/lib/pipedrive/deal.test.ts`.
+
+### Verification
+
+- `npm test`: 144/144 pass
+- `npm run build`: clean
+- `npx eslint` on changed files: 0 errors
+
+---
+
+## 2026-06-17 — Bug fix: on-behalf-of fields not rehydrating in calculator revision flow
+
+### Work done
+
+When an internal user clicks "Edit / revise quote" on a submission that had an on-behalf-of target set, the ON BEHALF OF section in the calculator was showing blank dropdowns instead of pre-filling the original company and partner user.
+
+**Root cause**: `calculator/page.tsx` only selected `id, input_state, groups_payload` in the revise query — the `on_behalf_of_partner_id` and `on_behalf_of_company_name` columns were never fetched. `CalculatorForm` had no way to receive them, and `useState` for all three on-behalf fields hard-coded `""` as the initial value.
+
+**Fix:**
+- `src/app/(app)/calculator/page.tsx`: added `on_behalf_of_partner_id` and `on_behalf_of_company_name` to the revise SELECT; extracts them into `initialOnBehalfPartnerId` / `initialOnBehalfCompanyName` and passes them as new props to `CalculatorForm`.
+- `src/app/(app)/calculator/calculator-form.tsx`: added `initialOnBehalfPartnerId?: string | null` and `initialOnBehalfCompanyName?: string | null` props; FK case (`on_behalf_of_partner_id` set) looks up the matching partner in `onBehalfPartners` to derive the company-dropdown value and pre-selects the user ID; free-text case (`on_behalf_of_company_name` set) populates `onBehalfNewCompany` and auto-opens the "not onboarded" text field (`showNewCompany = true`).
+
+### Verification
+
+- `npm test`: 144/144 pass
+- `npm run build`: clean
+- `npx eslint` on changed files: 0 errors
+
+---
+
 ## 2026-06-17 — Regression fixes: on-behalf-of read attribution + Edit button for internal users
 
 ### Work done

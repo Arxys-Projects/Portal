@@ -34,19 +34,23 @@ const VMS_OPTION_IDS: Record<string, number> = {
   Other: 18,
 };
 
-// CODEC (enum) — calculator codec value → Pipedrive option ID.
-const CODEC_OPTION_IDS: Record<string, number> = {
-  h265: 139,
-  h264: 138,
-  smart: 286,
+// CODEC (text field in Pipedrive — NOT an enum/set, so send human-readable
+// labels rather than option IDs; sending option IDs causes Pipedrive to
+// display the raw number instead of the codec name).
+const CODEC_LABELS: Record<string, string> = {
+  h265: "H.265",
+  h264: "H.264",
+  smart: "Smart",
 };
 
-// Scene Complexity (set) — calculator complexity tier → Pipedrive option ID.
-const COMPLEXITY_OPTION_IDS: Record<string, number> = {
-  low: 287,
-  med: 288,
-  high: 289,
+// Scene Complexity (text field in Pipedrive — same caveat as CODEC_LABELS).
+// Ordered low → med → high so multi-group lists print in severity order.
+const COMPLEXITY_LABELS: Record<string, string> = {
+  low: "Low",
+  med: "Medium",
+  high: "High",
 };
+const COMPLEXITY_ORDER = ["low", "med", "high"] as const;
 
 // Recording (enum). Pipedrive options: 118 "24 Hour Continuous", 119 "Record
 // Only On Motion". Heuristic: 100% recording duty cycle → continuous, anything
@@ -200,27 +204,22 @@ function buildDealFields(
       dominantCodec = g.codec;
     }
   }
-  const codecId = dominantCodec ? CODEC_OPTION_IDS[dominantCodec] : undefined;
-  if (codecId) set("CODEC New", codecId);
+  // CODEC: text label (not option ID — Pipedrive field is text type).
+  const codecLabel = dominantCodec ? CODEC_LABELS[dominantCodec] : undefined;
+  if (codecLabel) set("CODEC New", codecLabel);
 
   set("Total Storage", `${totalStorageTb} TB`);
 
-  // Scene Complexity (multi-select set): send every distinct tier used as a
-  // comma-joined list of option IDs.
-  const complexityIds = Array.from(
-    new Set(
-      groups
-        .map((g) => COMPLEXITY_OPTION_IDS[g.complexity])
-        .filter((id): id is number => typeof id === "number"),
-    ),
-  ).sort((a, b) => a - b);
-  if (complexityIds.length) set("Complexity Scene-Motion", complexityIds.join(","));
+  // Scene Complexity: distinct tiers present across groups, in severity order,
+  // comma-separated human-readable labels (text field, not a set/enum).
+  const complexityLabels = COMPLEXITY_ORDER
+    .filter((k) => groups.some((g) => g.complexity === k))
+    .map((k) => COMPLEXITY_LABELS[k]);
+  if (complexityLabels.length) set("Complexity Scene-Motion", complexityLabels.join(", "));
 
-  // Recording hours: distinct per-group duty-cycle hours, sorted ascending.
-  set(
-    "Recording hours",
-    distinctSortedNumberList(groups.map((g) => Math.round((g.recordingPercent / 100) * 24))),
-  );
+  // Recording hours: text label matching the recording mode (text field in
+  // Pipedrive, mirrors Recording New but human-readable rather than option ID).
+  set("Recording hours", anyMotion ? "Record Only On Motion" : "24 Hour Continuous");
   set("Recommended Server", recommendedModels);
 
   return payload;
