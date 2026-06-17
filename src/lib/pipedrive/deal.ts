@@ -52,11 +52,10 @@ const COMPLEXITY_LABELS: Record<string, string> = {
 };
 const COMPLEXITY_ORDER = ["low", "med", "high"] as const;
 
-// Recording (enum). Pipedrive options: 118 "24 Hour Continuous", 119 "Record
-// Only On Motion". Heuristic: 100% recording duty cycle → continuous, anything
-// less → motion.
-const RECORDING_CONTINUOUS_ID = 118;
-const RECORDING_ON_MOTION_ID = 119;
+// Recording labels (text field in Pipedrive — same caveat as CODEC_LABELS; send
+// human-readable strings, not option IDs, or Pipedrive shows the raw number).
+const RECORDING_LABEL_CONTINUOUS = "24 Hour Continuous";
+const RECORDING_LABEL_ON_MOTION = "Record Only On Motion";
 
 // One camera group as it matters to the deal's per-stream fields. The
 // calculator form accepts multiple groups; rather than collapse to a single
@@ -173,11 +172,11 @@ function buildDealFields(
   }
   set("Camera Streams", submission.totals.cameras);
 
-  // Recording (single-select enum): can't list multiple, so any group recording
-  // below 100% duty cycle flips the whole deal to "On Motion"; all-continuous
-  // stays "Continuous".
+  // Recording (text field in Pipedrive — not an enum/set, so send human-readable
+  // labels). Any group below 100% duty cycle flips the whole deal to On Motion;
+  // all-continuous stays Continuous.
   const anyMotion = groups.some((g) => g.recordingPercent < 100);
-  set("Recording New", anyMotion ? RECORDING_ON_MOTION_ID : RECORDING_CONTINUOUS_ID);
+  set("Recording New", anyMotion ? RECORDING_LABEL_ON_MOTION : RECORDING_LABEL_CONTINUOUS);
 
   // Free-text per-stream fields: list every distinct value across groups,
   // sorted ascending, rather than surfacing just one group's value.
@@ -221,9 +220,8 @@ function buildDealFields(
     .map((k) => COMPLEXITY_LABELS[k]);
   if (complexityLabels.length) set("Complexity Scene-Motion", complexityLabels.join(", "));
 
-  // Recording hours: text label matching the recording mode (text field in
-  // Pipedrive, mirrors Recording New but human-readable rather than option ID).
-  set("Recording hours", anyMotion ? "Record Only On Motion" : "24 Hour Continuous");
+  // Recording hours: same label as Recording New (both are text fields).
+  set("Recording hours", anyMotion ? RECORDING_LABEL_ON_MOTION : RECORDING_LABEL_CONTINUOUS);
   set("Recommended Server", recommendedModels);
 
   return payload;

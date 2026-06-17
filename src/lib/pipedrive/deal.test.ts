@@ -327,8 +327,8 @@ describe("createDealFromSubmission", () => {
     // VMS "Milestone" → option id 14.
     assert.equal(body[CALC_FIELD_KEYS.VMS], 14);
     assert.equal(body[CALC_FIELD_KEYS["Camera Streams"]], 900);
-    // recordingPercent=100 → "24 Hour Continuous" (118).
-    assert.equal(body[CALC_FIELD_KEYS["Recording New"]], 118);
+    // recordingPercent=100 → "24 Hour Continuous" (text label, not option ID).
+    assert.equal(body[CALC_FIELD_KEYS["Recording New"]], "24 Hour Continuous");
     assert.equal(body[CALC_FIELD_KEYS["Motion Activity Est. %"]], "35");
     assert.equal(body[CALC_FIELD_KEYS["Frame Rate"]], "15");
     // Resolution forced to MP: 2560×1440 = 3.69MP → 4MP.
@@ -351,7 +351,7 @@ describe("createDealFromSubmission", () => {
     );
     const dealCall = calls.find((c) => c.url.includes("/v1/deals") && c.method === "POST");
     const body = dealCall!.body as Record<string, unknown>;
-    assert.equal(body[CALC_FIELD_KEYS["Recording New"]], 119);
+    assert.equal(body[CALC_FIELD_KEYS["Recording New"]], "Record Only On Motion");
     // any group below 100% → On Motion label.
     assert.equal(body[CALC_FIELD_KEYS["Recording hours"]], "Record Only On Motion");
   });
@@ -382,8 +382,8 @@ describe("createDealFromSubmission", () => {
     assert.equal(body[CALC_FIELD_KEYS["Recording hours"]], "Record Only On Motion");
     // Scene Complexity: low + high in severity order, comma-separated labels.
     assert.equal(body[CALC_FIELD_KEYS["Complexity Scene-Motion"]], "Low, High");
-    // Any group below 100% → On Motion (119).
-    assert.equal(body[CALC_FIELD_KEYS["Recording New"]], 119);
+    // Any group below 100% → On Motion label (text field, not option ID).
+    assert.equal(body[CALC_FIELD_KEYS["Recording New"]], "Record Only On Motion");
     // Dominant codec by cameras: h265 (130) > h264 (50) → "H.265".
     assert.equal(body[CALC_FIELD_KEYS["CODEC New"]], "H.265");
   });
