@@ -4,6 +4,47 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-06-17 — Bug fixes: Pipedrive storage units + submission-history column labels/values
+
+The System Estimate PDF already rendered all three of these correctly (storage in TB, recording in hours, six-level complexity labels). These fixes bring the Pipedrive deal payload and the submission-history view into alignment with it.
+
+### Work done
+
+**Fix 1 — Pipedrive `arxys_storage_gb` field now sends rounded whole TB (was raw GB)**
+
+- `src/lib/pipedrive/deal.ts`: imported `GB_PER_TB` from `@/lib/recommend/types`. Changed `[customFieldKeys["arxys_storage_gb"]]` from `Number(storageGb.toFixed(2))` (e.g. `1500000.79`) to `Math.round(storageGb / GB_PER_TB)` (e.g. `1500`). Added an inline comment documenting the intentional discrepancy — see decision note below.
+- `src/lib/pipedrive/deal.test.ts`: updated two assertions from `1500000.79` → `1500`.
+- The `Total Storage` calc field (text string "1500.00 TB") was **not** changed — it is a separate Pipedrive field and already correct.
+
+**Fix 2 — Submission-history per-group table: "Rec %" column renamed to "Rec Hrs", showing hours not percent**
+
+- `src/app/(app)/_components/submission-detail.tsx`: renamed column header `Rec %` → `Rec Hrs`. Changed cell value from `formatNumber(g.recordingPercent)` to `Math.round(((g.recordingPercent ?? 0) / 100) * 24)` — the same `hoursPerDay` derivation the PDF uses in `render.ts`.
+- This is display-only; `recordingPercent` remains the banked field in `groups_payload`.
+
+**Fix 3 — Submission-history per-group table: Complexity column now shows six-level label**
+
+- Same file: added `complexityLabel?: string` to the local `GroupRow` type. Added a local `fallbackComplexityLabel(tier)` mirror of the `render.ts` helper (low → "Low detail", med → "Medium detail", high → "High detail", default → "Standard"). Changed the Complexity cell from `{g.complexity ?? "—"}` to `{g.complexityLabel ?? fallbackComplexityLabel(g.complexity)}`.
+- Fixed the **"Primary codec / complexity" summary row** (was showing e.g. "h264 · med") to use `groups[0]?.complexityLabel ?? fallbackComplexityLabel(groups[0]?.complexity ?? submission.complexity)`. Legacy rows with no groups fall back cleanly.
+
+**Third-reader audit**
+
+Checked `src/lib/project-quote/snapshot.ts` — already applies `complexityLabel ?? fallbackComplexityLabel(g.complexity)` and `Math.round(((g.recordingPercent ?? 0) / 100) * 24)` on lines 216–218. No other broken reader found. No export or API route reads the per-group table with the old values.
+
+### Decisions captured
+
+**Intentional rounded-TB-vs-precise-TB discrepancy in Pipedrive**
+
+The `arxys_storage_gb` Pipedrive field (production key `d7e154e3d50d006cf337262c4d70864728302009`) now sends a rounded whole-TB integer for sales readability. This will NOT exactly equal `storage_tb` on the submissions row (two decimal places) or the PDF figure. This is deliberate — do not "reconcile" by switching Pipedrive to the precise value. Documented with an inline comment in `deal.ts`.
+
+### Verification
+
+- `npm test`: 144/144 pass (updated `arxys_storage_gb` assertions in `deal.test.ts`)
+- `npm run build`: clean
+- `npx eslint` on all three changed files: 0 errors
+- Display fixes verified by reading rendered paths end-to-end; live browser verification of auth-gated views deferred to an authenticated session per standing practice.
+
+---
+
 ## 2026-06-17 — Bug fix: Pipedrive deal fields showing raw option IDs instead of human-readable labels
 
 ### Work done

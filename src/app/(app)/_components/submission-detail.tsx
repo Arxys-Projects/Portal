@@ -38,6 +38,7 @@ type GroupRow = {
   resolutionLabel?: string;
   codec?: string;
   complexity?: string;
+  complexityLabel?: string;
   fps?: number;
   recordingPercent?: number;
   motionPercent?: number;
@@ -46,6 +47,18 @@ type GroupRow = {
     storageGb?: number;
   };
 };
+
+// Mirrors render.ts fallbackComplexityLabel. For legacy rows banked before the
+// six-level rework that have no complexityLabel, derive a display label from
+// the coarse tier word. Keep in sync with the PDF helper.
+function fallbackComplexityLabel(tier: string | undefined): string {
+  switch (tier) {
+    case "low": return "Low detail";
+    case "med": return "Medium detail";
+    case "high": return "High detail";
+    default: return "Standard";
+  }
+}
 
 function extractGroups(payload: unknown): GroupRow[] {
   if (!payload || typeof payload !== "object") return [];
@@ -164,7 +177,9 @@ export function SubmissionDetail({
                   Primary codec / complexity
                 </th>
                 <td className="px-4 py-2 text-neutral-800">
-                  {submission.codec} · {submission.complexity}
+                  {submission.codec} ·{" "}
+                  {groups[0]?.complexityLabel ??
+                    fallbackComplexityLabel(groups[0]?.complexity ?? submission.complexity)}
                 </td>
               </tr>
               <tr>
@@ -197,7 +212,7 @@ export function SubmissionDetail({
                   <th className="px-4 py-2">Codec</th>
                   <th className="px-4 py-2">Complexity</th>
                   <th className="px-4 py-2 text-right">FPS</th>
-                  <th className="px-4 py-2 text-right">Rec %</th>
+                  <th className="px-4 py-2 text-right">Rec Hrs</th>
                   <th className="px-4 py-2 text-right">Motion %</th>
                   <th className="px-4 py-2 text-right">Mbps</th>
                   <th className="px-4 py-2 text-right">GB</th>
@@ -217,13 +232,13 @@ export function SubmissionDetail({
                     </td>
                     <td className="px-4 py-2 text-neutral-700">{g.codec ?? "—"}</td>
                     <td className="px-4 py-2 text-neutral-700">
-                      {g.complexity ?? "—"}
+                      {g.complexityLabel ?? fallbackComplexityLabel(g.complexity)}
                     </td>
                     <td className="px-4 py-2 text-right text-neutral-700">
                       {formatNumber(g.fps)}
                     </td>
                     <td className="px-4 py-2 text-right text-neutral-700">
-                      {formatNumber(g.recordingPercent)}
+                      {Math.round(((g.recordingPercent ?? 0) / 100) * 24)}
                     </td>
                     <td className="px-4 py-2 text-right text-neutral-700">
                       {formatNumber(g.motionPercent)}

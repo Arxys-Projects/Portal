@@ -212,7 +212,8 @@ describe("createDealFromSubmission", () => {
     assert.equal(body[CUSTOM_FIELD_KEYS.arxys_submission_id], fixtureSubmission.submissionId);
     assert.equal(body[CUSTOM_FIELD_KEYS.arxys_total_cameras], 900);
     assert.equal(body[CUSTOM_FIELD_KEYS.arxys_bandwidth_mbps], 3240.5);
-    assert.equal(body[CUSTOM_FIELD_KEYS.arxys_storage_gb], 1500000.79);
+    // arxys_storage_gb now sends rounded whole TB (not raw GB) for sales readability.
+    assert.equal(body[CUSTOM_FIELD_KEYS.arxys_storage_gb], 1500);
     assert.equal(body[CUSTOM_FIELD_KEYS.arxys_recommended_models], "3 × V800");
     assert.equal(
       body[CUSTOM_FIELD_KEYS.arxys_portal_url],
@@ -447,7 +448,7 @@ describe("createDealFromSubmission", () => {
 
     const dealCall = calls.find((c) => c.url.includes("/v1/deals") && c.method === "POST");
     const body = dealCall!.body as Record<string, unknown>;
-    assert.equal(body["created_arxys_storage_gb"], 1500000.79);
+    assert.equal(body["created_arxys_storage_gb"], 1500);
     assert.equal(body["created_arxys_recommended_models"], "3 × V800");
     assert.equal(body["created_arxys_portal_url"], `https://portal-arxys.vercel.app/submissions/${fixtureSubmission.submissionId}`);
   });

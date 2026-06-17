@@ -9,7 +9,7 @@ import {
   type CalculatorFieldName,
   type CustomFieldKeyMap,
 } from "./lookups";
-import type { RecommendationResult } from "@/lib/recommend/types";
+import { GB_PER_TB, type RecommendationResult } from "@/lib/recommend/types";
 
 const PORTAL_BASE = "https://portal-arxys.vercel.app";
 
@@ -140,7 +140,7 @@ function buildDealFields(
   // during the sales conversation). The persisted SKU lives on
   // submissions.recommended_product_id for downstream tooling.
   const recommendedModels = `${winner.units} × ${winner.productGroup}`;
-  const totalStorageTb = (submission.totals.storageGb / 1000).toFixed(2);
+  const totalStorageTb = (submission.totals.storageGb / GB_PER_TB).toFixed(2);
   const groups = submission.groups;
 
   const payload: Record<string, string | number | undefined> = {
@@ -148,7 +148,11 @@ function buildDealFields(
     [customFieldKeys["arxys_submission_id"]]: submission.submissionId,
     [customFieldKeys["arxys_total_cameras"]]: submission.totals.cameras,
     [customFieldKeys["arxys_bandwidth_mbps"]]: Number(submission.totals.bandwidthMbps.toFixed(2)),
-    [customFieldKeys["arxys_storage_gb"]]: Number(submission.totals.storageGb.toFixed(2)),
+    // Intentional discrepancy: Pipedrive receives a rounded whole-TB figure for
+    // human readability. This will NOT exactly equal storage_tb (two decimals on
+    // the row) or the PDF figure. Do not "reconcile" by switching to the precise
+    // value — the rounding is deliberate for sales readability.
+    [customFieldKeys["arxys_storage_gb"]]: Math.round(submission.totals.storageGb / GB_PER_TB),
     [customFieldKeys["arxys_recommended_models"]]: recommendedModels,
     [customFieldKeys["arxys_portal_url"]]: `${PORTAL_BASE}/submissions/${submission.submissionId}`,
   };
