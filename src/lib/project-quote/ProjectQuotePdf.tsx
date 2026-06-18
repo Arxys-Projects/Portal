@@ -17,7 +17,7 @@ import {
   TRACK_GRAY,
 } from "../pdf/colors";
 import type { QuoteLineItem } from "@/lib/pipedrive/quote";
-import type { ProjectQuoteSnapshot } from "./types";
+import type { ProjectQuoteCameraRow, ProjectQuoteSnapshot } from "./types";
 
 export type ProjectQuotePdfInput = {
   snapshot: ProjectQuoteSnapshot;
@@ -96,6 +96,91 @@ function fmtDiscountPct(line: QuoteLineItem): string {
 }
 
 // ---------------------------------------------------------------------------
+// Camera-schedule column selection
+// ---------------------------------------------------------------------------
+
+// A non-empty vendor OR model on this row. The snapshot freezes null for the
+// manual-entry (no-model) marker; an empty string is treated the same.
+function rowHasVendorOrModel(g: ProjectQuoteCameraRow): boolean {
+  return (
+    (g.cameraVendor != null && g.cameraVendor !== "") ||
+    (g.cameraModel != null && g.cameraModel !== "")
+  );
+}
+
+// True when ANY group in the schedule carries vendor/model data — the decision
+// that picks the 9-column (with Vendor/Model) layout over the 7-column sizing
+// layout. Exported for test assertions (mirrors sortLineItemsByOrderNr).
+export function cameraScheduleHasVendorOrModel(rows: ProjectQuoteCameraRow[]): boolean {
+  return rows.some(rowHasVendorOrModel);
+}
+
+// Operation-hrs cell: the frozen recording hours, with the motion percent in
+// parentheses for motion-mode groups (e.g. "18 (motion 40%)"). Constant-mode
+// groups record 24/7, so the motion percent is not meaningful and is omitted.
+// No sizing is recomputed — both values are read verbatim from the snapshot.
+export function formatOperationHrs(g: ProjectQuoteCameraRow): string {
+  const hrs = String(g.hoursPerDay);
+  if (g.recordingMode === "motion") {
+    return `${hrs} (motion ${g.motionPercent}%)`;
+  }
+  return hrs;
+}
+
+// One rendered camera-schedule column: header label, width, optional
+// right-alignment, and the cell text for a group row.
+export type CameraColumn = {
+  header: string;
+  width: string;
+  align?: "right";
+  cell: (g: ProjectQuoteCameraRow) => string;
+};
+
+// Format a bandwidth value (Mb/s) for a schedule cell — verbatim, no recompute.
+function fmtBwCell(mbps: number): string {
+  return mbps.toLocaleString("en-US", { maximumFractionDigits: 1 });
+}
+
+// Format a storage value (GB frozen → TB display) for a schedule cell.
+function fmtStorageCell(gb: number): string {
+  return (gb / 1000).toLocaleString("en-US", {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  });
+}
+
+// The shared sizing columns (Layout A). Layout B prepends Vendor/Model and
+// re-widths every column, so the two layouts are built from distinct constants.
+// Exported so tests can assert the exact column set each layout renders.
+export function buildCameraColumns(showVendorModel: boolean): CameraColumn[] {
+  const sizing: CameraColumn[] = showVendorModel
+    ? [
+        { header: "Resolution", width: CAMB_RES, cell: (g) => g.resolutionLabel || "—" },
+        { header: "Codec", width: CAMB_CODEC, cell: (g) => g.codec || "—" },
+        { header: "FPS", width: CAMB_FPS, align: "right", cell: (g) => (g.fps > 0 ? String(g.fps) : "—") },
+        { header: "Scene complexity", width: CAMB_COMPLEXITY, cell: (g) => g.complexityLabel || "—" },
+        { header: "Operation hrs", width: CAMB_OPHRS, cell: formatOperationHrs },
+        { header: "Bw (Mb/s)", width: CAMB_BW, align: "right", cell: (g) => fmtBwCell(g.bandwidthMbps) },
+        { header: "Storage (TB)", width: CAMB_STORE, align: "right", cell: (g) => fmtStorageCell(g.storageGb) },
+      ]
+    : [
+        { header: "Resolution", width: CAMA_RES, cell: (g) => g.resolutionLabel || "—" },
+        { header: "Codec", width: CAMA_CODEC, cell: (g) => g.codec || "—" },
+        { header: "FPS", width: CAMA_FPS, align: "right", cell: (g) => (g.fps > 0 ? String(g.fps) : "—") },
+        { header: "Scene complexity", width: CAMA_COMPLEXITY, cell: (g) => g.complexityLabel || "—" },
+        { header: "Operation hrs", width: CAMA_OPHRS, cell: formatOperationHrs },
+        { header: "Bw (Mb/s)", width: CAMA_BW, align: "right", cell: (g) => fmtBwCell(g.bandwidthMbps) },
+        { header: "Storage (TB)", width: CAMA_STORE, align: "right", cell: (g) => fmtStorageCell(g.storageGb) },
+      ];
+  if (!showVendorModel) return sizing;
+  return [
+    { header: "Vendor", width: CAMB_VENDOR, cell: (g) => dash(g.cameraVendor) },
+    { header: "Model", width: CAMB_MODEL, cell: (g) => dash(g.cameraModel) },
+    ...sizing,
+  ];
+}
+
+// ---------------------------------------------------------------------------
 // Column-width constants (commercial table, camera schedule)
 // ---------------------------------------------------------------------------
 
@@ -107,16 +192,36 @@ const COM_DISC = "12%";
 const COM_LINE_TOTAL = "17%";
 // Product name column fills the remaining space via flex: 1 on the cell.
 
-// Camera schedule: 7 columns summing to 100%.
-const CAM_VENDOR = "14%";
-const CAM_MODEL = "19%";
-const CAM_UNITS = "8%";
-const CAM_SENSORS = "9%";
-const CAM_RES = "16%";
-const CAM_BW = "17%";
-const CAM_STORE = "17%";
-// Totals-row label spans vendor+model+units+sensors+resolution = 66%.
-const CAM_TOTALS_LABEL = "66%";
+// Camera schedule — two layouts, chosen per snapshot (see
+// cameraScheduleHasVendorOrModel). Both sum to 100% at US-Letter portrait
+// width. The numeric columns (FPS, Bw, Storage) are right-aligned; every text
+// column is left-aligned.
+//
+// Layout A — no group carries vendor/model data. The submission-detail sizing
+// column set, 7 columns: Resolution / Codec / FPS / Scene complexity /
+// Operation hrs / Bw / Storage.
+const CAMA_RES = "17%";
+const CAMA_CODEC = "10%";
+const CAMA_FPS = "8%";
+const CAMA_COMPLEXITY = "24%";
+const CAMA_OPHRS = "15%";
+const CAMA_BW = "13%";
+const CAMA_STORE = "13%";
+// Totals-row label spans everything except the Bw and Storage cells.
+const CAMA_TOTALS_LABEL = "74%"; // 100 - CAMA_BW - CAMA_STORE
+
+// Layout B — at least one group carries vendor/model data. Vendor and Model
+// are prepended to the same sizing set, 9 columns.
+const CAMB_VENDOR = "9%";
+const CAMB_MODEL = "12%";
+const CAMB_RES = "13%";
+const CAMB_CODEC = "8%";
+const CAMB_FPS = "7%";
+const CAMB_COMPLEXITY = "19%";
+const CAMB_OPHRS = "13%";
+const CAMB_BW = "9.5%";
+const CAMB_STORE = "9.5%";
+const CAMB_TOTALS_LABEL = "81%"; // 100 - CAMB_BW - CAMB_STORE
 
 // ---------------------------------------------------------------------------
 // StyleSheet
@@ -513,6 +618,15 @@ export function ProjectQuotePdf({ data }: { data: ProjectQuotePdfInput }) {
     sizing.totals;
   const totalStorageTb = totalStorageGb / 1000;
 
+  // Camera-schedule layout, chosen once for the whole schedule: Vendor/Model
+  // columns appear only when at least one group carries that data. Each layout
+  // ends with Bw then Storage, so the totals row spans the remainder.
+  const showVendorModel = cameraScheduleHasVendorOrModel(sizing.cameraSchedule);
+  const cameraColumns = buildCameraColumns(showVendorModel);
+  const camBwWidth = showVendorModel ? CAMB_BW : CAMA_BW;
+  const camStoreWidth = showVendorModel ? CAMB_STORE : CAMA_STORE;
+  const camTotalsLabelWidth = showVendorModel ? CAMB_TOTALS_LABEL : CAMA_TOTALS_LABEL;
+
   // ── Page 3: Commercial ────────────────────────────────────────────────────
 
   // Sorted by orderNr ascending (to match the rep's Pipedrive display order).
@@ -559,21 +673,23 @@ export function ProjectQuotePdf({ data }: { data: ProjectQuotePdfInput }) {
           </View>
         </View>
 
-        {/* Camera schedule — Phase 10 extended columns */}
+        {/* Camera schedule — sizing columns, with Vendor/Model prepended only
+            when a group carries that data (cameraScheduleHasVendorOrModel). */}
         <Text style={styles.sectionTitle}>Camera schedule</Text>
         <View>
           <View style={styles.tableHeaderRow}>
-            <Text style={[styles.th, { width: CAM_VENDOR }]}>Vendor</Text>
-            <Text style={[styles.th, { width: CAM_MODEL }]}>Model</Text>
-            <Text style={[styles.th, { width: CAM_UNITS, textAlign: "right" }]}>Units</Text>
-            <Text style={[styles.th, { width: CAM_SENSORS, textAlign: "right" }]}>Sensors</Text>
-            <Text style={[styles.th, { width: CAM_RES }]}>Resolution</Text>
-            <Text style={[styles.th, { width: CAM_BW, textAlign: "right" }]}>Bw (Mb/s)</Text>
-            <Text style={[styles.th, { width: CAM_STORE, textAlign: "right" }]}>Storage (TB)</Text>
+            {cameraColumns.map((col) => (
+              <Text
+                key={col.header}
+                style={[styles.th, { width: col.width }, col.align === "right" ? { textAlign: "right" } : {}]}
+              >
+                {col.header}
+              </Text>
+            ))}
           </View>
 
           {sizing.cameraSchedule.map((g, i) => {
-            const hasModel = g.cameraVendor !== null;
+            const modified = rowHasVendorOrModel(g) && g.cameraModelModified;
             return (
               <View key={i} wrap={false}>
                 <View style={styles.groupHeaderRow}>
@@ -582,50 +698,32 @@ export function ProjectQuotePdf({ data }: { data: ProjectQuotePdfInput }) {
                     <Text style={styles.groupHeaderCount}>
                       {"   ·   "}
                       {g.cameras} camera streams
-                      {hasModel && g.cameraModelModified ? "   ·   modified" : ""}
+                      {modified ? "   ·   modified" : ""}
                     </Text>
                   </Text>
                 </View>
                 <View style={styles.tr}>
-                  <Text style={[styles.td, { width: CAM_VENDOR }]}>
-                    {hasModel ? (g.cameraVendor ?? "—") : "—"}
-                  </Text>
-                  <Text style={[styles.td, { width: CAM_MODEL }]}>
-                    {hasModel ? (g.cameraModel ?? "—") : "—"}
-                  </Text>
-                  <Text style={[styles.td, { width: CAM_UNITS, textAlign: "right" }]}>
-                    {hasModel && g.units > 0 ? String(g.units) : "—"}
-                  </Text>
-                  <Text style={[styles.td, { width: CAM_SENSORS, textAlign: "right" }]}>
-                    {hasModel && g.sensorsPerCamera > 0
-                      ? String(g.sensorsPerCamera)
-                      : "—"}
-                  </Text>
-                  <Text style={[styles.td, { width: CAM_RES }]}>
-                    {g.resolutionLabel || "—"}
-                  </Text>
-                  <Text style={[styles.td, { width: CAM_BW, textAlign: "right" }]}>
-                    {g.bandwidthMbps.toLocaleString("en-US", { maximumFractionDigits: 1 })}
-                  </Text>
-                  <Text style={[styles.td, { width: CAM_STORE, textAlign: "right" }]}>
-                    {(g.storageGb / 1000).toLocaleString("en-US", {
-                      minimumFractionDigits: 1,
-                      maximumFractionDigits: 1,
-                    })}
-                  </Text>
+                  {cameraColumns.map((col) => (
+                    <Text
+                      key={col.header}
+                      style={[styles.td, { width: col.width }, col.align === "right" ? { textAlign: "right" } : {}]}
+                    >
+                      {col.cell(g)}
+                    </Text>
+                  ))}
                 </View>
               </View>
             );
           })}
 
           <View style={styles.totalsRow} wrap={false}>
-            <Text style={[styles.totalsCell, { width: CAM_TOTALS_LABEL }]}>
+            <Text style={[styles.totalsCell, { width: camTotalsLabelWidth }]}>
               Totals   ·   {totalCameras} camera streams
             </Text>
-            <Text style={[styles.totalsCell, { width: CAM_BW, textAlign: "right" }]}>
+            <Text style={[styles.totalsCell, { width: camBwWidth, textAlign: "right" }]}>
               {totalBwMbps.toLocaleString("en-US", { maximumFractionDigits: 1 })}
             </Text>
-            <Text style={[styles.totalsCell, { width: CAM_STORE, textAlign: "right" }]}>
+            <Text style={[styles.totalsCell, { width: camStoreWidth, textAlign: "right" }]}>
               {totalStorageTb.toLocaleString("en-US", {
                 minimumFractionDigits: 1,
                 maximumFractionDigits: 1,

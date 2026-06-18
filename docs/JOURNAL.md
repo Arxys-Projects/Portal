@@ -4,6 +4,35 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-06-18 — Project Quote PDF page 1: graceful camera-schedule columns for hand-entered deals
+
+### Work done
+
+Render-layer-only change to the Project Quote PDF page-1 camera schedule (`ProjectQuotePdf.tsx`). The previous layout always showed VENDOR / MODEL / UNITS / SENSORS / RESOLUTION / BW / STORAGE; on hand-entered deals (no camera model chosen) the first four columns were all em-dashes — broken-looking — and the schedule dropped the richer sizing columns the submission-detail view shows. The schedule now selects its columns per snapshot.
+
+- **Verified the snapshot already carries the sizing fields** before writing any render code (`types.ts` + `snapshot.ts`). Each `ProjectQuoteCameraRow` (= `SubmissionPdfGroup` + Phase 10 fields), frozen by `buildCameraSchedule`, carries: `name`, `cameras`, `resolutionLabel`, `codec`, `fps`, `complexityLabel`, `recordingMode` (`constant`|`motion`), `hoursPerDay` (= round(recordingPercent/100 · 24)), `motionPercent`, `bandwidthMbps`, `storageGb`, plus the Phase 10 `cameraVendor`/`cameraModel` (null = manual-entry marker), `units`, `sensorsPerCamera`, `cameraModelModified`. So every field page 1 needs (codec / fps / complexity label / recording hrs / motion %) was already present — no snapshot-shape gap, no migration.
+- **Graceful per-snapshot column selection.** New pure helper `cameraScheduleHasVendorOrModel(rows)` returns true iff ANY group carries a non-empty vendor OR model (empty string treated as absent). When false, the schedule renders the 7 submission-detail sizing columns — RESOLUTION / CODEC / FPS / SCENE COMPLEXITY / OPERATION HRS / BW (Mb/s) / STORAGE (TB) — and omits Vendor/Model entirely. When true, Vendor and Model are prepended to that same set (9 columns); a group lacking vendor/model dashes just those two cells while its sizing cells render fully. UNITS / SENSORS columns were dropped from both layouts.
+- **OPERATION HRS** matches the submission-detail presentation: the frozen recording hours, with the motion percent in parentheses for motion-mode groups (e.g. `18 (motion 40%)`); constant-mode groups show just the hours. New exported helper `formatOperationHrs`. No sizing is recomputed — every value is read verbatim from the frozen snapshot.
+- **Column geometry as two named width sets** (`CAMA_*` 7-column, `CAMB_*` 9-column), each summing to 100% at US-Letter portrait width; totals-label widths derived as `100 − BW − STORE`. The header / data / totals rows are now driven by a single `buildCameraColumns(showVendorModel)` descriptor array (header, width, align, cell), so there is one authoritative column definition per layout. Numeric columns (FPS, Bw, Storage) right-aligned; text columns left-aligned.
+- **Kept unchanged:** the per-group "{name} · {M} camera streams" sub-header (with the "· modified" suffix when a model-loaded group was modified), the Totals row reading the frozen `sizing.totals` aggregates (never re-summed from rows), and the retention footnote.
+- **Tests** (`render.test.ts`): added the no-model and mixed-model snapshot cases (layout decision + manual-group dashes with populated sizing cells), exact header-sequence assertions for both layouts, width-sum = 100% and alignment checks, and unit tests for `formatOperationHrs` (constant vs motion). The existing multi-group / manual-entry test stays green.
+
+### Detours & fixes
+
+- **Smoke-render text extraction failed, then was replaced with a faithful check.** First cut inflated the PDF's FlateDecode content streams and grepped for the column headers as ASCII — found nothing (every token, present and absent, came back false). react-pdf embeds and *subsets* even standard Helvetica, so glyphs are stored by subset id, not readable text; a raw grep can never confirm columns. Switched the smoke check to assert the renderer's own `buildCameraColumns(cameraScheduleHasVendorOrModel(schedule))` output (the exact code path the component runs) alongside the `%PDF-`/byte-size render check, and exported `buildCameraColumns` + `CameraColumn` so the test suite asserts the same thing.
+
+### Verification gates
+
+- `npm test` 162/162 (+4 over the prior 158: the buildCameraColumns header/width/alignment block; no deletions).
+- `npm run build` clean (TypeScript + Compiled); `npx eslint` 0 errors on `ProjectQuotePdf.tsx` and `render.test.ts`.
+- Smoke-rendered a realistic hand-entered (no-model) snapshot: valid PDF (`%PDF-`, 12,287 bytes), `showVendorModel=false`, page-1 columns = the 7 sizing columns with no Vendor/Model, Operation-hrs cell = `18 (motion 40%)`.
+
+### Decisions captured
+
+- **No ADR.** This is a render-layer presentation choice within the locked Project Quote architecture (ADR 0059–0061) — like the line-item `orderNr` sort and the `usableCapacityTb`/`mapServerSpec` helper convergence, which were captured in the journal without their own ADRs. No snapshot shape, data layer, migration, or binding rule changed; nothing here rotates out of head in a way an ADR would need to preserve.
+
+---
+
 ## 2026-06-18 — Project Quote PDF revisions: drop showcase, partner on page 1, header/footer, one-page terms
 
 ### Work done

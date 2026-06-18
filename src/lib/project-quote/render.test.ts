@@ -4,9 +4,13 @@ import { createElement } from "react";
 import { renderToBuffer } from "@react-pdf/renderer";
 import {
   ProjectQuotePdf,
+  buildCameraColumns,
+  cameraScheduleHasVendorOrModel,
+  formatOperationHrs,
   sortLineItemsByOrderNr,
   type ProjectQuotePdfInput,
 } from "./ProjectQuotePdf";
+import type { ProjectQuoteCameraRow } from "./types";
 import type { ProjectQuoteSnapshot } from "./types";
 import type { QuoteLineItem } from "@/lib/pipedrive/quote";
 
@@ -255,6 +259,148 @@ describe("ProjectQuotePdf renders via @react-pdf/renderer", () => {
     assert.ok(manualGroups.length > 0, "fixture must include a manual-entry group");
     const buf = await render(snap);
     assert.ok(buf.length > 1000, `PDF buffer suspiciously small: ${buf.length} bytes`);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Camera-schedule graceful column selection (page 1)
+// ---------------------------------------------------------------------------
+
+// Null out the vendor/model (manual-entry) marker on every group, keeping the
+// sizing fields intact — the hand-entered-deal case.
+function withoutAnyVendorModel(snap: ProjectQuoteSnapshot): ProjectQuoteSnapshot {
+  return {
+    ...snap,
+    sizing: {
+      ...snap.sizing,
+      cameraSchedule: snap.sizing.cameraSchedule.map((g) => ({
+        ...g,
+        cameraVendor: null,
+        cameraModel: null,
+        units: 0,
+        sensorsPerCamera: 0,
+        cameraModelModified: false,
+      })),
+    },
+  };
+}
+
+describe("cameraScheduleHasVendorOrModel — picks the layout", () => {
+  it("is false when no group carries vendor or model", () => {
+    const schedule = withoutAnyVendorModel(makeSnapshot()).sizing.cameraSchedule;
+    assert.equal(cameraScheduleHasVendorOrModel(schedule), false);
+  });
+
+  it("is true when at least one group carries a model", () => {
+    // The default fixture's Lobby group has Axis / P3245-V.
+    const schedule = makeSnapshot().sizing.cameraSchedule;
+    assert.equal(cameraScheduleHasVendorOrModel(schedule), true);
+  });
+
+  it("treats empty-string vendor/model as absent", () => {
+    const rows: ProjectQuoteCameraRow[] = makeSnapshot().sizing.cameraSchedule.map((g) => ({
+      ...g,
+      cameraVendor: "",
+      cameraModel: "",
+    }));
+    assert.equal(cameraScheduleHasVendorOrModel(rows), false);
+  });
+
+  it("is true when only the vendor is present (no model)", () => {
+    const [first, ...rest] = withoutAnyVendorModel(makeSnapshot()).sizing.cameraSchedule;
+    const rows = [{ ...first, cameraVendor: "Hanwha" }, ...rest];
+    assert.equal(cameraScheduleHasVendorOrModel(rows), true);
+  });
+});
+
+describe("buildCameraColumns — the two layouts", () => {
+  const SIZING_HEADERS = [
+    "Resolution",
+    "Codec",
+    "FPS",
+    "Scene complexity",
+    "Operation hrs",
+    "Bw (Mb/s)",
+    "Storage (TB)",
+  ];
+
+  // Sum a layout's percentage widths; each must total 100% to stay legible.
+  function sumWidths(cols: ReturnType<typeof buildCameraColumns>): number {
+    return cols.reduce((s, c) => s + parseFloat(c.width), 0);
+  }
+
+  it("Layout A (no vendor/model) is exactly the 7 sizing columns", () => {
+    const headers = buildCameraColumns(false).map((c) => c.header);
+    assert.deepEqual(headers, SIZING_HEADERS);
+  });
+
+  it("Layout B (with vendor/model) prepends Vendor and Model to the sizing set", () => {
+    const headers = buildCameraColumns(true).map((c) => c.header);
+    assert.deepEqual(headers, ["Vendor", "Model", ...SIZING_HEADERS]);
+  });
+
+  it("both layouts' data-column widths sum to 100%", () => {
+    assert.equal(sumWidths(buildCameraColumns(false)), 100);
+    assert.equal(sumWidths(buildCameraColumns(true)), 100);
+  });
+
+  it("right-aligns the numeric columns and left-aligns text columns", () => {
+    for (const cols of [buildCameraColumns(false), buildCameraColumns(true)]) {
+      const rightAligned = cols.filter((c) => c.align === "right").map((c) => c.header);
+      assert.deepEqual(rightAligned, ["FPS", "Bw (Mb/s)", "Storage (TB)"]);
+    }
+  });
+});
+
+describe("formatOperationHrs — recording hours with motion percent", () => {
+  it("shows just the hours for constant recording", () => {
+    const row = makeSnapshot().sizing.cameraSchedule[0]; // constant, 24h, motion 0
+    assert.equal(row.recordingMode, "constant");
+    assert.equal(formatOperationHrs(row), "24");
+  });
+
+  it("appends the motion percent in parentheses for motion recording", () => {
+    const row = makeSnapshot().sizing.cameraSchedule[1]; // motion, 18h, motion 40
+    assert.equal(row.recordingMode, "motion");
+    assert.equal(formatOperationHrs(row), "18 (motion 40%)");
+  });
+});
+
+describe("ProjectQuotePdf camera schedule — graceful column selection", () => {
+  it("renders the 7 sizing columns (no Vendor/Model) when no group has model data", async () => {
+    const snap = withoutAnyVendorModel(makeSnapshot());
+    // Structural: the layout decision omits Vendor/Model for this snapshot.
+    assert.equal(cameraScheduleHasVendorOrModel(snap.sizing.cameraSchedule), false);
+    // Every group still carries the sizing fields the 7-column layout renders.
+    for (const g of snap.sizing.cameraSchedule) {
+      assert.ok(g.resolutionLabel.length > 0, "resolution must be populated");
+      assert.ok(g.codec.length > 0, "codec must be populated");
+      assert.ok(g.bandwidthMbps > 0, "bandwidth must be populated");
+      assert.ok(g.storageGb > 0, "storage must be populated");
+    }
+    const buf = await render(snap);
+    assert.ok(buf.length > 1000, `PDF buffer suspiciously small: ${buf.length} bytes`);
+    assert.equal(buf.subarray(0, 5).toString("utf8"), "%PDF-");
+  });
+
+  it("prepends Vendor/Model when some groups have a model; manual group's vendor/model dash but its sizing cells populate", async () => {
+    const snap = makeSnapshot();
+    // Mixed fixture → Vendor/Model columns present.
+    assert.equal(cameraScheduleHasVendorOrModel(snap.sizing.cameraSchedule), true);
+    const modelGroup = snap.sizing.cameraSchedule.find((g) => g.cameraModel !== null);
+    const manualGroup = snap.sizing.cameraSchedule.find((g) => g.cameraModel === null);
+    assert.ok(modelGroup, "fixture must include a model-loaded group");
+    assert.ok(manualGroup, "fixture must include a manual-entry group");
+    // The manual group's vendor/model are the dash markers (null)…
+    assert.equal(manualGroup.cameraVendor, null);
+    assert.equal(manualGroup.cameraModel, null);
+    // …while its sizing cells are fully populated and still render.
+    assert.ok(manualGroup.resolutionLabel.length > 0);
+    assert.ok(manualGroup.bandwidthMbps > 0);
+    assert.ok(manualGroup.storageGb > 0);
+    const buf = await render(snap);
+    assert.ok(buf.length > 1000, `PDF buffer suspiciously small: ${buf.length} bytes`);
+    assert.equal(buf.subarray(0, 5).toString("utf8"), "%PDF-");
   });
 });
 
