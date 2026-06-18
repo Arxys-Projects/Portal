@@ -148,6 +148,15 @@ export type CreateNotePayload = {
 
 export type PdNote = { id: number };
 
+// GET/POST /v1/files. The Project Quote delivery path (Phase 10 Step 6) uploads
+// the rendered PDF and links it to the deal; only the fields we read back are
+// typed. `deal_id` is echoed by Pipedrive when the file is linked to a deal.
+export type PdFile = {
+  id: number;
+  name: string | null;
+  deal_id?: number | null;
+};
+
 type V1Envelope<T> = {
   success: boolean;
   data: T;
@@ -262,6 +271,22 @@ export const pipedriveClient = {
   getProduct(id: number): Promise<PdProduct> {
     return request<PdProduct>("GET", `/products/${id}`);
   },
+  // Write path (Phase 10 Step 6) — attach a rendered file to a deal via the
+  // Files API. POST /v1/files takes a multipart form, NOT JSON, so it cannot go
+  // through request() (which always JSON-encodes the body). It reuses the same
+  // token-appending URL builder and the same PipedriveError surface via the
+  // requestUpload helper below — no second auth path, no second error type.
+  addDealFile(dealId: number, filename: string, buffer: Uint8Array): Promise<PdFile> {
+    const form = new FormData();
+    // Copy into a fresh ArrayBuffer-backed view: a Node Buffer is
+    // Uint8Array<ArrayBufferLike>, which Blob's BlobPart type rejects (it could
+    // be SharedArrayBuffer-backed). The copy is a one-time cost on a PDF-sized
+    // payload. Let fetch set the multipart Content-Type (with boundary); never
+    // set it by hand or the boundary is lost and Pipedrive rejects the body.
+    form.append("file", new Blob([new Uint8Array(buffer)], { type: "application/pdf" }), filename);
+    form.append("deal_id", String(dealId));
+    return requestUpload<PdFile>("/files", form);
+  },
 };
 
 async function requestSearch<T>(
@@ -283,6 +308,26 @@ async function requestSearch<T>(
     throw new PipedriveError(res.status, message, parsed, errorEnv.error_info);
   }
   return envelope.data?.items ?? [];
+}
+
+// Multipart upload sibling of request()/requestSearch(): same withToken() auth
+// path and same PipedriveError surface, but sends a FormData body (no JSON
+// encoding, no hand-set Content-Type) for the Files API.
+async function requestUpload<T>(path: string, form: FormData): Promise<T> {
+  const url = withToken(path);
+  const res = await fetch(url, { method: "POST", body: form });
+  let parsed: unknown;
+  try {
+    parsed = await res.json();
+  } catch {
+    throw new PipedriveError(res.status, `Pipedrive POST ${path} returned non-JSON`, null);
+  }
+  const envelope = parsed as { success?: boolean; error?: string; error_info?: string; data?: unknown };
+  if (!res.ok || envelope.success === false) {
+    const message = envelope.error || `Pipedrive POST ${path} failed (${res.status})`;
+    throw new PipedriveError(res.status, message, parsed, envelope.error_info);
+  }
+  return envelope.data as T;
 }
 
 export type PipedriveClient = typeof pipedriveClient;

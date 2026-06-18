@@ -5,6 +5,12 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { loadSubmissionDetail } from "@/app/(app)/_components/load-submission";
 import { SubmissionDetail } from "@/app/(app)/_components/submission-detail";
 import { resolveSubmissionPartner } from "@/lib/pdf/partner-resolution";
+import { loadCurrentProjectQuote } from "@/lib/project-quote/assemble";
+import { projectQuoteExpiryIso } from "@/lib/project-quote/expiry";
+import {
+  ProjectQuotePanel,
+  type CurrentQuoteSummary,
+} from "./_components/project-quote-panel";
 
 export default async function AdminSubmissionDetailPage({
   params,
@@ -88,6 +94,24 @@ export default async function AdminSubmissionDetailPage({
     isInternal = Boolean(callerRow?.is_internal);
   }
 
+  // Project Quote is internal-only (ADR 0059). Load the derived-current quote
+  // (max version) and pass a serializable summary to the panel. RLS on
+  // project_quotes also gates this read to internal callers, so a non-internal
+  // viewer sees neither the panel (isInternal gate) nor any quote (null read).
+  let currentQuote: CurrentQuoteSummary | null = null;
+  if (isInternal) {
+    const current = await loadCurrentProjectQuote(id, supabase);
+    if (current) {
+      currentQuote = {
+        version: current.version,
+        identifier: current.snapshot.generation.identifier,
+        generatedOn: current.generated_at.slice(0, 10),
+        expiresOn: projectQuoteExpiryIso(current.generated_at, current.validity_days),
+        termsVersion: current.terms_version,
+      };
+    }
+  }
+
   return (
     <div>
       <div className="mb-4">
@@ -104,6 +128,13 @@ export default async function AdminSubmissionDetailPage({
         mode="admin"
         canRevise={isInternal}
       />
+      {isInternal ? (
+        <ProjectQuotePanel
+          submissionId={id}
+          current={currentQuote}
+          downloadHref={`/api/admin/submissions/${id}/project-quote/pdf`}
+        />
+      ) : null}
     </div>
   );
 }

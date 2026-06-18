@@ -812,6 +812,153 @@ async function run() {
       // past a write policy) via service-role.
       await admin.from("camera_specs").delete().like("model", "RLS-CAM%");
     }
+
+    // --- Phase 10 Step 6: project_quotes INTERNAL-ONLY + immutable ----------
+    // SELECT/INSERT gated on is_internal OR is_admin (NOT read-open like the
+    // reference tables — a row holds pricing + customer PII). INSERT also
+    // requires generated_by = auth.uid(). UPDATE/DELETE are ungranted, so a
+    // quote is immutable: a revision is a new version row, never an edit
+    // (ADR 0059 / 0060 / 0061). adminPersona was reactivated at 12g.
+    {
+      const quoteSubmissionId = await seedSubmission(b.id, "sent");
+      const baseQuoteRow = {
+        submission_id: quoteSubmissionId,
+        pipedrive_deal_id: 4822,
+        snapshot: { snapshotVersion: 1, marker: "rls-test" },
+        terms_version: "v-rls-test",
+        validity_days: 7,
+      };
+      // Seed version 1 via service-role (bypasses RLS) so there is a row to read.
+      const { error: seedErr } = await admin
+        .from("project_quotes")
+        .insert({ ...baseQuoteRow, version: 1, generated_by: internalPersona.id });
+      if (seedErr) {
+        record("19: seed project_quotes row (service-role)", false, seedErr.message);
+      }
+
+      // Test 19a: partner A cannot SELECT project_quotes (internal-only).
+      {
+        const { data, error } = await a.client
+          .from("project_quotes")
+          .select("id")
+          .eq("submission_id", quoteSubmissionId);
+        record(
+          "19a: partner cannot SELECT project_quotes (internal-only)",
+          !error && (data?.length ?? 0) === 0,
+          error ? `error: ${error.message}` : `count=${data?.length}`,
+        );
+      }
+
+      // Test 19b: internal user CAN SELECT project_quotes.
+      {
+        const { data, error } = await internalPersona.client
+          .from("project_quotes")
+          .select("id, version")
+          .eq("submission_id", quoteSubmissionId);
+        record(
+          "19b: internal user can SELECT project_quotes",
+          !error && (data?.length ?? 0) === 1,
+          error ? `error: ${error.message}` : `count=${data?.length}`,
+        );
+      }
+
+      // Test 19c: admin CAN SELECT project_quotes (admin covered explicitly).
+      {
+        const { data, error } = await adminPersona.client
+          .from("project_quotes")
+          .select("id")
+          .eq("submission_id", quoteSubmissionId);
+        record(
+          "19c: admin can SELECT project_quotes",
+          !error && (data?.length ?? 0) === 1,
+          error ? `error: ${error.message}` : `count=${data?.length}`,
+        );
+      }
+
+      // Test 19d: partner A cannot INSERT project_quotes (with-check violation).
+      {
+        const { error } = await a.client
+          .from("project_quotes")
+          .insert({ ...baseQuoteRow, version: 90, generated_by: a.id });
+        record(
+          "19d: partner cannot INSERT project_quotes (internal-only)",
+          Boolean(error),
+          error ? `blocked: ${error.message}` : "INSERT unexpectedly succeeded",
+        );
+      }
+
+      // Test 19e: internal user CAN INSERT a new version for themselves.
+      {
+        const { data, error } = await internalPersona.client
+          .from("project_quotes")
+          .insert({ ...baseQuoteRow, version: 2, generated_by: internalPersona.id })
+          .select("id");
+        record(
+          "19e: internal user can INSERT project_quotes for self",
+          !error && (data?.length ?? 0) === 1,
+          error ? `error: ${error.message}` : `inserted=${data?.length}`,
+        );
+      }
+
+      // Test 19f: internal user cannot INSERT with generated_by != self.
+      // The with-check generated_by = auth.uid() blocks spoofing the author.
+      {
+        const { error } = await internalPersona.client
+          .from("project_quotes")
+          .insert({ ...baseQuoteRow, version: 3, generated_by: a.id });
+        record(
+          "19f: internal user cannot INSERT with someone else's generated_by",
+          Boolean(error),
+          error ? `blocked: ${error.message}` : "INSERT unexpectedly succeeded",
+        );
+      }
+
+      // Test 19g: nobody can UPDATE a project_quote (ungranted → immutable).
+      // Asserts the security property (the row is unchanged) regardless of
+      // whether the block manifests as a permission error or zero rows.
+      {
+        const { data, error } = await internalPersona.client
+          .from("project_quotes")
+          .update({ terms_version: "tampered" })
+          .eq("submission_id", quoteSubmissionId)
+          .select("id");
+        const { data: after } = await admin
+          .from("project_quotes")
+          .select("terms_version")
+          .eq("submission_id", quoteSubmissionId)
+          .eq("version", 1)
+          .single();
+        record(
+          "19g: project_quotes UPDATE is blocked for everyone (immutable)",
+          (data?.length ?? 0) === 0 && after?.terms_version === "v-rls-test",
+          error ? `blocked: ${error.message}` : `affected=${data?.length} terms=${after?.terms_version}`,
+        );
+      }
+
+      // Test 19h: nobody can DELETE a project_quote (ungranted → immutable).
+      {
+        const { data, error } = await internalPersona.client
+          .from("project_quotes")
+          .delete()
+          .eq("submission_id", quoteSubmissionId)
+          .eq("version", 1)
+          .select("id");
+        const { count } = await admin
+          .from("project_quotes")
+          .select("id", { count: "exact", head: true })
+          .eq("submission_id", quoteSubmissionId)
+          .eq("version", 1);
+        record(
+          "19h: project_quotes DELETE is blocked for everyone (immutable)",
+          (data?.length ?? 0) === 0 && count === 1,
+          error ? `blocked: ${error.message}` : `affected=${data?.length} remaining=${count}`,
+        );
+      }
+
+      // Cleanup: delete the quote rows BEFORE teardownPersona deletes the
+      // submission (project_quotes.submission_id is on delete restrict).
+      await admin.from("project_quotes").delete().eq("submission_id", quoteSubmissionId);
+    }
   } finally {
     await teardownPersona(a);
     await teardownPersona(b);
