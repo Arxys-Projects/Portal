@@ -4,6 +4,29 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-06-18 — Project Quote: approved Terms & Conditions replace the placeholder
+
+### Work done
+
+Swapped the placeholder T&C (the 5a/5b go-live flag) for the approved Arxys quote terms supplied by Andy on 2026-06-18.
+
+- **`src/lib/project-quote/terms.ts`** — replaced the 4-line Price Book placeholder with the approved terms verbatim: the header, the starred 30-day pricing line, the 9 numbered clauses, the `ALL TARIFFS ARE PASSED THROUGH` caps line, the Microsoft Windows / VMS / SQL-Standard addendum, the AI-volatility caps line, and the purchase-terms/payment paragraph (`www.arxys.com/purchaseterms` as plain text, 3% credit-card fee, US$, F.O.B, Freight). Each paragraph is a separate array entry joined by a blank line.
+- **Version bumped `1.0` → `2.0`.** Different text must not reuse a version string (the drift/dedup premise). The old `1.0` was never issued — `project_quotes` had 0 rows when the swap landed — so there is no audit collision.
+- **`ProjectQuotePdf.tsx`** — the terms now render one `<Text>` per paragraph (split on the blank-line join) instead of one giant `<Text>`, giving react-pdf natural break points so the longer multi-clause terms paginate cleanly. The full terms now flow from page 4 onto page 5 (the quote is ~5 pages); smoke-rendered to a valid PDF.
+- **Whitespace** normalized (a few accidental double-spaces collapsed to single); wording otherwise verbatim, apostrophes preserved as supplied.
+- **`snapshot.test.ts`** — the version test now asserts the exported constant (not a literal), and a new test anchors the approved copy (header, a clause, the Windows addendum, the purchase-terms URL) so any regression back to placeholder copy fails the suite.
+
+### Decisions captured
+
+- **Quote "Valid through" stays 7 days, intentionally distinct from the 30-day pricing clause in the T&C** (confirmed with Andy 2026-06-18). The terms state pricing is valid 30 days; the quote's own expiry window (`PROJECT_QUOTE_VALIDITY_DAYS`, ADR 0061) is 7 days and represents quote expiry, a different thing from the pricing-validity statement. Do NOT "reconcile" the 7 to 30 — the difference is by design.
+- The **placeholder-T&C go-live flag** carried since Step 5a/5b is now **CLOSED**.
+
+### Verification gates
+
+- `npm test` 158/158 (+1 approved-terms content assertion); `npm run build` clean; `npx eslint` 0 errors on `terms.ts`, `ProjectQuotePdf.tsx`, `snapshot.test.ts`. Real in-force terms smoke-rendered to a valid ~5-page PDF (`%PDF-` header, paginates without clipping).
+
+---
+
 ## 2026-06-18 — Phase 10 / Project Quote Step 6: generate, persist, deliver (authored, verified, NOT deployed)
 
 ### Work done

@@ -954,7 +954,14 @@ export function ProjectQuotePdf({ data }: { data: ProjectQuotePdfInput }) {
         </View>
 
         <Text style={styles.sectionTitle}>Terms and Conditions</Text>
-        <Text style={styles.termsText}>{terms.text}</Text>
+        {/* One <Text> per paragraph (split on the blank line the terms text
+            joins with) so react-pdf has natural break points and the full,
+            multi-clause terms paginate cleanly instead of clipping. */}
+        {terms.text.split("\n\n").map((para, i) => (
+          <Text key={i} style={[styles.termsText, { marginBottom: 5 }]}>
+            {para}
+          </Text>
+        ))}
       </Page>
     </Document>
   );

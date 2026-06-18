@@ -14,7 +14,11 @@ import {
   type SizingProductSpecRow,
   type SizingSubmissionRow,
 } from "./snapshot";
-import { getProjectQuoteTerms, projectQuoteTermsSha256 } from "./terms";
+import {
+  getProjectQuoteTerms,
+  projectQuoteTermsSha256,
+  PROJECT_QUOTE_TERMS_VERSION,
+} from "./terms";
 import {
   PROJECT_QUOTE_SNAPSHOT_VERSION,
   type ProjectQuoteShowcaseSpecHighlights,
@@ -447,9 +451,19 @@ describe("buildProjectQuoteSnapshot", () => {
 describe("getProjectQuoteTerms", () => {
   it("returns a version, non-empty text, and a stable sha256", () => {
     const t = getProjectQuoteTerms();
-    assert.equal(t.version, "1.0");
+    assert.equal(t.version, PROJECT_QUOTE_TERMS_VERSION);
     assert.ok(t.text.length > 0);
     assert.match(t.sha256, /^[0-9a-f]{64}$/);
     assert.equal(t.sha256, projectQuoteTermsSha256(t.text)); // deterministic
+  });
+
+  it("carries the approved Arxys terms (not the retired placeholder)", () => {
+    const t = getProjectQuoteTerms();
+    // Anchors from the approved 2026-06-18 copy: the header, a numbered clause,
+    // the Windows/VMS addendum, and the purchase-terms URL.
+    assert.match(t.text, /^Arxys Terms and Conditions\./);
+    assert.match(t.text, /title of all goods until full payment/);
+    assert.match(t.text, /A Microsoft Windows license is included/);
+    assert.match(t.text, /www\.arxys\.com\/purchaseterms/);
   });
 });
