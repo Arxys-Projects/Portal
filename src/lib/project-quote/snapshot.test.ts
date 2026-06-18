@@ -3,14 +3,11 @@ import assert from "node:assert/strict";
 import type { DealQuote, GetDealForQuoteResult, QuoteLineItem } from "@/lib/pipedrive/quote";
 import {
   buildProjectQuoteSnapshot,
-  buildShowcase,
   buildSizingFromSubmission,
   composeQuoteIdentifier,
   computeNextVersion,
-  isShowcaseProductGroup,
   resolveHeroImagePath,
   usableCapacityTb,
-  type ShowcaseCatalogRecord,
   type SizingProductSpecRow,
   type SizingSubmissionRow,
 } from "./snapshot";
@@ -21,7 +18,6 @@ import {
 } from "./terms";
 import {
   PROJECT_QUOTE_SNAPSHOT_VERSION,
-  type ProjectQuoteShowcaseSpecHighlights,
   type ProjectQuoteSizing,
 } from "./types";
 
@@ -48,20 +44,6 @@ const QUOTE_LINE_KEYS = [
   "orderNr",
   "isInfoOnly",
 ].sort();
-
-const EMPTY_HL: ProjectQuoteShowcaseSpecHighlights = {
-  formFactor: null,
-  rackUnits: null,
-  cpuModelFull: null,
-  ramSpec: null,
-  driveBays: null,
-  storageRawTb: null,
-  maxCameras: null,
-  maxBandwidthMbps: null,
-  osEdition: null,
-  raidLevelDisplay: null,
-  hddCount: null,
-};
 
 function makeLine(partial: Partial<QuoteLineItem> & { productId: number }): QuoteLineItem {
   return {
@@ -173,24 +155,6 @@ function makeSizing(): ProjectQuoteSizing {
 
 // ---------------------------------------------------------------------------
 
-describe("isShowcaseProductGroup", () => {
-  it("accepts all V-series server groups that have a price-book family", () => {
-    for (const g of ["V100", "V150", "V200", "V250", "V255", "V260", "V270", "V400", "V500", "V600", "V700", "V800"]) {
-      assert.equal(isShowcaseProductGroup(g), true, g);
-    }
-  });
-  it("accepts all SW workstation groups", () => {
-    for (const g of ["SW10", "SW20", "SW25", "SW30", "SW35"]) {
-      assert.equal(isShowcaseProductGroup(g), true, g);
-    }
-  });
-  it("rejects add-on and accessory groups that have no price-book family", () => {
-    for (const g of ["NIC", "RAM", "GPU", "WTY", "SFP", "", null, undefined]) {
-      assert.equal(isShowcaseProductGroup(g), false, String(g));
-    }
-  });
-});
-
 describe("computeNextVersion", () => {
   it("starts at 1 when none exist and increments otherwise", () => {
     assert.equal(computeNextVersion(null), 1);
@@ -221,71 +185,6 @@ describe("resolveHeroImagePath", () => {
     assert.ok(v800 && v800.startsWith("/price-book/"), `expected a hero path, got ${String(v800)}`);
     assert.equal(resolveHeroImagePath("NOPE"), null);
     assert.equal(resolveHeroImagePath(null), null);
-  });
-});
-
-describe("buildShowcase", () => {
-  // Fixture: V150 ACM, V255 management, V600 video server, SW20 workstation,
-  // an [MKT] custom line, a NIC card, a transceiver, an uncatalogued V700 SKU,
-  // a null-code line, and a duplicate V600 to verify deduplication.
-  const lines = [
-    makeLine({ productId: 110, productCode: "VX5-V150-ACM" }),
-    makeLine({ productId: 111, productCode: "VX5-V255-MGM" }),
-    makeLine({ productId: 112, productCode: "VX5-V600-320" }),
-    makeLine({ productId: 113, productCode: "VX5-SW20-200" }),
-    makeLine({ productId: 114, productCode: "MKT-CUSTOM-1" }),
-    makeLine({ productId: 115, productCode: "VX5-NIC-SFP28" }),
-    makeLine({ productId: 116, productCode: "VX5-SFP-10G" }),
-    makeLine({ productId: 117, productCode: "VX5-V700-384" }), // no catalog record
-    makeLine({ productId: 118, productCode: null }),
-    makeLine({ productId: 112, productCode: "VX5-V600-320" }), // duplicate SKU
-  ];
-
-  function rec(over: Partial<ShowcaseCatalogRecord> & { sku: string; productGroup: string }): ShowcaseCatalogRecord {
-    return {
-      productName: `Product ${over.sku}`,
-      priceType: "numeric",
-      msrp: 1000,
-      specHighlights: null,
-      ...over,
-    };
-  }
-
-  const catalog = new Map<string, ShowcaseCatalogRecord>([
-    ["VX5-V150-ACM", rec({ sku: "VX5-V150-ACM", productGroup: "V150" })],
-    ["VX5-V255-MGM", rec({ sku: "VX5-V255-MGM", productGroup: "V255" })],
-    ["VX5-V600-320", rec({ sku: "VX5-V600-320", productGroup: "V600", specHighlights: { ...EMPTY_HL, cpuModelFull: "EPYC" } })],
-    ["VX5-SW20-200", rec({ sku: "VX5-SW20-200", productGroup: "SW20" })],
-    ["MKT-CUSTOM-1", rec({ sku: "MKT-CUSTOM-1", productGroup: "V100", priceType: "market" })], // [MKT]: excluded by priceType
-    ["VX5-NIC-SFP28", rec({ sku: "VX5-NIC-SFP28", productGroup: "NIC" })], // NIC: excluded by no price-book family
-    ["VX5-SFP-10G", rec({ sku: "VX5-SFP-10G", productGroup: "SFP" })], // transceiver: excluded by no price-book family
-    // VX5-V700-384 deliberately absent: excluded by no catalog record.
-  ]);
-
-  it("includes V-series servers and SW workstations with catalog records, sorted by group", () => {
-    const out = buildShowcase(lines, catalog);
-    assert.deepEqual(
-      out.map((i) => i.sku),
-      ["VX5-SW20-200", "VX5-V150-ACM", "VX5-V255-MGM", "VX5-V600-320"], // SW < V150 < V255 < V600
-    );
-  });
-
-  it("freezes the resolved image path and spec highlights, null highlights when no specs", () => {
-    const out = buildShowcase(lines, catalog);
-    const v600 = out.find((i) => i.sku === "VX5-V600-320")!;
-    const sw20 = out.find((i) => i.sku === "VX5-SW20-200")!;
-    assert.ok(v600.heroImagePath?.startsWith("/price-book/"));
-    assert.equal(v600.specHighlights?.cpuModelFull, "EPYC");
-    assert.equal(sw20.specHighlights, null);
-    assert.ok(sw20.heroImagePath?.startsWith("/price-book/"));
-  });
-
-  it("excludes the [MKT] line, NIC, transceiver, uncatalogued V700, and duplicate V600", () => {
-    const skus = buildShowcase(lines, catalog).map((i) => i.sku);
-    for (const excluded of ["MKT-CUSTOM-1", "VX5-NIC-SFP28", "VX5-SFP-10G", "VX5-V700-384"]) {
-      assert.equal(skus.includes(excluded), false, excluded);
-    }
-    assert.equal(skus.filter((s) => s === "VX5-V600-320").length, 1); // deduped
   });
 });
 
@@ -337,9 +236,6 @@ describe("buildSizingFromSubmission", () => {
 
 describe("buildProjectQuoteSnapshot", () => {
   const sizing = makeSizing();
-  const catalog = new Map<string, ShowcaseCatalogRecord>([
-    ["VX5-V800-720", { sku: "VX5-V800-720", productName: "VideoX V800", productGroup: "V800", priceType: "numeric", msrp: 74048, specHighlights: null }],
-  ]);
   const deal = makeDeal([
     makeLine({ productId: 101, productCode: "VX5-V800-720", unitPrice: 74048, discount: 45, discountType: "percentage", discountPercent: 45, quantity: 6, lineAmount: 244358.4 }),
   ]);
@@ -350,7 +246,6 @@ describe("buildProjectQuoteSnapshot", () => {
       submissionId: "sub-1",
       dealResult: { ok: true, deal },
       sizing,
-      catalogBySku: catalog,
       terms,
       existingMaxVersion: maxVersion,
       generatedAt: new Date("2026-06-16T12:00:00Z"),
@@ -374,7 +269,6 @@ describe("buildProjectQuoteSnapshot", () => {
     assert.equal(row.validity_days, 7);
     assert.equal(row.generated_by, "user-internal-1");
     assert.equal(row.snapshot.sizing.vms, "Milestone");
-    assert.equal(row.snapshot.showcase.length, 1); // the V800 line
   });
 
   it("increments version as max+1 (and starts at 1 with no prior rows)", () => {
@@ -416,7 +310,6 @@ describe("buildProjectQuoteSnapshot", () => {
       submissionId: "sub-1",
       dealResult: { ok: true, deal: makeDeal([]) },
       sizing,
-      catalogBySku: catalog,
       terms,
       existingMaxVersion: null,
       generatedAt: new Date("2026-06-16T12:00:00Z"),
@@ -434,7 +327,6 @@ describe("buildProjectQuoteSnapshot", () => {
       submissionId: "sub-1",
       dealResult,
       sizing,
-      catalogBySku: catalog,
       terms,
       existingMaxVersion: null,
       generatedAt: new Date("2026-06-16T12:00:00Z"),

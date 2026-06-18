@@ -159,28 +159,6 @@ function makeSnapshot(overrides: Partial<ProjectQuoteSnapshot> = {}): ProjectQuo
         contactName: "Bob Integrator",
       },
     },
-    showcase: [
-      {
-        sku: "VX5-V800-720",
-        productName: "VideoX V800 720TB 4U 36Bay",
-        productGroup: "V800",
-        msrp: 75000,
-        heroImagePath: "/price-book/v700-v800-hero.png",
-        specHighlights: {
-          formFactor: "4U Rackmount",
-          rackUnits: "4U",
-          cpuModelFull: "AMD EPYC 9005 4.3GHz 16/32 Core",
-          ramSpec: "32GB ECC DDR5",
-          driveBays: 36,
-          storageRawTb: 720,
-          maxCameras: 325,
-          maxBandwidthMbps: 4000,
-          osEdition: "Windows Server 2022 LTSC Standard",
-          raidLevelDisplay: "60",
-          hddCount: 36,
-        },
-      },
-    ],
     terms: {
       version: "v1.0",
       text: "These are the terms and conditions for this project quote. All prices are subject to written acceptance within the validity window. Arxys reserves the right to adjust pricing based on updated distributor costs.",
@@ -204,7 +182,6 @@ function makeInput(snapshot: ProjectQuoteSnapshot): ProjectQuotePdfInput {
     snapshot,
     logoDataUri: null,
     primaryHeroDataUri: null,
-    showcaseHeroDataUris: snapshot.showcase.map(() => null),
   };
 }
 
@@ -234,55 +211,6 @@ describe("ProjectQuotePdf renders via @react-pdf/renderer", () => {
       sizing: { ...snap.sizing, serverSpec: null, primaryServerHeroImagePath: null },
     };
     const buf = await render(noSpec);
-    assert.ok(buf.length > 1000, `PDF buffer suspiciously small: ${buf.length} bytes`);
-    assert.equal(buf.subarray(0, 5).toString("utf8"), "%PDF-");
-  });
-
-  it("renders with empty showcase (no catalog products)", async () => {
-    const snap = makeSnapshot();
-    const noShowcase: ProjectQuoteSnapshot = { ...snap, showcase: [] };
-    const buf = await render(noShowcase);
-    assert.ok(buf.length > 1000, `PDF buffer suspiciously small: ${buf.length} bytes`);
-    assert.equal(buf.subarray(0, 5).toString("utf8"), "%PDF-");
-  });
-
-  it("renders with multiple showcase items", async () => {
-    const snap = makeSnapshot();
-    const multi: ProjectQuoteSnapshot = {
-      ...snap,
-      showcase: [
-        snap.showcase[0],
-        {
-          sku: "VX5-V500-240",
-          productName: "VideoX V500 240TB 2U 12Bay",
-          productGroup: "V500",
-          msrp: 42000,
-          heroImagePath: "/price-book/v400-v500-hero.png",
-          specHighlights: null, // no spec row
-        },
-        {
-          sku: "VX5-SW20-200",
-          productName: "VideoX SW20 Workstation",
-          productGroup: "SW20",
-          msrp: 3800,
-          heroImagePath: "/price-book/sw-hero.png",
-          specHighlights: {
-            formFactor: "Tower",
-            rackUnits: null,
-            cpuModelFull: null,
-            ramSpec: null,
-            driveBays: null,
-            storageRawTb: null,
-            maxCameras: null,
-            maxBandwidthMbps: 225,
-            osEdition: "Windows 11 IoT Enterprise",
-            raidLevelDisplay: null,
-            hddCount: null,
-          },
-        },
-      ],
-    };
-    const buf = await render(multi);
     assert.ok(buf.length > 1000, `PDF buffer suspiciously small: ${buf.length} bytes`);
     assert.equal(buf.subarray(0, 5).toString("utf8"), "%PDF-");
   });

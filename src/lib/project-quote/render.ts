@@ -39,15 +39,10 @@ export async function renderProjectQuotePdfBuffer(
     ? loadPngDataUriByPath(snapshot.sizing.primaryServerHeroImagePath)
     : null;
 
-  const showcaseHeroDataUris = snapshot.showcase.map((item) =>
-    item.heroImagePath ? loadPngDataUriByPath(item.heroImagePath) : null,
-  );
-
   const input: ProjectQuotePdfInput = {
     snapshot,
     logoDataUri,
     primaryHeroDataUri,
-    showcaseHeroDataUris,
   };
 
   // ProjectQuotePdf returns a <Document>, cast through unknown to satisfy

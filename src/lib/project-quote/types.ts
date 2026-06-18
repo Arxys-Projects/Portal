@@ -101,45 +101,7 @@ export type ProjectQuoteSizing = {
 };
 
 // ---------------------------------------------------------------------------
-// Part 3 — SHOWCASE (page 2)
-// ---------------------------------------------------------------------------
-
-// Spec highlights for a showcase card, resolved from product_specs. Every field
-// is nullable: the QuickCompare columns are nullable (Phase 6 migration), and a
-// SKU with a catalog (products) row but no product_specs row (for example an SW
-// workstation not yet in product_specs) yields a card with null highlights.
-export type ProjectQuoteShowcaseSpecHighlights = {
-  formFactor: string | null;
-  rackUnits: string | null;
-  cpuModelFull: string | null;
-  ramSpec: string | null;
-  driveBays: number | null;
-  storageRawTb: number | null;
-  maxCameras: number | null;
-  maxBandwidthMbps: number | null;
-  osEdition: string | null;
-  raidLevelDisplay: string | null;
-  hddCount: number | null;
-};
-
-// One showcase product. Built ONLY from deal line items whose product group
-// resolves to a price-book family (all V-series servers and SW workstations)
-// AND that have a catalog (products) record. Everything else (add-on cards,
-// NICs, transceivers, warranties, [MKT] custom lines, SKUs with no catalog
-// record) is excluded and remains on the commercial line-item table (part 1).
-export type ProjectQuoteShowcaseItem = {
-  sku: string;
-  productName: string;
-  productGroup: string; // for example "V800", "SW10"
-  msrp: number | null;
-  // Resolved /public family hero-image path (frozen path, not bytes, as above).
-  heroImagePath: string | null;
-  // null when no product_specs row exists for this SKU (catalog row only).
-  specHighlights: ProjectQuoteShowcaseSpecHighlights | null;
-};
-
-// ---------------------------------------------------------------------------
-// Part 4 — TERMS
+// Part 3 — TERMS
 // ---------------------------------------------------------------------------
 
 // The in-force T&Cs, frozen in full. `version` is also mirrored to a queryable
@@ -152,7 +114,7 @@ export type ProjectQuoteTerms = {
 };
 
 // ---------------------------------------------------------------------------
-// Part 5 — GENERATION META
+// Part 4 — GENERATION META
 // ---------------------------------------------------------------------------
 
 export type ProjectQuoteGeneration = {
@@ -191,10 +153,8 @@ export type ProjectQuoteSnapshot = {
   // Part 2.
   sizing: ProjectQuoteSizing;
   // Part 3.
-  showcase: ProjectQuoteShowcaseItem[];
-  // Part 4.
   terms: ProjectQuoteTerms;
-  // Part 5.
+  // Part 4.
   generation: ProjectQuoteGeneration;
 };
 

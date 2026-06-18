@@ -17,15 +17,13 @@ import {
   TRACK_GRAY,
 } from "../pdf/colors";
 import type { QuoteLineItem } from "@/lib/pipedrive/quote";
-import type { ProjectQuoteShowcaseSpecHighlights, ProjectQuoteSnapshot } from "./types";
+import type { ProjectQuoteSnapshot } from "./types";
 
 export type ProjectQuotePdfInput = {
   snapshot: ProjectQuoteSnapshot;
   logoDataUri: string | null;
   // Loaded from sizing.primaryServerHeroImagePath at render time.
   primaryHeroDataUri: string | null;
-  // Indexed parallel to snapshot.showcase; loaded from each item.heroImagePath.
-  showcaseHeroDataUris: (string | null)[];
 };
 
 // Sort ascending by orderNr; nulls sort last. Exported for test assertions.
@@ -97,34 +95,6 @@ function fmtDiscountPct(line: QuoteLineItem): string {
   return "—";
 }
 
-// Spec highlight pairs for a showcase card. Null fields are omitted; the
-// caller renders them only if the array is non-empty.
-function showcaseSpecPairs(
-  spec: ProjectQuoteShowcaseSpecHighlights,
-): Array<{ key: string; value: string }> {
-  const pairs: Array<{ key: string; value: string } | null> = [
-    spec.formFactor ? { key: "Form factor", value: spec.formFactor } : null,
-    spec.rackUnits ? { key: "Rack units", value: spec.rackUnits } : null,
-    spec.maxCameras != null
-      ? { key: "Max cameras", value: `${spec.maxCameras} streams` }
-      : null,
-    spec.maxBandwidthMbps != null
-      ? {
-          key: "Max bandwidth",
-          value: `${spec.maxBandwidthMbps.toLocaleString("en-US")} Mb/s`,
-        }
-      : null,
-    spec.storageRawTb != null
-      ? { key: "Raw storage", value: fmtTb(spec.storageRawTb) }
-      : null,
-    spec.driveBays != null ? { key: "Drive bays", value: String(spec.driveBays) } : null,
-    spec.cpuModelFull ? { key: "CPU", value: spec.cpuModelFull } : null,
-    spec.ramSpec ? { key: "RAM", value: spec.ramSpec } : null,
-    spec.osEdition ? { key: "OS", value: spec.osEdition } : null,
-  ];
-  return pairs.filter((p): p is { key: string; value: string } => p !== null);
-}
-
 // ---------------------------------------------------------------------------
 // Column-width constants (commercial table, camera schedule)
 // ---------------------------------------------------------------------------
@@ -180,13 +150,19 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   headerMeta: { fontSize: 8.5, color: TEXT_MUTED, textAlign: "right" },
-  rule: { borderBottomWidth: 2, borderBottomColor: ARXYS_NAVY, marginTop: 8, marginBottom: 13 },
+  rule: { borderBottomWidth: 2, borderBottomColor: ARXYS_NAVY, marginTop: 8, marginBottom: 6 },
+  // Validity disclaimer under the rule, repeated on every page.
+  headerDisclaimer: { fontSize: 7, fontStyle: "italic", color: TEXT_MUTED, marginBottom: 12 },
   sectionTitle: {
     fontSize: 11,
     fontFamily: "Helvetica-Bold",
     color: ARXYS_NAVY,
     marginBottom: 7,
   },
+  // Page 1 "Project parameters" heading line with the partner company at right.
+  page1HeaderRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end" },
+  preparedForLine: { fontSize: 8, color: TEXT_MUTED, marginBottom: 7 },
+  preparedForName: { fontSize: 9, fontFamily: "Helvetica-Bold", color: ARXYS_NAVY },
 
   // Parameters block (page 1)
   paramsBlock: { flexDirection: "row", marginBottom: 14 },
@@ -269,43 +245,7 @@ const styles = StyleSheet.create({
   specKey: { fontSize: 6.5, color: TEXT_MUTED, textTransform: "uppercase", letterSpacing: 0.5 },
   specVal: { fontSize: 8.5, fontFamily: "Helvetica-Bold", color: TEXT_SLATE },
 
-  // Showcase cards (page 2)
-  showcaseGrid: { flexDirection: "row", flexWrap: "wrap" },
-  showcaseCard: {
-    width: "49%",
-    marginRight: "1%",
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: BORDER_LIGHT,
-    padding: 9,
-  },
-  showcaseInner: { flexDirection: "row" },
-  showcaseImageCol: { width: 76, marginRight: 10, alignItems: "center" },
-  showcaseImage: { width: 70 },
-  showcaseImagePlaceholder: {
-    width: 70,
-    height: 46,
-    backgroundColor: BG_LIGHT,
-    borderWidth: 1,
-    borderColor: BORDER_LIGHT,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  showcaseDetailCol: { flex: 1 },
-  showcaseProductName: {
-    fontSize: 9.5,
-    fontFamily: "Helvetica-Bold",
-    color: ARXYS_NAVY,
-    marginBottom: 2,
-  },
-  showcaseProductGroup: { fontSize: 7, color: TEXT_MUTED, marginBottom: 5 },
-  showcaseSpecGrid: { flexDirection: "row", flexWrap: "wrap" },
-  showcaseSpecPair: { width: "50%", marginBottom: 2 },
-  showcaseSpecKey: { fontSize: 5.5, color: TEXT_MUTED, textTransform: "uppercase", letterSpacing: 0.5 },
-  showcaseSpecVal: { fontSize: 7.5, fontFamily: "Helvetica-Bold", color: TEXT_SLATE },
-  emptyShowcase: { fontSize: 9, color: TEXT_MUTED, marginTop: 10 },
-
-  // Commercial table (page 3)
+  // Commercial table (page 2)
   commInfoBlock: {
     flexDirection: "row",
     backgroundColor: BG_LIGHT,
@@ -357,20 +297,33 @@ const styles = StyleSheet.create({
     textAlign: "right",
   },
 
-  // Terms (page 4)
-  termsIdBlock: {
+  // Terms (page 3) — identity block as a 3-column, 2-row grid.
+  termsIdGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
     backgroundColor: BG_LIGHT,
     borderWidth: 1,
     borderColor: BORDER_LIGHT,
-    padding: 10,
-    marginBottom: 13,
+    paddingTop: 10,
+    paddingBottom: 4,
+    paddingHorizontal: 10,
+    marginBottom: 10,
   },
-  termsIdRow: { flexDirection: "row", marginBottom: 4 },
-  termsIdLabel: { width: 100, fontSize: 7.5, color: TEXT_MUTED },
-  termsIdValue: { flex: 1, fontSize: 7.5, fontFamily: "Helvetica-Bold", color: TEXT_SLATE },
-  termsText: { fontSize: 7, color: TEXT_SLATE, lineHeight: 1.65 },
+  termsIdCell: { width: "33.33%", marginBottom: 6, paddingRight: 8 },
+  termsIdCellWide: { width: "66.66%", marginBottom: 6, paddingRight: 8 },
+  termsIdLabel: {
+    fontSize: 6.5,
+    color: TEXT_MUTED,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    marginBottom: 2,
+  },
+  termsIdValue: { fontSize: 8.5, fontFamily: "Helvetica-Bold", color: TEXT_SLATE },
+  // Compact so the full multi-clause T&Cs fit on a single page.
+  termsText: { fontSize: 6.5, color: TEXT_SLATE, lineHeight: 1.32 },
 
-  // Fixed footer (repeated on every rendered page within a <Page>)
+  // Fixed footer (repeated on every rendered page within a <Page>). Two lines:
+  // a centered Arxys contact line, then a quote-ref | validity row.
   footer: {
     position: "absolute",
     bottom: 20,
@@ -379,13 +332,16 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: BORDER_LIGHT,
     paddingTop: 5,
-    flexDirection: "row",
-    justifyContent: "space-between",
   },
-  footerLeft: { fontSize: 7, color: FOOTER_MUTED },
-  footerCenter: { fontSize: 7, color: TEXT_MUTED, textAlign: "center" },
+  footerContact: { fontSize: 6.5, color: FOOTER_MUTED, textAlign: "center", marginBottom: 2 },
+  footerRow: { flexDirection: "row", justifyContent: "space-between" },
+  footerLeft: { fontSize: 7, color: TEXT_MUTED },
   footerRight: { fontSize: 7, color: TEXT_MUTED, textAlign: "right" },
 });
+
+// Company contact line printed in the footer of every page.
+const ARXYS_CONTACT_LINE =
+  "Arxys · 1810 Gillespie Way, Suite 108, El Cajon, CA 92020 · 619.258.7800 · arxys.com";
 
 // ---------------------------------------------------------------------------
 // Shared sub-components
@@ -395,10 +351,12 @@ function PageHeader({
   logoDataUri,
   identifier,
   generatedDateStr,
+  disclaimer,
 }: {
   logoDataUri: string | null;
   identifier: string;
   generatedDateStr: string;
+  disclaimer: string;
 }) {
   return (
     <>
@@ -422,6 +380,7 @@ function PageHeader({
         </View>
       </View>
       <View style={styles.rule} />
+      <Text style={styles.headerDisclaimer}>{disclaimer}</Text>
     </>
   );
 }
@@ -435,9 +394,11 @@ function PageFooter({
 }) {
   return (
     <View style={styles.footer} fixed>
-      <Text style={styles.footerLeft}>Arxys · arxys.com</Text>
-      <Text style={styles.footerCenter}>{identifier}</Text>
-      <Text style={styles.footerRight}>{validityLine}</Text>
+      <Text style={styles.footerContact}>{ARXYS_CONTACT_LINE}</Text>
+      <View style={styles.footerRow}>
+        <Text style={styles.footerLeft}>{identifier}</Text>
+        <Text style={styles.footerRight}>{validityLine}</Text>
+      </View>
     </View>
   );
 }
@@ -475,12 +436,16 @@ function CapacityBar({
 // ---------------------------------------------------------------------------
 
 export function ProjectQuotePdf({ data }: { data: ProjectQuotePdfInput }) {
-  const { snapshot, logoDataUri, primaryHeroDataUri, showcaseHeroDataUris } = data;
-  const { commercial, sizing, showcase, terms, generation } = snapshot;
+  const { snapshot, logoDataUri, primaryHeroDataUri } = data;
+  const { commercial, sizing, terms, generation } = snapshot;
 
   const generatedDateStr = fmtDate(generation.generatedAt);
   const expiryDateStr = fmtExpiryDate(generation.generatedAt, generation.validityDays);
   const validityLine = `Valid through ${expiryDateStr}`;
+  // Validity disclaimer in the header of every page. The day count tracks the
+  // quote's frozen validityDays so it can never drift from the "Valid through"
+  // date computed from the same value.
+  const headerDisclaimer = `Quote valid for a maximum of ${generation.validityDays} days from date of quote and subject to change without notice.`;
 
   // ── Page 1: Sizing ────────────────────────────────────────────────────────
 
@@ -563,11 +528,18 @@ export function ProjectQuotePdf({ data }: { data: ProjectQuotePdfInput }) {
           logoDataUri={logoDataUri}
           identifier={generation.identifier}
           generatedDateStr={generatedDateStr}
+          disclaimer={headerDisclaimer}
         />
         <PageFooter identifier={generation.identifier} validityLine={validityLine} />
 
-        {/* Project parameters */}
-        <Text style={styles.sectionTitle}>Project parameters</Text>
+        {/* Project parameters — partner company shown at the right of the heading */}
+        <View style={styles.page1HeaderRow}>
+          <Text style={styles.sectionTitle}>Project parameters</Text>
+          <Text style={styles.preparedForLine}>
+            Prepared for{"  "}
+            <Text style={styles.preparedForName}>{sizing.partner.companyName}</Text>
+          </Text>
+        </View>
         <View style={styles.paramsBlock}>
           <View style={styles.paramCol}>
             <Text style={styles.paramLabel}>Project</Text>
@@ -733,78 +705,13 @@ export function ProjectQuotePdf({ data }: { data: ProjectQuotePdfInput }) {
         </View>
       </Page>
 
-      {/* ── Page 2: Showcase ────────────────────────────────────────────── */}
+      {/* ── Page 2: Commercial ──────────────────────────────────────────── */}
       <Page size="LETTER" style={styles.page}>
         <PageHeader
           logoDataUri={logoDataUri}
           identifier={generation.identifier}
           generatedDateStr={generatedDateStr}
-        />
-        <PageFooter identifier={generation.identifier} validityLine={validityLine} />
-
-        <Text style={styles.sectionTitle}>Products in this quote</Text>
-
-        {showcase.length === 0 ? (
-          <Text style={styles.emptyShowcase}>
-            No catalog products with price-book family records in this quote.
-          </Text>
-        ) : (
-          <View style={styles.showcaseGrid}>
-            {showcase.map((item, i) => {
-              const heroUri = showcaseHeroDataUris[i] ?? null;
-              const pairs = item.specHighlights
-                ? showcaseSpecPairs(item.specHighlights)
-                : [];
-              return (
-                <View key={item.sku} style={styles.showcaseCard} wrap={false}>
-                  <View style={styles.showcaseInner}>
-                    <View style={styles.showcaseImageCol}>
-                      {heroUri ? (
-                        // @react-pdf/renderer Image has no alt concept.
-                        // eslint-disable-next-line jsx-a11y/alt-text
-                        <Image style={styles.showcaseImage} src={heroUri} />
-                      ) : (
-                        <View style={styles.showcaseImagePlaceholder}>
-                          <Text style={{ fontSize: 7, color: TEXT_MUTED }}>
-                            {item.productGroup}
-                          </Text>
-                        </View>
-                      )}
-                    </View>
-                    <View style={styles.showcaseDetailCol}>
-                      <Text style={styles.showcaseProductName}>{item.productName}</Text>
-                      <Text style={styles.showcaseProductGroup}>
-                        {item.sku} · {item.productGroup}
-                      </Text>
-                      {pairs.length > 0 ? (
-                        <View style={styles.showcaseSpecGrid}>
-                          {pairs.map((p) => (
-                            <View key={p.key} style={styles.showcaseSpecPair}>
-                              <Text style={styles.showcaseSpecKey}>{p.key}</Text>
-                              <Text style={styles.showcaseSpecVal}>{p.value}</Text>
-                            </View>
-                          ))}
-                        </View>
-                      ) : (
-                        <Text style={{ fontSize: 7.5, color: TEXT_MUTED }}>
-                          Specifications not available.
-                        </Text>
-                      )}
-                    </View>
-                  </View>
-                </View>
-              );
-            })}
-          </View>
-        )}
-      </Page>
-
-      {/* ── Page 3: Commercial ──────────────────────────────────────────── */}
-      <Page size="LETTER" style={styles.page}>
-        <PageHeader
-          logoDataUri={logoDataUri}
-          identifier={generation.identifier}
-          generatedDateStr={generatedDateStr}
+          disclaimer={headerDisclaimer}
         />
         <PageFooter identifier={generation.identifier} validityLine={validityLine} />
 
@@ -918,34 +825,35 @@ export function ProjectQuotePdf({ data }: { data: ProjectQuotePdfInput }) {
         ) : null}
       </Page>
 
-      {/* ── Page 4: Terms ───────────────────────────────────────────────── */}
+      {/* ── Page 3: Terms ───────────────────────────────────────────────── */}
       <Page size="LETTER" style={styles.page}>
         <PageHeader
           logoDataUri={logoDataUri}
           identifier={generation.identifier}
           generatedDateStr={generatedDateStr}
+          disclaimer={headerDisclaimer}
         />
         <PageFooter identifier={generation.identifier} validityLine={validityLine} />
 
-        {/* Quote identity and partner block */}
-        <View style={styles.termsIdBlock}>
-          <View style={styles.termsIdRow}>
+        {/* Quote identity and partner block — 3 columns, 2 rows. */}
+        <View style={styles.termsIdGrid}>
+          <View style={styles.termsIdCell}>
             <Text style={styles.termsIdLabel}>Quote reference</Text>
             <Text style={styles.termsIdValue}>{generation.identifier}</Text>
           </View>
-          <View style={styles.termsIdRow}>
+          <View style={styles.termsIdCell}>
             <Text style={styles.termsIdLabel}>Generated</Text>
             <Text style={styles.termsIdValue}>{generatedDateStr}</Text>
           </View>
-          <View style={styles.termsIdRow}>
+          <View style={styles.termsIdCell}>
             <Text style={styles.termsIdLabel}>Valid through</Text>
             <Text style={styles.termsIdValue}>{expiryDateStr}</Text>
           </View>
-          <View style={styles.termsIdRow}>
+          <View style={styles.termsIdCell}>
             <Text style={styles.termsIdLabel}>Terms version</Text>
             <Text style={styles.termsIdValue}>{terms.version}</Text>
           </View>
-          <View style={[styles.termsIdRow, { marginBottom: 0 }]}>
+          <View style={styles.termsIdCellWide}>
             <Text style={styles.termsIdLabel}>Prepared for</Text>
             <Text style={styles.termsIdValue}>
               {sizing.partner.companyName} — {sizing.partner.contactName}
@@ -955,10 +863,10 @@ export function ProjectQuotePdf({ data }: { data: ProjectQuotePdfInput }) {
 
         <Text style={styles.sectionTitle}>Terms and Conditions</Text>
         {/* One <Text> per paragraph (split on the blank line the terms text
-            joins with) so react-pdf has natural break points and the full,
-            multi-clause terms paginate cleanly instead of clipping. */}
+            joins with) so react-pdf has natural break points; the compact
+            termsText size keeps the full T&Cs on a single page. */}
         {terms.text.split("\n\n").map((para, i) => (
-          <Text key={i} style={[styles.termsText, { marginBottom: 5 }]}>
+          <Text key={i} style={[styles.termsText, { marginBottom: 3 }]}>
             {para}
           </Text>
         ))}

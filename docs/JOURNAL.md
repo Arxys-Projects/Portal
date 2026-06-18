@@ -4,6 +4,31 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-06-18 — Project Quote PDF revisions: drop showcase, partner on page 1, header/footer, one-page terms
+
+### Work done
+
+A round of layout/content fixes to the Project Quote PDF. The document is now three pages (Sizing, Products, Terms) instead of four. All local gates green; not yet committed (awaiting go-ahead).
+
+- **Removed the showcase page entirely** (ADR 0065). Full removal, not render-only: dropped the `showcase` field from the snapshot shape (`types.ts`), the showcase builders (`buildShowcase`, `buildShowcaseSpecHighlights`, `isShowcaseProductGroup`, `ShowcaseCatalogRecord`) from `snapshot.ts`, the catalog resolution (`loadShowcaseCatalog` + the `dealSkus`/`catalogBySku` plumbing) from `assemble.ts`, the showcase hero loading from `render.ts`, and the page-2 JSX + styles + `showcaseSpecPairs` + `showcaseHeroDataUris` input field from `ProjectQuotePdf.tsx`. The commercial line-item table is the sole product record. No quotes were issued (0 rows), so no historical snapshot loses content and the snapshot version is unchanged.
+- **Page 1 — partner company on the heading line.** The "Project parameters" title is now a row with the reseller/partner company right-aligned as "Prepared for {Company}" (company in bold navy). Zero extra vertical space; the params grid is untouched.
+- **Header disclaimer on every page.** A muted italic line under the rule: "Quote valid for a maximum of {N} days from date of quote and subject to change without notice." The day count is templated from the quote's frozen `validityDays` (renders 7 today) so it can never drift from the "Valid through" date computed from the same value.
+- **Footer contact line on every page.** The footer is now two lines: a centered Arxys contact line ("Arxys · 1810 Gillespie Way, Suite 108, El Cajon, CA 92020 · 619.258.7800 · arxys.com", a module constant) above the existing quote-ref | "Valid through" row. Address supplied by Andy 2026-06-18; capitalization standardized (Gillespie Way / El Cajon) and a comma added after the suite.
+- **Terms identity block → 3 columns × 2 rows.** Replaced the 5-row stacked label/value block with a compact flex-wrap grid: row 1 = Quote reference / Generated / Valid through; row 2 = Terms version / Prepared for (wide). Frees vertical space.
+- **Terms fit one page.** Tightened the terms body (fontSize 7→6.5, lineHeight 1.65→1.32, paragraph spacing 5→3) so the full multi-clause T&Cs render on a single page. Verified by a render that produced exactly 3 pages (terms did not spill to a 4th).
+
+### Verification gates
+
+- `npm test` 150/150 (−8: removed the `isShowcaseProductGroup`, `buildShowcase`, and two showcase-render tests; updated `buildProjectQuoteSnapshot` / fixtures to drop `catalogBySku` and the `showcase` assertion).
+- `npm run build` clean (TypeScript + Compiled); `npx eslint` 0 errors on all changed files.
+- Full-quote render with the real in-force terms: `%PDF-`, **3 pages** (Sizing, Products, Terms-on-one-page).
+
+### Decisions captured
+
+- [`0065-drop-project-quote-showcase-page.md`](./decisions/0065-drop-project-quote-showcase-page.md) — drop the showcase; commercial line items are the sole product record. Amends the page-2 / showcase portions of ADR 0059 and 0060.
+
+---
+
 ## 2026-06-18 — Project Quote: approved Terms & Conditions replace the placeholder
 
 ### Work done
