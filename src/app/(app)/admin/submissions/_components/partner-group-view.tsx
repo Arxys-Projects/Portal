@@ -2,11 +2,12 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { type SubmissionStatus } from "@/app/(app)/submissions/status";
 import {
-  STATUS_META,
-  NO_STATUS_BADGE,
-  type SubmissionStatus,
-} from "@/app/(app)/submissions/status";
+  StatusBadge,
+  MetricTile,
+  buttonClasses,
+} from "@/app/(app)/_components/ui";
 import type { Deal } from "@/lib/pipeline/forecast";
 
 type SubmissionMini = {
@@ -40,19 +41,6 @@ function formatDate(value: string | null | undefined): string {
   return d.toISOString().slice(0, 10);
 }
 
-function StatusBadge({ status }: { status: SubmissionStatus | null }) {
-  const meta = status ? STATUS_META[status] : null;
-  return (
-    <span
-      className={`inline-block rounded-full border px-2 py-0.5 text-xs font-medium ${
-        meta ? meta.badge : NO_STATUS_BADGE
-      }`}
-    >
-      {meta ? meta.label : "—"}
-    </span>
-  );
-}
-
 function PartnerCard({
   group,
   openPipeline,
@@ -65,17 +53,16 @@ function PartnerCard({
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <div className="overflow-hidden rounded-lg border border-neutral-200 bg-white">
+    <div className="overflow-hidden rounded-xl border-2 border-line bg-surface">
       <button
         type="button"
         onClick={() => setExpanded((v) => !v)}
-        className="flex w-full items-center justify-between px-4 py-3 text-left hover:bg-neutral-50"
+        aria-expanded={expanded}
+        className="flex w-full items-center justify-between px-4 py-3 text-left hover:bg-[#f7f9fc]"
       >
         <div className="flex items-center gap-3">
-          <span className="text-sm font-semibold text-neutral-900">
-            {group.partner_name}
-          </span>
-          <span className="text-xs text-neutral-500">
+          <span className="text-sm font-bold text-ink">{group.partner_name}</span>
+          <span className="text-xs text-ink-soft">
             {group.deals.length} deal{group.deals.length !== 1 ? "s" : ""}
             {group.draft_count > 0
               ? ` · ${group.draft_count} draft${group.draft_count !== 1 ? "s" : ""}`
@@ -84,25 +71,25 @@ function PartnerCard({
         </div>
         <div className="flex items-center gap-6 text-right">
           <div>
-            <p className="text-xs text-neutral-400">Open pipeline</p>
-            <p className="text-sm font-medium text-neutral-800">
+            <p className="text-xs text-ink-soft">Open pipeline</p>
+            <p className="text-sm font-semibold tabular-nums text-ink">
               {formatPrice(openPipeline)}
             </p>
           </div>
           <div>
-            <p className="text-xs text-neutral-400">Weighted forecast</p>
-            <p className="text-sm font-medium text-neutral-800">
+            <p className="text-xs text-ink-soft">Weighted forecast</p>
+            <p className="text-sm font-semibold tabular-nums text-ink">
               {formatPrice(weighted)}
             </p>
           </div>
           <svg
-            width="16"
-            height="16"
+            width="18"
+            height="18"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
-            strokeWidth="2"
-            className={`text-neutral-400 transition-transform ${expanded ? "rotate-180" : ""}`}
+            strokeWidth="2.5"
+            className={`text-arxys-navy transition-transform ${expanded ? "rotate-180" : ""}`}
           >
             <polyline points="6 9 12 15 18 9" />
           </svg>
@@ -110,7 +97,7 @@ function PartnerCard({
       </button>
 
       {expanded ? (
-        <div className="border-t border-neutral-100">
+        <div className="border-t border-line">
           {group.deals.map((deal) => (
             <DealRow key={deal.representative_id} deal={deal} />
           ))}
@@ -123,47 +110,45 @@ function PartnerCard({
 function DealRow({ deal }: { deal: Deal & { submissions: SubmissionMini[] } }) {
   const [expanded, setExpanded] = useState(false);
 
-  const isDraftOrNull =
-    deal.status === null || deal.status === "draft";
+  const isDraftOrNull = deal.status === null || deal.status === "draft";
 
   return (
-    <div className="border-b border-neutral-50 last:border-0">
+    <div className="border-b border-line-soft last:border-0">
       <button
         type="button"
         onClick={() => setExpanded((v) => !v)}
-        className="flex w-full items-center justify-between px-6 py-2.5 text-left hover:bg-neutral-50"
+        aria-expanded={expanded}
+        className="flex w-full items-center justify-between px-6 py-2.5 text-left hover:bg-[#f7f9fc]"
       >
-        <div className="flex items-center gap-3">
-          <span className="text-sm text-neutral-800">
+        <div className="flex items-center gap-2.5">
+          <span className="text-sm font-medium text-ink">
             {deal.project_name ?? "(untitled)"}
           </span>
           {deal.pipedrive_deal_id ? (
-            <span className="rounded border border-blue-200 bg-blue-50 px-1.5 py-0.5 text-xs text-blue-700">
-              Pipedrive
-            </span>
+            <StatusBadge variant="source">Pipedrive</StatusBadge>
           ) : null}
-          <StatusBadge status={deal.status as SubmissionStatus | null} />
+          <StatusBadge variant="status" status={deal.status as SubmissionStatus | null} />
         </div>
         <div className="flex items-center gap-4 text-right">
-          <span className="text-sm text-neutral-700">
+          <span className="text-sm tabular-nums text-ink">
             {isDraftOrNull ? (
-              <span className="text-neutral-400 italic">—</span>
+              <span className="italic text-ink-soft">—</span>
             ) : (
               formatPrice(deal.total_list_price_usd)
             )}
           </span>
-          <span className="text-xs text-neutral-400">
+          <span className="text-xs text-ink-soft">
             {deal.all_submission_ids.length} submission
             {deal.all_submission_ids.length !== 1 ? "s" : ""}
           </span>
           <svg
-            width="14"
-            height="14"
+            width="15"
+            height="15"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
-            strokeWidth="2"
-            className={`text-neutral-300 transition-transform ${expanded ? "rotate-180" : ""}`}
+            strokeWidth="2.5"
+            className={`text-arxys-navy transition-transform ${expanded ? "rotate-180" : ""}`}
           >
             <polyline points="6 9 12 15 18 9" />
           </svg>
@@ -171,34 +156,34 @@ function DealRow({ deal }: { deal: Deal & { submissions: SubmissionMini[] } }) {
       </button>
 
       {expanded ? (
-        <div className="bg-neutral-50 px-8 pb-2">
+        <div className="bg-[#f7f9fc] px-8 pb-3 pt-1">
           <table className="w-full text-xs">
             <thead>
-              <tr className="text-left text-neutral-400">
-                <th className="py-1 font-medium">Date</th>
-                <th className="py-1 font-medium">Status</th>
-                <th className="py-1 font-medium text-right">List price</th>
-                <th className="py-1 font-medium"></th>
+              <tr className="text-left text-ink-soft">
+                <th className="py-1.5 font-bold uppercase tracking-wide">Date</th>
+                <th className="py-1.5 font-bold uppercase tracking-wide">Status</th>
+                <th className="py-1.5 text-right font-bold uppercase tracking-wide">List price</th>
+                <th className="py-1.5"></th>
               </tr>
             </thead>
             <tbody>
               {deal.submissions.map((s) => (
-                <tr key={s.id} className="border-t border-neutral-100">
-                  <td className="py-1 text-neutral-600">{formatDate(s.created_at)}</td>
-                  <td className="py-1">
-                    <StatusBadge status={s.status} />
+                <tr key={s.id} className="border-t border-line-soft">
+                  <td className="py-1.5 text-ink-soft">{formatDate(s.created_at)}</td>
+                  <td className="py-1.5">
+                    <StatusBadge variant="status" status={s.status} />
                   </td>
-                  <td className="py-1 text-right text-neutral-600">
+                  <td className="py-1.5 text-right tabular-nums text-ink">
                     {s.status === null || s.status === "draft" ? (
-                      <span className="italic text-neutral-400">—</span>
+                      <span className="italic text-ink-soft">—</span>
                     ) : (
                       formatPrice(s.total_list_price_usd)
                     )}
                   </td>
-                  <td className="py-1 text-right">
+                  <td className="py-1.5 text-right">
                     <Link
                       href={`/admin/submissions/${s.id}`}
-                      className="text-blue-600 hover:underline"
+                      className={buttonClasses("primary", "sm")}
                     >
                       View
                     </Link>
@@ -230,26 +215,26 @@ export function PartnerGroupView({
 }) {
   return (
     <div className="mt-6 space-y-4">
-      {/* Summary cards */}
+      {/* Summary tiles */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <SummaryCard label="Active partners" value={String(totalActivePartners)} />
-        <SummaryCard label="Open pipeline" value={formatPrice(totalOpenPipeline)} />
-        <SummaryCard label="Weighted forecast" value={formatPrice(totalWeighted)} />
-        <div className="rounded-lg border border-neutral-200 bg-white px-4 py-3">
-          <p className="text-xs text-neutral-500">By status</p>
-          <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5">
-            {Object.entries(statusCounts).map(([st, n]) => (
-              <span key={st} className="text-xs text-neutral-700">
-                {st}: <strong>{n}</strong>
-              </span>
-            ))}
-            {draftCount > 0 ? (
-              <span className="text-xs text-neutral-400 italic">
-                drafts: {draftCount}
-              </span>
-            ) : null}
-          </div>
-        </div>
+        <MetricTile label="Active partners" value={String(totalActivePartners)} />
+        <MetricTile label="Open pipeline" value={formatPrice(totalOpenPipeline)} />
+        <MetricTile label="Weighted forecast" value={formatPrice(totalWeighted)} />
+        <MetricTile
+          label="By status"
+          value={
+            <div className="flex flex-wrap gap-x-3 gap-y-0.5 pt-0.5 text-[13px] font-bold">
+              {Object.entries(statusCounts).map(([st, n]) => (
+                <span key={st} className="text-ink">
+                  {st}: <strong>{n}</strong>
+                </span>
+              ))}
+              {draftCount > 0 ? (
+                <span className="italic text-ink-soft">drafts: {draftCount}</span>
+              ) : null}
+            </div>
+          }
+        />
       </div>
 
       {/* Per-partner rows */}
@@ -267,20 +252,11 @@ export function PartnerGroupView({
         })}
       </div>
 
-      <p className="text-xs text-neutral-400">
+      <p className="text-xs text-ink-soft">
         Pre-CRM partner activity — not synced with Pipedrive stage.
         Weights: Sent 40% · On Hold 20% · Won 100% · Lost 0%.
         Draft/unset values excluded from dollar totals.
       </p>
-    </div>
-  );
-}
-
-function SummaryCard({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-lg border border-neutral-200 bg-white px-4 py-3">
-      <p className="text-xs text-neutral-500">{label}</p>
-      <p className="mt-0.5 text-lg font-semibold text-neutral-900">{value}</p>
     </div>
   );
 }

@@ -6,10 +6,16 @@ import { useState, useTransition } from "react";
 import {
   STATUS_META,
   SUBMISSION_STATUSES,
-  NO_STATUS_BADGE,
   isDeletable,
   type SubmissionStatus,
 } from "./status";
+import {
+  Button,
+  IconButton,
+  Select,
+  StatusBadge,
+  buttonClasses,
+} from "@/app/(app)/_components/ui";
 import {
   deleteSubmission,
   togglePreferred,
@@ -67,8 +73,8 @@ function StarIcon({ filled }: { filled: boolean }) {
       width="18"
       height="18"
       viewBox="0 0 24 24"
-      fill={filled ? "#FBB040" : "none"}
-      stroke={filled ? "#FBB040" : "currentColor"}
+      fill={filled ? "#054A91" : "none"}
+      stroke={filled ? "#054A91" : "currentColor"}
       strokeWidth="2"
       strokeLinejoin="round"
     >
@@ -129,22 +135,19 @@ export function Pipeline({
   return (
     <div>
       <div className="mb-4">
-        <Link href="/dashboard" className="text-sm text-blue-600 hover:underline">
+        <Link href="/dashboard" className="text-sm font-medium text-arxys-navy hover:underline">
           ← Back to dashboard
         </Link>
       </div>
 
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-neutral-900">My Pipeline</h1>
-          <p className="mt-1 text-sm text-neutral-600">
+          <h1 className="text-2xl font-bold text-ink">My Pipeline</h1>
+          <p className="mt-1 text-sm text-ink-soft">
             Your calculator submissions, grouped by project. {total} shown.
           </p>
         </div>
-        <Link
-          href="/calculator"
-          className="rounded bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
-        >
+        <Link href="/calculator" className={buttonClasses("primary")}>
           New calculation
         </Link>
       </div>
@@ -161,10 +164,10 @@ export function Pipeline({
                   ? { pathname: "/submissions" }
                   : { pathname: "/submissions", query: { status: f.value } }
               }
-              className={`rounded-full border px-3 py-1 text-xs font-medium ${
+              className={`rounded-full border px-3 py-1 text-xs font-semibold ${
                 isActive
-                  ? "border-blue-600 bg-blue-600 text-white"
-                  : "border-neutral-300 bg-white text-neutral-600 hover:bg-neutral-100"
+                  ? "border-arxys-navy bg-arxys-navy text-white"
+                  : "border-line bg-surface text-ink-soft hover:bg-secondary"
               }`}
             >
               {f.label}
@@ -174,27 +177,27 @@ export function Pipeline({
       </div>
 
       {totalOpenPipeline !== undefined && weightedForecast !== undefined ? (
-        <div className="mt-3 rounded bg-neutral-100 px-4 py-2 text-sm text-neutral-600">
-          <span className="font-medium text-neutral-800">Open Pipeline:</span>{" "}
+        <div className="mt-3 rounded-lg bg-arxys-navy-soft px-4 py-2 text-sm text-ink-soft">
+          <span className="font-semibold text-ink">Open Pipeline:</span>{" "}
           {fmtAmount(totalOpenPipeline)}
           {" · "}
-          <span className="font-medium text-neutral-800">Weighted Forecast:</span>{" "}
+          <span className="font-semibold text-ink">Weighted Forecast:</span>{" "}
           {fmtAmount(weightedForecast)}
         </div>
       ) : null}
 
       {error ? (
-        <p className="mt-4 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+        <p className="mt-4 rounded-lg border border-[#f0c6c2] bg-danger-soft px-3 py-2 text-sm text-danger">
           {error}
         </p>
       ) : null}
 
       {total === 0 ? (
-        <p className="mt-6 text-sm text-neutral-500">
+        <p className="mt-6 text-sm text-ink-soft">
           {activeStatus === "all" ? (
             <>
               You have not saved a calculation yet.{" "}
-              <Link href="/calculator" className="text-blue-600 hover:underline">
+              <Link href="/calculator" className="font-medium text-arxys-navy hover:underline">
                 Start one now.
               </Link>
             </>
@@ -207,175 +210,173 @@ export function Pipeline({
           {groups.map((group) => (
             <section
               key={group.key}
-              className="overflow-hidden rounded-lg border border-neutral-200 bg-white"
+              className="overflow-hidden rounded-xl border-2 border-line bg-surface"
             >
-              <header className="flex flex-wrap items-center gap-2 border-b border-neutral-200 bg-neutral-50 px-4 py-2">
-                <h2 className="text-sm font-semibold text-neutral-900">
-                  {group.projectName ?? (
-                    <span className="text-neutral-500">Ungrouped</span>
-                  )}
+              <header className="flex flex-wrap items-center gap-2 border-b border-line px-4 py-2.5">
+                <h2 className="text-sm font-bold text-ink">
+                  {group.projectName ?? <span className="text-ink-soft">Ungrouped</span>}
                 </h2>
                 {group.onBehalfCompanyName ? (
-                  <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800">
+                  <StatusBadge variant="on-behalf">
                     On behalf of {group.onBehalfCompanyName}
-                  </span>
+                  </StatusBadge>
                 ) : null}
                 {group.preparedByArxys ? (
-                  <span className="rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-800">
+                  <StatusBadge variant="source">
                     Prepared by Arxys
                     {group.preparedByRep ? ` · ${group.preparedByRep}` : ""}
-                  </span>
+                  </StatusBadge>
                 ) : null}
               </header>
-              <table className="w-full text-sm">
-                <thead className="text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">
-                  <tr>
-                    <th className="w-10 px-4 py-2"></th>
-                    <th className="px-4 py-2">Date</th>
-                    <th className="px-4 py-2">Recommendation</th>
-                    <th className="px-4 py-2 text-right">List price</th>
-                    <th className="px-4 py-2">Status</th>
-                    <th className="px-4 py-2 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-neutral-100">
-                  {group.rows.map((row) => {
-                    const rowBusy = isPending && busyId === row.id;
-                    return (
-                      <tr key={row.id} className={rowBusy ? "opacity-50" : undefined}>
-                        {/* Preferred star */}
-                        <td className="px-4 py-2">
-                          <button
-                            type="button"
-                            aria-label={row.isPreferred ? "Unmark preferred" : "Mark preferred"}
-                            title={row.isPreferred ? "Preferred quote" : "Mark as preferred"}
-                            disabled={isPending}
-                            onClick={() => perform(row.id, () => togglePreferred(row.id))}
-                            className="text-neutral-300 hover:text-[#FBB040] disabled:cursor-not-allowed"
-                          >
-                            <StarIcon filled={row.isPreferred} />
-                          </button>
-                        </td>
-
-                        {/* Date */}
-                        <td className="px-4 py-2 text-neutral-600">{formatDate(row.createdAt)}</td>
-
-                        {/* Recommendation */}
-                        <td className="px-4 py-2 text-neutral-700">
-                          {row.recommendedUnits} ×{" "}
-                          {row.productGroup && row.familySlug ? (
-                            <Link
-                              href={`/price-book/${row.familySlug}`}
-                              className="font-medium text-[#054A91] hover:underline"
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b-2 border-line bg-arxys-navy-soft text-left text-[11px] font-extrabold uppercase tracking-wide text-ink-soft">
+                      <th className="w-10 px-4 py-2.5"></th>
+                      <th className="px-4 py-2.5">Date</th>
+                      <th className="px-4 py-2.5">Recommendation</th>
+                      <th className="px-4 py-2.5 text-right">List price</th>
+                      <th className="px-4 py-2.5">Status</th>
+                      <th className="px-4 py-2.5 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-line-soft">
+                    {group.rows.map((row) => {
+                      const rowBusy = isPending && busyId === row.id;
+                      const deletable = isDeletable(row.status);
+                      return (
+                        <tr key={row.id} className={rowBusy ? "opacity-50" : undefined}>
+                          {/* Preferred star */}
+                          <td className="px-4 py-2.5">
+                            <button
+                              type="button"
+                              aria-label={row.isPreferred ? "Unmark preferred" : "Mark preferred"}
+                              title={row.isPreferred ? "Preferred quote" : "Mark as preferred"}
+                              disabled={isPending}
+                              onClick={() => perform(row.id, () => togglePreferred(row.id))}
+                              className="text-neutral-300 transition-colors hover:text-arxys-navy disabled:cursor-not-allowed"
                             >
-                              {row.productGroup}
-                            </Link>
-                          ) : (
-                            (row.productGroup ?? "")
-                          )}
-                        </td>
+                              <StarIcon filled={row.isPreferred} />
+                            </button>
+                          </td>
 
-                        {/* List price */}
-                        <td className="px-4 py-2 text-right text-neutral-700">
-                          {formatPrice(row.totalListPriceUsd)}
-                        </td>
+                          {/* Date */}
+                          <td className="px-4 py-2.5 text-ink-soft">{formatDate(row.createdAt)}</td>
 
-                        {/* Status selector */}
-                        <td className="px-4 py-2">
-                          <select
-                            aria-label="Submission status"
-                            disabled={isPending}
-                            value={row.status ?? ""}
-                            onChange={(e) =>
-                              perform(row.id, () =>
-                                updateSubmissionStatus(
-                                  row.id,
-                                  e.target.value === ""
-                                    ? null
-                                    : (e.target.value as SubmissionStatus),
-                                ),
-                              )
-                            }
-                            className={`rounded-full border px-2 py-1 text-xs font-medium focus:outline-none disabled:cursor-not-allowed ${
-                              row.status ? STATUS_META[row.status].badge : NO_STATUS_BADGE
-                            }`}
-                          >
-                            <option value="">No status</option>
-                            {SUBMISSION_STATUSES.map((s) => (
-                              <option key={s} value={s}>
-                                {STATUS_META[s].label}
-                              </option>
-                            ))}
-                          </select>
-                        </td>
+                          {/* Recommendation */}
+                          <td className="px-4 py-2.5 text-ink">
+                            {row.recommendedUnits} ×{" "}
+                            {row.productGroup && row.familySlug ? (
+                              <Link
+                                href={`/price-book/${row.familySlug}`}
+                                className="font-semibold text-arxys-navy hover:underline"
+                              >
+                                {row.productGroup}
+                              </Link>
+                            ) : (
+                              (row.productGroup ?? "")
+                            )}
+                          </td>
 
-                        {/* Actions: View · Revise · PDF · Delete */}
-                        <td className="px-4 py-2">
-                          <div className="flex items-center justify-end gap-3">
-                            <Link
-                              href={`/submissions/${row.id}`}
-                              className="text-blue-600 hover:underline"
-                            >
-                              View
-                            </Link>
-                            <Link
-                              href={`/calculator?revise=${row.id}`}
-                              className="text-blue-600 hover:underline"
-                            >
-                              Revise
-                            </Link>
-                            <a
-                              href={`/api/submissions/${row.id}/pdf`}
-                              download
-                              className="text-blue-600 hover:underline"
-                            >
-                              PDF
-                            </a>
-                            {isDeletable(row.status) ? (
-                              confirmDeleteId === row.id ? (
+                          {/* List price */}
+                          <td className="px-4 py-2.5 text-right tabular-nums text-ink">
+                            {formatPrice(row.totalListPriceUsd)}
+                          </td>
+
+                          {/* Status selector */}
+                          <td className="px-4 py-2.5">
+                            <div className="w-36">
+                              <Select
+                                aria-label="Submission status"
+                                disabled={isPending}
+                                value={row.status ?? ""}
+                                onChange={(e) =>
+                                  perform(row.id, () =>
+                                    updateSubmissionStatus(
+                                      row.id,
+                                      e.target.value === ""
+                                        ? null
+                                        : (e.target.value as SubmissionStatus),
+                                    ),
+                                  )
+                                }
+                                className="py-1.5 pr-8 text-xs"
+                              >
+                                <option value="">No status</option>
+                                {SUBMISSION_STATUSES.map((s) => (
+                                  <option key={s} value={s}>
+                                    {STATUS_META[s].label}
+                                  </option>
+                                ))}
+                              </Select>
+                            </div>
+                          </td>
+
+                          {/* Actions: View · Revise · PDF · Delete (consistent icon) */}
+                          <td className="px-4 py-2.5">
+                            <div className="flex items-center justify-end gap-2">
+                              <Link
+                                href={`/submissions/${row.id}`}
+                                className={buttonClasses("primary", "sm")}
+                              >
+                                View
+                              </Link>
+                              <Link
+                                href={`/calculator?revise=${row.id}`}
+                                className={buttonClasses("secondary", "sm")}
+                              >
+                                Revise
+                              </Link>
+                              <a
+                                href={`/api/submissions/${row.id}/pdf`}
+                                download
+                                className={buttonClasses("secondary", "sm")}
+                              >
+                                PDF
+                              </a>
+                              {confirmDeleteId === row.id ? (
                                 <span className="flex items-center gap-2">
-                                  <button
-                                    type="button"
+                                  <Button
+                                    variant="destructive"
+                                    size="sm"
                                     disabled={isPending}
                                     onClick={() =>
                                       perform(row.id, () => deleteSubmission(row.id))
                                     }
-                                    className="font-medium text-red-600 hover:underline disabled:cursor-not-allowed"
                                   >
                                     Confirm
-                                  </button>
+                                  </Button>
                                   <button
                                     type="button"
                                     disabled={isPending}
                                     onClick={() => setConfirmDeleteId(null)}
-                                    className="text-neutral-500 hover:underline"
+                                    className="text-xs font-medium text-ink-soft hover:text-ink disabled:cursor-not-allowed"
                                   >
                                     Cancel
                                   </button>
                                 </span>
                               ) : (
-                                <button
-                                  type="button"
-                                  aria-label="Delete submission"
-                                  title="Delete (draft only)"
-                                  disabled={isPending}
+                                <IconButton
+                                  tone="danger"
+                                  label={deletable ? "Delete (draft only)" : "Delete unavailable once sent"}
+                                  disabled={isPending || !deletable}
                                   onClick={() => {
                                     setError(null);
                                     setConfirmDeleteId(row.id);
                                   }}
-                                  className="text-neutral-400 hover:text-red-600 disabled:cursor-not-allowed"
+                                  className="h-8 w-8"
                                 >
                                   <TrashIcon />
-                                </button>
-                              )
-                            ) : null}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                                </IconButton>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </section>
           ))}
         </div>

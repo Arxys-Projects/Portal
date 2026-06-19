@@ -4,6 +4,47 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-06-19 — Portal UI migration: My Pipeline + Admin Submissions (all three views)
+
+### Work done
+
+Migrated two more pages onto the ADR 0067 components in one pass. Presentational only.
+
+- **My Pipeline** (`submissions/pipeline.tsx`): row actions are now real controls —
+  View = primary, Revise/PDF = secondary, delete = the consistent danger `IconButton`
+  rendered **disabled when not deletable** (no more row jump). Native status `<select>` →
+  styled `Select`; group "On behalf of" (amber) and "Prepared by Arxys" (blue) chips →
+  `StatusBadge` on-behalf/source; filter pills, New-calculation button, links, table
+  chrome all on tokens (navy active state, navy-soft thead, firmed border). Preferred
+  star recoloured gold → navy.
+- **Admin Submissions table view** (`admin/submissions/page.tsx`): table chrome tokenized
+  (navy-soft header, 2px border, line-soft rows); View → primary button; non-admin status
+  → `StatusBadge`; group-by **Partner view** toggle → filled primary/secondary (was a thin
+  outline); Export + pagination → secondary buttons; the two filter `<select>`s → styled
+  `Select`, date inputs + Apply + Clear filters on tokens. PreferredStar gold → navy.
+- **Admin Submissions partner + expanded views** (`_components/partner-group-view.tsx`):
+  dropped the local StatusBadge for the shared one (status + Pipedrive→source); summary
+  cards → `MetricTile`; nested revision "View" → primary button; expand chevrons navy;
+  cards/text/dividers on tokens.
+- **Admin row controls** (`_components/row-controls.tsx`): native status `<select>` →
+  styled `Select`; loud red "Delete" text → danger `IconButton` (confirm → destructive
+  `Button`).
+
+### Verification gates
+
+- `npx eslint` on the four changed files — **0 errors**.
+- `npm test` — **194/194**. `npm run build` — ✓ clean (23 routes).
+
+### Notes
+
+- Body-cell text in the admin table left at `neutral-700/900` (already AA, not the
+  grey-on-grey trap) to keep the diff focused.
+- **Still pending** (deferred for budget): the Calculator reconciliation (primary-button
+  fix + calmer result-card accent + token alignment) and admin/partners — both for a
+  fresh session. No new ADR (migrations under 0067); RUNBOOK unaffected.
+
+---
+
 ## 2026-06-19 — Portal UI migration: submission detail (+ Project Quote panel)
 
 ### Work done

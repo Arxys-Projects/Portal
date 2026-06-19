@@ -17,6 +17,7 @@ import {
   type PartnerGroup,
 } from "./_components/partner-group-view";
 import { RowControls } from "./_components/row-controls";
+import { Select, StatusBadge, buttonClasses } from "@/app/(app)/_components/ui";
 
 const PAGE_SIZE = 50;
 
@@ -26,8 +27,8 @@ function PreferredStar({ preferred }: { preferred: boolean }) {
       width="16"
       height="16"
       viewBox="0 0 24 24"
-      fill={preferred ? "#FBB040" : "none"}
-      stroke={preferred ? "#FBB040" : "#d4d4d4"}
+      fill={preferred ? "#054A91" : "none"}
+      stroke={preferred ? "#054A91" : "#d4d4d4"}
       strokeWidth="2"
       strokeLinejoin="round"
       aria-label={preferred ? "Preferred quote" : "Not preferred"}
@@ -353,9 +354,9 @@ export default async function AdminSubmissionsPage({
           No submissions match this view.
         </p>
       ) : (
-        <div className="mt-6 overflow-hidden rounded-lg border border-neutral-200 bg-white">
+        <div className="mt-6 overflow-x-auto rounded-xl border-2 border-line bg-surface">
           <table className="w-full text-sm">
-            <thead className="bg-neutral-50 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">
+            <thead className="border-b-2 border-line bg-arxys-navy-soft text-left text-[11px] font-extrabold uppercase tracking-wide text-ink-soft">
               <tr>
                 <th className="px-4 py-2">Date</th>
                 <th className="px-4 py-2">Partner</th>
@@ -368,7 +369,7 @@ export default async function AdminSubmissionsPage({
                 <th className="px-4 py-2"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-neutral-100">
+            <tbody className="divide-y divide-line-soft">
               {rows.map((r) => {
                 const partner = Array.isArray(r.partners)
                   ? r.partners[0]
@@ -414,9 +415,10 @@ export default async function AdminSubmissionsPage({
                           status={r.status as SubmissionStatus | null}
                         />
                       ) : (
-                        <span className="text-xs text-neutral-600">
-                          {r.status ? STATUS_META[r.status as SubmissionStatus].label : "—"}
-                        </span>
+                        <StatusBadge
+                          variant="status"
+                          status={r.status as SubmissionStatus | null}
+                        />
                       )}
                     </td>
                     <td className="px-4 py-2">
@@ -433,7 +435,7 @@ export default async function AdminSubmissionsPage({
                     <td className="px-4 py-2 text-right">
                       <Link
                         href={`/admin/submissions/${r.id}`}
-                        className="text-sm text-blue-600 hover:underline"
+                        className={buttonClasses("primary", "sm")}
                       >
                         View
                       </Link>
@@ -464,7 +466,7 @@ export default async function AdminSubmissionsPage({
                     page: page - 1,
                   },
                 }}
-                className="rounded border border-neutral-300 px-3 py-1 hover:bg-neutral-100"
+                className={buttonClasses("secondary", "sm")}
               >
                 ← Previous
               </Link>
@@ -481,7 +483,7 @@ export default async function AdminSubmissionsPage({
                     page: page + 1,
                   },
                 }}
-                className="rounded border border-neutral-300 px-3 py-1 hover:bg-neutral-100"
+                className={buttonClasses("secondary", "sm")}
               >
                 Next →
               </Link>
@@ -496,8 +498,8 @@ export default async function AdminSubmissionsPage({
 function ErrorMessage({ message }: { message: string }) {
   return (
     <div>
-      <h1 className="text-2xl font-semibold text-neutral-900">Submissions</h1>
-      <p className="mt-3 text-sm text-red-600">
+      <h1 className="text-2xl font-bold text-ink">Submissions</h1>
+      <p className="mt-3 text-sm text-danger">
         Failed to load submissions: {message}
       </p>
     </div>
@@ -529,10 +531,10 @@ function PageHeader({
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-neutral-900">
+          <h1 className="text-2xl font-bold text-ink">
             Submissions
           </h1>
-          <p className="mt-1 text-sm text-neutral-600">
+          <p className="mt-1 text-sm text-ink-soft">
             {isPartnerGrouped
               ? "Partner pipeline view — weighted forecast."
               : `All partner submissions. ${total} total.`}
@@ -550,18 +552,18 @@ function PageHeader({
                 ...(toDate ? { to: toDate } : {}),
               },
             }}
-            className={`rounded border px-3 py-1.5 text-sm ${
+            className={
               isPartnerGrouped
-                ? "border-blue-300 bg-blue-50 text-blue-700"
-                : "border-neutral-300 text-neutral-700 hover:bg-neutral-100"
-            }`}
+                ? buttonClasses("primary", "sm")
+                : buttonClasses("secondary", "sm")
+            }
           >
             {isPartnerGrouped ? "← Project view" : "Partner view"}
           </Link>
           {showExport ? (
             <Link
               href="/api/admin/forecast/xlsx"
-              className="rounded border border-neutral-300 px-3 py-1.5 text-sm text-neutral-700 hover:bg-neutral-100"
+              className={buttonClasses("secondary", "sm")}
             >
               Export XLSX
             </Link>
@@ -577,31 +579,23 @@ function PageHeader({
 
         {/* Partner filter (project view only) */}
         {!isPartnerGrouped ? (
-          <label className="text-xs text-neutral-600">
+          <label className="text-xs font-semibold text-ink-soft">
             Partner
-            <select
-              name="partnerId"
-              defaultValue={partnerId ?? ""}
-              className="mt-1 block rounded border border-neutral-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none"
-            >
+            <Select name="partnerId" defaultValue={partnerId ?? ""} className="mt-1 py-1.5 text-sm">
               <option value="">All partners</option>
               {partnerRows.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.company_name}
                 </option>
               ))}
-            </select>
+            </Select>
           </label>
         ) : null}
 
         {/* Status filter */}
-        <label className="text-xs text-neutral-600">
+        <label className="text-xs font-semibold text-ink-soft">
           Status
-          <select
-            name="status"
-            defaultValue={statusParam ?? "all"}
-            className="mt-1 block rounded border border-neutral-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none"
-          >
+          <Select name="status" defaultValue={statusParam ?? "all"} className="mt-1 py-1.5 text-sm">
             <option value="all">All</option>
             <option value="none">No status</option>
             {SUBMISSION_STATUSES.map((s) => (
@@ -609,33 +603,30 @@ function PageHeader({
                 {STATUS_META[s].label}
               </option>
             ))}
-          </select>
+          </Select>
         </label>
 
         {/* Date range */}
-        <label className="text-xs text-neutral-600">
+        <label className="text-xs font-semibold text-ink-soft">
           From
           <input
             type="date"
             name="from"
             defaultValue={fromDate ?? ""}
-            className="mt-1 block rounded border border-neutral-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none"
+            className="mt-1 block rounded-lg border border-line bg-surface px-2 py-1.5 text-sm text-ink focus:border-arxys-navy focus:outline-none focus:ring-2 focus:ring-arxys-navy/15"
           />
         </label>
-        <label className="text-xs text-neutral-600">
+        <label className="text-xs font-semibold text-ink-soft">
           To
           <input
             type="date"
             name="to"
             defaultValue={toDate ?? ""}
-            className="mt-1 block rounded border border-neutral-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none"
+            className="mt-1 block rounded-lg border border-line bg-surface px-2 py-1.5 text-sm text-ink focus:border-arxys-navy focus:outline-none focus:ring-2 focus:ring-arxys-navy/15"
           />
         </label>
 
-        <button
-          type="submit"
-          className="rounded border border-neutral-300 px-3 py-1.5 text-sm text-neutral-700 hover:bg-neutral-100"
-        >
+        <button type="submit" className={buttonClasses("primary", "sm")}>
           Apply
         </button>
         {(partnerId || statusParam || fromDate || toDate) ? (
@@ -644,7 +635,7 @@ function PageHeader({
               pathname: "/admin/submissions",
               query: isPartnerGrouped ? { groupBy: "partner" } : {},
             }}
-            className="text-xs text-blue-600 hover:underline"
+            className="text-xs font-medium text-arxys-navy hover:underline"
           >
             Clear filters
           </Link>
