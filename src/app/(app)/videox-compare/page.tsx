@@ -10,7 +10,7 @@ export default async function VideoxComparePage() {
   return (
     <div>
       <div className="mb-4 flex items-center justify-between">
-        <Link href="/dashboard" className="text-sm text-blue-600 hover:underline">
+        <Link href="/dashboard" className="text-sm font-medium text-arxys-navy hover:underline">
           ← Back to dashboard
         </Link>
       </div>

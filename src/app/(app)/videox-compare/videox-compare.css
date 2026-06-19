@@ -159,7 +159,7 @@
 /* VMS pill buttons */
 #arxys-vxc-root .vxc-vms-pill {
   background: transparent;
-  border: 1px solid var(--color-arxys-gold);
+  border: 1px solid var(--color-arxys-navy);
   border-radius: 999px;
   color: inherit;
   font-family: inherit;
@@ -170,15 +170,15 @@
   transition: background 0.15s, border-color 0.15s, color 0.15s;
 }
 #arxys-vxc-root .vxc-vms-pill:hover {
-  border-color: var(--color-arxys-gold-hover, var(--color-arxys-gold));
-  background: rgba(251, 176, 64, 0.08);
+  border-color: var(--color-arxys-navy-deep);
+  background: rgba(5, 74, 145, 0.08);
 }
 #arxys-vxc-root .vxc-vms-pill--active {
-  background: var(--color-arxys-gold);
-  color: var(--color-arxys-text-on-gold, #0f172a);
+  background: var(--color-arxys-navy);
+  color: #fff;
 }
 #arxys-vxc-root .vxc-vms-pill--active:hover {
-  background: var(--color-arxys-gold-hover, var(--color-arxys-gold));
+  background: var(--color-arxys-navy-deep);
 }
 
 /* VMS validation sheet banner */
@@ -186,8 +186,8 @@
   display: flex;
   align-items: center;
   gap: 16px;
-  background: rgba(251, 176, 64, 0.08);
-  border-left: 3px solid var(--color-arxys-gold);
+  background: rgba(5, 74, 145, 0.06);
+  border-left: 3px solid var(--color-arxys-navy);
   border-radius: 0 8px 8px 0;
   padding: 12px 18px;
   margin-bottom: 14px;
@@ -200,7 +200,7 @@
 }
 #arxys-vxc-root .vxc-vms-sheet-link {
   display: inline-block;
-  border: 1px solid var(--color-arxys-gold);
+  border: 1px solid var(--color-arxys-navy);
   border-radius: 8px;
   background: transparent;
   color: inherit;
@@ -213,8 +213,8 @@
   transition: background 0.15s, color 0.15s;
 }
 #arxys-vxc-root .vxc-vms-sheet-link:hover {
-  background: var(--color-arxys-gold);
-  color: var(--color-arxys-text-on-gold, #0f172a);
+  background: var(--color-arxys-navy);
+  color: #fff;
 }
 #arxys-vxc-root .vxc-vms-sheet-pending { font-size: 12.5px; color: var(--vxc-tl); font-style: italic; }
 

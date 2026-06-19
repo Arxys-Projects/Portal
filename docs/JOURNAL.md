@@ -4,6 +4,39 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-06-19 — Portal UI: comparison + videox-compare (gold actions → navy); price-book left as brand
+
+### Work done
+
+Brought the two comparison tools in line with ADR 0067, distinguishing **action gold**
+(retire → navy) from **decorative/brand gold** (keep).
+
+- **VMS Server Comparison** (`/comparison`): back-link blue → navy; the gold
+  "request quote" action button (`.ac-btn-quote`) → navy primary. Kept the gold page
+  header title + underline (decorative — matches the Calculator header left intact).
+- **VideoX Quick Compare** (`/videox-compare`): back-link blue → navy; the interactive
+  VMS pill toggles (`.vxc-vms-pill`) and the validation-sheet link button → navy
+  (border, active fill, hover); the VMS banner left-accent → navy. Kept the gold header,
+  selected-model labels, and the diff-row highlight (decorative / data-viz).
+
+### Decisions captured (judgment, no new ADR)
+
+- **Distinguished action-gold from brand-gold.** ADR 0067 retires gold from *buttons and
+  actions* — not from deliberate brand decoration. The tool-page gold headers
+  (calculator/comparison/videox) are a consistent brand treatment and stay; only the
+  interactive controls flipped to navy.
+- **Price Book deliberately left on gold.** Its gold (stars, accents, Montserrat) is a
+  scoped brand treatment matching the sales PPTX (ADR 0032/0035), not portal action
+  chrome. Flipping it would regress an intentional decision, so it was **not** touched.
+  Revisit only if the brand direction itself changes.
+
+### Verification gates
+
+- `npx eslint` on the two changed pages — **0 errors**.
+- `npm test` — **194/194**. `npm run build` — ✓ clean (compiles both bespoke CSS files).
+
+---
+
 ## 2026-06-19 — Portal UI migration: admin/partners + Calculator reconciliation
 
 ### Work done
