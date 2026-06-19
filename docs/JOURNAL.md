@@ -4,6 +4,32 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-06-18 — Project Quote PDF commercial page: derived partner-price columns, static FOB block, footer resize
+
+### Work done
+
+Render-layer-only changes to the Project Quote PDF commercial page (the "Quote line items" page) and the shared footer (`ProjectQuotePdf.tsx`). No snapshot shape, data layer, migration, or binding rule changed.
+
+- **Confirmed the raw field names** before editing (`QuoteLineItem` / `DealQuote` in `src/lib/pipedrive/quote.ts`): `productCode`, `productName`, `unitPrice` (MSRP each), `discountPercent`, `quantity`, `lineAmount` (line total), and the deal-level `productTotal`. `discountedUnitPrice` is null by design (ADR 0059) — partner price is derived at render, never stored.
+- **Replaced the 6-column commercial table** (CODE / PRODUCT / QTY / UNIT PRICE / DISC / LINE TOTAL) with the canonical Arxys 7-column price flow: **CODE · PRODUCT · MSRP EACH · DISC % · PARTNER EACH · QTY · PARTNER TOTAL.** Header/data rows are driven by an exported `COMMERCIAL_COLUMNS` descriptor (header, width, align), mirroring the page-1 `buildCameraColumns` pattern.
+- **Partner prices are DERIVED at render**, not read from the snapshot. New exported pure helpers: `derivePartnerEach(line)` = `Math.round(unitPrice × (1 − discountPercent/100))` (null MSRP → null; null pct → 0%), and `derivePartnerTotal(line)` = partner-each × quantity. MSRP EACH and DISC % stay raw. Info-only ($0) lines blank the four money cells but keep QTY.
+- **Verbatim-total guard preserved.** The grand-total row still renders the verbatim `commercial.productTotal` (never a re-sum). The brief's column spec said "Total row = sum of PARTNER TOTAL across lines," which directly conflicts with the IMPORTANT verbatim guard and the existing `productTotal=99999`≠line-sum test fixture; resolved in favour of the guard (the explicit override, test-enforced). The derived PARTNER TOTAL is a per-line display value only. In honest data the derived per-line total equals the stored `lineAmount`, so they agree except in the pathological test case.
+- **Column widths** rebalanced as module `COM_*` constants: CODE 11 / MSRP 13 / DISC 8 / PARTNER EACH 13 / QTY 6 / PARTNER TOTAL 14 = 65% fixed, PRODUCT absorbs the remaining 35% via `flex: 1` (row totals 100%). All numeric/currency columns right-aligned. The total-row and additional-discounts cells were repointed from the old `COM_LINE_TOTAL` to `COM_PARTNER_TOTAL` so they sit under PARTNER TOTAL.
+- **Static Terms / Shipping / FOB block** added near the bottom of the commercial page (above the fixed footer, via `marginTop: auto`), after the "All amounts in USD…" note. Compact label/value rows (bold right-aligned labels, plain values), exported as the `QUOTE_FOB_BLOCK` constant: `Terms → Net 30`, `Shipping Method → TBD - NOT included in price`, `FOB → El Cajon, CA` (verbatim).
+- **Footer resized (shared, all pages).** Address line: **6.5pt → 8pt** and now **bold** (was normal-weight muted) so it is the dominant footer element. Quote-ref / Valid-through row: **7pt → 7.7pt** (~10%), normal weight, kept visibly smaller than the bold 8pt address line. Footer content unchanged.
+- **Tests** (`render.test.ts`): added `COMMERCIAL_COLUMNS` order/width-sum/alignment assertions, `derivePartnerEach`/`derivePartnerTotal` unit tests (incl. the brief's 41659 @ 40% × 1 → 24995 each / 24995 total, and ×3 → 74985), a null-MSRP / null-pct case, a "does not read discountedUnitPrice" case, and the `QUOTE_FOB_BLOCK` verbatim-text presence assertion. The null-`discountedUnitPrice`, null-`additionalDiscounts`, info-only, and verbatim-total tests stay green.
+
+### Verification gates
+
+- `npm test` **172/172** (+10 over the prior 162). `npm run build` ✓ Compiled successfully. `npx eslint` 0 errors on `ProjectQuotePdf.tsx` + `render.test.ts`.
+- Smoke-rendered a realistic snapshot via `pdftotext -layout`: valid PDF (`%PDF-`), commercial page shows the 7 columns in order, derived prices ($41,659 @ 40% → $24,995 each × 2 = $49,990; $8,500 @ 45% → $4,675), info-only warranty line blanks money cells / keeps QTY, verbatim Total $54,665, the Terms/Shipping/FOB block immediately above the footer, and the resized (bold, larger) footer.
+
+### Decisions captured
+
+- **No ADR.** Presentation-layer change within the locked Project Quote architecture (ADR 0059–0061), same rationale as the page-1 camera-schedule entry below. No snapshot/data/migration/binding-rule change; nothing rotates out of head that an ADR would need to preserve. The one judgement call (verbatim total vs. summed partner total) is recorded above.
+
+---
+
 ## 2026-06-18 — Project Quote PDF page 1: graceful camera-schedule columns for hand-entered deals
 
 ### Work done

@@ -8,6 +8,10 @@ import {
   cameraScheduleHasVendorOrModel,
   formatOperationHrs,
   sortLineItemsByOrderNr,
+  derivePartnerEach,
+  derivePartnerTotal,
+  COMMERCIAL_COLUMNS,
+  QUOTE_FOB_BLOCK,
   type ProjectQuotePdfInput,
 } from "./ProjectQuotePdf";
 import type { ProjectQuoteCameraRow } from "./types";
@@ -433,6 +437,96 @@ describe("sortLineItemsByOrderNr", () => {
     const original = [...lines];
     sortLineItemsByOrderNr(lines);
     assert.equal(lines[0].orderNr, original[0].orderNr);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Commercial table — column order and derived partner prices (page 2 / "page 3")
+// ---------------------------------------------------------------------------
+
+describe("COMMERCIAL_COLUMNS — the seven-column line-item layout", () => {
+  it("is exactly CODE · PRODUCT · MSRP EACH · DISC % · PARTNER EACH · QTY · PARTNER TOTAL", () => {
+    assert.deepEqual(
+      COMMERCIAL_COLUMNS.map((c) => c.header),
+      ["Code", "Product", "MSRP each", "Disc %", "Partner each", "Qty", "Partner total"],
+    );
+  });
+
+  it("flexes PRODUCT (width null) and gives the other six fixed widths", () => {
+    const product = COMMERCIAL_COLUMNS.find((c) => c.header === "Product");
+    assert.equal(product?.width, null, "PRODUCT must flex to absorb the slack");
+    const fixed = COMMERCIAL_COLUMNS.filter((c) => c.width != null);
+    assert.equal(fixed.length, 6, "the other six columns are fixed-width");
+  });
+
+  it("leaves room for PRODUCT: the six fixed widths sum to < 100% (PRODUCT fills the rest)", () => {
+    const fixedSum = COMMERCIAL_COLUMNS.reduce(
+      (s, c) => s + (c.width == null ? 0 : parseFloat(c.width)),
+      0,
+    );
+    assert.ok(fixedSum < 100, `fixed widths must leave slack for PRODUCT, got ${fixedSum}%`);
+    assert.equal(fixedSum, 65, "fixed widths sum to 65%, leaving 35% for PRODUCT");
+  });
+
+  it("right-aligns every numeric/currency column and leaves CODE/PRODUCT default", () => {
+    const rightAligned = COMMERCIAL_COLUMNS.filter((c) => c.align === "right").map((c) => c.header);
+    assert.deepEqual(rightAligned, [
+      "MSRP each",
+      "Disc %",
+      "Partner each",
+      "Qty",
+      "Partner total",
+    ]);
+  });
+});
+
+describe("derivePartnerEach / derivePartnerTotal — DERIVED at render, not stored", () => {
+  it("derives partner-each from MSRP × (1 − disc%/100), rounded to whole dollars", () => {
+    // The canonical fixture from the brief: $41,659 @ 40% × 1.
+    const line = makeLine({ unitPrice: 41659, discount: 40, discountPercent: 40, quantity: 1 });
+    assert.equal(derivePartnerEach(line), 24995); // 41659 × 0.60 = 24995.4 → 24995
+    assert.equal(derivePartnerTotal(line), 24995); // 24995 × 1
+  });
+
+  it("multiplies partner-each by quantity for the partner total", () => {
+    const line = makeLine({ unitPrice: 41659, discount: 40, discountPercent: 40, quantity: 3 });
+    assert.equal(derivePartnerEach(line), 24995);
+    assert.equal(derivePartnerTotal(line), 74985); // 24995 × 3
+  });
+
+  it("matches the default fixture (75000 @ 45% × 1 → 41250)", () => {
+    const line = makeLine(); // unitPrice 75000, discountPercent 45, quantity 1
+    assert.equal(derivePartnerEach(line), 41250); // 75000 × 0.55
+    assert.equal(derivePartnerTotal(line), 41250);
+  });
+
+  it("does NOT read discountedUnitPrice (always null in the snapshot)", () => {
+    const line = makeLine();
+    assert.equal(line.discountedUnitPrice, null);
+    // The derived value comes from unitPrice + discountPercent, never the
+    // null discountedUnitPrice field.
+    assert.equal(derivePartnerEach(line), 41250);
+  });
+
+  it("returns null when MSRP is null; treats a null discount percent as 0%", () => {
+    assert.equal(derivePartnerEach(makeLine({ unitPrice: null })), null);
+    assert.equal(derivePartnerTotal(makeLine({ unitPrice: null })), null);
+    const noDisc = makeLine({ unitPrice: 1000, discount: null, discountPercent: null, quantity: 2 });
+    assert.equal(derivePartnerEach(noDisc), 1000); // no discount → MSRP
+    assert.equal(derivePartnerTotal(noDisc), 2000);
+  });
+});
+
+describe("Terms / Shipping / FOB block — static commercial terms", () => {
+  it("carries the verbatim Terms / Shipping Method / FOB text", () => {
+    assert.deepEqual(
+      QUOTE_FOB_BLOCK.map((r) => [r.label, r.value]),
+      [
+        ["Terms", "Net 30"],
+        ["Shipping Method", "TBD - NOT included in price"],
+        ["FOB", "El Cajon, CA"],
+      ],
+    );
   });
 });
 

@@ -95,6 +95,27 @@ function fmtDiscountPct(line: QuoteLineItem): string {
   return "—";
 }
 
+// Partner price-each, DERIVED at render: raw MSRP (unitPrice) × (1 − pct/100),
+// rounded to whole dollars. The snapshot never stores this — discountedUnitPrice
+// is null by design (ADR 0059) — so it is recomputed here purely for display.
+// Null MSRP → null (renders as an em-dash). discountPercent is null for
+// amount-type discounts; per the column spec the derivation reads the percent
+// only, so an amount-type line falls back to its raw MSRP. Exported for tests.
+export function derivePartnerEach(line: QuoteLineItem): number | null {
+  if (line.unitPrice == null) return null;
+  const pct = line.discountPercent ?? 0;
+  return Math.round(line.unitPrice * (1 - pct / 100));
+}
+
+// Partner line total, DERIVED: partner-each × quantity. Display-only — the grand
+// total row stays the verbatim deal productTotal and is NEVER a re-sum of these
+// (the binding rule / verbatim-total guard). Null partner-each → null.
+export function derivePartnerTotal(line: QuoteLineItem): number | null {
+  const each = derivePartnerEach(line);
+  if (each == null) return null;
+  return each * (line.quantity ?? 0);
+}
+
 // ---------------------------------------------------------------------------
 // Camera-schedule column selection
 // ---------------------------------------------------------------------------
@@ -184,13 +205,32 @@ export function buildCameraColumns(showVendorModel: boolean): CameraColumn[] {
 // Column-width constants (commercial table, camera schedule)
 // ---------------------------------------------------------------------------
 
-// Commercial table: 6 columns summing to 100%.
-const COM_CODE = "12%";
-const COM_QTY = "7%";
-const COM_UNIT_PRICE = "16%";
-const COM_DISC = "12%";
-const COM_LINE_TOTAL = "17%";
-// Product name column fills the remaining space via flex: 1 on the cell.
+// Commercial table ("Quote line items"): seven columns in the canonical Arxys
+// price flow — CODE · PRODUCT · MSRP EACH · DISC % · PARTNER EACH · QTY ·
+// PARTNER TOTAL. The six fixed widths sum to 65%; PRODUCT absorbs the
+// remaining 35% via flex: 1 on its cell, so the rendered row totals 100%.
+const COM_CODE = "11%";
+const COM_MSRP = "13%";
+const COM_DISC = "8%";
+const COM_PARTNER_EACH = "13%";
+const COM_QTY = "6%";
+const COM_PARTNER_TOTAL = "14%";
+// PRODUCT fills the remaining 35% via flex: 1 on the cell.
+
+// The rendered commercial columns, in order. PRODUCT has width null → flex: 1
+// (absorbs the slack); every other column is fixed-width and right-aligned
+// (numeric/currency). Exported so tests assert the exact column order and that
+// the fixed widths leave room for the flexing PRODUCT column.
+export type CommercialColumn = { header: string; width: string | null; align?: "right" };
+export const COMMERCIAL_COLUMNS: CommercialColumn[] = [
+  { header: "Code", width: COM_CODE },
+  { header: "Product", width: null },
+  { header: "MSRP each", width: COM_MSRP, align: "right" },
+  { header: "Disc %", width: COM_DISC, align: "right" },
+  { header: "Partner each", width: COM_PARTNER_EACH, align: "right" },
+  { header: "Qty", width: COM_QTY, align: "right" },
+  { header: "Partner total", width: COM_PARTNER_TOTAL, align: "right" },
+];
 
 // Camera schedule — two layouts, chosen per snapshot (see
 // cameraScheduleHasVendorOrModel). Both sum to 100% at US-Letter portrait
@@ -394,7 +434,7 @@ const styles = StyleSheet.create({
     padding: 5,
   },
   commTotalValue: {
-    width: COM_LINE_TOTAL,
+    width: COM_PARTNER_TOTAL,
     fontSize: 11,
     fontFamily: "Helvetica-Bold",
     color: ARXYS_NAVY,
@@ -427,6 +467,22 @@ const styles = StyleSheet.create({
   // Compact so the full multi-clause T&Cs fit on a single page.
   termsText: { fontSize: 6.5, color: TEXT_SLATE, lineHeight: 1.32 },
 
+  // Terms / Shipping / FOB block — sits near the bottom of the line-items page
+  // (marginTop:auto pushes it above the fixed footer). Compact label/value
+  // rows matching the small-print weight; bold right-aligned labels, plain
+  // left-aligned values. Not a heavy bordered table.
+  fobBlock: { marginTop: "auto", paddingTop: 10 },
+  fobRow: { flexDirection: "row", marginBottom: 2 },
+  fobLabel: {
+    width: 110,
+    fontSize: 7.5,
+    fontFamily: "Helvetica-Bold",
+    color: TEXT_SLATE,
+    textAlign: "right",
+    paddingRight: 8,
+  },
+  fobValue: { fontSize: 7.5, color: TEXT_SLATE },
+
   // Fixed footer (repeated on every rendered page within a <Page>). Two lines:
   // a centered Arxys contact line, then a quote-ref | validity row.
   footer: {
@@ -438,15 +494,34 @@ const styles = StyleSheet.create({
     borderTopColor: BORDER_LIGHT,
     paddingTop: 5,
   },
-  footerContact: { fontSize: 6.5, color: FOOTER_MUTED, textAlign: "center", marginBottom: 2 },
+  // Address line: bold and ~23% larger than the original 6.5pt (→ 8pt), so the
+  // company contact line is the visually dominant footer element.
+  footerContact: {
+    fontSize: 8,
+    fontFamily: "Helvetica-Bold",
+    color: FOOTER_MUTED,
+    textAlign: "center",
+    marginBottom: 2,
+  },
   footerRow: { flexDirection: "row", justifyContent: "space-between" },
-  footerLeft: { fontSize: 7, color: TEXT_MUTED },
-  footerRight: { fontSize: 7, color: TEXT_MUTED, textAlign: "right" },
+  // Quote-ref / validity row: ~10% larger than the original 7pt (→ 7.7pt),
+  // normal weight, kept visibly smaller than the bold 8pt address line above.
+  footerLeft: { fontSize: 7.7, color: TEXT_MUTED },
+  footerRight: { fontSize: 7.7, color: TEXT_MUTED, textAlign: "right" },
 });
 
 // Company contact line printed in the footer of every page.
 const ARXYS_CONTACT_LINE =
   "Arxys · 1810 Gillespie Way, Suite 108, El Cajon, CA 92020 · 619.258.7800 · arxys.com";
+
+// Static commercial terms shown in the Terms / Shipping / FOB block at the
+// bottom of the line-items page. Verbatim, fixed for every quote. Exported so
+// a test can assert the exact text without parsing the rendered PDF.
+export const QUOTE_FOB_BLOCK = [
+  { label: "Terms", value: "Net 30" },
+  { label: "Shipping Method", value: "TBD - NOT included in price" },
+  { label: "FOB", value: "El Cajon, CA" },
+] as const;
 
 // ---------------------------------------------------------------------------
 // Shared sub-components
@@ -843,43 +918,57 @@ export function ProjectQuotePdf({ data }: { data: ProjectQuotePdfInput }) {
         <Text style={styles.sectionTitle}>Quote line items</Text>
         <View>
           <View style={styles.commHeaderRow}>
-            <Text style={[styles.commTh, { width: COM_CODE }]}>Code</Text>
-            <Text style={[styles.commTh, { flex: 1 }]}>Product</Text>
-            <Text style={[styles.commTh, { width: COM_QTY, textAlign: "right" }]}>Qty</Text>
-            <Text style={[styles.commTh, { width: COM_UNIT_PRICE, textAlign: "right" }]}>
-              Unit price
-            </Text>
-            <Text style={[styles.commTh, { width: COM_DISC, textAlign: "right" }]}>Disc</Text>
-            <Text style={[styles.commTh, { width: COM_LINE_TOTAL, textAlign: "right" }]}>
-              Line total
-            </Text>
+            {COMMERCIAL_COLUMNS.map((col) => (
+              <Text
+                key={col.header}
+                style={[
+                  styles.commTh,
+                  col.width == null ? { flex: 1 } : { width: col.width },
+                  col.align === "right" ? { textAlign: "right" } : {},
+                ]}
+              >
+                {col.header}
+              </Text>
+            ))}
           </View>
 
+          {/* CODE · PRODUCT · MSRP EACH · DISC % · PARTNER EACH · QTY · PARTNER
+              TOTAL. MSRP/disc are raw; partner-each and partner-total are
+              DERIVED at render (derivePartnerEach / derivePartnerTotal) — never
+              read from the snapshot. Info-only lines blank the four money cells
+              but keep the quantity. */}
           {sortedLines.map((line, i) => (
             <View key={i} style={styles.commTr} wrap={false}>
               <Text style={[styles.commTdMuted, { width: COM_CODE }]}>
                 {line.productCode ?? "—"}
               </Text>
               <Text style={[styles.commTd, { flex: 1 }]}>{line.productName ?? "—"}</Text>
-              <Text style={[styles.commTdRight, { width: COM_QTY }]}>
-                {line.quantity ?? "—"}
-              </Text>
               {line.isInfoOnly ? (
                 <>
-                  <Text style={[styles.commTd, { width: COM_UNIT_PRICE }]} />
+                  <Text style={[styles.commTd, { width: COM_MSRP }]} />
                   <Text style={[styles.commTd, { width: COM_DISC }]} />
-                  <Text style={[styles.commTd, { width: COM_LINE_TOTAL }]} />
+                  <Text style={[styles.commTd, { width: COM_PARTNER_EACH }]} />
+                  <Text style={[styles.commTdRight, { width: COM_QTY }]}>
+                    {line.quantity ?? "—"}
+                  </Text>
+                  <Text style={[styles.commTd, { width: COM_PARTNER_TOTAL }]} />
                 </>
               ) : (
                 <>
-                  <Text style={[styles.commTdRight, { width: COM_UNIT_PRICE }]}>
+                  <Text style={[styles.commTdRight, { width: COM_MSRP }]}>
                     {fmtMoney(line.unitPrice, currency)}
                   </Text>
                   <Text style={[styles.commTdRight, { width: COM_DISC }]}>
                     {fmtDiscountPct(line)}
                   </Text>
-                  <Text style={[styles.commTdRight, { width: COM_LINE_TOTAL }]}>
-                    {fmtMoney(line.lineAmount, currency)}
+                  <Text style={[styles.commTdRight, { width: COM_PARTNER_EACH }]}>
+                    {fmtMoney(derivePartnerEach(line), currency)}
+                  </Text>
+                  <Text style={[styles.commTdRight, { width: COM_QTY }]}>
+                    {line.quantity ?? "—"}
+                  </Text>
+                  <Text style={[styles.commTdRight, { width: COM_PARTNER_TOTAL }]}>
+                    {fmtMoney(derivePartnerTotal(line), currency)}
                   </Text>
                 </>
               )}
@@ -905,7 +994,7 @@ export function ProjectQuotePdf({ data }: { data: ProjectQuotePdfInput }) {
               </Text>
               <Text
                 style={{
-                  width: COM_LINE_TOTAL,
+                  width: COM_PARTNER_TOTAL,
                   fontSize: 8,
                   color: TEXT_MUTED,
                   textAlign: "right",
@@ -921,6 +1010,17 @@ export function ProjectQuotePdf({ data }: { data: ProjectQuotePdfInput }) {
         {currency ? (
           <Text style={styles.tableNote}>All amounts in {currency}. Partner pricing as quoted.</Text>
         ) : null}
+
+        {/* Terms / Shipping / FOB — static, pushed to the bottom of the page
+            above the fixed footer (marginTop:auto on fobBlock). */}
+        <View style={styles.fobBlock}>
+          {QUOTE_FOB_BLOCK.map((row) => (
+            <View key={row.label} style={styles.fobRow}>
+              <Text style={styles.fobLabel}>{row.label}</Text>
+              <Text style={styles.fobValue}>{row.value}</Text>
+            </View>
+          ))}
+        </View>
       </Page>
 
       {/* ── Page 3: Terms ───────────────────────────────────────────────── */}
