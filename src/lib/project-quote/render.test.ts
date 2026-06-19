@@ -512,7 +512,7 @@ describe("buildCameraColumns — the two layouts", () => {
     "FPS",
     "Scene complexity",
     "Operation hrs",
-    "Bw (Mb/s)",
+    "Bw (Mbit/s)",
     "Storage (TB)",
   ];
 
@@ -539,7 +539,7 @@ describe("buildCameraColumns — the two layouts", () => {
   it("right-aligns the numeric columns and left-aligns text columns", () => {
     for (const cols of [buildCameraColumns(false), buildCameraColumns(true)]) {
       const rightAligned = cols.filter((c) => c.align === "right").map((c) => c.header);
-      assert.deepEqual(rightAligned, ["FPS", "Bw (Mb/s)", "Storage (TB)"]);
+      assert.deepEqual(rightAligned, ["FPS", "Bw (Mbit/s)", "Storage (TB)"]);
     }
   });
 });

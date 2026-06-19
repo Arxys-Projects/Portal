@@ -41,7 +41,7 @@ function cellValue(
     case "ssdStorage":
       return row.max_storage_tb != null ? `${row.max_storage_tb} TB` : "—";
     case "bandwidth":
-      return row.max_cameras != null ? `${row.max_cameras} Mb/s` : "—";
+      return row.max_cameras != null ? `${row.max_cameras} Mbit/s` : "—";
     case "monitors":
       return "—";
     case "msrp":

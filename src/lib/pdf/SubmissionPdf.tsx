@@ -290,13 +290,13 @@ function dash(v: string | number | null | undefined): string {
   return String(v);
 }
 
-const SCHEDULE_COLUMNS: ReadonlyArray<{ key: keyof typeof styles; label: string }> = [
+export const SCHEDULE_COLUMNS: ReadonlyArray<{ key: keyof typeof styles; label: string }> = [
   { key: "colRes", label: "Resolution" },
   { key: "colCodec", label: "Codec" },
   { key: "colFps", label: "FPS" },
   { key: "colScene", label: "Scene complexity" },
   { key: "colHrs", label: "Operation hrs" },
-  { key: "colBw", label: "Bandwidth (Mb/s)" },
+  { key: "colBw", label: "Bandwidth (Mbit/s)" },
   { key: "colSt", label: "Storage (TB)" },
 ];
 
@@ -395,7 +395,7 @@ export function SubmissionPdf({ data }: { data: SubmissionPdfInput }) {
           key: "Max bandwidth",
           value:
             serverSpec.maxBandwidthMbps != null
-              ? `${serverSpec.maxBandwidthMbps.toLocaleString("en-US")} Mb/s`
+              ? `${serverSpec.maxBandwidthMbps.toLocaleString("en-US")} Mbit/s`
               : "—",
         },
         { key: "Drive bays", value: dash(serverSpec.driveBays) },
@@ -517,8 +517,8 @@ export function SubmissionPdf({ data }: { data: SubmissionPdfInput }) {
             color={ARXYS_NAVY}
             value={
               availableBandwidthMbps
-                ? `${fmtMbps(requiredBandwidthMbps)} of ${fmtMbps(availableBandwidthMbps)} Mb/s`
-                : `${fmtMbps(requiredBandwidthMbps)} Mb/s required`
+                ? `${fmtMbps(requiredBandwidthMbps)} of ${fmtMbps(availableBandwidthMbps)} Mbit/s`
+                : `${fmtMbps(requiredBandwidthMbps)} Mbit/s required`
             }
           />
           <CapacityBar

@@ -4,6 +4,27 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-06-19 — Bandwidth unit labels corrected site-wide (Mb/s → Mbit/s)
+
+### Work done
+
+- Audited all bandwidth unit label strings across the portal. Found 22 label sites using ambiguous or megabytes forms (`MB/s`, `Mb/s`, `Mbps`, `Gbps`, `Kbps`) across 11 source files.
+- Corrected every bandwidth unit label to the unambiguous megabits form: `Mbit/s` (mixed-case context) or `Gbit/s` / `Kbit/s` where appropriate. Casing follows the source string convention — CSS `text-transform: uppercase` on PDF column headers will render `Mbit/s` as `MBIT/S` in the output.
+- **Project Quote PDF** (`ProjectQuotePdf.tsx`): `fmtMbps` return value, `showcaseSpecPairs` max-bandwidth value, both Layout A and Layout B camera-schedule column headers (`"Bw (Mb/s)"` → `"Bw (Mbit/s)"`). Capacity bar strings cascade from `fmtMbps`.
+- **System Estimate PDF** (`SubmissionPdf.tsx`): `SCHEDULE_COLUMNS` bandwidth label (`"Bandwidth (Mb/s)"` → `"Bandwidth (Mbit/s)"`), spec-pairs max-bandwidth value, both capacity bar strings (`"… Mb/s"` suffix).
+- **Calculator** (`compute.ts` `formatBandwidthMbps`): `Mbps` → `Mbit/s`, `Gbps` → `Gbit/s`. Calculator form bitrate inline (`Mbps` → `Mbit/s`, `Kbps` → `Kbit/s`).
+- **Submission detail UI** (`submission-detail.tsx`): totals inline label and per-group table column header.
+- **Price book / workstation family** (`families.ts`): key-feature bullet, KPI unit, and three SKU extra-data bandwidth strings.
+- **VideoX compare** (`videox-compare/specs.ts`): spec row label.
+- **Email notifications** (`submission-notification.ts`): both partner and admin body bandwidth lines.
+- **Price book SKU table** (`price-book/[slug]/page.tsx`): bandwidth cell display.
+- Exported `SCHEDULE_COLUMNS` from `SubmissionPdf.tsx` and added a structural assertion to `render.test.ts` confirming the bandwidth column header reads the megabits form.
+- Updated four existing test assertions (`compute.test.ts` × 2, `render.test.ts` × 2) that were asserting the old strings.
+- **No numeric values, no computations, no storage labels (TB), no variable/field names changed.**
+- Verification: 195/195 tests pass, `npm run build` clean, `npx eslint` 0 errors on all changed files.
+
+---
+
 ## 2026-06-19 — Portal UI: comparison + videox-compare (gold actions → navy); price-book left as brand
 
 ### Work done

@@ -75,7 +75,7 @@ function fmtTb(tb: number): string {
 }
 
 function fmtMbps(mbps: number): string {
-  return `${mbps.toLocaleString("en-US", { maximumFractionDigits: 1 })} Mb/s`;
+  return `${mbps.toLocaleString("en-US", { maximumFractionDigits: 1 })} Mbit/s`;
 }
 
 // Show em-dash for null/undefined/empty string; show 0 as "0" (matching the
@@ -147,7 +147,7 @@ export function showcaseSpecPairs(
     spec.maxBandwidthMbps != null
       ? {
           key: "Max bandwidth",
-          value: `${spec.maxBandwidthMbps.toLocaleString("en-US")} Mb/s`,
+          value: `${spec.maxBandwidthMbps.toLocaleString("en-US")} Mbit/s`,
         }
       : null,
     spec.storageRawTb != null
@@ -228,7 +228,7 @@ export function buildCameraColumns(showVendorModel: boolean): CameraColumn[] {
         { header: "FPS", width: CAMB_FPS, align: "right", cell: (g) => (g.fps > 0 ? String(g.fps) : "—") },
         { header: "Scene complexity", width: CAMB_COMPLEXITY, cell: (g) => g.complexityLabel || "—" },
         { header: "Operation hrs", width: CAMB_OPHRS, cell: formatOperationHrs },
-        { header: "Bw (Mb/s)", width: CAMB_BW, align: "right", cell: (g) => fmtBwCell(g.bandwidthMbps) },
+        { header: "Bw (Mbit/s)", width: CAMB_BW, align: "right", cell: (g) => fmtBwCell(g.bandwidthMbps) },
         { header: "Storage (TB)", width: CAMB_STORE, align: "right", cell: (g) => fmtStorageCell(g.storageGb) },
       ]
     : [
@@ -237,7 +237,7 @@ export function buildCameraColumns(showVendorModel: boolean): CameraColumn[] {
         { header: "FPS", width: CAMA_FPS, align: "right", cell: (g) => (g.fps > 0 ? String(g.fps) : "—") },
         { header: "Scene complexity", width: CAMA_COMPLEXITY, cell: (g) => g.complexityLabel || "—" },
         { header: "Operation hrs", width: CAMA_OPHRS, cell: formatOperationHrs },
-        { header: "Bw (Mb/s)", width: CAMA_BW, align: "right", cell: (g) => fmtBwCell(g.bandwidthMbps) },
+        { header: "Bw (Mbit/s)", width: CAMA_BW, align: "right", cell: (g) => fmtBwCell(g.bandwidthMbps) },
         { header: "Storage (TB)", width: CAMA_STORE, align: "right", cell: (g) => fmtStorageCell(g.storageGb) },
       ];
   if (!showVendorModel) return sizing;

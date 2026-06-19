@@ -551,7 +551,7 @@ export const FAMILIES: Family[] = [
     keyFeatures: [
       "Windows 11 IoT Enterprise",
       "1 to 2x Nvidia GPUs",
-      "Up to 325 Mbps Camera Bandwidth",
+      "Up to 325 Mbit/s Camera Bandwidth",
       "High Performance Tower or Rack Mount",
       "Up to 8x monitor support*",
     ],
@@ -563,7 +563,7 @@ export const FAMILIES: Family[] = [
       "Advanced Cooling System",
     ],
     kpis: [
-      { label: "Max Bandwidth", value: "325", unit: "Mb/s" },
+      { label: "Max Bandwidth", value: "325", unit: "Mbit/s" },
       { label: "Monitor Support", value: "8x", unit: "displays" },
       { label: "Warranty Support", value: "3 Years", unit: "Next Business Day Parts" },
     ],
@@ -586,9 +586,9 @@ export const FAMILIES: Family[] = [
     category: "workstations",
     sortOrder: 10,
     skuExtraData: {
-      "VX5-SW10-100": { bandwidth: "125 Mb/s", monitors: "4*" },
-      "VX5-SW20-200": { bandwidth: "225 Mb/s", monitors: "8*" },
-      "VX5-SW30-300": { bandwidth: "325 Mb/s", monitors: "8*" },
+      "VX5-SW10-100": { bandwidth: "125 Mbit/s", monitors: "4*" },
+      "VX5-SW20-200": { bandwidth: "225 Mbit/s", monitors: "8*" },
+      "VX5-SW30-300": { bandwidth: "325 Mbit/s", monitors: "8*" },
     },
   },
 ];

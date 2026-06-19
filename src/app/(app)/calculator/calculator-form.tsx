@@ -1031,8 +1031,8 @@ export function CalculatorForm({
                 </span>
                 <span className="ax-civ" style={{ color: "var(--pu)" }}>
                   {computed.bitrateMbps >= 1
-                    ? `${formatNumber(computed.bitrateMbps)} Mbps`
-                    : `${Math.round(computed.bitrateMbps * 1000)} Kbps`}
+                    ? `${formatNumber(computed.bitrateMbps)} Mbit/s`
+                    : `${Math.round(computed.bitrateMbps * 1000)} Kbit/s`}
                 </span>
               </div>
               <div className="ax-ci">

@@ -2,7 +2,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { createElement } from "react";
 import { renderToBuffer } from "@react-pdf/renderer";
-import { SubmissionPdf } from "./SubmissionPdf";
+import { SubmissionPdf, SCHEDULE_COLUMNS } from "./SubmissionPdf";
 import type { SubmissionPdfInput } from "./types";
 import { resolveSubmissionPartner } from "./partner-resolution";
 
@@ -100,6 +100,14 @@ describe("SubmissionPdf renders via @react-pdf/renderer", () => {
     const buf = await renderToBuffer(createElement(SubmissionPdf, { data: legacy }));
     assert.ok(buf.length > 1000, `PDF buffer suspiciously small: ${buf.length} bytes`);
     assert.equal(buf.subarray(0, 5).toString("utf8"), "%PDF-");
+  });
+});
+
+describe("SCHEDULE_COLUMNS — bandwidth and storage headers use megabits form", () => {
+  it("bandwidth column header reads Mbit/s", () => {
+    const bwCol = SCHEDULE_COLUMNS.find((c) => c.key === "colBw");
+    assert.ok(bwCol, "colBw column must be present");
+    assert.equal(bwCol.label, "Bandwidth (Mbit/s)");
   });
 });
 

@@ -223,7 +223,7 @@ export function SubmissionDetail({
           </KvRow>
           <KvRow label="Totals">
             {formatNumber(submission.cameras_count)} cameras ·{" "}
-            {formatNumber(submission.bandwidth_mbps, 2)} Mbps ·{" "}
+            {formatNumber(submission.bandwidth_mbps, 2)} Mbit/s ·{" "}
             {formatNumber(submission.storage_tb, 2)} TB
           </KvRow>
         </KvTable>
@@ -243,7 +243,7 @@ export function SubmissionDetail({
                 <TH numeric>FPS</TH>
                 <TH numeric>Rec Hrs</TH>
                 <TH numeric>Motion %</TH>
-                <TH numeric>Mbps</TH>
+                <TH numeric>Mbit/s</TH>
                 <TH numeric>GB</TH>
               </TR>
             </THead>

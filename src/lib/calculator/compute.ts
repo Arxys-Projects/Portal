@@ -152,6 +152,6 @@ export function formatStorageGb(gb: number): string {
 
 export function formatBandwidthMbps(mbps: number): string {
   if (!Number.isFinite(mbps)) return "—";
-  if (mbps >= 1000) return `${formatNumber(mbps / 1000)} Gbps`;
-  return `${formatNumber(mbps)} Mbps`;
+  if (mbps >= 1000) return `${formatNumber(mbps / 1000)} Gbit/s`;
+  return `${formatNumber(mbps)} Mbit/s`;
 }

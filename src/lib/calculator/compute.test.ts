@@ -48,12 +48,12 @@ describe("formatStorageGb", () => {
 });
 
 describe("formatBandwidthMbps", () => {
-  it("formats values below 1000 as Mbps", () => {
-    assert.equal(formatBandwidthMbps(500), "500.00 Mbps");
+  it("formats values below 1000 as Mbit/s", () => {
+    assert.equal(formatBandwidthMbps(500), "500.00 Mbit/s");
   });
 
-  it("formats values >= 1000 as Gbps with two decimals", () => {
-    assert.equal(formatBandwidthMbps(1500), "1.50 Gbps");
+  it("formats values >= 1000 as Gbit/s with two decimals", () => {
+    assert.equal(formatBandwidthMbps(1500), "1.50 Gbit/s");
   });
 });
 
