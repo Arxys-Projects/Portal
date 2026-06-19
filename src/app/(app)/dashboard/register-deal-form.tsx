@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { Button } from "@/app/(app)/_components/ui";
 import { registerDealAction, type DealRegState } from "./actions";
 
 const initial: DealRegState = { status: "idle" };
@@ -19,13 +20,9 @@ export default function RegisterDealForm() {
 
   if (!open) {
     return (
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="inline-flex items-center rounded bg-[#fbb040] px-4 py-2 text-sm font-semibold text-[#1a1a1a] transition hover:bg-[#e69e2c]"
-      >
+      <Button type="button" onClick={() => setOpen(true)}>
         Register a Deal
-      </button>
+      </Button>
     );
   }
 
@@ -34,9 +31,9 @@ export default function RegisterDealForm() {
       <div>
         <label
           htmlFor="dealProjectName"
-          className="block text-xs font-semibold text-neutral-700 mb-1"
+          className="block text-xs font-semibold text-ink mb-1"
         >
-          Project Name <span className="text-red-500">*</span>
+          Project Name <span className="text-danger">*</span>
         </label>
         <input
           id="dealProjectName"
@@ -45,7 +42,7 @@ export default function RegisterDealForm() {
           required
           minLength={3}
           maxLength={200}
-          className="w-full rounded border border-neutral-300 px-3 py-2 text-sm focus:border-[#054A91] focus:outline-none"
+          className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink focus:border-arxys-navy focus:outline-none focus:ring-2 focus:ring-arxys-navy/15"
           placeholder="e.g. Acme Corp — Downtown Campus"
         />
       </div>
@@ -53,36 +50,32 @@ export default function RegisterDealForm() {
       <div>
         <label
           htmlFor="dealNotes"
-          className="block text-xs font-semibold text-neutral-700 mb-1"
+          className="block text-xs font-semibold text-ink mb-1"
         >
-          Notes <span className="text-neutral-400 font-normal">(optional)</span>
+          Notes <span className="text-ink-soft font-normal">(optional)</span>
         </label>
         <textarea
           id="dealNotes"
           name="notes"
           maxLength={1000}
           rows={3}
-          className="w-full rounded border border-neutral-300 px-3 py-2 text-sm focus:border-[#054A91] focus:outline-none resize-none"
+          className="w-full resize-none rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink focus:border-arxys-navy focus:outline-none focus:ring-2 focus:ring-arxys-navy/15"
           placeholder="Opportunity details, timeline, competitive situation…"
         />
       </div>
 
       {state.status === "error" && (
-        <p className="text-xs text-red-600">{state.message}</p>
+        <p className="text-xs text-danger">{state.message}</p>
       )}
 
       <div className="flex items-center gap-3">
-        <button
-          type="submit"
-          disabled={pending}
-          className="inline-flex items-center rounded bg-[#fbb040] px-4 py-2 text-sm font-semibold text-[#1a1a1a] transition hover:bg-[#e69e2c] disabled:opacity-50"
-        >
+        <Button type="submit" disabled={pending}>
           {pending ? "Sending…" : "Submit Registration"}
-        </button>
+        </Button>
         <button
           type="button"
           onClick={() => setOpen(false)}
-          className="text-xs text-neutral-500 hover:text-neutral-700"
+          className="text-xs font-medium text-ink-soft hover:text-ink"
         >
           Cancel
         </button>

@@ -4,6 +4,61 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-06-19 — Portal UI design system: token layer + shared components + dashboard migration
+
+### Work done
+
+Established the portal-wide UI design system (ADR 0067) and migrated the **dashboard**
+onto it. Other pages untouched — they migrate in later steps. Not committed; awaiting
+review. Throwaway mockup left in place at repo root for the review comparison (deleted at
+commit).
+
+- **Step 0 investigation (reported before any code).** Found **two** navy hexes:
+  `#054A91` (web `@theme` token + Price Book/Comparison) vs `#1a365d` (PDF-only). Andy
+  confirmed **`#054A91`**. Calculator form controls are CSS-class based (`.ax-f select`
+  under `#arxys-calc-root`), not componentized — their *geometry/contrast* is the good
+  vocabulary, recoloured to navy. Tailwind v4 via `@tailwindcss/postcss`, no config file;
+  tokens are CSS vars in `globals.css @theme inline`. Next ADR number = **0067**.
+- **Mockup checkpoint.** Built `design-system-mockup.html` (button scale, contrast NavCard
+  vs old card, full dashboard grid, Select/Table/StatusBadge). Andy approved the look +
+  navy, requested **firmer borders** (cards 2px, NavCards 3px + slightly darker, darker
+  shadow) — folded into the tokens.
+- **Token layer** (`globals.css`): added `--color-page #f3f5f9`, `--color-surface`,
+  `--color-line #cdd5e0`, `--color-line-strong #c4cdda`, `--color-line-soft`,
+  `--color-ink #14181f`, `--color-ink-soft #5a6573`, `--color-secondary(-hover)`,
+  `--color-danger(-deep/-soft)`. Reuses existing `--color-arxys-navy*`. Verified all
+  utilities (incl. `hover:` variants) emit into the built CSS.
+- **Shared components** in `src/app/(app)/_components/ui/`: `Button`/`IconButton`,
+  `Select`, `Card`/`NavCard` (arrow + download glyph + full-width variants),
+  `Table` (+ `THead/TBody/TR/TH/TD`), `StatusBadge` (source/status/on-behalf;
+  status reuses `STATUS_META`), `MetricTile`, a pure `styles.ts` class-builder layer,
+  and an `index.ts` barrel.
+- **Dashboard migrated**: uniform NavCard grid; Pipeline Summary as `MetricTile`s (no
+  arrow); Support collapsed to ONE external card; Price List uses the download glyph;
+  Admin full-width footer; gold buttons removed (Register-a-Deal form + help-modal
+  accents recoloured navy). Page background switched to the tint token.
+
+### Detours & fixes
+
+- **No render-test harness in the repo** (test glob is `*.test.ts`, no jsdom/RTL). Rather
+  than add one, the style contract lives in a pure `styles.ts` and is unit-tested by
+  `styles.test.ts` (7 tests) under the existing `tsx --test` runner. Component visuals
+  rely on the approved mockup + build + the authenticated manual check.
+- **Dashboard is auth-gated**, so a headless live screenshot only hits `/login`. The
+  approved static mockup stands as the visual proof; Andy does the authenticated check.
+
+### Verification gates
+
+- `npx eslint` on `ui/` + `dashboard/` — **0 errors**.
+- `npm test` — **194/194** (+7 new style tests over the prior 187).
+- `npm run build` — ✓ compiled successfully; all 23 routes built.
+- Built-CSS check — every new token utility (incl. `hover:bg-secondary-hover #dbe0e8`,
+  `hover:bg-arxys-navy-deep #03396f`, `border-width:3px`) present.
+
+### Decisions captured
+
+- [`0067-portal-ui-design-system.md`](./decisions/0067-portal-ui-design-system.md) → **Proposed** (Andy flips to Accepted on review).
+
 ## 2026-06-19 — Project Quote PDF: delete the redundant standalone server-spec page; finalize ADR 0066
 
 ### Work done

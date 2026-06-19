@@ -20,6 +20,23 @@
   --color-arxys-navy-deep: #03396f;
   --color-arxys-navy-soft: #f0f5fa;
   --font-poppins: "Poppins", system-ui, sans-serif;
+
+  /* ── Portal UI design system — ADR 0067 ──────────────────────────────
+   * Calm, flat, HIGH CONTRAST. One accent = arxys-navy (above). Gold is
+   * retired from buttons/actions. Surfaces are true white on a tinted page;
+   * borders are firmed one step up from hairline grey. */
+  --color-page: #f3f5f9;          /* tinted page background */
+  --color-surface: #ffffff;       /* true-white card surface */
+  --color-line: #cdd5e0;          /* firmed card/panel border (used at 2px) */
+  --color-line-strong: #c4cdda;   /* NavCard resting border (used at 3px) */
+  --color-line-soft: #e6e9ef;     /* inner dividers / table rows */
+  --color-ink: #14181f;           /* near-black — all content text */
+  --color-ink-soft: #5a6573;      /* secondary text — subtitles / labels only */
+  --color-secondary: #e7eaef;         /* secondary-button fill */
+  --color-secondary-hover: #dbe0e8;
+  --color-danger: #c0362c;            /* destructive */
+  --color-danger-deep: #9f2b22;
+  --color-danger-soft: #fbeceb;
 }
 
 body {

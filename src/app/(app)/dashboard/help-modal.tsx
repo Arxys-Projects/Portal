@@ -114,7 +114,7 @@ export default function HelpModal() {
                   className={[
                     "whitespace-nowrap rounded-t px-3 py-1.5 text-xs font-medium transition",
                     active === s.id
-                      ? "border-b-2 border-[#fbb040] text-neutral-900"
+                      ? "border-b-2 border-arxys-navy text-neutral-900"
                       : "text-neutral-500 hover:text-neutral-800",
                   ].join(" ")}
                 >
@@ -129,7 +129,7 @@ export default function HelpModal() {
               <ul className="space-y-2">
                 {section.bullets.map((b, i) => (
                   <li key={i} className="flex gap-2 text-sm text-neutral-700">
-                    <span className="mt-0.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#fbb040]" style={{ marginTop: "0.45rem" }} />
+                    <span className="mt-0.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-arxys-navy" style={{ marginTop: "0.45rem" }} />
                     {b}
                   </li>
                 ))}
