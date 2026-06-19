@@ -17,13 +17,19 @@ import {
   TRACK_GRAY,
 } from "../pdf/colors";
 import type { QuoteLineItem } from "@/lib/pipedrive/quote";
-import type { ProjectQuoteCameraRow, ProjectQuoteSnapshot } from "./types";
+import type {
+  ProjectQuoteCameraRow,
+  ProjectQuoteShowcaseSpecHighlights,
+  ProjectQuoteSnapshot,
+} from "./types";
 
 export type ProjectQuotePdfInput = {
   snapshot: ProjectQuoteSnapshot;
   logoDataUri: string | null;
   // Loaded from sizing.primaryServerHeroImagePath at render time.
   primaryHeroDataUri: string | null;
+  // Indexed parallel to snapshot.showcase; loaded from each item.heroImagePath.
+  showcaseHeroDataUris: (string | null)[];
 };
 
 // Sort ascending by orderNr; nulls sort last. Exported for test assertions.
@@ -114,6 +120,49 @@ export function derivePartnerTotal(line: QuoteLineItem): number | null {
   const each = derivePartnerEach(line);
   if (each == null) return null;
   return each * (line.quantity ?? 0);
+}
+
+// ---------------------------------------------------------------------------
+// Showcase spec highlights (page 2)
+// ---------------------------------------------------------------------------
+
+// Cap on rendered highlights — two lines of the 4-column grid. The grid is a
+// marketing summary (ADR 0066: "intentionally light on specs"), and the bound
+// keeps a spec-rich server's row to roughly 100pt so five rows fit one page.
+const SHOWCASE_MAX_PAIRS = 8;
+
+// Spec highlight pairs for a showcase row, most-marketing-relevant first. Null
+// fields are omitted entirely, so a sparse add-on yields a short pair list (the
+// grid wraps to fewer lines and the row is shorter); a spec-rich server is
+// capped at SHOWCASE_MAX_PAIRS so its row stays bounded. The caller renders
+// nothing when empty — no "not available" note. Exported so a test can assert
+// both the omit-nulls rule and the cap.
+export function showcaseSpecPairs(
+  spec: ProjectQuoteShowcaseSpecHighlights,
+): Array<{ key: string; value: string }> {
+  const pairs: Array<{ key: string; value: string } | null> = [
+    spec.formFactor ? { key: "Form factor", value: spec.formFactor } : null,
+    spec.rackUnits ? { key: "Rack units", value: spec.rackUnits } : null,
+    spec.maxCameras != null
+      ? { key: "Max cameras", value: `${spec.maxCameras} streams` }
+      : null,
+    spec.maxBandwidthMbps != null
+      ? {
+          key: "Max bandwidth",
+          value: `${spec.maxBandwidthMbps.toLocaleString("en-US")} Mb/s`,
+        }
+      : null,
+    spec.storageRawTb != null
+      ? { key: "Raw storage", value: fmtTb(spec.storageRawTb) }
+      : null,
+    spec.driveBays != null ? { key: "Drive bays", value: String(spec.driveBays) } : null,
+    spec.cpuModelFull ? { key: "CPU", value: spec.cpuModelFull } : null,
+    spec.ramSpec ? { key: "RAM", value: spec.ramSpec } : null,
+    spec.osEdition ? { key: "OS", value: spec.osEdition } : null,
+  ];
+  return pairs
+    .filter((p): p is { key: string; value: string } => p !== null)
+    .slice(0, SHOWCASE_MAX_PAIRS);
 }
 
 // ---------------------------------------------------------------------------
@@ -390,7 +439,51 @@ const styles = StyleSheet.create({
   specKey: { fontSize: 6.5, color: TEXT_MUTED, textTransform: "uppercase", letterSpacing: 0.5 },
   specVal: { fontSize: 8.5, fontFamily: "Helvetica-Bold", color: TEXT_SLATE },
 
-  // Commercial table (page 2)
+  // Showcase rows (page 2). Each product is a compact, thin-bordered full-width
+  // row (hero left, name + SKU·family, then a 4-column spec-highlight grid),
+  // sized so five rows fit with the header and footer. A product with fewer
+  // highlights wraps to fewer grid lines, so its row is shorter — no tall empty
+  // boxes. Not a 2-column card grid.
+  showcaseRow: {
+    flexDirection: "row",
+    borderWidth: 1,
+    borderColor: BORDER_LIGHT,
+    borderRadius: 2,
+    paddingVertical: 7,
+    paddingHorizontal: 10,
+    marginBottom: 7,
+    alignItems: "center",
+  },
+  showcaseImageCol: { width: 92, marginRight: 12, alignItems: "center", justifyContent: "center" },
+  // Bounded height + contain: hero PNGs vary from square (1080×1080) to wide
+  // banners, so an unconstrained width would let a square image blow up the row
+  // height. Fixing the box keeps every row ~the same height (five fit a page).
+  showcaseImage: { width: 86, height: 46, objectFit: "contain" },
+  showcaseImagePlaceholder: {
+    width: 86,
+    height: 46,
+    backgroundColor: BG_LIGHT,
+    borderWidth: 1,
+    borderColor: BORDER_LIGHT,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  showcaseDetailCol: { flex: 1 },
+  showcaseProductName: {
+    fontSize: 11,
+    fontFamily: "Helvetica-Bold",
+    color: ARXYS_NAVY,
+    lineHeight: 1.1,
+    marginBottom: 1,
+  },
+  showcaseProductMeta: { fontSize: 7.5, color: TEXT_MUTED, marginBottom: 4 },
+  showcaseSpecGrid: { flexDirection: "row", flexWrap: "wrap" },
+  showcaseSpecPair: { width: "25%", marginBottom: 2, paddingRight: 6 },
+  showcaseSpecKey: { fontSize: 5.5, lineHeight: 1.1, color: TEXT_MUTED, textTransform: "uppercase", letterSpacing: 0.5 },
+  showcaseSpecVal: { fontSize: 7.5, lineHeight: 1.15, fontFamily: "Helvetica-Bold", color: TEXT_SLATE },
+  emptyShowcase: { fontSize: 9, color: TEXT_MUTED, marginTop: 10 },
+
+  // Commercial table (page 3)
   commInfoBlock: {
     flexDirection: "row",
     backgroundColor: BG_LIGHT,
@@ -442,7 +535,7 @@ const styles = StyleSheet.create({
     textAlign: "right",
   },
 
-  // Terms (page 3) — identity block as a 3-column, 2-row grid.
+  // Terms (page 4) — identity block as a 3-column, 2-row grid.
   termsIdGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -616,8 +709,10 @@ function CapacityBar({
 // ---------------------------------------------------------------------------
 
 export function ProjectQuotePdf({ data }: { data: ProjectQuotePdfInput }) {
-  const { snapshot, logoDataUri, primaryHeroDataUri } = data;
+  const { snapshot, logoDataUri, primaryHeroDataUri, showcaseHeroDataUris } = data;
   const { commercial, sizing, terms, generation } = snapshot;
+  // Guard: rows frozen between ADR 0065 and 0066 have no `showcase` field.
+  const showcase = snapshot.showcase ?? [];
 
   const generatedDateStr = fmtDate(generation.generatedAt);
   const expiryDateStr = fmtExpiryDate(generation.generatedAt, generation.validityDays);
@@ -878,7 +973,72 @@ export function ProjectQuotePdf({ data }: { data: ProjectQuotePdfInput }) {
         </View>
       </Page>
 
-      {/* ── Page 2: Commercial ──────────────────────────────────────────── */}
+      {/* ── Page 2: Products showcase ───────────────────────────────────── */}
+      <Page size="LETTER" style={styles.page}>
+        <PageHeader
+          logoDataUri={logoDataUri}
+          identifier={generation.identifier}
+          generatedDateStr={generatedDateStr}
+          disclaimer={headerDisclaimer}
+        />
+        <PageFooter identifier={generation.identifier} validityLine={validityLine} />
+
+        {/* Marketing showcase — intentionally light on specs, distinct from the
+            priced commercial table on page 3 (ADR 0066). One compact, full-width
+            bordered row per eligible product; five fit on a page. */}
+        <Text style={styles.sectionTitle}>Products in this quote</Text>
+
+        {showcase.length === 0 ? (
+          <Text style={styles.emptyShowcase}>
+            No catalog products with price-book family records in this quote.
+          </Text>
+        ) : (
+          showcase.map((item, i) => {
+            const heroUri = showcaseHeroDataUris[i] ?? null;
+            const pairs = item.specHighlights
+              ? showcaseSpecPairs(item.specHighlights)
+              : [];
+            return (
+              <View key={item.sku} style={styles.showcaseRow} wrap={false}>
+                <View style={styles.showcaseImageCol}>
+                  {heroUri ? (
+                    // @react-pdf/renderer Image has no alt concept (not an HTML img).
+                    // eslint-disable-next-line jsx-a11y/alt-text
+                    <Image style={styles.showcaseImage} src={heroUri} />
+                  ) : (
+                    <View style={styles.showcaseImagePlaceholder}>
+                      <Text style={{ fontSize: 7, color: TEXT_MUTED }}>
+                        {item.productGroup}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+                <View style={styles.showcaseDetailCol}>
+                  <Text style={styles.showcaseProductName}>{item.productName}</Text>
+                  <Text style={styles.showcaseProductMeta}>
+                    {item.sku} · {item.productGroup}
+                  </Text>
+                  {/* Null highlights are omitted by showcaseSpecPairs; an item
+                      with none renders no grid (and no note), so its row is
+                      short. */}
+                  {pairs.length > 0 ? (
+                    <View style={styles.showcaseSpecGrid}>
+                      {pairs.map((p) => (
+                        <View key={p.key} style={styles.showcaseSpecPair}>
+                          <Text style={styles.showcaseSpecKey}>{p.key}</Text>
+                          <Text style={styles.showcaseSpecVal}>{p.value}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  ) : null}
+                </View>
+              </View>
+            );
+          })
+        )}
+      </Page>
+
+      {/* ── Page 3: Commercial ──────────────────────────────────────────── */}
       <Page size="LETTER" style={styles.page}>
         <PageHeader
           logoDataUri={logoDataUri}
@@ -1023,7 +1183,7 @@ export function ProjectQuotePdf({ data }: { data: ProjectQuotePdfInput }) {
         </View>
       </Page>
 
-      {/* ── Page 3: Terms ───────────────────────────────────────────────── */}
+      {/* ── Page 4: Terms ───────────────────────────────────────────────── */}
       <Page size="LETTER" style={styles.page}>
         <PageHeader
           logoDataUri={logoDataUri}

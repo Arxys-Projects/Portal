@@ -19,6 +19,7 @@ function makeRow(version: number, dealId = 4822): ProjectQuoteInsert {
     snapshotVersion: 1,
     commercial: {} as DealQuote,
     sizing: {} as ProjectQuoteSnapshot["sizing"],
+    showcase: [],
     terms: { version: "v1", text: "terms", sha256: "abc" },
     generation: {
       version,

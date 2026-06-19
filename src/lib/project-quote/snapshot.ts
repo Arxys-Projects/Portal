@@ -1,4 +1,4 @@
-import type { DealQuote, GetDealForQuoteResult } from "@/lib/pipedrive/quote";
+import type { DealQuote, GetDealForQuoteResult, QuoteLineItem } from "@/lib/pipedrive/quote";
 import { familyBySlug, productGroupToFamilySlug } from "@/lib/price-book/families";
 import { GB_PER_TB } from "@/lib/recommend/types";
 import {
@@ -7,6 +7,8 @@ import {
   type ProjectQuoteCameraRow,
   type ProjectQuoteInsert,
   type ProjectQuoteServerSpec,
+  type ProjectQuoteShowcaseItem,
+  type ProjectQuoteShowcaseSpecHighlights,
   type ProjectQuoteSizing,
   type ProjectQuoteSnapshot,
   type ProjectQuoteTerms,
@@ -48,6 +50,71 @@ export function resolveHeroImagePath(productGroup: string | null | undefined): s
   const slug = productGroupToFamilySlug(productGroup);
   if (!slug) return null;
   return familyBySlug(slug)?.heroImage ?? null;
+}
+
+// ---------------------------------------------------------------------------
+// Showcase (page 2)
+// ---------------------------------------------------------------------------
+
+// Showcase eligibility: any product group that resolves to a price-book family
+// (productGroupToFamilySlug returns non-null). That covers all V-series servers
+// (V100, V150, V200, V250, V255, V260, V270, V400-V800) and all SW workstations
+// (SW10-SW35). Add-on cards, NICs, transceivers, and warranty SKUs have no
+// price-book family and return null. [MKT] custom lines are excluded upstream
+// by the priceType check in buildShowcase.
+export function isShowcaseProductGroup(productGroup: string | null | undefined): boolean {
+  if (!productGroup) return false;
+  return productGroupToFamilySlug(productGroup) !== null;
+}
+
+// A resolved catalog record for one SKU, assembled by the orchestrator from the
+// products row (required, the "catalog record") and the product_specs row
+// (optional, the spec highlights). The pure builder filters and freezes from
+// this; a SKU absent from the map has no catalog record and is not showcased.
+export type ShowcaseCatalogRecord = {
+  sku: string;
+  productName: string;
+  productGroup: string;
+  // products.price_type. "market" lines ([MKT]) are excluded from the showcase.
+  priceType: string;
+  msrp: number | null;
+  specHighlights: ProjectQuoteShowcaseSpecHighlights | null;
+};
+
+// Build the page-2 showcase from the deal's line items plus the resolved
+// catalog. One card per distinct SKU that (a) resolves to a catalog record,
+// (b) is not a [MKT] / market line, and (c) is an eligible showcase group.
+// Deterministic order: product group, then SKU. Frozen output, never re-derived
+// at render.
+export function buildShowcase(
+  lineItems: QuoteLineItem[],
+  catalogBySku: Map<string, ShowcaseCatalogRecord>,
+): ProjectQuoteShowcaseItem[] {
+  const seen = new Set<string>();
+  const items: ProjectQuoteShowcaseItem[] = [];
+  for (const line of lineItems) {
+    const sku = line.productCode;
+    if (!sku || seen.has(sku)) continue;
+    const record = catalogBySku.get(sku);
+    if (!record) continue; // no catalog record: stays on the commercial table only
+    if (record.priceType === "market") continue; // [MKT] custom line
+    if (!isShowcaseProductGroup(record.productGroup)) continue;
+    seen.add(sku);
+    items.push({
+      sku: record.sku,
+      productName: record.productName,
+      productGroup: record.productGroup,
+      msrp: record.msrp,
+      heroImagePath: resolveHeroImagePath(record.productGroup),
+      specHighlights: record.specHighlights,
+    });
+  }
+  items.sort((a, b) =>
+    a.productGroup === b.productGroup
+      ? a.sku.localeCompare(b.sku)
+      : a.productGroup.localeCompare(b.productGroup),
+  );
+  return items;
 }
 
 // ---------------------------------------------------------------------------
@@ -187,6 +254,28 @@ function mapServerSpec(
   };
 }
 
+// Build spec highlights for a showcase card from a product_specs row. Exported
+// so the orchestrator can attach it to a ShowcaseCatalogRecord; null in / null
+// out for SKUs with no product_specs row.
+export function buildShowcaseSpecHighlights(
+  spec: SizingProductSpecRow,
+): ProjectQuoteShowcaseSpecHighlights | null {
+  if (!spec) return null;
+  return {
+    formFactor: spec.form_factor,
+    rackUnits: spec.rack_units,
+    cpuModelFull: spec.cpu_model_full,
+    ramSpec: spec.ram_spec,
+    driveBays: spec.drive_bays,
+    storageRawTb: spec.storage_raw_tb,
+    maxCameras: spec.max_cameras,
+    maxBandwidthMbps: spec.max_bandwidth_mbps,
+    osEdition: spec.os_edition,
+    raidLevelDisplay: spec.raid_level_display,
+    hddCount: spec.hdd_count,
+  };
+}
+
 // Freeze the sizing half from the submission row plus its resolved partner /
 // product / product_specs joins. Resolved values only; no index is stored.
 export function buildSizingFromSubmission(input: {
@@ -276,6 +365,7 @@ export type SnapshotBuildInput = {
   submissionId: string;
   dealResult: GetDealForQuoteResult;
   sizing: ProjectQuoteSizing;
+  catalogBySku: Map<string, ShowcaseCatalogRecord>;
   terms: ProjectQuoteTerms;
   existingMaxVersion: number | null;
   generatedAt: Date;
@@ -301,11 +391,13 @@ export function buildProjectQuoteSnapshot(input: SnapshotBuildInput): AssembleSn
   const version = computeNextVersion(input.existingMaxVersion);
   const generatedAtIso = input.generatedAt.toISOString();
   const identifier = composeQuoteIdentifier(deal.dealId, version, input.generatedAt);
+  const showcase = buildShowcase(deal.lineItems, input.catalogBySku);
 
   const snapshot: ProjectQuoteSnapshot = {
     snapshotVersion: PROJECT_QUOTE_SNAPSHOT_VERSION,
     commercial: deal,
     sizing: input.sizing,
+    showcase,
     terms: input.terms,
     generation: {
       version,

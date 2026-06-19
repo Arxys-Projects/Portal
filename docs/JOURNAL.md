@@ -4,6 +4,33 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-06-18 — Project Quote PDF: reinstate the products showcase page (reverses ADR 0065)
+
+### Work done
+
+Restored the marketing "Products in this quote" showcase that ADR 0065 had fully removed earlier today, on Andy's go-ahead (sales asked for it back). This reverses 0065, so it is both a data-layer restoration and a render change, captured in **ADR 0066 (Proposed)**. Not committed; awaiting review of 0066 before the change lands.
+
+- **Step 0 investigation first (reported before any edit).** Confirmed STATE B: the page-2 position rendered the *commercial line-items table* (ADR 0065 had renamed that page "Products"), and **all** showcase data — the `showcase` snapshot field, the builders, the catalog resolution, the hero loading — was gone. The rich per-product hero/spec-highlight data could not be rebuilt from what remained (`sizing.serverSpec` is a single server; `commercial.lineItems` carry no specs), so re-adding the showcase required restoring snapshot plumbing. Presented the scope and waited for go-ahead.
+- **Restored the data layer verbatim from commit `97239ec`** (the data-layer files were untouched since the removal, so the deletions reverse-applied cleanly): `ProjectQuoteShowcaseItem` / `ProjectQuoteShowcaseSpecHighlights` + the `showcase` envelope field (`types.ts`); `buildShowcase`, `buildShowcaseSpecHighlights`, `isShowcaseProductGroup`, `ShowcaseCatalogRecord` + the `catalogBySku` build input (`snapshot.ts`); `loadShowcaseCatalog` + the `dealSkus`/`catalogBySku` plumbing (`assemble.ts`); per-item `showcaseHeroDataUris` loading (`render.ts`). Eligibility is the widened family predicate (`productGroupToFamilySlug(productGroup) !== null` — all V-series incl. V150/V250/V255/V260/V270 and SW10–SW35; add-ons/NICs/transceivers/warranty/[MKT] excluded).
+- **New render layout (not the old 2-column card grid).** Page 2 is now one **compact, thin-bordered, full-width row per product**: hero image left (neutral placeholder box when no image), then product name + "SKU · family", then a four-column spec-highlight grid. Null highlights are omitted (no "not available" note), so a sparse add-on row is short; a spec-rich server's grid is capped at eight pairs (two rows). The document returns to four pages: Sizing → Products showcase → Commercial → Terms.
+- **No snapshot version bump, no migration.** The renderer reads `snapshot.showcase ?? []`, so a row frozen during the 0065→0066 window (the table held 0 rows) renders an empty showcase rather than crashing; the version envelope never branches on this field. The snapshot is a `jsonb` column, so adding a shape field needs no DDL migration. Catalog is read at generation and frozen; render loads only frozen paths (ADR 0060 unchanged).
+- **Tests restored + extended.** Re-added the `isShowcaseProductGroup` (eligibility true/false set) and `buildShowcase` (sort, dedup, [MKT]/NIC/transceiver/no-catalog exclusion, null-highlights freeze) suites and threaded `catalogBySku` through the `buildProjectQuoteSnapshot` fixtures (`snapshot.test.ts`); re-added the empty-/multi-showcase render cases (incl. a null-`specHighlights` card), a five-product single-page fixture, the placeholder-on-null-image case, and `showcaseSpecPairs` unit tests for the omit-nulls rule and the eight-pair cap (`render.test.ts`); restored `showcase: []` to the `generate.test.ts` snapshot fixture.
+
+### Detours & fixes
+
+- **Five products would not fit on one page (rendered as 5 pages, not 4).** First cut spilled the showcase to a second page: the spec grid ran three lines (a long CPU value wrapped), and — the real culprit — the square hero PNGs (V100 and V600 are 1080×1080) rendered ~86pt tall at full width, blowing up each row. Fixes: capped the highlight grid to eight pairs (two rows) via `SHOWCASE_MAX_PAIRS`; bounded the hero box to a fixed `height: 46` with `objectFit: "contain"` so a square image can't dominate; and tightened row padding / spec line-heights. Smoke render then produced exactly four pages with all five products on page 2. (Caught only because the smoke gate counts pages with `pdfinfo` rather than just checking `%PDF-`.)
+
+### Verification gates
+
+- `npm test` **185/185** (+13 over the prior 172: the restored showcase data-layer suites and the new showcase render/spec-pair tests). `npm run build` ✓ Compiled successfully. `npx eslint` 0 errors on all changed files.
+- Smoke render (5-product spec-rich fixture, real hero PNGs): `%PDF-`, **4 pages** via `pdfinfo`; page 2 shows the "Products in this quote" heading and all five bordered rows (`pdftotext`); page 3 the commercial table, page 4 the terms.
+
+### Decisions captured
+
+- [`0066-reinstate-project-quote-showcase-page.md`](./decisions/0066-reinstate-project-quote-showcase-page.md) (Proposed — reverses ADR 0065). ADR 0065 flagged with a forward note; flip it to `Superseded by #0066` when 0066 is accepted.
+
+---
+
 ## 2026-06-18 — Project Quote PDF commercial page: derived partner-price columns, static FOB block, footer resize
 
 ### Work done

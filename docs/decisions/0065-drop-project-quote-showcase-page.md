@@ -1,8 +1,13 @@
 # 0065 — Drop the Project Quote product showcase page
 
-- **Status**: Accepted
+- **Status**: Accepted — reversal proposed in #0066 (awaiting review)
 - **Date**: 2026-06-18
 - **Amends**: #0059 (page-2 showcase), #0060 (showcase in the snapshot)
+
+> **Note (2026-06-18):** Sales asked for a marketing showcase page back, scoped
+> as a clearly-labeled marketing section distinct from the priced commercial
+> table — the "when to revisit" condition below. ADR #0066 proposes reinstating
+> the showcase. When #0066 is accepted, mark this Status `Superseded by #0066`.
 
 ## Context
 

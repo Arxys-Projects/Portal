@@ -39,10 +39,17 @@ export async function renderProjectQuotePdfBuffer(
     ? loadPngDataUriByPath(snapshot.sizing.primaryServerHeroImagePath)
     : null;
 
+  // Frozen showcase paths → bytes at render (ADR 0060). Guard the field: rows
+  // frozen while the showcase was removed (ADR 0065 → 0066) have no `showcase`.
+  const showcaseHeroDataUris = (snapshot.showcase ?? []).map((item) =>
+    item.heroImagePath ? loadPngDataUriByPath(item.heroImagePath) : null,
+  );
+
   const input: ProjectQuotePdfInput = {
     snapshot,
     logoDataUri,
     primaryHeroDataUri,
+    showcaseHeroDataUris,
   };
 
   // ProjectQuotePdf returns a <Document>, cast through unknown to satisfy

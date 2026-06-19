@@ -12,6 +12,7 @@ import {
   derivePartnerTotal,
   COMMERCIAL_COLUMNS,
   QUOTE_FOB_BLOCK,
+  showcaseSpecPairs,
   type ProjectQuotePdfInput,
 } from "./ProjectQuotePdf";
 import type { ProjectQuoteCameraRow } from "./types";
@@ -167,6 +168,28 @@ function makeSnapshot(overrides: Partial<ProjectQuoteSnapshot> = {}): ProjectQuo
         contactName: "Bob Integrator",
       },
     },
+    showcase: [
+      {
+        sku: "VX5-V800-720",
+        productName: "VideoX V800 720TB 4U 36Bay",
+        productGroup: "V800",
+        msrp: 75000,
+        heroImagePath: "/price-book/v700-v800-hero.png",
+        specHighlights: {
+          formFactor: "4U Rackmount",
+          rackUnits: "4U",
+          cpuModelFull: "AMD EPYC 9005 4.3GHz 16/32 Core",
+          ramSpec: "32GB ECC DDR5",
+          driveBays: 36,
+          storageRawTb: 720,
+          maxCameras: 325,
+          maxBandwidthMbps: 4000,
+          osEdition: "Windows Server 2022 LTSC Standard",
+          raidLevelDisplay: "60",
+          hddCount: 36,
+        },
+      },
+    ],
     terms: {
       version: "v1.0",
       text: "These are the terms and conditions for this project quote. All prices are subject to written acceptance within the validity window. Arxys reserves the right to adjust pricing based on updated distributor costs.",
@@ -190,6 +213,7 @@ function makeInput(snapshot: ProjectQuoteSnapshot): ProjectQuotePdfInput {
     snapshot,
     logoDataUri: null,
     primaryHeroDataUri: null,
+    showcaseHeroDataUris: (snapshot.showcase ?? []).map(() => null),
   };
 }
 
@@ -263,6 +287,139 @@ describe("ProjectQuotePdf renders via @react-pdf/renderer", () => {
     assert.ok(manualGroups.length > 0, "fixture must include a manual-entry group");
     const buf = await render(snap);
     assert.ok(buf.length > 1000, `PDF buffer suspiciously small: ${buf.length} bytes`);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Products showcase (page 2)
+// ---------------------------------------------------------------------------
+
+describe("ProjectQuotePdf products showcase (page 2)", () => {
+  it("renders with an empty showcase (no catalog products)", async () => {
+    const snap = makeSnapshot();
+    const noShowcase: ProjectQuoteSnapshot = { ...snap, showcase: [] };
+    const buf = await render(noShowcase);
+    assert.ok(buf.length > 1000, `PDF buffer suspiciously small: ${buf.length} bytes`);
+    assert.equal(buf.subarray(0, 5).toString("utf8"), "%PDF-");
+  });
+
+  it("renders multiple showcase rows including a card with null specHighlights", async () => {
+    const snap = makeSnapshot();
+    const multi: ProjectQuoteSnapshot = {
+      ...snap,
+      showcase: [
+        snap.showcase[0],
+        {
+          sku: "VX5-V500-240",
+          productName: "VideoX V500 240TB 2U 12Bay",
+          productGroup: "V500",
+          msrp: 42000,
+          heroImagePath: "/price-book/v400-v500-hero.png",
+          specHighlights: null, // no spec row → renders a short row with no grid
+        },
+        {
+          sku: "VX5-SW20-200",
+          productName: "VideoX SW20 Workstation",
+          productGroup: "SW20",
+          msrp: 3800,
+          heroImagePath: "/price-book/sw-hero.png",
+          specHighlights: {
+            formFactor: "Tower",
+            rackUnits: null,
+            cpuModelFull: null,
+            ramSpec: null,
+            driveBays: null,
+            storageRawTb: null,
+            maxCameras: null,
+            maxBandwidthMbps: 225,
+            osEdition: "Windows 11 IoT Enterprise",
+            raidLevelDisplay: null,
+            hddCount: null,
+          },
+        },
+      ],
+    };
+    assert.equal(multi.showcase[1].specHighlights, null);
+    const buf = await render(multi);
+    assert.ok(buf.length > 1000, `PDF buffer suspiciously small: ${buf.length} bytes`);
+    assert.equal(buf.subarray(0, 5).toString("utf8"), "%PDF-");
+  });
+
+  it("renders five spec-rich rows on a single page (pagination fits 5)", async () => {
+    const snap = makeSnapshot();
+    const base = snap.showcase[0];
+    const groups = ["V500", "V600", "V700", "V800", "SW35"];
+    const five: ProjectQuoteSnapshot = {
+      ...snap,
+      showcase: groups.map((g, i) => ({
+        ...base,
+        sku: `VX5-${g}-${i}`,
+        productName: `VideoX ${g} Server`,
+        productGroup: g,
+      })),
+    };
+    assert.equal(five.showcase.length, 5);
+    const buf = await render(five);
+    assert.ok(buf.length > 1000, `PDF buffer suspiciously small: ${buf.length} bytes`);
+    assert.equal(buf.subarray(0, 5).toString("utf8"), "%PDF-");
+    // Pagination is asserted visually by the smoke-render gate (pdftotext): the
+    // five rows + heading + footer land on one page. react-pdf subsets glyphs,
+    // so the byte stream can't be grepped for the page-2 row count here.
+  });
+
+  it("falls back to the placeholder box when a row has no hero image", async () => {
+    const snap = makeSnapshot();
+    // makeInput supplies null hero data URIs for every showcase item, so the
+    // default fixture already exercises the placeholder branch. Confirm it
+    // renders rather than throwing on the missing image.
+    const input = makeInput(snap);
+    assert.deepEqual(input.showcaseHeroDataUris, [null]);
+    const buf = await renderToBuffer(createElement(ProjectQuotePdf, { data: input }));
+    assert.ok(buf.length > 1000, `PDF buffer suspiciously small: ${buf.length} bytes`);
+    assert.equal(buf.subarray(0, 5).toString("utf8"), "%PDF-");
+  });
+});
+
+describe("showcaseSpecPairs — omit-nulls keeps rows short", () => {
+  const FULL: NonNullable<ProjectQuoteSnapshot["showcase"][number]["specHighlights"]> = {
+    formFactor: "4U Rackmount",
+    rackUnits: "4U",
+    cpuModelFull: "AMD EPYC 9005",
+    ramSpec: "64GB ECC DDR5",
+    driveBays: 36,
+    storageRawTb: 720,
+    maxCameras: 325,
+    maxBandwidthMbps: 4000,
+    osEdition: "Windows Server 2022 LTSC",
+    raidLevelDisplay: "60",
+    hddCount: 36,
+  };
+
+  it("caps a spec-rich product at 8 pairs (two grid rows) so the row stays bounded", () => {
+    // All nine candidates populated, but the grid is capped at two rows of four
+    // so five rows fit one page. OS (the last candidate) is the one dropped.
+    const pairs = showcaseSpecPairs(FULL);
+    assert.equal(pairs.length, 8);
+    assert.equal(pairs.some((p) => p.key === "OS"), false);
+  });
+
+  it("omits null fields so a sparse add-on yields a short list (shorter row)", () => {
+    const sparse = { ...FULL };
+    for (const k of Object.keys(sparse) as (keyof typeof sparse)[]) {
+      if (k !== "formFactor" && k !== "maxBandwidthMbps") {
+        (sparse[k] as unknown) = null;
+      }
+    }
+    const pairs = showcaseSpecPairs(sparse);
+    assert.equal(pairs.length, 2);
+    assert.deepEqual(pairs.map((p) => p.key), ["Form factor", "Max bandwidth"]);
+  });
+
+  it("returns an empty list when every highlight is null (no grid, no note)", () => {
+    const allNull = Object.fromEntries(
+      Object.keys(FULL).map((k) => [k, null]),
+    ) as typeof FULL;
+    assert.deepEqual(showcaseSpecPairs(allNull), []);
   });
 });
 

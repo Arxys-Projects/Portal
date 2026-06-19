@@ -5,7 +5,9 @@ import { PROJECT_QUOTE_VALIDITY_DAYS } from "./config";
 import { getProjectQuoteTerms } from "./terms";
 import {
   buildProjectQuoteSnapshot,
+  buildShowcaseSpecHighlights,
   buildSizingFromSubmission,
+  type ShowcaseCatalogRecord,
   type SizingProductRow,
   type SizingProductSpecRow,
   type SizingSubmissionRow,
@@ -89,6 +91,47 @@ function normalizeSpecRow(row: ProductSpecRow): NonNullable<SizingProductSpecRow
   };
 }
 
+// Resolve the catalog for the deal's distinct line-item SKUs: a products row
+// (the catalog record, required for the showcase) joined to its product_specs
+// row (the spec highlights, optional). SKUs with no products row are simply
+// absent from the map, so the showcase builder drops them.
+async function loadShowcaseCatalog(
+  supabase: SupabaseClient,
+  skus: string[],
+): Promise<Map<string, ShowcaseCatalogRecord>> {
+  const map = new Map<string, ShowcaseCatalogRecord>();
+  if (skus.length === 0) return map;
+
+  const [{ data: products }, { data: specs }] = await Promise.all([
+    supabase.from("products").select("sku, product_name, product_group, price_type, msrp").in("sku", skus),
+    supabase.from("product_specs").select(PRODUCT_SPEC_COLUMNS).in("id", skus),
+  ]);
+
+  const specBySku = new Map<string, NonNullable<SizingProductSpecRow>>();
+  for (const raw of (specs ?? []) as unknown as ProductSpecRow[]) {
+    specBySku.set(raw.id, normalizeSpecRow(raw));
+  }
+
+  type ProductRow = {
+    sku: string;
+    product_name: string;
+    product_group: string;
+    price_type: string;
+    msrp: number | string | null;
+  };
+  for (const product of (products ?? []) as unknown as ProductRow[]) {
+    map.set(product.sku, {
+      sku: product.sku,
+      productName: product.product_name,
+      productGroup: product.product_group,
+      priceType: product.price_type,
+      msrp: numericOrNull(product.msrp),
+      specHighlights: buildShowcaseSpecHighlights(specBySku.get(product.sku) ?? null),
+    });
+  }
+  return map;
+}
+
 // Prior max version for a submission: the basis for version = max+1. "Current"
 // is derived the same way (order by version desc limit 1); no stored flag.
 async function loadMaxVersion(supabase: SupabaseClient, submissionId: string): Promise<number | null> {
@@ -136,8 +179,11 @@ export async function assembleProjectQuoteSnapshot(
   }
 
   const recommendedSku = submission.recommended_product_id;
+  const dealSkus = Array.from(
+    new Set(dealResult.deal.lineItems.map((l) => l.productCode).filter((c): c is string => !!c)),
+  );
 
-  const [partnerRes, productRes, productSpecRes, existingMaxVersion, userRes] =
+  const [partnerRes, productRes, productSpecRes, catalogBySku, existingMaxVersion, userRes] =
     await Promise.all([
       supabase
         .from("partners")
@@ -154,6 +200,7 @@ export async function assembleProjectQuoteSnapshot(
       recommendedSku
         ? supabase.from("product_specs").select(PRODUCT_SPEC_COLUMNS).eq("id", recommendedSku).maybeSingle()
         : Promise.resolve({ data: null }),
+      loadShowcaseCatalog(supabase, dealSkus),
       loadMaxVersion(supabase, submissionId),
       supabase.auth.getUser(),
     ]);
@@ -174,6 +221,7 @@ export async function assembleProjectQuoteSnapshot(
     submissionId,
     dealResult,
     sizing,
+    catalogBySku,
     terms: getProjectQuoteTerms(),
     existingMaxVersion,
     generatedAt: new Date(),
