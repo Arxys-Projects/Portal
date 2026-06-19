@@ -17,7 +17,7 @@ export default async function PartnerSubmissionDetailPage({
       <div className="mb-4">
         <Link
           href="/submissions"
-          className="text-sm text-blue-600 hover:underline"
+          className="text-sm font-medium text-arxys-navy hover:underline"
         >
           ← Back to submission history
         </Link>

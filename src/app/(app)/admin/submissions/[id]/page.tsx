@@ -117,7 +117,7 @@ export default async function AdminSubmissionDetailPage({
       <div className="mb-4">
         <Link
           href="/admin/submissions"
-          className="text-sm text-blue-600 hover:underline"
+          className="text-sm font-medium text-arxys-navy hover:underline"
         >
           ← All submissions
         </Link>

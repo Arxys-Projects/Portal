@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { Button, buttonClasses } from "@/app/(app)/_components/ui";
 import { generateProjectQuote } from "../project-quote-actions";
 
 // Serializable summary of the current (latest-version) Project Quote, derived
@@ -50,62 +51,55 @@ export function ProjectQuotePanel({
   }
 
   return (
-    <section className="mt-6 rounded-lg border border-neutral-200 bg-white p-4">
+    <section className="mt-6 rounded-xl border-2 border-line bg-surface p-4">
       <div className="flex items-center justify-between gap-4">
-        <h2 className="text-sm font-semibold text-neutral-800">Project Quote</h2>
-        <span className="text-xs text-neutral-400">Internal only</span>
+        <h2 className="text-sm font-bold text-ink">Project Quote</h2>
+        <span className="text-xs text-ink-soft">Internal only</span>
       </div>
 
       {current ? (
-        <div className="mt-3 space-y-1 text-sm text-neutral-700">
+        <div className="mt-3 space-y-1 text-sm text-ink">
           <div>
-            <span className="font-medium">Current:</span>{" "}
+            <span className="font-semibold">Current:</span>{" "}
             <span className="font-mono">{current.identifier}</span>
-            <span className="text-neutral-500"> (version {current.version})</span>
+            <span className="text-ink-soft"> (version {current.version})</span>
           </div>
-          <div className="text-neutral-500">
+          <div className="text-ink-soft">
             Generated {current.generatedOn} · Valid through {current.expiresOn} · Terms{" "}
             {current.termsVersion}
           </div>
-          <div className="pt-1">
-            <a
-              href={downloadHref}
-              className="text-sm font-medium text-blue-600 hover:underline"
-            >
+          <div className="pt-2">
+            <a href={downloadHref} className={buttonClasses("secondary", "sm")}>
               Download PDF
             </a>
           </div>
         </div>
       ) : (
-        <p className="mt-3 text-sm text-neutral-500">
+        <p className="mt-3 text-sm text-ink-soft">
           No Project Quote has been generated for this submission yet.
         </p>
       )}
 
       <div className="mt-4 flex items-center gap-3">
-        <button
-          onClick={handleGenerate}
-          disabled={isPending}
-          className="rounded bg-neutral-900 px-3 py-1.5 text-sm font-semibold text-white hover:bg-neutral-700 disabled:opacity-50"
-        >
+        <Button onClick={handleGenerate} disabled={isPending} size="sm">
           {isPending
             ? "Generating…"
             : current
               ? "Make New Project Quote"
               : "Generate Project Quote"}
-        </button>
+        </Button>
         {current ? (
-          <span className="text-xs text-neutral-400">
+          <span className="text-xs text-ink-soft">
             Creates version {current.version + 1} from the deal as it stands now.
           </span>
         ) : null}
       </div>
 
       {notice ? (
-        <p className="mt-3 rounded bg-green-50 px-3 py-2 text-sm text-green-800">{notice}</p>
+        <p className="mt-3 rounded-lg bg-green-50 px-3 py-2 text-sm text-green-800">{notice}</p>
       ) : null}
       {error ? (
-        <p className="mt-3 rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
+        <p className="mt-3 rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">{error}</p>
       ) : null}
     </section>
   );

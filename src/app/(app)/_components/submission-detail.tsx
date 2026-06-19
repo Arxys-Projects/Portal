@@ -1,4 +1,14 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
+import {
+  Table,
+  THead,
+  TBody,
+  TR,
+  TH,
+  TD,
+  buttonClasses,
+} from "@/app/(app)/_components/ui";
 
 export type SubmissionDetailRow = {
   id: string;
@@ -87,6 +97,30 @@ function formatPrice(n: number | null | undefined): string {
   return `$${formatNumber(Number(n), 2)}`;
 }
 
+// Left-label key/value table. Keeps its label/value shape (ADR 0067) but
+// shares the firmed border, navy-soft header tone, and ink text tokens with
+// the column-header Table.
+function KvTable({ children }: { children: ReactNode }) {
+  return (
+    <div className="mt-3 overflow-hidden rounded-xl border-2 border-line bg-surface">
+      <table className="w-full text-sm">
+        <tbody className="divide-y divide-line-soft">{children}</tbody>
+      </table>
+    </div>
+  );
+}
+
+function KvRow({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <tr>
+      <th className="w-48 bg-arxys-navy-soft px-4 py-2.5 text-left align-top text-[11px] font-extrabold uppercase tracking-wide text-ink-soft">
+        {label}
+      </th>
+      <td className="px-4 py-2.5 text-ink">{children}</td>
+    </tr>
+  );
+}
+
 export function SubmissionDetail({
   submission,
   partner,
@@ -118,228 +152,143 @@ export function SubmissionDetail({
   return (
     <div className="space-y-8">
       <header>
-        <h1 className="text-2xl font-semibold text-neutral-900">
+        <h1 className="text-2xl font-bold text-ink">
           {submission.project_name || "(untitled submission)"}
         </h1>
-        <p className="mt-1 text-sm text-neutral-600">
+        <p className="mt-1 text-sm text-ink-soft">
           Submitted {formatDate(submission.created_at)} · ID{" "}
-          <code className="rounded bg-neutral-100 px-1 py-0.5 text-xs">
+          <code className="rounded bg-arxys-navy-soft px-1 py-0.5 text-xs text-ink">
             {submission.id}
           </code>
         </p>
         {mode === "admin" && partner ? (
-          <p className="mt-1 text-sm text-neutral-700">
+          <p className="mt-1 text-sm text-ink-soft">
             Partner:{" "}
             <Link
               href={`/admin/partners`}
-              className="font-medium text-blue-600 hover:underline"
+              className="font-semibold text-arxys-navy hover:underline"
             >
               {partner.companyName}
             </Link>{" "}
             — {partner.contactName}
           </p>
         ) : null}
+
+        {/* Actions live directly under the header (ADR 0067): Download PDF is
+            the primary control; Edit / Open Pipedrive are secondary. */}
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <a
+            href={`/api/submissions/${submission.id}/pdf`}
+            className={buttonClasses("primary")}
+            download
+          >
+            Download PDF
+          </a>
+          {mode === "partner" || canRevise ? (
+            <Link
+              href={`/calculator?revise=${submission.id}`}
+              className={buttonClasses("secondary")}
+            >
+              Edit / revise quote
+            </Link>
+          ) : null}
+          {mode === "admin" && submission.pipedrive_deal_id ? (
+            <a
+              href={`https://app.pipedrive.com/deal/${submission.pipedrive_deal_id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={buttonClasses("secondary")}
+            >
+              Open Pipedrive deal #{submission.pipedrive_deal_id} ↗
+            </a>
+          ) : null}
+          {mode === "admin" && !submission.pipedrive_deal_id ? (
+            <span className="text-xs text-ink-soft">
+              No Pipedrive deal linked to this submission.
+            </span>
+          ) : null}
+        </div>
       </header>
 
       <section>
-        <h2 className="text-base font-semibold text-neutral-900">
-          Calculator inputs
-        </h2>
-        <div className="mt-3 overflow-hidden rounded-lg border border-neutral-200 bg-white">
-          <table className="w-full text-sm">
-            <tbody className="divide-y divide-neutral-100">
-              <tr>
-                <th className="w-48 bg-neutral-50 px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">
-                  VMS
-                </th>
-                <td className="px-4 py-2 text-neutral-800">
-                  {submission.vms ?? "—"}
-                </td>
-              </tr>
-              <tr>
-                <th className="bg-neutral-50 px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">
-                  Retention (days)
-                </th>
-                <td className="px-4 py-2 text-neutral-800">
-                  {submission.retention_days}
-                </td>
-              </tr>
-              <tr>
-                <th className="bg-neutral-50 px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">
-                  Primary resolution
-                </th>
-                <td className="px-4 py-2 text-neutral-800">
-                  {submission.resolution_code}
-                </td>
-              </tr>
-              <tr>
-                <th className="bg-neutral-50 px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">
-                  Primary codec / complexity
-                </th>
-                <td className="px-4 py-2 text-neutral-800">
-                  {submission.codec} ·{" "}
-                  {groups[0]?.complexityLabel ??
-                    fallbackComplexityLabel(groups[0]?.complexity ?? submission.complexity)}
-                </td>
-              </tr>
-              <tr>
-                <th className="bg-neutral-50 px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">
-                  Totals
-                </th>
-                <td className="px-4 py-2 text-neutral-800">
-                  {formatNumber(submission.cameras_count)} cameras ·{" "}
-                  {formatNumber(submission.bandwidth_mbps, 2)} Mbps ·{" "}
-                  {formatNumber(submission.storage_tb, 2)} TB
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <h2 className="text-base font-bold text-ink">Calculator inputs</h2>
+        <KvTable>
+          <KvRow label="VMS">{submission.vms ?? "—"}</KvRow>
+          <KvRow label="Retention (days)">{submission.retention_days}</KvRow>
+          <KvRow label="Primary resolution">{submission.resolution_code}</KvRow>
+          <KvRow label="Primary codec / complexity">
+            {submission.codec} ·{" "}
+            {groups[0]?.complexityLabel ??
+              fallbackComplexityLabel(groups[0]?.complexity ?? submission.complexity)}
+          </KvRow>
+          <KvRow label="Totals">
+            {formatNumber(submission.cameras_count)} cameras ·{" "}
+            {formatNumber(submission.bandwidth_mbps, 2)} Mbps ·{" "}
+            {formatNumber(submission.storage_tb, 2)} TB
+          </KvRow>
+        </KvTable>
       </section>
 
       {groups.length > 0 ? (
         <section>
-          <h2 className="text-base font-semibold text-neutral-900">
-            Per-group breakdown
-          </h2>
-          <div className="mt-3 overflow-hidden rounded-lg border border-neutral-200 bg-white">
-            <table className="w-full text-sm">
-              <thead className="bg-neutral-50 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">
-                <tr>
-                  <th className="px-4 py-2">Group</th>
-                  <th className="px-4 py-2 text-right">Cameras</th>
-                  <th className="px-4 py-2">Resolution</th>
-                  <th className="px-4 py-2">Codec</th>
-                  <th className="px-4 py-2">Complexity</th>
-                  <th className="px-4 py-2 text-right">FPS</th>
-                  <th className="px-4 py-2 text-right">Rec Hrs</th>
-                  <th className="px-4 py-2 text-right">Motion %</th>
-                  <th className="px-4 py-2 text-right">Mbps</th>
-                  <th className="px-4 py-2 text-right">GB</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-neutral-100">
-                {groups.map((g, i) => (
-                  <tr key={i}>
-                    <td className="px-4 py-2 text-neutral-800">
-                      {g.name || `Group ${i + 1}`}
-                    </td>
-                    <td className="px-4 py-2 text-right text-neutral-800">
-                      {formatNumber(g.cameras)}
-                    </td>
-                    <td className="px-4 py-2 text-neutral-700">
-                      {g.resolutionLabel ?? "—"}
-                    </td>
-                    <td className="px-4 py-2 text-neutral-700">{g.codec ?? "—"}</td>
-                    <td className="px-4 py-2 text-neutral-700">
-                      {g.complexityLabel ?? fallbackComplexityLabel(g.complexity)}
-                    </td>
-                    <td className="px-4 py-2 text-right text-neutral-700">
-                      {formatNumber(g.fps)}
-                    </td>
-                    <td className="px-4 py-2 text-right text-neutral-700">
-                      {Math.round(((g.recordingPercent ?? 0) / 100) * 24)}
-                    </td>
-                    <td className="px-4 py-2 text-right text-neutral-700">
-                      {formatNumber(g.motionPercent)}
-                    </td>
-                    <td className="px-4 py-2 text-right text-neutral-700">
-                      {formatNumber(g.computed?.bandwidthMbps, 2)}
-                    </td>
-                    <td className="px-4 py-2 text-right text-neutral-700">
-                      {formatNumber(g.computed?.storageGb, 2)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <h2 className="mb-3 text-base font-bold text-ink">Per-group breakdown</h2>
+          <Table>
+            <THead>
+              <TR>
+                <TH>Group</TH>
+                <TH numeric>Cameras</TH>
+                <TH>Resolution</TH>
+                <TH>Codec</TH>
+                <TH>Complexity</TH>
+                <TH numeric>FPS</TH>
+                <TH numeric>Rec Hrs</TH>
+                <TH numeric>Motion %</TH>
+                <TH numeric>Mbps</TH>
+                <TH numeric>GB</TH>
+              </TR>
+            </THead>
+            <TBody>
+              {groups.map((g, i) => (
+                <TR key={i}>
+                  <TD>{g.name || `Group ${i + 1}`}</TD>
+                  <TD numeric>{formatNumber(g.cameras)}</TD>
+                  <TD>{g.resolutionLabel ?? "—"}</TD>
+                  <TD>{g.codec ?? "—"}</TD>
+                  <TD>{g.complexityLabel ?? fallbackComplexityLabel(g.complexity)}</TD>
+                  <TD numeric>{formatNumber(g.fps)}</TD>
+                  <TD numeric>{Math.round(((g.recordingPercent ?? 0) / 100) * 24)}</TD>
+                  <TD numeric>{formatNumber(g.motionPercent)}</TD>
+                  <TD numeric>{formatNumber(g.computed?.bandwidthMbps, 2)}</TD>
+                  <TD numeric>{formatNumber(g.computed?.storageGb, 2)}</TD>
+                </TR>
+              ))}
+            </TBody>
+          </Table>
         </section>
       ) : null}
 
       <section>
-        <h2 className="text-base font-semibold text-neutral-900">
-          Recommendation
-        </h2>
-        <div className="mt-3 overflow-hidden rounded-lg border border-neutral-200 bg-white">
-          <table className="w-full text-sm">
-            <tbody className="divide-y divide-neutral-100">
-              <tr>
-                <th className="w-48 bg-neutral-50 px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">
-                  Recommended
-                </th>
-                <td className="px-4 py-2 text-neutral-800">
-                  {submission.recommended_units} × {productLabel}
-                </td>
-              </tr>
-              {submission.product?.product_group ? (
-                <tr>
-                  <th className="bg-neutral-50 px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">
-                    Product family
-                  </th>
-                  <td className="px-4 py-2 text-neutral-700">
-                    {submission.product.product_group}
-                  </td>
-                </tr>
-              ) : null}
-              <tr>
-                <th className="bg-neutral-50 px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">
-                  Total list price
-                </th>
-                <td className="px-4 py-2 text-neutral-800">
-                  {isLegacyRecommendation
-                    ? "(legacy pricing — pre-Phase-2)"
-                    : formatPrice(submission.total_list_price_usd)}
-                </td>
-              </tr>
-              {mode === "admin" ? (
-                <tr>
-                  <th className="bg-neutral-50 px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">
-                    Total partner price
-                  </th>
-                  <td className="px-4 py-2 text-neutral-800">
-                    {isLegacyRecommendation
-                      ? "(legacy pricing — pre-Phase-2)"
-                      : formatPrice(submission.total_partner_price_usd)}
-                  </td>
-                </tr>
-              ) : null}
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <section className="flex flex-wrap items-center gap-3">
-        <a
-          href={`/api/submissions/${submission.id}/pdf`}
-          className="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-          download
-        >
-          Download PDF
-        </a>
-        {mode === "partner" || canRevise ? (
-          <Link
-            href={`/calculator?revise=${submission.id}`}
-            className="rounded border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-100"
-          >
-            Edit / revise quote
-          </Link>
-        ) : null}
-        {mode === "admin" && submission.pipedrive_deal_id ? (
-          <a
-            href={`https://app.pipedrive.com/deal/${submission.pipedrive_deal_id}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="rounded border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-100"
-          >
-            Open Pipedrive deal #{submission.pipedrive_deal_id} ↗
-          </a>
-        ) : null}
-        {mode === "admin" && !submission.pipedrive_deal_id ? (
-          <span className="text-xs text-neutral-500">
-            No Pipedrive deal linked to this submission.
-          </span>
-        ) : null}
+        <h2 className="text-base font-bold text-ink">Recommendation</h2>
+        <KvTable>
+          <KvRow label="Recommended">
+            {submission.recommended_units} × {productLabel}
+          </KvRow>
+          {submission.product?.product_group ? (
+            <KvRow label="Product family">{submission.product.product_group}</KvRow>
+          ) : null}
+          <KvRow label="Total list price">
+            {isLegacyRecommendation
+              ? "(legacy pricing — pre-Phase-2)"
+              : formatPrice(submission.total_list_price_usd)}
+          </KvRow>
+          {mode === "admin" ? (
+            <KvRow label="Total partner price">
+              {isLegacyRecommendation
+                ? "(legacy pricing — pre-Phase-2)"
+                : formatPrice(submission.total_partner_price_usd)}
+            </KvRow>
+          ) : null}
+        </KvTable>
       </section>
     </div>
   );

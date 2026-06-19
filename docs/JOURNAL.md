@@ -4,6 +4,43 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-06-19 — Portal UI migration: submission detail (+ Project Quote panel)
+
+### Work done
+
+Migrated the submission-detail view onto the ADR 0067 component set. Presentational
+only — no data/query logic touched. Not committed; awaiting review.
+
+- **Actions moved under the header** (`_components/submission-detail.tsx`): Download PDF
+  is now the navy **primary** (`buttonClasses("primary")` on the `<a download>`); Edit /
+  revise and Open Pipedrive are **secondary**. They previously sat at the bottom of the
+  page below all the tables.
+- **Tables share tokens.** The two left-label key/value tables (Calculator inputs,
+  Recommendation) keep their label/value shape via new local `KvTable`/`KvRow` helpers
+  (firmed 2px border, navy-soft label column, ink text, line-soft dividers). The
+  column-header Per-group breakdown now uses the shared `Table`/`THead/TBody/TR/TH/TD`
+  (right-aligned numeric columns via `numeric`).
+- **Project Quote panel** (`admin/submissions/[id]/_components/project-quote-panel.tsx`):
+  adopted the same scale — Generate = `Button` primary (sm), the existing-quote Download
+  PDF = secondary button, container/text on the design tokens, error box on danger tokens.
+  (Client component, so it uses `Button` + the pure `buttonClasses`, not the server `Card`.)
+- **Blue → navy** on the two "← Back" links and the admin partner link.
+
+### Verification gates
+
+- `npx eslint` on the four changed files — **0 errors**.
+- `npm test` — **194/194**. `npm run build` — ✓ clean (23 routes).
+- Runtime smoke — `/submissions/[id]` and `/admin/submissions/[id]` both 307 → login
+  (auth gate, no 500).
+
+### Notes
+
+- Page background left as the layout's `bg-neutral-50` (a portal-wide tint change is out
+  of scope for this page; the dashboard owns its own `bg-page`).
+- No new ADR — this is a migration under [`0067`](./decisions/0067-portal-ui-design-system.md). RUNBOOK unaffected.
+
+---
+
 ## 2026-06-19 — Portal UI design system: token layer + shared components + dashboard migration
 
 ### Work done
