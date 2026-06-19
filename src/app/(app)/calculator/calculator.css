@@ -57,14 +57,15 @@
 #arxys-calc-root .ax-sum { display: grid; grid-template-columns: repeat(3, 1fr); gap: 25px; margin-bottom: 10px; }
 #arxys-calc-root .ax-s { background: var(--cd); border: 4px solid var(--bd); border-radius: var(--r); padding: 3px 2px; text-align: center; overflow: hidden; position: relative; box-shadow: var(--ss); }
 #arxys-calc-root .ax-s::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 5px; border-radius: var(--r) var(--r) 0 0; }
-#arxys-calc-root .ax-s.bl::before { background: linear-gradient(90deg, #2563eb, #60a5fa); }
-#arxys-calc-root .ax-s.gn::before { background: linear-gradient(90deg, #16a34a, #4ade80); }
-#arxys-calc-root .ax-s.cy::before { background: linear-gradient(90deg, #0891b2, #22d3ee); }
+/* Calmer, single-accent top bars (ADR 0067) — solid navy, no multicolour gradients. */
+#arxys-calc-root .ax-s.bl::before { background: #054A91; }
+#arxys-calc-root .ax-s.gn::before { background: #054A91; }
+#arxys-calc-root .ax-s.cy::before { background: #054A91; }
 #arxys-calc-root .ax-sl { font-size: 13px; color: var(--ts); text-transform: uppercase; letter-spacing: 1.2px; font-weight: 800; margin-top: 2px; }
 #arxys-calc-root .ax-sv { font-family: "JetBrains Mono", Consolas, monospace; font-size: clamp(30px, 3.5vw, 35px); font-weight: 700; margin-top: 8px; }
-#arxys-calc-root .ax-sv.bl { color: var(--ac); }
-#arxys-calc-root .ax-sv.gn { color: var(--gn); }
-#arxys-calc-root .ax-sv.cy { color: var(--cy); }
+#arxys-calc-root .ax-sv.bl { color: #054A91; }
+#arxys-calc-root .ax-sv.gn { color: #054A91; }
+#arxys-calc-root .ax-sv.cy { color: #054A91; }
 
 /* Project panel — three stacked bands (attribution / setup / action) */
 #arxys-calc-root .ax-gl { background: var(--cd); border: 3px solid var(--bd); border-radius: var(--r); padding: 14px 16px; margin-bottom: 15px; display: flex; flex-direction: column; gap: 14px; box-shadow: var(--ss); }
@@ -422,9 +423,9 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: #fbb040;
-  color: #1a1a1a;
-  border: 1px solid #fbb040;
+  background: #054A91;
+  color: #fff;
+  border: 1px solid #054A91;
   border-radius: var(--r);
   padding: 12px 22px;
   font-size: 15px;
@@ -440,9 +441,9 @@
   animation: ax-spin 0.75s linear infinite;
 }
 @keyframes ax-spin { to { transform: rotate(360deg); } }
-#arxys-calc-root .ax-save-btn:hover { background: #e69e2c; box-shadow: var(--sm); }
+#arxys-calc-root .ax-save-btn:hover { background: #03396f; box-shadow: var(--sm); }
 #arxys-calc-root .ax-save-btn:disabled { background: var(--tl); border-color: var(--tl); cursor: not-allowed; box-shadow: none; }
-#arxys-calc-root .ax-save-btn[data-saving]:disabled { background: #fbb040; border-color: #fbb040; cursor: wait; }
+#arxys-calc-root .ax-save-btn[data-saving]:disabled { background: #054A91; border-color: #054A91; cursor: wait; }
 #arxys-calc-root .ax-save-hint { font-size: 13px; color: var(--td); }
 
 #arxys-calc-root .ax-rec-err {
@@ -540,9 +541,9 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: var(--ac);
+  background: #054A91;
   color: #fff;
-  border: 1px solid var(--ac);
+  border: 1px solid #054A91;
   border-radius: var(--r);
   padding: 10px 18px;
   font-size: 14px;
@@ -551,7 +552,7 @@
   box-shadow: var(--ss);
   transition: background 0.15s, box-shadow 0.15s;
 }
-#arxys-calc-root .ax-pdf-btn:hover { background: #1d4ed8; box-shadow: var(--sm); }
+#arxys-calc-root .ax-pdf-btn:hover { background: #03396f; box-shadow: var(--sm); }
 #arxys-calc-root .ax-pdf-btn:visited { color: #fff; }
 @media (max-width: 640px) {
   #arxys-calc-root .ax-rec-cov { grid-template-columns: 1fr; }

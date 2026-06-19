@@ -4,6 +4,38 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-06-19 — Portal UI migration: admin/partners + Calculator reconciliation
+
+### Work done
+
+Final planned UI items, both under ADR 0067. Presentational only.
+
+- **admin/partners**: Invite button → primary; tables tokenized (navy-soft header, 2px
+  border, line-soft rows); blue links → navy; invite form gold submit → primary `Button`,
+  inputs on tokens; admin landing stat cards + recent table tokenized; partner-row-actions
+  blue toggle → navy, rename input on tokens (red destructive kept).
+- **Calculator reconciliation** (CSS-led, not a rebuild): "Save & request quote" gold →
+  **navy primary** (hover navy-deep; saving state navy); the three result-card top accents
+  **calmed from blue/green/cyan gradients to solid navy** and their values recoloured navy;
+  results "Download PDF" blue → navy. Reset stays secondary; form-control vocabulary
+  unchanged (it was already the good baseline).
+
+### Verification gates
+
+- `npx eslint` on the five changed admin files — **0 errors**.
+- `npm test` — **194/194**. `npm run build` — ✓ clean (compiles calculator.css too).
+
+### Notes
+
+- Legacy unused `.ax-cta`/`.ax-cta-b` rules left untouched (not rendered). Functional
+  bandwidth/storage bar fills kept their distinct colours (data-viz, not chrome).
+- **Portal UI overhaul now complete** across dashboard, submission detail, My Pipeline,
+  Admin Submissions, admin/partners, and the Calculator. Remaining un-audited inheritor
+  pages (VMS Comparison, VideoX Quick Compare, Price Book) can adopt the component set
+  when captured. No new ADR; RUNBOOK unaffected.
+
+---
+
 ## 2026-06-19 — Portal UI migration: My Pipeline + Admin Submissions (all three views)
 
 ### Work done

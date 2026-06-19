@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useActionState } from "react";
+import { Button } from "@/app/(app)/_components/ui";
 import { invitePartner, type InviteState } from "../actions";
 
 const INITIAL: InviteState = { status: "idle" };
@@ -33,7 +34,7 @@ export function InviteForm({ showInternalToggle = false }: { showInternalToggle?
           type="email"
           required
           autoComplete="off"
-          className="mt-1 block w-full rounded border border-neutral-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          className="mt-1 block w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink focus:border-arxys-navy focus:outline-none focus:ring-2 focus:ring-arxys-navy/15"
         />
         <FieldError errors={fieldErrors?.email} />
       </div>
@@ -49,7 +50,7 @@ export function InviteForm({ showInternalToggle = false }: { showInternalToggle?
           name="contactName"
           type="text"
           required
-          className="mt-1 block w-full rounded border border-neutral-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          className="mt-1 block w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink focus:border-arxys-navy focus:outline-none focus:ring-2 focus:ring-arxys-navy/15"
         />
         <FieldError errors={fieldErrors?.contactName} />
       </div>
@@ -65,7 +66,7 @@ export function InviteForm({ showInternalToggle = false }: { showInternalToggle?
           name="companyName"
           type="text"
           required
-          className="mt-1 block w-full rounded border border-neutral-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          className="mt-1 block w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink focus:border-arxys-navy focus:outline-none focus:ring-2 focus:ring-arxys-navy/15"
         />
         <FieldError errors={fieldErrors?.companyName} />
       </div>
@@ -103,17 +104,13 @@ export function InviteForm({ showInternalToggle = false }: { showInternalToggle?
       <div className="flex items-center justify-between gap-3">
         <Link
           href="/admin/partners"
-          className="text-sm text-neutral-600 hover:underline"
+          className="text-sm font-medium text-ink-soft hover:text-ink hover:underline"
         >
           Cancel
         </Link>
-        <button
-          type="submit"
-          disabled={pending}
-          className="rounded bg-arxys-gold px-4 py-2 text-sm font-medium text-arxys-text-on-gold hover:bg-arxys-gold-hover disabled:cursor-not-allowed disabled:opacity-50"
-        >
+        <Button type="submit" disabled={pending}>
           {pending ? "Sending invite…" : "Send invite"}
-        </button>
+        </Button>
       </div>
     </form>
   );

@@ -59,17 +59,17 @@ export default async function AdminOverviewPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold text-neutral-900">Admin overview</h1>
+      <h1 className="text-2xl font-bold text-ink">Admin overview</h1>
       <p className="mt-2 text-sm text-neutral-600">
         Partner roster + submissions across all partners.
       </p>
 
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="rounded-lg border border-neutral-200 bg-white p-5">
+        <div className="rounded-xl border-2 border-line bg-surface p-5">
           <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
             Partners
           </p>
-          <p className="mt-2 text-3xl font-semibold text-neutral-900">
+          <p className="mt-2 text-3xl font-bold text-ink">
             {counts.total}
           </p>
           <p className="mt-1 text-xs text-neutral-500">
@@ -77,32 +77,32 @@ export default async function AdminOverviewPage() {
           </p>
           <Link
             href="/admin/partners"
-            className="mt-3 inline-block text-sm text-blue-600 hover:underline"
+            className="mt-3 inline-block text-sm text-arxys-navy hover:underline"
           >
             Manage partners →
           </Link>
         </div>
 
-        <div className="rounded-lg border border-neutral-200 bg-white p-5">
+        <div className="rounded-xl border-2 border-line bg-surface p-5">
           <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
             Submissions (all time)
           </p>
-          <p className="mt-2 text-3xl font-semibold text-neutral-900">
+          <p className="mt-2 text-3xl font-bold text-ink">
             {submissionsTotal}
           </p>
           <Link
             href="/admin/submissions"
-            className="mt-3 inline-block text-sm text-blue-600 hover:underline"
+            className="mt-3 inline-block text-sm text-arxys-navy hover:underline"
           >
             Browse submissions →
           </Link>
         </div>
 
-        <div className="rounded-lg border border-neutral-200 bg-white p-5">
+        <div className="rounded-xl border-2 border-line bg-surface p-5">
           <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
             Last 30 days
           </p>
-          <p className="mt-2 text-3xl font-semibold text-neutral-900">
+          <p className="mt-2 text-3xl font-bold text-ink">
             {submissions30}
           </p>
           <p className="mt-1 text-xs text-neutral-500">submissions</p>
@@ -110,15 +110,15 @@ export default async function AdminOverviewPage() {
       </div>
 
       <section className="mt-8">
-        <h2 className="text-base font-semibold text-neutral-900">
+        <h2 className="text-base font-bold text-ink">
           Recent submissions
         </h2>
         {recentRows.length === 0 ? (
           <p className="mt-3 text-sm text-neutral-500">No submissions yet.</p>
         ) : (
-          <div className="mt-3 overflow-hidden rounded-lg border border-neutral-200 bg-white">
+          <div className="mt-3 overflow-x-auto rounded-xl border-2 border-line bg-surface">
             <table className="w-full text-sm">
-              <thead className="bg-neutral-50 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">
+              <thead className="border-b-2 border-line bg-arxys-navy-soft text-left text-[11px] font-extrabold uppercase tracking-wide text-ink-soft">
                 <tr>
                   <th className="px-4 py-2">Date</th>
                   <th className="px-4 py-2">Partner</th>
@@ -127,7 +127,7 @@ export default async function AdminOverviewPage() {
                   <th className="px-4 py-2"></th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-neutral-100">
+              <tbody className="divide-y divide-line-soft">
                 {recentRows.map((row) => {
                   const p = Array.isArray(row.partners)
                     ? row.partners[0]
@@ -149,7 +149,7 @@ export default async function AdminOverviewPage() {
                       <td className="px-4 py-2 text-right">
                         <Link
                           href={`/admin/submissions/${row.id}`}
-                          className="text-sm text-blue-600 hover:underline"
+                          className="text-sm text-arxys-navy hover:underline"
                         >
                           View
                         </Link>

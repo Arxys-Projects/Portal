@@ -4,6 +4,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireAdminOrInternal } from "@/lib/auth/require-admin-or-internal";
 import { EditableName, InternalToggle, PartnerRowActions } from "./partner-row-actions";
 import { updatePartnerCompanyName, updatePartnerContactName } from "./actions";
+import { buttonClasses } from "@/app/(app)/_components/ui";
 
 function formatDate(value: string | null | undefined): string {
   if (!value) return "—";
@@ -42,8 +43,8 @@ export default async function AdminPartnersPage() {
     console.error("[load partners]", error);
     return (
       <div>
-        <h1 className="text-2xl font-semibold text-neutral-900">Partners</h1>
-        <p className="mt-3 text-sm text-red-600">
+        <h1 className="text-2xl font-bold text-ink">Partners</h1>
+        <p className="mt-3 text-sm text-danger">
           Failed to load partners. Please try again.
         </p>
       </div>
@@ -79,15 +80,12 @@ export default async function AdminPartnersPage() {
     <div>
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-neutral-900">Partners</h1>
-          <p className="mt-1 text-sm text-neutral-600">
+          <h1 className="text-2xl font-bold text-ink">Partners</h1>
+          <p className="mt-1 text-sm text-ink-soft">
             All partners across the portal. {partners.length} total.
           </p>
         </div>
-        <Link
-          href="/admin/partners/new"
-          className="rounded bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
-        >
+        <Link href="/admin/partners/new" className={buttonClasses("primary", "sm")}>
           Invite partner
         </Link>
       </div>
@@ -97,9 +95,9 @@ export default async function AdminPartnersPage() {
           No partners yet. Click <strong>Invite partner</strong> to get started.
         </p>
       ) : (
-        <div className="mt-6 overflow-hidden rounded-lg border border-neutral-200 bg-white">
+        <div className="mt-6 overflow-x-auto rounded-xl border-2 border-line bg-surface">
           <table className="w-full text-sm">
-            <thead className="bg-neutral-50 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">
+            <thead className="border-b-2 border-line bg-arxys-navy-soft text-left text-[11px] font-extrabold uppercase tracking-wide text-ink-soft">
               <tr>
                 <th className="px-4 py-2">Company</th>
                 <th className="px-4 py-2">Contact</th>
@@ -111,7 +109,7 @@ export default async function AdminPartnersPage() {
                 <th className="px-4 py-2 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-neutral-100">
+            <tbody className="divide-y divide-line-soft">
               {partners.map((p) => (
                 <tr key={p.id}>
                   <td className="px-4 py-3 text-neutral-900">

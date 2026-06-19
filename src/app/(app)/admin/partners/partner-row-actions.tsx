@@ -37,7 +37,7 @@ function ActionButton({
     variant === "danger"
       ? "rounded border border-red-300 px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
       : variant === "primary"
-        ? "rounded border border-blue-300 px-2 py-1 text-xs font-medium text-blue-700 hover:bg-blue-50 disabled:opacity-50"
+        ? "rounded border border-arxys-navy bg-arxys-navy-soft px-2 py-1 text-xs font-medium text-arxys-navy hover:bg-secondary disabled:opacity-50"
         : "rounded border border-neutral-300 px-2 py-1 text-xs font-medium text-neutral-700 hover:bg-neutral-100 disabled:opacity-50";
   return (
     <form
@@ -172,12 +172,12 @@ export function EditableName({
           maxLength={120}
           required
           aria-label={label}
-          className="w-48 rounded border border-neutral-300 px-2 py-1 text-sm text-neutral-900 focus:border-blue-400 focus:outline-none"
+          className="w-48 rounded-lg border border-line px-2 py-1 text-sm text-ink focus:border-arxys-navy focus:outline-none focus:ring-2 focus:ring-arxys-navy/15"
         />
         <button
           type="submit"
           disabled={pending}
-          className="rounded border border-blue-300 px-2 py-1 text-xs font-medium text-blue-700 hover:bg-blue-50 disabled:opacity-50"
+          className="rounded border border-arxys-navy bg-arxys-navy-soft px-2 py-1 text-xs font-medium text-arxys-navy hover:bg-secondary disabled:opacity-50"
         >
           {pending ? "…" : "Save"}
         </button>
