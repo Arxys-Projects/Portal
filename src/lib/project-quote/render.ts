@@ -35,10 +35,6 @@ export async function renderProjectQuotePdfBuffer(
 ): Promise<Buffer> {
   const logoDataUri = loadLogoDataUri();
 
-  const primaryHeroDataUri = snapshot.sizing.primaryServerHeroImagePath
-    ? loadPngDataUriByPath(snapshot.sizing.primaryServerHeroImagePath)
-    : null;
-
   // Frozen showcase paths → bytes at render (ADR 0060). Guard the field: rows
   // frozen while the showcase was removed (ADR 0065 → 0066) have no `showcase`.
   const showcaseHeroDataUris = (snapshot.showcase ?? []).map((item) =>
@@ -48,7 +44,6 @@ export async function renderProjectQuotePdfBuffer(
   const input: ProjectQuotePdfInput = {
     snapshot,
     logoDataUri,
-    primaryHeroDataUri,
     showcaseHeroDataUris,
   };
 

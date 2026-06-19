@@ -1,13 +1,16 @@
 # 0065 — Drop the Project Quote product showcase page
 
-- **Status**: Accepted — reversal proposed in #0066 (awaiting review)
+- **Status**: Superseded by #0066
 - **Date**: 2026-06-18
 - **Amends**: #0059 (page-2 showcase), #0060 (showcase in the snapshot)
 
-> **Note (2026-06-18):** Sales asked for a marketing showcase page back, scoped
-> as a clearly-labeled marketing section distinct from the priced commercial
-> table — the "when to revisit" condition below. ADR #0066 proposes reinstating
-> the showcase. When #0066 is accepted, mark this Status `Superseded by #0066`.
+> **Superseded (2026-06-19):** Sales asked for the marketing showcase page back,
+> scoped as a clearly-labeled marketing section distinct from the priced
+> commercial table — the "when to revisit" condition below. ADR #0066 reinstated
+> the showcase and is now Accepted, so this decision is superseded. (The
+> showcase page returns; the design preserved 0065's core concern — one
+> authoritative *priced* record — by keeping the commercial table as the sole
+> priced list and framing the showcase as no-prices marketing.)
 
 ## Context
 

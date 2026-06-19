@@ -68,7 +68,7 @@ export type ProjectQuoteSizing = {
   bandwidthMbps: number;
   // Camera schedule, one row per group: resolved labels plus Phase 10 fields.
   cameraSchedule: ProjectQuoteCameraRow[];
-  // Recommended primary server summary (drives the capacity bars and hero).
+  // Recommended primary server summary (drives the page-1 capacity bars).
   recommendation: {
     units: number;
     modelCode: string;
@@ -84,8 +84,10 @@ export type ProjectQuoteSizing = {
   // example "/price-book/v700-v800-hero.png"); null when no family or hero
   // matches. The PATH is frozen, not the PNG bytes: the asset is a
   // version-controlled repo file, not external mutating state, so freezing
-  // bytes would bloat the row for no integrity gain (ADR 0060 scope). 5b
-  // re-loads the bytes from this path at render.
+  // bytes would bloat the row for no integrity gain (ADR 0060 scope).
+  // NOTE: as of ADR 0066 no page renders this image — the standalone
+  // recommended-server hero was deleted. The field is retained (not removed)
+  // to keep the snapshot shape frozen; dropping it is a separate shape change.
   primaryServerHeroImagePath: string | null;
   // Reseller identity from the partners table, frozen for the document's
   // "prepared by" / partner block. This is the channel partner who owns the

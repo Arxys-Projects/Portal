@@ -26,8 +26,6 @@ import type {
 export type ProjectQuotePdfInput = {
   snapshot: ProjectQuoteSnapshot;
   logoDataUri: string | null;
-  // Loaded from sizing.primaryServerHeroImagePath at render time.
-  primaryHeroDataUri: string | null;
   // Indexed parallel to snapshot.showcase; loaded from each item.heroImagePath.
   showcaseHeroDataUris: (string | null)[];
 };
@@ -407,38 +405,6 @@ const styles = StyleSheet.create({
   barFill: { height: 10, borderRadius: 2 },
   barValue: { fontSize: 7.5, color: TEXT_MUTED, marginTop: 2 },
 
-  // Recommended server hero (page 1)
-  recRow: { flexDirection: "row", marginTop: 10, marginBottom: 6 },
-  recImageCol: {
-    width: 130,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingRight: 14,
-  },
-  recImage: { width: 120 },
-  recImagePlaceholder: {
-    width: 120,
-    height: 72,
-    backgroundColor: BG_LIGHT,
-    borderWidth: 1,
-    borderColor: BORDER_LIGHT,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  recDetailCol: { flex: 1 },
-  recModel: {
-    fontSize: 15,
-    fontFamily: "Helvetica-Bold",
-    color: ARXYS_NAVY,
-    lineHeight: 1.1,
-    marginBottom: 2,
-  },
-  recSku: { fontSize: 8.5, color: TEXT_MUTED, marginBottom: 7 },
-  specGrid: { flexDirection: "row", flexWrap: "wrap" },
-  specPair: { width: "50%", marginBottom: 3 },
-  specKey: { fontSize: 6.5, color: TEXT_MUTED, textTransform: "uppercase", letterSpacing: 0.5 },
-  specVal: { fontSize: 8.5, fontFamily: "Helvetica-Bold", color: TEXT_SLATE },
-
   // Showcase rows (page 2). Each product is a compact, thin-bordered full-width
   // row (hero left, name + SKU·family, then a 4-column spec-highlight grid),
   // sized so five rows fit with the header and footer. A product with fewer
@@ -709,7 +675,7 @@ function CapacityBar({
 // ---------------------------------------------------------------------------
 
 export function ProjectQuotePdf({ data }: { data: ProjectQuotePdfInput }) {
-  const { snapshot, logoDataUri, primaryHeroDataUri, showcaseHeroDataUris } = data;
+  const { snapshot, logoDataUri, showcaseHeroDataUris } = data;
   const { commercial, sizing, terms, generation } = snapshot;
   // Guard: rows frozen between ADR 0065 and 0066 have no `showcase` field.
   const showcase = snapshot.showcase ?? [];
@@ -746,42 +712,6 @@ export function ProjectQuotePdf({ data }: { data: ProjectQuotePdfInput }) {
       : 0;
 
   const utilizationPct = Math.max(storagePct, bandwidthPct);
-
-  const modelName = serverSpec?.modelName ?? recommendation.productDescription;
-  const skuLine = serverSpec
-    ? `${recUnits} × ${serverSpec.sku}${serverSpec.formFactor ? ` · ${serverSpec.formFactor}` : ""}`
-    : `${recUnits} × ${recommendation.productDescription}`;
-
-  const specPairs = serverSpec
-    ? [
-        {
-          key: "Max cameras",
-          value:
-            serverSpec.maxCameras != null
-              ? `${serverSpec.maxCameras} (H.265/H.264)`
-              : "—",
-        },
-        {
-          key: "Max bandwidth",
-          value:
-            serverSpec.maxBandwidthMbps != null
-              ? `${serverSpec.maxBandwidthMbps.toLocaleString("en-US")} Mb/s`
-              : "—",
-        },
-        {
-          key: "Usable storage",
-          value:
-            serverSpec.usablePerUnitTb != null
-              ? fmtTb(serverSpec.usablePerUnitTb)
-              : "—",
-        },
-        { key: "Drive bays", value: dash(serverSpec.driveBays) },
-        { key: "CPU", value: dash(serverSpec.cpuModelFull) },
-        { key: "RAM", value: dash(serverSpec.ramSpec) },
-        { key: "OS", value: dash(serverSpec.osEdition) },
-        { key: "Warranty", value: serverSpec.warranty },
-      ]
-    : [];
 
   // Totals from the snapshot's frozen aggregates — never re-summed from rows.
   const { cameras: totalCameras, bandwidthMbps: totalBwMbps, storageGb: totalStorageGb } =
@@ -937,39 +867,6 @@ export function ProjectQuotePdf({ data }: { data: ProjectQuotePdfInput }) {
             value={`${utilizationPct.toLocaleString("en-US", { maximumFractionDigits: 0 })}%`}
             note="20% headroom built in"
           />
-        </View>
-
-        {/* Recommended server hero */}
-        <View style={styles.recRow} wrap={false}>
-          <View style={styles.recImageCol}>
-            {primaryHeroDataUri ? (
-              // @react-pdf/renderer Image has no alt concept (not an HTML img).
-              // eslint-disable-next-line jsx-a11y/alt-text
-              <Image style={styles.recImage} src={primaryHeroDataUri} />
-            ) : (
-              <View style={styles.recImagePlaceholder}>
-                <Text style={{ fontSize: 9, color: TEXT_MUTED }}>{modelName}</Text>
-              </View>
-            )}
-          </View>
-          <View style={styles.recDetailCol}>
-            <Text style={styles.recModel}>{modelName}</Text>
-            <Text style={styles.recSku}>{skuLine}</Text>
-            {specPairs.length > 0 ? (
-              <View style={styles.specGrid}>
-                {specPairs.map((p) => (
-                  <View key={p.key} style={styles.specPair}>
-                    <Text style={styles.specKey}>{p.key}</Text>
-                    <Text style={styles.specVal}>{p.value}</Text>
-                  </View>
-                ))}
-              </View>
-            ) : (
-              <Text style={{ fontSize: 8.5, color: TEXT_MUTED }}>
-                Detailed specifications unavailable for this configuration.
-              </Text>
-            )}
-          </View>
         </View>
       </Page>
 

@@ -1,7 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { createElement } from "react";
-import { renderToBuffer } from "@react-pdf/renderer";
+import { Page, renderToBuffer } from "@react-pdf/renderer";
 import {
   ProjectQuotePdf,
   buildCameraColumns,
@@ -212,9 +212,27 @@ function makeInput(snapshot: ProjectQuoteSnapshot): ProjectQuotePdfInput {
   return {
     snapshot,
     logoDataUri: null,
-    primaryHeroDataUri: null,
     showcaseHeroDataUris: (snapshot.showcase ?? []).map(() => null),
   };
+}
+
+// Count the <Page> elements ProjectQuotePdf emits, faithful to the document
+// model (ADR 0066 target: Sizing → Products → Commercial → Terms = 4). Invokes
+// the component as a plain function and walks the <Document> children — this is
+// the "<Page> count in the input model" check, NOT a grep of the subsetted PDF
+// text (react-pdf subsets glyphs, so the byte stream can't be grepped). Whether
+// those 4 pages also RENDER as 4 (no wrap={false} block overflowing onto a 5th
+// page — the bug this fix removes) is asserted by the pdfinfo smoke gate.
+function countPages(snapshot: ProjectQuoteSnapshot): number {
+  const doc = ProjectQuotePdf({ data: makeInput(snapshot) }) as {
+    props: { children: unknown };
+  };
+  const children = doc.props.children;
+  const arr = Array.isArray(children) ? children : [children];
+  return arr.filter(
+    (c): c is { type: unknown } =>
+      typeof c === "object" && c !== null && (c as { type?: unknown }).type === Page,
+  ).length;
 }
 
 async function render(snapshot: ProjectQuoteSnapshot): Promise<Uint8Array> {
@@ -234,6 +252,19 @@ describe("ProjectQuotePdf renders via @react-pdf/renderer", () => {
     assert.ok(buf.length > 1000, `PDF buffer suspiciously small: ${buf.length} bytes`);
     const header = buf.subarray(0, 5).toString("utf8");
     assert.equal(header, "%PDF-", `expected %PDF- header, got ${JSON.stringify(header)}`);
+  });
+
+  it("emits exactly four <Page> elements (Sizing → Products → Commercial → Terms)", () => {
+    // ADR 0066 target structure. The deleted standalone server-spec hero added
+    // no <Page> of its own (it was a wrap={false} block inside page 1 that
+    // overflowed at render); its removal keeps the model at four pages and
+    // stops the overflow that produced a heading-less fifth rendered page.
+    assert.equal(countPages(makeSnapshot()), 4);
+  });
+
+  it("still emits four pages with an empty showcase", () => {
+    const snap = makeSnapshot();
+    assert.equal(countPages({ ...snap, showcase: [] }), 4);
   });
 
   it("renders without a resolved server spec (null serverSpec)", async () => {

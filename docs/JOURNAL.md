@@ -4,6 +4,36 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-06-19 — Project Quote PDF: delete the redundant standalone server-spec page; finalize ADR 0066
+
+### Work done
+
+One structural fix to the Project Quote PDF renderer (`ProjectQuotePdf.tsx`) plus the ADR 0065/0066 status finalization. No snapshot shape change, no migration. Not committed; awaiting review.
+
+- **Step 0 investigation first (reported before any edit).** The "standalone VideoX V600 server-spec page" in the V4 render is **not a separate `<Page>`** — it is the page-1 "Recommended server hero" block (model · SKU · MAX CAMERAS / BANDWIDTH / USABLE STORAGE / DRIVE BAYS / CPU / RAM / OS / WARRANTY). It lived *inside* page 1's `<Page>` with `wrap={false}`, so on a tall page 1 it overflowed onto its own heading-less physical page. This is exactly the recommended-system block the prompt said to remove if found on page 1. Confirmed the page-1 **capacity bars consume `sizing.serverSpec` independently** of the hero JSX (the `availableStorageTb` / `availableBandwidthMbps` derivations), so deleting the display block does not orphan the capacity section.
+- **Deleted the recommended-server hero block** and everything only it consumed: the JSX block on page 1; the `modelName` / `skuLine` / `specPairs` render-time derivations; the `recRow…specVal` styles; and the render-input field `primaryHeroDataUri` (the type field, its load in `render.ts`, and the `makeInput` fixture field). Kept `sizing.serverSpec` (capacity bars need it) and `recommendation` / `recUnits` (capacity ceilings).
+- **`primaryServerHeroImagePath` retained as an orphaned snapshot field.** With the hero gone, nothing renders this image. Per the scope rule (removing a snapshot field is a shape change needing separate review) the field stays frozen; `snapshot.ts` still populates it and `snapshot.test.ts` still asserts it. Flagged in a `types.ts` comment and in ADR 0066's amendment as a candidate for a future shape-change cleanup — **not bundled here.**
+- **Confirmed 4-page structure: Sizing (parameters · camera schedule · capacity bars, no recommended-system block) → Products in this quote → Commercial → Terms.** The capacity bars still derive their ceilings from `serverSpec` (smoke render showed 280.0 TB usable and 3,000 Mb/s exactly).
+- **Tests** (`render.test.ts`): added a faithful page-count assertion — `countPages()` walks the `<Document>` children and asserts **4 `<Page>` elements** (the "`<Page>` count in the input model" check, not a grep of the subsetted PDF text), plus an empty-showcase 4-page case. Removed `primaryHeroDataUri` from the `makeInput` fixture. Kept the null-`serverSpec` no-crash test, the capacity-bar behavior, the showcase suite (incl. 5-products-on-one-page), and commercial/terms tests green.
+- **ADR finalization.** Flipped **ADR 0066 → Accepted** (with a 2026-06-19 amendment recording the hero deletion — a refinement of the same showcase decision, so no new ADR number) and **ADR 0065 → Superseded by #0066** (it previously carried only a forward-reference note).
+
+### Detours & fixes
+
+- **The prompt assumed a separate `<Page>`; reality was an overflowing inline block.** Step 0 caught this before any edit. The `<Page>`-element count was already 4 before the fix (4 `<Page>` elements rendering as 5 physical pages because the `wrap={false}` hero spilled). The structural `<Page>`-count test therefore documents the intended model but does **not** by itself catch the overflow regression — the **`pdfinfo` smoke gate** is what asserts 4 *physical* pages, consistent with this repo's established split (unit tests assert structure; the smoke gate asserts pagination, because react-pdf subsets glyphs and the byte stream can't be grepped).
+- **Smoke-gate false alarm at 7 camera groups.** A stress fixture with 7 schedule groups rendered 5 physical pages — but that is the *camera schedule* legitimately overflowing the Sizing page (always possible, pre-existing), not the hero. The realistic 2-group fixture (matching the real snapshot) renders exactly 4 pages with all five showcase rows on page 2.
+
+### Verification gates
+
+- `npm test` **187/187** (+2 over the prior 185: the two new page-count assertions). `npm run build` ✓ compiled successfully. `npx eslint` 0 errors on the four changed files.
+- Smoke render (5 spec-rich showcase products, real hero PNGs, 2 camera groups): `%PDF-`, **4 pages** via `pdfinfo`; page 1 = Project parameters · Camera schedule · System capacity (185.5 TB of 280.0 TB usable · 1,011.5 Mb/s of 3,000 Mb/s · System utilization) with **no** server-spec/hero block; page 2 = "Products in this quote" (five rows); page 3 = "Quote line items"; page 4 = "Terms and Conditions".
+
+### Decisions captured
+
+- [`0066-reinstate-project-quote-showcase-page.md`](./decisions/0066-reinstate-project-quote-showcase-page.md) → **Accepted** (+ 2026-06-19 amendment: standalone hero removed).
+- [`0065-drop-project-quote-showcase-page.md`](./decisions/0065-drop-project-quote-showcase-page.md) → **Superseded by #0066**.
+
+---
+
 ## 2026-06-18 — Project Quote PDF: reinstate the products showcase page (reverses ADR 0065)
 
 ### Work done
