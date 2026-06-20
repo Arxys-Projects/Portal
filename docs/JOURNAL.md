@@ -4,6 +4,23 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-06-19 — Price Book SKU table: true net-usable storage + real camera bandwidth
+
+### Work done
+
+- **Two display bugs in the Price Book per-SKU table** ([`src/app/(app)/price-book/[slug]/page.tsx`](../src/app/(app)/price-book/[slug]/page.tsx) cell renderer). The display-side twin of the ADR 0068 root cause:
+  - **"Net Usable Storage"** rendered `products.max_storage_tb` — the RAW HDD nameplate (V700 = 480 TB) — under a net-usable label. Now computes RAID net-usable via `usableCapacityTb(storage_raw_tb, hdd_count, raid_level_display)` from `product_specs` (V700 → 400 TB).
+  - **"Max Camera Bandwidth"** rendered `products.max_cameras` (a stream count) with a `Mbit/s` suffix — the camera count mislabeled as bandwidth (V700: "325 Mbit/s"). Now renders `product_specs.max_bandwidth_mbps` (V700 → 4000 Mbit/s), "—" when absent.
+  - **"SSD Storage"** had the same `max_storage_tb` fallback. Now "—" when no `skuExtraData` override — never the HDD nameplate (these are SSD-based mgmt/ACM servers with no `product_specs` row).
+- **Join**: `products.sku → product_specs.id` (id IS the SKU). The page fetches the needed spec columns for all rendered SKUs (primary + tiers + upgrades) in one `.in("id", …)` query and threads a `specsBySku` map through `SkuTable` into the cell renderer. `skuExtraData` overrides remain authoritative.
+- **Refactor**: extracted `cellValue` / `formatMsrp` / `ProductRow` / `ProductSpecLite` into a pure, server-free module ([`src/lib/price-book/cell-value.ts`](../src/lib/price-book/cell-value.ts)) so the renderer is unit-testable (page.tsx imports `server-only` Supabase).
+- **Tests**: new [`src/lib/price-book/cell-value.test.ts`](../src/lib/price-book/cell-value.test.ts) — 12 cases covering net-usable math (V700 480→400, V200 80→60, fractional rounding), bandwidth (4000 not 325), `ssdStorage`="—", override precedence, and the passthrough columns.
+- **Gates**: `npm test` 219/219 pass. `npx eslint` 0 errors on changed files. `npx tsc --noEmit` 0 errors in changed files (the pre-existing react-pdf `DocumentProps` / `Buffer` errors in `*/render.test.ts` and `xlsx.test.ts` are untouched and unrelated).
+
+### Decisions captured
+
+- [`0069-price-book-sku-table-true-net-usable-and-bandwidth.md`](./decisions/0069-price-book-sku-table-true-net-usable-and-bandwidth.md)
+
 ## 2026-06-19 — Storage-first sizing on net-usable + VSR camera check + honest capacity line
 
 ### Work done

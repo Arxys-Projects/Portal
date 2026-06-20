@@ -8,54 +8,22 @@ import {
   type SkuColumn,
   type Family,
 } from "@/lib/price-book/families";
-
-type ProductRow = {
-  sku: string;
-  product_name: string;
-  msrp: number | null;
-  price_type: string;
-  max_storage_tb: number | null;
-  max_cameras: number | null;
-};
-
-function formatMsrp(row: ProductRow): string {
-  if (row.price_type === "market") return "Market";
-  if (row.price_type === "call_for_quote") return "Call for Quote";
-  if (row.msrp == null) return "—";
-  return `$${Number(row.msrp).toLocaleString("en-US")}`;
-}
-
-function cellValue(
-  col: SkuColumn,
-  row: ProductRow,
-  extra?: Partial<Record<SkuColumn, string>>,
-): string {
-  if (extra?.[col]) return extra[col]!;
-  switch (col) {
-    case "sku":
-      return row.sku;
-    case "product":
-      return row.product_name;
-    case "netStorage":
-      return row.max_storage_tb != null ? `${row.max_storage_tb} TB` : "—";
-    case "ssdStorage":
-      return row.max_storage_tb != null ? `${row.max_storage_tb} TB` : "—";
-    case "bandwidth":
-      return row.max_cameras != null ? `${row.max_cameras} Mbit/s` : "—";
-    case "monitors":
-      return "—";
-    case "msrp":
-      return formatMsrp(row);
-  }
-}
+import {
+  cellValue,
+  formatMsrp,
+  type ProductRow,
+  type ProductSpecLite,
+} from "@/lib/price-book/cell-value";
 
 function SkuTable({
   columns,
   rows,
+  specsBySku,
   skuExtraData,
 }: {
   columns: SkuColumn[];
   rows: ProductRow[];
+  specsBySku: Record<string, ProductSpecLite>;
   skuExtraData?: Family["skuExtraData"];
 }) {
   return (
@@ -87,6 +55,7 @@ function SkuTable({
                 const val = cellValue(
                   col,
                   row,
+                  specsBySku[row.sku],
                   skuExtraData?.[row.sku],
                 );
                 const isRight = RIGHT_ALIGNED_COLUMNS.has(col);
@@ -167,6 +136,40 @@ export default async function FamilyDetailPage({
 
   const rows = (primaryProducts ?? []) as ProductRow[];
   const upgrades = (upgradeProducts ?? []) as ProductRow[];
+
+  // Net-usable storage and camera bandwidth live in product_specs, not products.
+  // product_specs.id IS the SKU, so join products.sku -> product_specs.id for
+  // every SKU rendered on this page (primary + tiers + upgrades).
+  const allSkus = [
+    ...rows.map((r) => r.sku),
+    ...[...tierProductsMap.values()].flat().map((r) => r.sku),
+    ...upgrades.map((r) => r.sku),
+  ];
+  const specsBySku: Record<string, ProductSpecLite> = {};
+  if (allSkus.length > 0) {
+    const { data: specRows } = await supabase
+      .from("product_specs")
+      .select(
+        "id, storage_raw_tb, hdd_count, raid_level_display, max_bandwidth_mbps",
+      )
+      .in("id", allSkus);
+    for (const s of specRows ?? []) {
+      const spec = s as {
+        id: string;
+        storage_raw_tb: number | string | null;
+        hdd_count: number | null;
+        raid_level_display: string | null;
+        max_bandwidth_mbps: number | null;
+      };
+      specsBySku[spec.id] = {
+        storage_raw_tb:
+          spec.storage_raw_tb == null ? null : Number(spec.storage_raw_tb),
+        hdd_count: spec.hdd_count,
+        raid_level_display: spec.raid_level_display,
+        max_bandwidth_mbps: spec.max_bandwidth_mbps,
+      };
+    }
+  }
 
   return (
     <div>
@@ -308,6 +311,7 @@ export default async function FamilyDetailPage({
         <SkuTable
           columns={family.skuTableColumns}
           rows={rows}
+          specsBySku={specsBySku}
           skuExtraData={family.skuExtraData}
         />
       </section>
@@ -323,6 +327,7 @@ export default async function FamilyDetailPage({
             <SkuTable
               columns={tier.columns}
               rows={tierRows}
+              specsBySku={specsBySku}
               skuExtraData={family.skuExtraData}
             />
             {tier.caption && (
