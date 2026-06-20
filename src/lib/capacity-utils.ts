@@ -25,3 +25,14 @@ export function usableCapacityTb(
   if (n <= parity) return rawTb;
   return (rawTb * (n - parity)) / n;
 }
+
+// Honest capacity-line note for the System utilization bar. Replaces the old
+// hardcoded "20% headroom built in" string, which lied on over-capacity
+// systems. At or under 100% it states the ACTUAL remaining headroom; above
+// 100% it flags over-capacity rather than asserting headroom that does not
+// exist. See ADR 0068.
+export function utilizationNote(utilizationPct: number): string {
+  if (utilizationPct > 100) return "OVER CAPACITY";
+  const headroom = Math.max(0, Math.round(100 - utilizationPct));
+  return `${headroom}% headroom`;
+}

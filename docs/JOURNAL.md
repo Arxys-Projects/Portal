@@ -4,6 +4,34 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-06-19 — Storage-first sizing on net-usable + VSR camera check + honest capacity line
+
+### Work done
+
+- **Root cause (real deal).** A deal needing 1,764.3 TB net-usable + 332 cameras was recommended 4 × VX5-V700-480 and printed "1,764.3 TB of 1,600.0 TB usable · 110% · 20% headroom built in" — over-capacity, shown as valid, with a false headroom claim. The engine sized storage against **raw nameplate** `products.max_storage_tb` (480/unit → `ceil(1764.3/480)=4`) while every capacity bar divides by **RAID net-usable** (`usableCapacityTb`, ADR 0047 — V700 is RAID 60/24-drive → 400 usable/unit → 4×400 = 1,600 < 1,764.3). Raw said "fits"; usable said "doesn't." The "20% headroom built in" string was a hardcoded literal, never computed or enforced.
+- **Storage-first, two-floor sizing** ([`src/lib/recommend/algorithm.ts`](../src/lib/recommend/algorithm.ts)). Step 1 (HARD ×1.2, net-usable): `units ≥ ceil(neededUsableTb × 1.2 / usableStorageTb)`. Step 2 (SOFT ×1.1, VSR): bump until `totalVsr ≤ maxCameras × N / 1.1`. `units = max(1, storageUnits, vsrUnits)`; cheapest `(model × N)` across the whole catalog wins — no compute-tier lock, so a larger-storage SKU is chosen when it clears both floors more cheaply. `coveredStorageTb` is now net-usable, matching the bar denominators.
+- **VSR camera load** ([`src/lib/calculator/compute.ts`](../src/lib/calculator/compute.ts) `vsrLoad`): resolution-normalized `Σ cameras × (w×h/1e6 / 4)` — a 4MP stream ≈ 1.0 VSR. No fps/codec/motion/retention. `max_cameras` is treated as the per-unit VSR cap (it is VSR-referenced). 1.1 is the only camera margin (no separate VSR safety multiplier).
+- **Plumbing** ([`actions.ts`](../src/app/(app)/calculator/actions.ts)): the candidate query now joins `product_specs` (`storage_raw_tb`, `hdd_count`, `raid_level_display`) and computes `usableStorageTb` per SKU via `usableCapacityTb()`; `totalVsr` is summed from group resolutions. No schema/seed/migration — both inputs already existed.
+- **Honest capacity line** ([`capacity-utils.ts`](../src/lib/capacity-utils.ts) `utilizationNote`): actual headroom at ≤100% ("18% headroom"), "OVER CAPACITY" above 100%. Wired into both PDFs ([`SubmissionPdf.tsx`](../src/lib/pdf/SubmissionPdf.tsx), [`ProjectQuotePdf.tsx`](../src/lib/project-quote/ProjectQuotePdf.tsx)).
+- **Disclaimer header** added to the calculator recommendation panel ([`calculator-form.tsx`](../src/app/(app)/calculator/calculator-form.tsx)) and the System Estimate recommended-system block: "Possible system based on parameters. Arxys engineering will send a detailed quote with the final product recommendation."
+- **Result on the failing deal:** sizes 4 × VX5-V800-720 (2,560 TB usable, 68.9% utilization, "31% headroom").
+- **Gates:** `npm test` 207/207 pass (new: VSR computation, `utilizationNote`/`usableCapacityTb`, failing-deal regression + PDF render smoke; existing `algorithm.test.ts` expectations updated where the new algorithm legitimately changes the answer). `npm run build` clean. `npx eslint` 0 errors on changed files.
+
+### Detours & fixes
+
+- **ADR-number collision.** A bulk `ADR 0061 → 0068` rename clobbered three pre-existing references to the real ADR 0061 (project-quote versioning) in `config.ts`/`expiry.ts`/`generate.ts`; reverted those back. The new ADR is 0068 (0061–0067 were already taken).
+
+### Decisions captured
+
+- [`0068-storage-first-sizing-and-vsr-camera-check.md`](./decisions/0068-storage-first-sizing-and-vsr-camera-check.md) (Proposed). ADR 0032's sizing rule is marked superseded by it (its MKT/CFQ filter + tie-break still stand).
+
+### Notes / scope
+
+- Engine change affects NEW submissions only; old project-quote snapshots render their frozen recommendation (ADR 0061), as expected.
+- Out-of-scope latent display bugs flagged, not fixed: [`price-book/[slug]/page.tsx`](../src/app/(app)/price-book/[slug]/page.tsx) renders raw `max_storage_tb` under a "Net Usable Storage" label, and `max_cameras` with a `Mbit/s` suffix (camera count mislabeled as bandwidth).
+
+---
+
 ## 2026-06-19 — Bandwidth unit labels corrected site-wide (Mb/s → Mbit/s)
 
 ### Work done

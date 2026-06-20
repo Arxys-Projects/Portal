@@ -17,6 +17,7 @@ import {
   TRACK_GRAY,
 } from "../pdf/colors";
 import type { QuoteLineItem } from "@/lib/pipedrive/quote";
+import { utilizationNote } from "@/lib/capacity-utils";
 import type {
   ProjectQuoteCameraRow,
   ProjectQuoteShowcaseSpecHighlights,
@@ -865,7 +866,7 @@ export function ProjectQuotePdf({ data }: { data: ProjectQuotePdfInput }) {
             fillPct={utilizationPct}
             color={ARXYS_GOLD}
             value={`${utilizationPct.toLocaleString("en-US", { maximumFractionDigits: 0 })}%`}
-            note="20% headroom built in"
+            note={utilizationNote(utilizationPct)}
           />
         </View>
       </Page>

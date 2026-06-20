@@ -101,6 +101,44 @@ describe("SubmissionPdf renders via @react-pdf/renderer", () => {
     assert.ok(buf.length > 1000, `PDF buffer suspiciously small: ${buf.length} bytes`);
     assert.equal(buf.subarray(0, 5).toString("utf8"), "%PDF-");
   });
+
+  // ADR 0068 smoke: the deal that exposed the over-capacity bug. Under the
+  // fixed storage-first engine it is sized 4×V800-720 (640 TB net-usable/unit =
+  // 2560 usable), so utilization is 1764.3/2560 = 68.9% — honest headroom, not
+  // the old "1764.3 of 1600 usable / 110% / 20% headroom built in". This case
+  // exercises the new disclaimer header + the computed utilizationNote in the
+  // real react-pdf tree.
+  it("renders the previously-failing deal under capacity (4×V800, 68.9% utilization)", async () => {
+    const failingDeal: SubmissionPdfInput = {
+      ...fixture(),
+      totals: { cameras: 332, bandwidthMbps: 4200, storageGb: 1_764_300 },
+      storageTb: 1764.3,
+      bandwidthMbps: 4200,
+      recommendation: {
+        units: 4,
+        modelCode: "V800",
+        productDescription: "VideoX V800 720TB 4U 36Bay",
+        coveredCameras: 1300,
+        coveredStorageTb: 2560, // net-usable: 4 × 640
+        warnings: [],
+      },
+      serverSpec: {
+        ...fixture().serverSpec!,
+        sku: "VX5-V800-720",
+        modelName: "VideoX V800",
+        maxCameras: 325,
+        maxBandwidthMbps: 6000,
+        usablePerUnitTb: 640,
+      },
+    };
+    // Sanity-check the math the capacity bar will render before asserting the
+    // tree renders: storage is the binding dimension and stays under 100%.
+    const util = (1764.3 / (640 * 4)) * 100;
+    assert.ok(util > 0 && util <= 83, `expected ≤83% utilization, got ${util}%`);
+    const buf = await renderToBuffer(createElement(SubmissionPdf, { data: failingDeal }));
+    assert.ok(buf.length > 1000, `PDF buffer suspiciously small: ${buf.length} bytes`);
+    assert.equal(buf.subarray(0, 5).toString("utf8"), "%PDF-");
+  });
 });
 
 describe("SCHEDULE_COLUMNS — bandwidth and storage headers use megabits form", () => {

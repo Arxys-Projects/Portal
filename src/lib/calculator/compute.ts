@@ -19,6 +19,23 @@ const CODEC_BITRATE: Record<Codec["value"], number> = {
 };
 
 /**
+ * VSR (Video Surveillance Reference) load for a camera group: a
+ * resolution-normalized stream count where a 4MP stream ≈ 1.0 VSR.
+ *
+ *   vsr = cameras × (megapixels / 4),  megapixels = width × height / 1e6
+ *
+ * Resolution-normalized ONLY — fps, codec, motion, and retention are
+ * deliberately excluded (EPYC 9005 makes fps a non-factor within range; ~all
+ * deals run 12–15 fps). Used solely by the recommendation engine's per-unit
+ * camera-capacity check (max_cameras is VSR-referenced), never for storage or
+ * bandwidth sizing. See ADR 0068.
+ */
+export function vsrLoad(cameras: number, resolution: Resolution): number {
+  const megapixels = (resolution.width * resolution.height) / 1_000_000;
+  return cameras * (megapixels / 4);
+}
+
+/**
  * Estimated frame size in KB.
  *
  *   frame_kb = (pixels × bitrate_factor × complexity) / 8 / 1024

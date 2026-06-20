@@ -1588,6 +1588,10 @@ function RecommendationPanel({
   return (
     <div className="ax-rec">
       <div className="ax-rec-h">Recommended configuration</div>
+      <p className="ax-rec-disclaimer">
+        Possible system based on parameters. Arxys engineering will send a
+        detailed quote with the final product recommendation.
+      </p>
 
       {/* Winner */}
       <div className="ax-rec-w">

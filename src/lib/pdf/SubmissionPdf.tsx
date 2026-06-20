@@ -17,6 +17,7 @@ import {
   TRACK_GRAY,
 } from "./colors";
 import type { SubmissionPdfInput } from "./types";
+import { utilizationNote } from "@/lib/capacity-utils";
 
 const styles = StyleSheet.create({
   page: {
@@ -138,6 +139,13 @@ const styles = StyleSheet.create({
     color: TEXT_MUTED,
     marginTop: 4,
     marginBottom: 9,
+  },
+  recDisclaimer: {
+    fontSize: 8,
+    fontStyle: "italic",
+    color: TEXT_MUTED,
+    marginTop: -2,
+    marginBottom: 8,
   },
 
   // 3. Capacity bars
@@ -526,11 +534,16 @@ export function SubmissionPdf({ data }: { data: SubmissionPdfInput }) {
             fillPct={utilizationPct}
             color={ARXYS_GOLD}
             value={`${utilizationPct.toLocaleString("en-US", { maximumFractionDigits: 0 })}%`}
-            note="20% headroom built in"
+            note={utilizationNote(utilizationPct)}
           />
         </View>
 
         {/* 4. Recommended server */}
+        <Text style={styles.sectionTitle}>Recommended system</Text>
+        <Text style={styles.recDisclaimer}>
+          Possible system based on parameters. Arxys engineering will send a
+          detailed quote with the final product recommendation.
+        </Text>
         <View style={styles.recRow} wrap={false}>
           <View style={styles.recImageCol}>
             {data.heroDataUri ? (

@@ -9,7 +9,8 @@ import {
   RESOLUTIONS,
   VMS_OPTIONS,
 } from "@/lib/calculator/tables";
-import { computeGroup, type GroupInput } from "@/lib/calculator/compute";
+import { computeGroup, vsrLoad, type GroupInput } from "@/lib/calculator/compute";
+import { usableCapacityTb } from "@/lib/capacity-utils";
 import { INPUT_STATE_VERSION } from "@/lib/calculator/rehydrate";
 import { recommend } from "@/lib/recommend/algorithm";
 import { GB_PER_TB, type ServerSpec, type RecommendationResult } from "@/lib/recommend/types";
@@ -220,6 +221,11 @@ export async function submitCalculation(
   // max_storage_tb. server_specs is gone. recommend() filters MKT/CFQ
   // defensively but we also filter at the query level to keep the
   // candidate pool tight (Q4(a)).
+  //
+  // ADR 0068: storage sizing is net-usable, not raw nameplate. The usable
+  // figure is derived from product_specs (storage_raw_tb + hdd_count +
+  // raid_level_display) via usableCapacityTb — products.max_storage_tb is raw.
+  // product_specs.id == products.sku, so we join in-process.
   const { data: productRows, error: productError } = await supabase
     .from("products")
     .select("sku, product_name, product_group, msrp, price_type, max_cameras, max_storage_tb")
@@ -235,19 +241,47 @@ export async function submitCalculation(
     return { status: "error", error: "No active numeric-priced SKUs are seeded. Contact an administrator." };
   }
 
+  const { data: specRows, error: specError } = await supabase
+    .from("product_specs")
+    .select("id, storage_raw_tb, hdd_count, raid_level_display");
+  if (specError) {
+    return { status: "error", error: dbError(specError, "load product specs") };
+  }
+  const usableBySku = new Map<string, number>();
+  for (const row of specRows ?? []) {
+    const usable = usableCapacityTb(
+      Number(row.storage_raw_tb),
+      row.hdd_count == null ? null : Number(row.hdd_count),
+      row.raid_level_display,
+    );
+    if (usable != null) usableBySku.set(row.id as string, usable);
+  }
+
+  // A SKU with no resolvable net-usable figure (no product_specs row) cannot be
+  // sized storage-first; fall back to its raw nameplate so it stays a valid
+  // candidate rather than vanishing. Logged-implicitly via the warning path.
   const specs: ServerSpec[] = productRows.map((row) => ({
     sku: row.sku,
     productGroup: row.product_group,
     productName: row.product_name,
     maxCameras: row.max_cameras as number,
     maxStorageTb: Number(row.max_storage_tb),
+    usableStorageTb: usableBySku.get(row.sku) ?? Number(row.max_storage_tb),
     msrp: Number(row.msrp),
     priceType: "numeric" as const,
   }));
   const specBySku = new Map<string, ServerSpec>(specs.map((s) => [s.sku, s]));
 
+  // Resolution-normalized camera load (VSR) for the camera-capacity check —
+  // summed over groups from native resolution, independent of the bandwidth /
+  // storage math which stays per-group (ADR 0068).
+  const totalVsr = input.groups.reduce(
+    (sum, g) => sum + vsrLoad(g.cameras, RESOLUTIONS[g.resolutionIdx]),
+    0,
+  );
+
   const recommendation = recommend(
-    { totalCameras: totals.cameras, totalStorageGb: totals.storageGb },
+    { totalCameras: totals.cameras, totalStorageGb: totals.storageGb, totalVsr },
     specs,
   );
 
@@ -401,8 +435,10 @@ export async function submitCalculation(
         coveredCameras: winnerSpec
           ? recommendation.winner.units * winnerSpec.maxCameras
           : recommendation.winner.coveredCameras,
+        // Net-usable, matching the capacity bar denominator (ADR 0068) — never
+        // raw nameplate.
         coveredStorageTb: winnerSpec
-          ? recommendation.winner.units * winnerSpec.maxStorageTb
+          ? recommendation.winner.units * winnerSpec.usableStorageTb
           : recommendation.winner.coveredStorageTb,
         warnings: recommendation.warnings,
       };

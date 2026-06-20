@@ -473,6 +473,13 @@
   font-weight: 800;
   margin-bottom: 8px;
 }
+#arxys-calc-root .ax-rec-disclaimer {
+  font-size: 12px;
+  font-style: italic;
+  color: var(--td);
+  line-height: 1.4;
+  margin: 0 0 14px;
+}
 #arxys-calc-root .ax-rec-w {
   display: flex;
   align-items: baseline;

@@ -1,6 +1,6 @@
 # 0032 — SKU-level recommendation algorithm (Phase 2 Step 4)
 
-- **Status**: Accepted
+- **Status**: Accepted — sizing rule superseded by [#0068](./0068-storage-first-sizing-and-vsr-camera-check.md) (the MKT/CFQ filter and tie-break below still stand)
 - **Date**: 2026-05-21
 
 ## Context

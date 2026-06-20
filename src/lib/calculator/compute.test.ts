@@ -6,8 +6,39 @@ import {
   formatNumber,
   formatStorageGb,
   formatBandwidthMbps,
+  vsrLoad,
 } from "./compute";
-import { COMPLEXITIES, RESOLUTIONS } from "./tables";
+import { COMPLEXITIES, RESOLUTIONS, type Resolution } from "./tables";
+
+describe("vsrLoad (resolution-normalized camera load, ADR 0068)", () => {
+  // Resolution-normalized: vsr = cameras × (megapixels / 4), megapixels = w×h/1e6.
+  const res = (width: number, height: number): Resolution => ({ label: "", width, height });
+  const r8mp = res(3840, 2160); // 8.2944 MP -> 2.0736 VSR/cam
+  const r4mp = res(2560, 1440); // 3.6864 MP -> 0.9216 VSR/cam
+  const r2mp = res(1600, 1200); // 1.92 MP   -> 0.48   VSR/cam
+  const r720 = res(1280, 720); //  0.9216 MP -> 0.2304 VSR/cam
+  const close = (a: number, b: number) => assert.ok(Math.abs(a - b) < 1e-9, `${a} ≈ ${b}`);
+
+  it("scales linearly with camera count and pixel area", () => {
+    close(vsrLoad(1, r8mp), 2.0736);
+    close(vsrLoad(1, r4mp), 0.9216);
+    close(vsrLoad(1, r2mp), 0.48);
+    close(vsrLoad(1, r720), 0.2304);
+    close(vsrLoad(10, r4mp), 9.216);
+  });
+
+  it("sums a mixed-resolution schedule correctly", () => {
+    // 5×8MP + 20×4MP + 40×2MP + 100×720p
+    const total =
+      vsrLoad(5, r8mp) + vsrLoad(20, r4mp) + vsrLoad(40, r2mp) + vsrLoad(100, r720);
+    // 10.368 + 18.432 + 19.2 + 23.04 = 71.04
+    close(total, 71.04);
+  });
+
+  it("zero cameras contribute zero load", () => {
+    close(vsrLoad(0, r8mp), 0);
+  });
+});
 
 describe("formatNumber", () => {
   it("formats numbers below 1000 to two decimals", () => {
