@@ -1,5 +1,8 @@
 import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { requireAdminOrInternal } from "@/lib/auth/require-admin-or-internal";
+import { NavCard } from "@/app/(app)/_components/ui";
+import type { ReactNode } from "react";
 
 function formatDate(value: string | null | undefined): string {
   if (!value) return "—";
@@ -9,12 +12,63 @@ function formatDate(value: string | null | undefined): string {
 }
 
 function cutoffIsoDaysAgo(days: number): string {
-  // Wrapped so the impure clock read isn't inline in the render body
-  // (react-hooks/purity rule treats Server Components as render functions).
   return new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
 }
 
+function PipelineIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <rect x="2" y="3" width="6" height="18" rx="1" />
+      <rect x="9" y="7" width="6" height="14" rx="1" />
+      <rect x="16" y="11" width="6" height="10" rx="1" />
+    </svg>
+  );
+}
+
+function PartnersIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <circle cx="9" cy="7" r="3" />
+      <circle cx="17" cy="7" r="3" />
+      <path d="M1 21c0-4 3.6-7 8-7" />
+      <path d="M15 14c4.4 0 8 3 8 7" />
+    </svg>
+  );
+}
+
+function SpreadsheetIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+      <polyline points="14 2 14 8 20 8" />
+      <line x1="8" y1="13" x2="16" y2="13" />
+      <line x1="8" y1="17" x2="16" y2="17" />
+      <line x1="10" y1="9" x2="8" y2="9" />
+    </svg>
+  );
+}
+
+function StatCard({ label, value, detail, link }: { label: string; value: ReactNode; detail?: string; link?: { href: string; text: string } }) {
+  return (
+    <div className="rounded-xl border-2 border-line bg-surface p-5">
+      <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+        {label}
+      </p>
+      <p className="mt-2 text-3xl font-bold text-ink">{value}</p>
+      {detail ? <p className="mt-1 text-xs text-neutral-500">{detail}</p> : null}
+      {link ? (
+        <Link href={link.href} className="mt-3 inline-block text-sm text-arxys-navy hover:underline">
+          {link.text} →
+        </Link>
+      ) : null}
+    </div>
+  );
+}
+
 export default async function AdminOverviewPage() {
+  const gate = await requireAdminOrInternal();
+  const isAdmin = gate.ok && gate.isAdmin;
+
   const supabase = await createSupabaseServerClient();
   const last30Cutoff = cutoffIsoDaysAgo(30);
 
@@ -61,58 +115,56 @@ export default async function AdminOverviewPage() {
     <div>
       <h1 className="text-2xl font-bold text-ink">Admin overview</h1>
       <p className="mt-2 text-sm text-neutral-600">
-        Partner roster + submissions across all partners.
+        Partner roster and pipeline across all partners.
       </p>
 
-      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="rounded-xl border-2 border-line bg-surface p-5">
-          <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
-            Partners
-          </p>
-          <p className="mt-2 text-3xl font-bold text-ink">
-            {counts.total}
-          </p>
-          <p className="mt-1 text-xs text-neutral-500">
-            {counts.active} active · {counts.invited} invited · {counts.suspended} suspended
-          </p>
-          <Link
-            href="/admin/partners"
-            className="mt-3 inline-block text-sm text-arxys-navy hover:underline"
-          >
-            Manage partners →
-          </Link>
-        </div>
+      {/* Navigation */}
+      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <NavCard
+          href="/admin/submissions"
+          icon={<PipelineIcon />}
+          title="Partner Pipeline"
+          subtitle="Review and manage all partner submissions, grouped by partner or as a flat list."
+        />
+        <NavCard
+          href="/admin/partners"
+          icon={<PartnersIcon />}
+          title="Partners"
+          subtitle="View the partner roster, invite new partners, and manage account status."
+        />
+        {isAdmin ? (
+          <NavCard
+            href="/api/admin/forecast/xlsx"
+            icon={<SpreadsheetIcon />}
+            title="Export Forecast"
+            subtitle="Download the full weighted-forecast pipeline as an Excel workbook."
+            variant="download"
+          />
+        ) : null}
+      </div>
 
-        <div className="rounded-xl border-2 border-line bg-surface p-5">
-          <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
-            Submissions (all time)
-          </p>
-          <p className="mt-2 text-3xl font-bold text-ink">
-            {submissionsTotal}
-          </p>
-          <Link
-            href="/admin/submissions"
-            className="mt-3 inline-block text-sm text-arxys-navy hover:underline"
-          >
-            Browse submissions →
-          </Link>
-        </div>
-
-        <div className="rounded-xl border-2 border-line bg-surface p-5">
-          <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
-            Last 30 days
-          </p>
-          <p className="mt-2 text-3xl font-bold text-ink">
-            {submissions30}
-          </p>
-          <p className="mt-1 text-xs text-neutral-500">submissions</p>
-        </div>
+      {/* Stats */}
+      <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <StatCard
+          label="Partners"
+          value={counts.total}
+          detail={`${counts.active} active · ${counts.invited} invited · ${counts.suspended} suspended`}
+          link={{ href: "/admin/partners", text: "Manage partners" }}
+        />
+        <StatCard
+          label="Partner Pipeline (all time)"
+          value={submissionsTotal}
+          link={{ href: "/admin/submissions", text: "Browse pipeline" }}
+        />
+        <StatCard
+          label="Last 30 days"
+          value={submissions30}
+          detail="submissions"
+        />
       </div>
 
       <section className="mt-8">
-        <h2 className="text-base font-bold text-ink">
-          Recent submissions
-        </h2>
+        <h2 className="text-base font-bold text-ink">Recent submissions</h2>
         {recentRows.length === 0 ? (
           <p className="mt-3 text-sm text-neutral-500">No submissions yet.</p>
         ) : (

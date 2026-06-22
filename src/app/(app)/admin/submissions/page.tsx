@@ -82,7 +82,7 @@ export default async function AdminSubmissionsPage({
     to: toDate,
   } = await searchParams;
 
-  const isPartnerGrouped = groupBy === "partner";
+  const isPartnerGrouped = groupBy !== "flat";
 
   // Phase 8 Step C — internal users see this page read-only. isAdmin gates
   // the XLSX export and per-row status / delete controls. The action handlers
@@ -459,6 +459,7 @@ export default async function AdminSubmissionsPage({
                 href={{
                   pathname: "/admin/submissions",
                   query: {
+                    groupBy: "flat",
                     ...(partnerId ? { partnerId } : {}),
                     ...(statusParam ? { status: statusParam } : {}),
                     ...(fromDate ? { from: fromDate } : {}),
@@ -476,6 +477,7 @@ export default async function AdminSubmissionsPage({
                 href={{
                   pathname: "/admin/submissions",
                   query: {
+                    groupBy: "flat",
                     ...(partnerId ? { partnerId } : {}),
                     ...(statusParam ? { status: statusParam } : {}),
                     ...(fromDate ? { from: fromDate } : {}),
@@ -498,7 +500,7 @@ export default async function AdminSubmissionsPage({
 function ErrorMessage({ message }: { message: string }) {
   return (
     <div>
-      <h1 className="text-2xl font-bold text-ink">Submissions</h1>
+      <h1 className="text-2xl font-bold text-ink">Partner Pipeline</h1>
       <p className="mt-3 text-sm text-danger">
         Failed to load submissions: {message}
       </p>
@@ -525,40 +527,36 @@ function PageHeader({
   toDate?: string;
   showExport?: boolean;
 }) {
-  const isPartnerGrouped = groupBy === "partner";
+  const isPartnerGrouped = groupBy !== "flat";
 
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-ink">
-            Submissions
+            Partner Pipeline
           </h1>
           <p className="mt-1 text-sm text-ink-soft">
             {isPartnerGrouped
-              ? "Partner pipeline view — weighted forecast."
-              : `All partner submissions. ${total} total.`}
+              ? "Grouped by partner. Weighted forecast."
+              : `All submissions, flat list. ${total} total.`}
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {/* Group-by toggle */}
+          {/* Grouped / Flat toggle */}
           <Link
             href={{
               pathname: "/admin/submissions",
               query: {
-                groupBy: isPartnerGrouped ? undefined : "partner",
+                ...(isPartnerGrouped ? { groupBy: "flat" } : {}),
                 ...(statusParam ? { status: statusParam } : {}),
                 ...(fromDate ? { from: fromDate } : {}),
                 ...(toDate ? { to: toDate } : {}),
               },
             }}
-            className={
-              isPartnerGrouped
-                ? buttonClasses("primary", "sm")
-                : buttonClasses("secondary", "sm")
-            }
+            className={buttonClasses("secondary", "sm")}
           >
-            {isPartnerGrouped ? "← Project view" : "Partner view"}
+            {isPartnerGrouped ? "Flat list" : "Grouped"}
           </Link>
           {showExport ? (
             <Link
@@ -573,8 +571,8 @@ function PageHeader({
 
       {/* Filters */}
       <form method="get" className="flex flex-wrap items-end gap-2">
-        {isPartnerGrouped ? (
-          <input type="hidden" name="groupBy" value="partner" />
+        {!isPartnerGrouped ? (
+          <input type="hidden" name="groupBy" value="flat" />
         ) : null}
 
         {/* Partner filter (project view only) */}
@@ -633,7 +631,7 @@ function PageHeader({
           <Link
             href={{
               pathname: "/admin/submissions",
-              query: isPartnerGrouped ? { groupBy: "partner" } : {},
+              query: isPartnerGrouped ? {} : { groupBy: "flat" },
             }}
             className="text-xs font-medium text-arxys-navy hover:underline"
           >

@@ -16,14 +16,14 @@ export type CurrentQuoteSummary = {
   termsVersion: string;
 };
 
-export function ProjectQuotePanel({
+// Top-of-page primary action button. Handles the generate round-trip and shows
+// inline feedback. The quote panel below re-renders via router.refresh().
+export function GenerateQuoteTopButton({
   submissionId,
-  current,
-  downloadHref,
+  hasCurrent,
 }: {
   submissionId: string;
-  current: CurrentQuoteSummary | null;
-  downloadHref: string;
+  hasCurrent: boolean;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -39,17 +39,43 @@ export function ProjectQuotePanel({
         setError(res.error);
         return;
       }
-      // Non-blocking delivery notice: the quote is saved either way.
       setNotice(
         res.delivered
           ? `Generated ${res.identifier} and attached it to the Pipedrive deal.`
           : `Generated ${res.identifier}. ${res.deliveryNote ?? ""}`.trim(),
       );
-      // Pull the new current version / expiry / download link into the page.
       router.refresh();
     });
   }
 
+  return (
+    <span className="inline-flex flex-col gap-1.5">
+      <Button onClick={handleGenerate} disabled={isPending}>
+        {isPending
+          ? "Generating…"
+          : hasCurrent
+            ? "Make New Project Quote"
+            : "Generate Project Quote"}
+      </Button>
+      {notice ? (
+        <span className="text-xs text-green-800">{notice}</span>
+      ) : null}
+      {error ? (
+        <span className="text-xs text-danger">{error}</span>
+      ) : null}
+    </span>
+  );
+}
+
+// Detail panel anchored below the action row. Display-only — generation is
+// triggered from the top action row via GenerateQuoteTopButton.
+export function ProjectQuotePanel({
+  current,
+  downloadHref,
+}: {
+  current: CurrentQuoteSummary | null;
+  downloadHref: string;
+}) {
   return (
     <section className="mt-6 rounded-xl border-2 border-line bg-surface p-4">
       <div className="flex items-center justify-between gap-4">
@@ -79,28 +105,6 @@ export function ProjectQuotePanel({
           No Project Quote has been generated for this submission yet.
         </p>
       )}
-
-      <div className="mt-4 flex items-center gap-3">
-        <Button onClick={handleGenerate} disabled={isPending} size="sm">
-          {isPending
-            ? "Generating…"
-            : current
-              ? "Make New Project Quote"
-              : "Generate Project Quote"}
-        </Button>
-        {current ? (
-          <span className="text-xs text-ink-soft">
-            Creates version {current.version + 1} from the deal as it stands now.
-          </span>
-        ) : null}
-      </div>
-
-      {notice ? (
-        <p className="mt-3 rounded-lg bg-green-50 px-3 py-2 text-sm text-green-800">{notice}</p>
-      ) : null}
-      {error ? (
-        <p className="mt-3 rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">{error}</p>
-      ) : null}
     </section>
   );
 }

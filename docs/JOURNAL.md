@@ -4,6 +4,30 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-06-22 — Internal navigation + admin landing consolidation (ADR 0070)
+
+### Work done
+
+- **Task 1 — Header nav:** Removed Submissions and Partners links for all roles. Survivors: Dashboard, Calculator, Pipeline, QuickCompare, Price Book. Admin button now visible to `isAdminOrInternal` (previously admin-only), so internal non-admins can reach `/admin` after the nav links are gone.
+- **Task 2 — Partner Pipeline page:** Retitled `/admin/submissions` heading from "Submissions" to "Partner Pipeline". Partner-grouped is now the default view (no param = grouped; `?groupBy=flat` = flat list). Toggle labels changed to "Flat list" / "Grouped". Filter hidden inputs, clear-filter links, and pagination links updated to carry `groupBy=flat` when in flat view. Back-link on detail page updated to "Partner Pipeline". Admin sidebar label updated.
+- **Task 3 — /admin landing:** Added NavCards for Partner Pipeline and Partners (visible to all `isAdminOrInternal`); XLSX Export Forecast card gated to admins only. Rewrote all stat card and page copy to remove "Submissions" references. Added `requireAdminOrInternal()` call to the page for role-aware rendering.
+- **Task 4 — Generate Project Quote in top action row:** Extracted `GenerateQuoteTopButton` client component from `project-quote-panel.tsx`. Simplified `ProjectQuotePanel` to display-only (no embedded generate button). Added `generateQuoteButton?: ReactNode` prop to shared `SubmissionDetail`; when provided, the button renders first with a vertical separator before the utility cluster, and Download PDF demotes to secondary. Admin detail page passes the top button when `isInternal`; partner view unchanged.
+- **Task 5 — Dashboard pipeline card:** Renamed "My Pipeline Summary" to "Pipeline Summary". Computation and data source unchanged.
+
+### Decisions captured
+
+- ADR 0070 naming choice for dashboard card: "Pipeline Summary" (not "Partner Pipeline Summary") to avoid redundancy on a card that already lives in the partner context.
+- Accepted ADR 0070 status flipped to Accepted below.
+
+### Verification gates
+
+- `npm run build`: clean, 0 errors, 0 new warnings.
+- `npm test`: 219/219 pass.
+- `npx eslint` on all changed files: 0 errors (1 pre-existing `<img>` warning in layout.tsx, untouched).
+- `no-ai-slop` audit: 1 em dash found and fixed in submissions page subtext.
+
+---
+
 ## 2026-06-19 — Price Book SKU table: true net-usable storage + real camera bandwidth
 
 ### Work done

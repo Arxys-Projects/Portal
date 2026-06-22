@@ -39,7 +39,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
               href="/admin/submissions"
               className="block rounded px-2 py-1.5 text-neutral-700 hover:bg-neutral-100"
             >
-              Submissions
+              Partner Pipeline
             </Link>
           </li>
         </ul>

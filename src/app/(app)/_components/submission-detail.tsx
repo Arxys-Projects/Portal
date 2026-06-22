@@ -126,11 +126,13 @@ export function SubmissionDetail({
   partner,
   mode,
   canRevise,
+  generateQuoteButton,
 }: {
   submission: SubmissionDetailRow;
   partner?: SubmissionPartnerSummary;
   mode: "admin" | "partner";
   canRevise?: boolean;
+  generateQuoteButton?: ReactNode;
 }) {
   const groups = extractGroups(submission.groups_payload);
   // Phase 2 Step 3+4: a UUID-shaped recommended_product_id signals a
@@ -174,12 +176,19 @@ export function SubmissionDetail({
           </p>
         ) : null}
 
-        {/* Actions live directly under the header (ADR 0067): Download PDF is
-            the primary control; Edit / Open Pipedrive are secondary. */}
+        {/* Actions live directly under the header (ADR 0067). When a
+            generateQuoteButton is present it is the primary action; the
+            remaining controls are utility actions on the existing submission. */}
         <div className="mt-4 flex flex-wrap items-center gap-3">
+          {generateQuoteButton ? (
+            <>
+              {generateQuoteButton}
+              <span className="h-5 w-px bg-line" aria-hidden />
+            </>
+          ) : null}
           <a
             href={`/api/submissions/${submission.id}/pdf`}
-            className={buttonClasses("primary")}
+            className={buttonClasses(generateQuoteButton ? "secondary" : "primary")}
             download
           >
             Download PDF

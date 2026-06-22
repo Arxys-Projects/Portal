@@ -9,6 +9,7 @@ import { loadCurrentProjectQuote } from "@/lib/project-quote/assemble";
 import { projectQuoteExpiryIso } from "@/lib/project-quote/expiry";
 import {
   ProjectQuotePanel,
+  GenerateQuoteTopButton,
   type CurrentQuoteSummary,
 } from "./_components/project-quote-panel";
 
@@ -119,7 +120,7 @@ export default async function AdminSubmissionDetailPage({
           href="/admin/submissions"
           className="text-sm font-medium text-arxys-navy hover:underline"
         >
-          ← All submissions
+          ← Partner Pipeline
         </Link>
       </div>
       <SubmissionDetail
@@ -127,10 +128,17 @@ export default async function AdminSubmissionDetailPage({
         partner={partner}
         mode="admin"
         canRevise={isInternal}
+        generateQuoteButton={
+          isInternal ? (
+            <GenerateQuoteTopButton
+              submissionId={id}
+              hasCurrent={currentQuote !== null}
+            />
+          ) : undefined
+        }
       />
       {isInternal ? (
         <ProjectQuotePanel
-          submissionId={id}
           current={currentQuote}
           downloadHref={`/api/admin/submissions/${id}/project-quote/pdf`}
         />

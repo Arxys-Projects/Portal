@@ -131,7 +131,7 @@ export default async function DashboardPage() {
           {deals.length > 0 ? (
             <Card className="lg:col-span-3 sm:col-span-2">
               <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <h2 className="text-base font-bold text-ink">My Pipeline Summary</h2>
+                <h2 className="text-base font-bold text-ink">Pipeline Summary</h2>
                 <p className="text-xs text-ink-soft">
                   Pre-CRM activity — one value per project (preferred or most recent quote).
                 </p>
