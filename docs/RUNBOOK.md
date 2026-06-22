@@ -94,11 +94,18 @@ Using `--token` bypasses the browser-based login flow, which has been unreliable
 
 ## 6. Supabase: apply the schema
 
-The migrations live in `supabase/migrations/`:
+The migrations live in `supabase/migrations/` (21 files as of 2026-06-16; applied in timestamp order by `db push`):
 
+**Foundation (2026-05)**
 - `20260515193702_initial_schema.sql` — `partners`, `products` (placeholder), `server_specs` (placeholder), `submissions`, RLS, `is_admin()`.
 - `20260519052732_step5_submissions_and_seeds.sql` — `submissions.groups_payload`, server_specs bandwidth-gate relaxation, 6 placeholder family rows.
 - `20260521190350_step3_4_products_sku_pk.sql` — replaces `products` + drops `server_specs`; new SKU-PK shape with inline `max_cameras` + `max_storage_tb`; migrates `submissions.recommended_product_id` UUID → TEXT; seeds 6 mid-tier VideoX SKUs with real MSRPs. See [ADR 0031](./decisions/0031-step-3-4-schema-migration.md) and [ADR 0032](./decisions/0032-sku-level-recommendation-algorithm.md).
+
+**Phase 3–4 and product_specs (2026-05 – 2026-06)** — adds `product_specs` (bandwidth / storage specs), `camera_specs`, `submission_revisions`, and various column/index additions. See the individual SQL files for detail.
+
+**Phase 10 — Project Quote (2026-06-16)**
+- `20260616000001_phase10_camera_search_rpc.sql` — `camera_aliases_text` immutable helper + `search_camera_specs` SECURITY INVOKER RPC + trigram indexes; powers the calculator camera-model picker.
+- `20260616000002_phase10_project_quotes.sql` — `project_quotes` table (immutable snapshot store); RLS: partner SELECT/INSERT blocked, internal/admin SELECT allowed, internal INSERT-for-self allowed, UPDATE/DELETE blocked for everyone. Paired with the 19a–19h `test-rls.ts` block. **Applied to cloud 2026-06-16; confirmed applied in the Step 6 stop-and-flag.**
 
 Apply them to a fresh project:
 
@@ -106,7 +113,7 @@ Apply them to a fresh project:
 SUPABASE_DB_PASSWORD='<db-password>' supabase db push
 ```
 
-You'll be prompted to confirm. Type `Y`. The CLI runs the three files in timestamp order. The 2026-05-21 migration is destructive: it `drop ... cascade`s the prior `products` + `server_specs` tables. On a fresh project this is a no-op (those tables only exist after the first two migrations land); on an existing project, see the rollback recipe at `supabase/rollback/step-3-4-rollback.sql` + the JSON-dump script `scripts/backup-tables.ts` before re-running.
+You'll be prompted to confirm. Type `Y`. The CLI runs all files in timestamp order. The 2026-05-21 migration is destructive: it `drop ... cascade`s the prior `products` + `server_specs` tables. On a fresh project this is a no-op; on an existing project, see `supabase/rollback/step-3-4-rollback.sql` + `scripts/backup-tables.ts` before re-running.
 
 For a true reset on a cloud project, drop the schema from the dashboard SQL editor and re-push.
 

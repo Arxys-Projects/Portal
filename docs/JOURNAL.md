@@ -4,6 +4,34 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-06-22 — Git audit: deploy state correction for Steps 5b, 6, and 2026-06-19/22 entries
+
+### Work done
+
+Git inspection confirmed the following. All findings are read-only; nothing was pushed.
+
+**Branch state.** `main` is in sync with `origin/main`, neither ahead nor behind. The working tree has two unstaged edits to `docs/JOURNAL.md` and `docs/RUNBOOK.md` (from a doc-correction pass in the same session); no application code, migration, or config is modified.
+
+**Project Quote Steps 5b and 6.** Both committed and deployed. Step 5b landed as `b374ec0` (2026-06-17, "Phase 10 / Project Quote Step 5b: unified four-page Project Quote PDF renderer"). Step 6 landed as `26f5de7` (2026-06-18, "Phase 10 / Project Quote Step 6: generate, persist, deliver"). Both are on `origin/main` and were promoted to production via Vercel auto-deploy from main. Migration `20260616000002` (`project_quotes` table) is applied on both local and remote with no drift, confirmed by `supabase migration list`. This supersedes the "authored, verified, NOT deployed" title and "nothing pushed, migrated, or committed" wording in the 2026-06-18 Step 6 entry. That entry's deploy state was written before the session ended and the commit happened; the git record is the authority.
+
+**2026-06-19 entries confirmed on origin/main:**
+
+- Bandwidth unit labels corrected site-wide (Mb/s to Mbit/s, 11 files): `66edf22`
+- Storage-first sizing and VSR camera check (ADR 0068): `4d7318a`
+- Price Book SKU table net-usable storage and real camera bandwidth (ADR 0069): `6f0de2c`
+- Portal UI comparison and videox-compare action gold to navy: `807a5f9`
+
+**2026-06-22 entries confirmed on origin/main:**
+
+- Internal nav and admin landing consolidation (ADR 0070): `28b98a0`
+- Project Quote PDF Layout B column widths and System Utilization bar removed: `eb69b1a`
+
+All six are reachable from `origin/main` HEAD (`aebbb8c`). No journal entry from 2026-06-19 or 2026-06-22 is uncommitted or local-only.
+
+**Vercel production deployment.** The active production deployment (`dpl_2JPoC71cGvNx692x6aY1r3SaCKiA`, created Mon Jun 22 2026 at 14:04 PDT, status Ready, aliased to `portal.arxys.com` and `portal-git-main-arxys.vercel.app`) was triggered by the push that landed `aebbb8c`. The Vercel CLI does not surface the git SHA in `inspect` output and the API token was unavailable for a direct lookup, so the match is confirmed by timing and branch alias rather than SHA comparison. The `portal-git-main-arxys.vercel.app` alias is Vercel's auto-generated name for the production branch and is authoritative that main is what is deployed.
+
+---
+
 ## 2026-06-22 — Phase 10 Step 6: Hanwha and Avigilon camera seeds
 
 ### Work done
@@ -482,11 +510,11 @@ Swapped the placeholder T&C (the 5a/5b go-live flag) for the approved Arxys quot
 
 ---
 
-## 2026-06-18 — Phase 10 / Project Quote Step 6: generate, persist, deliver (authored, verified, NOT deployed)
+## 2026-06-18 — Phase 10 / Project Quote Step 6: generate, persist, deliver
 
 ### Work done
 
-Wired the four pieces Steps 4 / 5a / 5b built into the internal-only Generate flow: the server action, the snapshot INSERT with version-conflict handling, the Pipedrive Files API delivery (net-new write surface), and the detail-page UI. Authored and verified locally (157 tests, build, lint); **nothing pushed, migrated, or committed.** The `project_quotes` migration `20260616000002` (authored in 5a) is still NOT deployed — held for review per the standing stop-and-flag discipline.
+Wired the four pieces Steps 4 / 5a / 5b built into the internal-only Generate flow: the server action, the snapshot INSERT with version-conflict handling, the Pipedrive Files API delivery (net-new write surface), and the detail-page UI. **Committed as `26f5de7` and deployed to production via `origin/main` on 2026-06-18.**
 
 - **`addDealFile` on the shared `pipedriveClient`** (`src/lib/pipedrive/client.ts`). The portal previously only wrote deals / fields / notes; this is the first file-attach path. `POST /v1/files` takes a multipart form, not JSON, so it cannot go through `request()` (which always JSON-encodes). Added a `requestUpload` helper — a multipart sibling of `requestSearch` — that reuses the same `withToken()` auth path and the same `PipedriveError` surface, with a `FormData` body. No second HTTP client, no second auth path. New `PdFile` read type. Defensive copy into a fresh `ArrayBuffer`-backed `Uint8Array` before `Blob` construction (a Node `Buffer` is `Uint8Array<ArrayBufferLike>`, which the lib's `BlobPart` type rejects — see Detours).
 - **Generate orchestrator** (`src/lib/project-quote/generate.ts`, dependency-injected, Node-testable). `generateProjectQuoteCore(submissionId, deps)` owns the branch handling, the version-conflict retry, and the resilience ordering. The server-only deps (assembly, render, Pipedrive) are INJECTED, so the core carries no `server-only` import and is unit-tested with plain fakes — the same render → data dependency discipline the rest of the module follows. Branches every `AssembleSnapshotResult` case to its own user-facing message (`empty_deal` refusal, `no_deal_link`, `submission_not_found`, retryable `deal_read_error`); only `ok` proceeds.
@@ -517,7 +545,7 @@ Wired the four pieces Steps 4 / 5a / 5b built into the internal-only Generate fl
 - `npx eslint` 0 errors on all changed/new files.
 - **Cloud RLS verified.** Pre-push backup `backups/manual-2026-06-18T18-04-13-027Z.json`. `supabase db push` → "Remote database is up to date" (already applied, see Detours). `test-rls.ts` against cloud: ALL pass, including the 8 new `project_quotes` checks (19a partner SELECT blocked, 19b internal SELECT, 19c admin SELECT, 19d partner INSERT blocked, 19e internal INSERT-for-self, 19f spoofed-`generated_by` INSERT blocked, 19g UPDATE blocked, 19h DELETE blocked). 19g/19h manifest as `permission denied for table project_quotes` (UPDATE/DELETE ungranted), confirming immutability at the privilege layer.
 - **Live `addDealFile` probe** against deal 4822 (the Step-4 example): uploaded one throwaway PDF (file id 285645), Pipedrive echoed `deal_id: 4822` (multipart link confirmed), then deleted it (`success: true`, HTTP 200). Throwaway probe script removed after the run; output PII-free.
-- **Not committed.** Working tree changes are authored and verified but NOT committed — held for review per the standing discipline (commit only when asked).
+- **Committed and deployed.** Commit `26f5de7` landed on `origin/main` 2026-06-18; Vercel auto-promoted to production.
 
 ### Decisions captured
 
