@@ -4,6 +4,21 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-06-22 — Phase 10 Step 6: Hanwha and Avigilon camera seeds
+
+### Work done
+
+- Added `data/hanwha-camera-specs.json` (23 entries: Q series QNV/QNO, Q-C series, X series XNV/XNO/XNV-C/XNO-C Wisenet 7, and A-series XNV-A/XNO-A Wisenet 9 gen-2; 2MP–8MP).
+- Added `data/avigilon-camera-specs.json` (19 entries: H6SL Dome/Bullet, H6A Dome/Bullet, H6X aliases folded into H6A entries, H6M Mini Dome; 2MP–8MP).
+- Pre-load backup confirmed 26 rows in `camera_specs` (Axis load from prior step).
+- Both files passed all validator checks (vendor, model, aliases, sensor_count, pixel bucket round-up, currently_shipping, as_of_date, source_url, uniqueness).
+- Pixel bucket note: Hanwha X-series 4MP (XNV-C7083R, XNO-C7083R) uses native 2592×1520; validator correctly round-ups to the 4MP bucket per ADR 0058 Option C. Avigilon H6SL/H6M 3MP uses 2048×1536 — validator maps to a 3MP bucket (exact match, no round-up needed).
+- Hanwha loaded: 23 new rows. Idempotency re-dry-run: 0 new / 23 updates.
+- Avigilon loaded: 19 new rows. Idempotency re-dry-run: 0 new / 19 updates.
+- Final `camera_specs` count: 68 rows (26 Axis + 23 Hanwha + 19 Avigilon).
+
+---
+
 ## 2026-06-22 — Project Quote PDF: Layout B camera schedule column widths
 
 ### Work done
