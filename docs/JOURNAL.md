@@ -4,6 +4,21 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-06-22 — Project Quote PDF: Layout B camera schedule column widths
+
+### Work done
+
+- Redistributed Layout B (9-column, with Vendor/Model) column widths to fix two visual defects:
+  - "STORAGE (TB)" header was wrapping to two lines because `CAMB_STORE = "9.5%"` gave only ~42pt of usable width; the uppercase header text requires ~49pt. Widened to 12%.
+  - "OPERATION HRS" column had excessive whitespace around short data values ("24", "22") while being 68pt wide. Reduced to 12% (longest value "18 (motion 40%)" needs ~52pt; 12% gives ~55pt usable — fits).
+- Columns adjusted (Layout B only — Layout A unchanged): FPS 7%→6.5%, Complexity 19%→17%, OpHrs 13%→12%, Bw 9.5%→10.5%, Storage 9.5%→12%. `CAMB_TOTALS_LABEL` updated from 81% to 77.5% (100 − BW − Store).
+- Column header names not changed (locked by `deepEqual` assertions in `render.test.ts`).
+- All 219 tests pass; `sumWidths` confirms both layouts still total exactly 100%.
+
+- **System utilization bar removed:** The gold "System utilization" bar (the `max(storage%, bandwidth%)` figure) was removed from the System capacity section. The two factual bars (Total storage and Bandwidth) remain. Rationale: the utilization bar implies the quoted products have the shown capacity, but the calculator recommendation and Pipedrive quote are independent data sources and may not be in sync. Removed `utilizationNote` import and `utilizationPct` variable. Deferred to a future pass when the two data sources can be properly correlated.
+
+---
+
 ## 2026-06-22 — Internal navigation + admin landing consolidation (ADR 0070)
 
 ### Work done

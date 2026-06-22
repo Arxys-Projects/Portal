@@ -17,7 +17,7 @@ import {
   TRACK_GRAY,
 } from "../pdf/colors";
 import type { QuoteLineItem } from "@/lib/pipedrive/quote";
-import { utilizationNote } from "@/lib/capacity-utils";
+
 import type {
   ProjectQuoteCameraRow,
   ProjectQuoteShowcaseSpecHighlights,
@@ -304,12 +304,12 @@ const CAMB_VENDOR = "9%";
 const CAMB_MODEL = "12%";
 const CAMB_RES = "13%";
 const CAMB_CODEC = "8%";
-const CAMB_FPS = "7%";
-const CAMB_COMPLEXITY = "19%";
-const CAMB_OPHRS = "13%";
-const CAMB_BW = "9.5%";
-const CAMB_STORE = "9.5%";
-const CAMB_TOTALS_LABEL = "81%"; // 100 - CAMB_BW - CAMB_STORE
+const CAMB_FPS = "6.5%";
+const CAMB_COMPLEXITY = "17%";
+const CAMB_OPHRS = "12%";
+const CAMB_BW = "10.5%";
+const CAMB_STORE = "12%";
+const CAMB_TOTALS_LABEL = "77.5%"; // 100 - CAMB_BW - CAMB_STORE
 
 // ---------------------------------------------------------------------------
 // StyleSheet
@@ -712,8 +712,6 @@ export function ProjectQuotePdf({ data }: { data: ProjectQuotePdfInput }) {
       ? (sizing.bandwidthMbps / availableBandwidthMbps) * 100
       : 0;
 
-  const utilizationPct = Math.max(storagePct, bandwidthPct);
-
   // Totals from the snapshot's frozen aggregates — never re-summed from rows.
   const { cameras: totalCameras, bandwidthMbps: totalBwMbps, storageGb: totalStorageGb } =
     sizing.totals;
@@ -860,13 +858,6 @@ export function ProjectQuotePdf({ data }: { data: ProjectQuotePdfInput }) {
                 ? `${fmtMbps(sizing.bandwidthMbps)} of ${fmtMbps(availableBandwidthMbps)}`
                 : `${fmtMbps(sizing.bandwidthMbps)} required`
             }
-          />
-          <CapacityBar
-            label="System utilization"
-            fillPct={utilizationPct}
-            color={ARXYS_GOLD}
-            value={`${utilizationPct.toLocaleString("en-US", { maximumFractionDigits: 0 })}%`}
-            note={utilizationNote(utilizationPct)}
           />
         </View>
       </Page>
