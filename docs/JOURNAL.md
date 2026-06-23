@@ -4,6 +4,40 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-06-23 — Phase 10 Step 6 extension: multisensor camera seed (Hanwha, Axis, Avigilon)
+
+### Work done
+
+Extended the single-sensor `camera_specs` seed (68 rows) with multisensor, multidirectional, PTRZ-combo, and stitched-panoramic models, following the existing Step 6 pattern exactly: per-vendor JSON seed file, shared validator gate, pre-load backup, dry-run, idempotent upsert. No schema change, no migration. New ADR [`0071`](./decisions/0071-multisensor-camera-seed-representation.md) records the representation decisions.
+
+**Step 0 verification (calculator math).** Confirmed `vsrLoad` and the storage and bandwidth paths all read `cameras`, which the model picker sets to `units x sensor_count` via `derivedCameras`, while resolution maps to one bucket through `mapPixelsToBucket` with ADR 0058 round-up. So the math is round each sensor up to its bucket, then multiply by `sensor_count`, which is the intended behavior. Also corrected a premise: the existing Axis seed already carried five multisensor rows (M5000-G, P3737-PLE, P3738-PLE, P4705-PLVE, P4707-PLVE), so the N greater than 1 path was already represented in seed data.
+
+**Rows loaded: 39 new (final count 107).**
+
+- Hanwha: 19 new (42 total). Tier 1 (12): PNM-C16083RVQ, C16013RVQ, C32083RVQ, 9084QZ1, 9084RQZ1, 9085RQZ1, C12083RVD, 12082RVD, C7083RVD, 7082RVD, 8082VT, 9000QB. Tier 2 (7): PNM-9002VQ, C20000QB, C19183RVTP, C34404RQPZ, C16083RQZ, C32083RQZ, C32084RQZ.
+- Axis: 9 new (35 total, 14 multisensor). Tier 1 new (4): P3747-PLVE, P3748-PLVE, P3735-PLE, P3727-PLE. Tier 2 (5): P3818-PVE, P3827-PVE, Q3839-PVE, Q3839-SPVE, Q6300-E. The five pre-existing Axis multisensors matched their datasheets exactly and were left untouched per the update-only-if-differs decision.
+- Avigilon: 11 new (30 total). H5A Multisensor 9/12/15/20/24/32MP, H5A Dual Head 6/10MP (seeded `currently_shipping=false`, EOL), H6A Dual Head 6/10/16MP. Alta SKUs excluded as cloud-only.
+
+**Pipeline gates.** Pre-load backup confirmed 68 rows (`backups/manual-2026-06-23T17-32-13-181Z.json`). All three files passed the validator (vendor, model, aliases, sensor_count, pixel-bucket round-up, currently_shipping, as_of_date, source_url, sensor_detail JSON, uniqueness). Dry-run reported 19/9/11 new, 0 update. Load upserted 39 rows. Idempotency re-dry-run reported 0 new, 19/9/11 update, as expected. Generous `model_aliases` were added on every row (bare number, spacing and case variants, and self-describing Avigilon part numbers) for the planned VMS-report import feature.
+
+### Detours & fixes
+
+- **Roster errors caught by datasheet, before they reached a row.** Every sensor_count and per-sensor resolution was confirmed against a manufacturer datasheet or official product page using research sub-agents. The generated rosters carried known errors that the datasheet pass corrected:
+  - **Axis P3727-PLE**: roster conflict 2MP vs 4MP per sensor. Datasheet resolved it to 2MP (1920x1080) per sensor across 4 sensors. The 4MP reading would have double-sized this model. Also confirmed EOL, replaced by P3735-PLE, so seeded `currently_shipping=false`.
+  - **Axis P3827-PVE**: roster claimed 4x7MP (28MP). Datasheet resolved it to 4 sensors of roughly 1.75MP each, stitched to 7MP. Seeded as 4 sensors at the per-sensor figure.
+  - **Avigilon roster typos**: 12MP multisensor is the 4MH (4x3MP) config, the roster wrote 3MH. 24MP is the 3MH (3x8MP) config, the roster wrote 4MH. Both corrected against the H5A Multisensor datasheet.
+  - **Avigilon W vs C part numbers**: the roster's `6.0W-H5A-D1-B` and `10.0W-H5A-D1` do not appear in any current Avigilon datasheet. The authoritative SKUs are the EOL `6.0C-H5DH-DO1-IR` and `10.0C-H5DH-DO1-IR`. Both roster forms were kept as aliases on the corresponding rows.
+  - **Hanwha pixel-dimension corrections**: 4MP heads are 2592x1520 (not 2592x1944), 5MP heads are 2560x1920, 6MP RVD heads are 3328x1872. Applied to the affected rows.
+  - **Hanwha PNM-C20000QB**: roster and naming implied 20MP, an earlier pass reported a 2MP base. Datasheet showed a modular remote-head body, base 2MP (SLA-T) and max 5MP (SLA-F, 5MP x 4 = 20MP). Seeded at the conservative max, 4x5MP (2592x1944).
+- **Hanwha PNM-9000QB and PNM-C20000QB are modular** (body ships sensorless). Seeded at the conservative fully-populated max config with the modular nature noted in `sensor_detail`.
+- **No models were dropped for lack of datasheet confirmation.** Every roster model in Tier 1 and Tier 2 was confirmed. The C32084RQZ SolidEDGE suffix variants (-8XE256G, -8XE256G-LU, -8XE4T-W) share identical optics with the base and were aliased to the single PNM-C32084RQZ row rather than seeded separately.
+
+### Decisions captured
+
+- [`0071-multisensor-camera-seed-representation.md`](./decisions/0071-multisensor-camera-seed-representation.md)
+
+---
+
 ## 2026-06-22 — Git audit: deploy state correction for Steps 5b, 6, and 2026-06-19/22 entries
 
 ### Work done

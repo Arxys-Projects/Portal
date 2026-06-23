@@ -137,6 +137,31 @@ Expected on first run: ~30 new Supabase rows, the 6 seed rows updated with Sheet
 
 Capacity columns (`max_cameras`, `max_storage_tb`) on the 6 V-family rows are preserved automatically — the script reads existing values before UPSERTing so they are never clobbered.
 
+## 6b. Supabase: load the camera_specs seed
+
+The calculator's camera-model picker reads `camera_specs` reference data. Load each per-vendor seed file through the validated, idempotent loader. Single-sensor files load first, then the multisensor extension files (ADR 0058, 0071). Each file is validated before any write and upserts on the `(vendor, model)` natural key, so re-running applies only changed rows.
+
+```bash
+# Pre-load backup (covers camera_specs)
+node --env-file=.env.local --import tsx scripts/backup-tables.ts
+
+# Validate, then load each file (dry-run first; type CONFIRM at the prompt to write)
+for f in axis hanwha avigilon; do
+  node --import tsx scripts/validate-camera-specs.ts data/$f-camera-specs.json
+  node --env-file=.env.local --import tsx scripts/load-camera-specs.ts data/$f-camera-specs.json --dry-run
+  node --env-file=.env.local --import tsx scripts/load-camera-specs.ts data/$f-camera-specs.json
+done
+
+# Multisensor extension files
+for f in axis hanwha avigilon; do
+  node --import tsx scripts/validate-camera-specs.ts data/$f-camera-specs-multisensor.json
+  node --env-file=.env.local --import tsx scripts/load-camera-specs.ts data/$f-camera-specs-multisensor.json --dry-run
+  node --env-file=.env.local --import tsx scripts/load-camera-specs.ts data/$f-camera-specs-multisensor.json
+done
+```
+
+Expected on a fresh project: 68 single-sensor rows then 39 multisensor rows, 107 total (Axis 35, Hanwha 42, Avigilon 30). A re-run reports `0 new` with the file's row count as updates.
+
 ## 7. Supabase: verify RLS
 
 ```bash

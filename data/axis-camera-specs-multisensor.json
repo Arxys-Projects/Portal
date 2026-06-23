@@ -1,0 +1,110 @@
+[
+  {
+    "vendor": "Axis",
+    "model": "P3747-PLVE",
+    "model_aliases": ["P3747", "AXIS P3747-PLVE", "P3747 PLVE", "P3747-PLVE 4x5MP"],
+    "sensor_count": 4,
+    "max_width": 2592,
+    "max_height": 1944,
+    "sensor_detail": {"sensors": 4, "per_sensor": "2592x1944", "per_sensor_mp": 5, "positioning": "PTRZ"},
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/dam/public/d4/f0/2e/datasheet-axis-p3747-plve-panoramic-camera-en-US-481152.pdf",
+    "as_of_date": "2026-06-23"
+  },
+  {
+    "vendor": "Axis",
+    "model": "P3748-PLVE",
+    "model_aliases": ["P3748", "AXIS P3748-PLVE", "P3748 PLVE", "P3748-PLVE 4x4K"],
+    "sensor_count": 4,
+    "max_width": 3840,
+    "max_height": 2160,
+    "sensor_detail": {"sensors": 4, "per_sensor": "3840x2160", "per_sensor_mp": 8, "positioning": "PTRZ"},
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/dam/public/25/65/cb/datasheet-axis-p3748-plve-panoramic-camera-en-US-470826.pdf",
+    "as_of_date": "2026-06-23"
+  },
+  {
+    "vendor": "Axis",
+    "model": "P3735-PLE",
+    "model_aliases": ["P3735", "AXIS P3735-PLE", "P3735 PLE", "P3735-PLE 4x2MP"],
+    "sensor_count": 4,
+    "max_width": 1920,
+    "max_height": 1080,
+    "sensor_detail": {"sensors": 4, "per_sensor": "1920x1080", "per_sensor_mp": 2, "note": "replacement for the discontinued P3727-PLE"},
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/dam/public/b0/e4/27/datasheet-axis-p3735-ple-panoramic-camera-en-US-509612.pdf",
+    "as_of_date": "2026-06-23"
+  },
+  {
+    "vendor": "Axis",
+    "model": "P3727-PLE",
+    "model_aliases": ["P3727", "AXIS P3727-PLE", "P3727 PLE", "P3727-PLE 4x2MP"],
+    "sensor_count": 4,
+    "max_width": 1920,
+    "max_height": 1080,
+    "sensor_detail": {"sensors": 4, "per_sensor": "1920x1080", "per_sensor_mp": 2, "note": "CONFLICT RESOLVED via datasheet: 2MP/sensor, not 4MP. Discontinued, replaced by P3735-PLE"},
+    "currently_shipping": false,
+    "source_url": "https://www.axis.com/dam/public/86/39/b5/datasheet-axis-p3727-ple-panoramic-camera-en-US-367659.pdf",
+    "as_of_date": "2026-06-23"
+  },
+  {
+    "vendor": "Axis",
+    "model": "P3818-PVE",
+    "model_aliases": ["P3818", "AXIS P3818-PVE", "P3818 PVE", "P3818-PVE panoramic"],
+    "sensor_count": 3,
+    "max_width": 2592,
+    "max_height": 1944,
+    "sensor_detail": {"sensors": 3, "per_sensor": "2592x1944", "per_sensor_mp": 5, "type": "stitched panoramic (3x5MP, ~13MP fused 5120x2560)", "note": "Seeded as 3 independent sensors at per-sensor resolution per ADR 0071 decision 3; VMS records one fused stream, so deliberately conservative on the VSR camera-count floor"},
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/dam/public/24/c0/f3/datasheet-axis-p3818-pve-panoramic-camera-en-US-352469.pdf",
+    "as_of_date": "2026-06-23"
+  },
+  {
+    "vendor": "Axis",
+    "model": "P3827-PVE",
+    "model_aliases": ["P3827", "AXIS P3827-PVE", "P3827 PVE", "P3827-PVE panoramic"],
+    "sensor_count": 4,
+    "max_width": 928,
+    "max_height": 1856,
+    "sensor_detail": {"sensors": 4, "per_sensor": "928x1856", "per_sensor_mp": 1.75, "type": "stitched panoramic (4x ~1.75MP, ~7MP fused 3712x1856)", "note": "CONFLICT RESOLVED via datasheet: 4x1.75MP stitched to 7MP, NOT 4x7MP/28MP. Seeded as 4 sensors at per-sensor resolution per ADR 0071 decision 3; deliberately conservative on the VSR camera-count floor"},
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/dam/public/51/bd/23/datasheet-axis-p3827-pve-panoramic-camera-en-US-404154.pdf",
+    "as_of_date": "2026-06-23"
+  },
+  {
+    "vendor": "Axis",
+    "model": "Q3839-PVE",
+    "model_aliases": ["Q3839", "AXIS Q3839-PVE", "Q3839 PVE", "Q3839-PVE panoramic"],
+    "sensor_count": 4,
+    "max_width": 3840,
+    "max_height": 2160,
+    "sensor_detail": {"sensors": 4, "per_sensor": "3840x2160", "per_sensor_mp": 8.3, "type": "stitched panoramic (4x8.3MP, 29MP fused 7552x3776)", "note": "Seeded as 4 sensors at per-sensor resolution per ADR 0071 decision 3; 8.3MP per sensor stored as 3840x2160 (8MP bucket); deliberately conservative on the VSR camera-count floor"},
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-q3839-pve",
+    "as_of_date": "2026-06-23"
+  },
+  {
+    "vendor": "Axis",
+    "model": "Q3839-SPVE",
+    "model_aliases": ["Q3839-SPVE", "AXIS Q3839-SPVE", "Q3839 SPVE", "Q3839-SPVE stainless panoramic"],
+    "sensor_count": 4,
+    "max_width": 3840,
+    "max_height": 2160,
+    "sensor_detail": {"sensors": 4, "per_sensor": "3840x2160", "per_sensor_mp": 8.3, "type": "stitched panoramic, stainless/hardened enclosure variant of Q3839-PVE", "note": "Same imaging as Q3839-PVE (4x8.3MP, 29MP fused). Seeded as 4 sensors at per-sensor resolution per ADR 0071 decision 3"},
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/dam/public/d1/e9/7a/datasheet-axis-q3839-spve-panoramic-camera-en-US-506894.pdf",
+    "as_of_date": "2026-06-23"
+  },
+  {
+    "vendor": "Axis",
+    "model": "Q6300-E",
+    "model_aliases": ["Q6300", "AXIS Q6300-E", "Q6300 E", "Q6300-E multidirectional"],
+    "sensor_count": 4,
+    "max_width": 2592,
+    "max_height": 1944,
+    "sensor_detail": {"sensors": 4, "per_sensor": "2592x1944", "per_sensor_mp": 5, "type": "4-sensor multidirectional 360 overview (records 4 fixed 5MP streams; not a standalone PTZ)"},
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/dam/public/18/46/98/datasheet-axis-q6300-e-panoramic-camera-en-US-506875.pdf",
+    "as_of_date": "2026-06-23"
+  }
+]
