@@ -72,6 +72,11 @@ export type GenerateDeps = {
   render: (snapshot: ProjectQuoteSnapshot) => Promise<Uint8Array>;
   filename: (snapshot: ProjectQuoteSnapshot) => string;
   deliver: (dealId: number, filename: string, buffer: Uint8Array) => Promise<unknown>;
+  // Optional: update the Pipedrive deal title to match the generated filename
+  // (minus the .pdf extension). Non-blocking — failure is logged and does NOT
+  // roll back or fail the quote generation. Only called after a successful
+  // row insert; the title reflects the final version number.
+  updateDealTitle?: (dealId: number, title: string) => Promise<unknown>;
 };
 
 // Postgres unique_violation. The unique (submission_id, version) constraint is
@@ -133,6 +138,19 @@ export async function generateProjectQuoteCore(
   } catch (err) {
     console.error("[project-quote delivery]", err);
     deliveryNote = GENERATE_MESSAGES.delivery_failed;
+  }
+
+  // Update the Pipedrive deal title to the canonical quote title. Non-blocking:
+  // a failure here is logged but the quote result is unaffected. The title
+  // is the filename without the .pdf suffix, so both the file and the deal
+  // card agree on the same Company - Project - DealID - V# - date string.
+  if (deps.updateDealTitle) {
+    try {
+      const title = deps.filename(snapshot).replace(/\.pdf$/i, "");
+      await deps.updateDealTitle(row.pipedrive_deal_id, title);
+    } catch (err) {
+      console.error("[project-quote title update]", err);
+    }
   }
 
   return {

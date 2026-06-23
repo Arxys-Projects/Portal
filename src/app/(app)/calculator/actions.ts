@@ -184,6 +184,18 @@ export async function submitCalculation(
     }
   }
 
+  // Internal users must always file a submission against a specific partner or
+  // company — a deal with no target attribution is an orphan that sales cannot
+  // act on. The on-behalf block above either binds onBehalfPartnerId (picker
+  // path) or onBehalfCompanyName (fallback path); if both are still null after
+  // resolution (id not found / inactive, or company field blank), refuse here.
+  if (callerStatus.is_internal && !onBehalfPartnerId && !onBehalfCompanyName) {
+    return {
+      status: "error",
+      error: "Company name is required for internal submissions.",
+    };
+  }
+
   // Server-side recompute. Client totals are never trusted.
   //
   // Constant recording always writes at the full event rate, so motion% is

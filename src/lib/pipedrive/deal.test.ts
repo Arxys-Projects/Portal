@@ -201,7 +201,7 @@ describe("createDealFromSubmission", () => {
     assert.ok(dealCall, "expected a POST /v1/deals call");
     const body = dealCall.body as Record<string, unknown>;
 
-    assert.equal(body.title, "Acme Integrators | Test Campus | 2026-06-09");
+    assert.equal(body.title, "Arxys Quote - Acme Integrators - Test Campus - 2026-06-09");
     assert.equal(body.value, 222144);
     assert.equal(body.currency, "USD");
     assert.equal(body.pipeline_id, PIPELINE_ID);
@@ -229,7 +229,7 @@ describe("createDealFromSubmission", () => {
     );
     const dealCall = calls.find((c) => c.url.includes("/v1/deals") && c.method === "POST");
     const body = dealCall!.body as Record<string, unknown>;
-    assert.equal(body.title, "Acme Integrators | Untitled Project | 2026-06-09");
+    assert.equal(body.title, "Arxys Quote - Acme Integrators - Untitled Project - 2026-06-09");
   });
 
   it("caches pipeline/stage/owner/dealFields across invocations", async () => {

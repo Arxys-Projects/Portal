@@ -4,25 +4,13 @@ import { type ReactElement, createElement } from "react";
 import { loadLogoDataUri, loadPngDataUriByPath } from "../pdf/assets";
 import { ProjectQuotePdf, type ProjectQuotePdfInput } from "./ProjectQuotePdf";
 import type { ProjectQuoteSnapshot } from "./types";
+import { projectQuoteTitle } from "./title";
 
-// Strip characters illegal in filenames across Windows / macOS / Linux and
-// collapse whitespace so a company or project name cannot break a file path.
-function sanitizeFilenamePart(value: string): string {
-  return value
-    .replace(/[\\/:*?"<>|]/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
-}
+export { projectQuoteTitle };
 
 // Suggested filename for the downloaded PDF.
 export function projectQuotePdfFilename(snapshot: ProjectQuoteSnapshot): string {
-  const company =
-    sanitizeFilenamePart(
-      snapshot.sizing.partner.companyName ||
-        snapshot.commercial.organization?.name ||
-        "",
-    ) || "Arxys";
-  return `Arxys Project Quote - ${company} - ${snapshot.generation.identifier}.pdf`;
+  return `${projectQuoteTitle(snapshot)}.pdf`;
 }
 
 // Render a stored Project Quote snapshot to a PDF buffer. The snapshot is

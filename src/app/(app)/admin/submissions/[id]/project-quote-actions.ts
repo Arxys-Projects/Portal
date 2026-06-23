@@ -5,6 +5,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { assembleProjectQuoteSnapshot } from "@/lib/project-quote/assemble";
 import {
   projectQuotePdfFilename,
+  projectQuoteTitle,
   renderProjectQuotePdfBuffer,
 } from "@/lib/project-quote/render";
 import {
@@ -59,6 +60,8 @@ export async function generateProjectQuote(
     render: (snapshot) => renderProjectQuotePdfBuffer(snapshot),
     filename: (snapshot) => projectQuotePdfFilename(snapshot),
     deliver: (dealId, filename, buffer) => pipedriveClient.addDealFile(dealId, filename, buffer),
+    updateDealTitle: (dealId, newTitle) =>
+      pipedriveClient.updateDeal(dealId, { title: newTitle }),
   });
 
   // Re-render the detail page so the new current version / expiry / download

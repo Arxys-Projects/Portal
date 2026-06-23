@@ -4,6 +4,24 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-06-23 — Bug fixes: internal company gate, deal title format, PDF filename format
+
+### Work done
+
+- **Bug 1A (server gate)** — `actions.ts`: After the on-behalf block, internal users who submit without resolving either `onBehalfPartnerId` or `onBehalfCompanyName` now get a hard error ("Company name is required for internal submissions.") rather than silently filing under the internal user's own company. The gap existed because the ID-validation path could silently drop an invalid/inactive target and fall through with both fields null.
+- **Bug 1A (client gate)** — `calculator-form.tsx`: The save button is now disabled when `isInternal=true` and neither the company dropdown nor the new-company text field is populated. An inline hint appears to explain why.
+- **Bug 1B (revision hydration)** — Confirmed already correctly implemented. `page.tsx` queries `on_behalf_of_partner_id` and `on_behalf_of_company_name` and passes both as props; the form initializes state from them. No changes required.
+- **Bug 2A (deal title format)** — `deal.ts`: Initial Pipedrive deal title changed from `Company | Project | YYYY-MM-DD` to `Arxys Quote - Company - Project - YYYY-MM-DD`. A local `sanitizeTitlePart` strips illegal filename characters. Test assertions in `deal.test.ts` updated accordingly.
+- **Bug 2B (PDF filename)** — `render.ts`: `projectQuotePdfFilename` now produces `Arxys Quote - {Company} - {Project} - {DealID} - V{#} - {YYYY-MM-DD}.pdf`. Pure title logic extracted to `title.ts` (no `server-only` marker) so it can be unit-tested. `render.ts` re-exports `projectQuoteTitle` for callers that need just the base title (e.g., the deal-title update).
+- **Bug 2B (deal title update on generation)** — `generate.ts`: Added optional `updateDealTitle?: (dealId, title) => Promise<unknown>` dep to `GenerateDeps`. The core calls it after the row is persisted, in its own try-catch (non-blocking). `project-quote-actions.ts` wires it to `pipedriveClient.updateDeal(dealId, { title: newTitle })`. The title matches the filename minus `.pdf`.
+- Added 7 unit tests in `render.test.ts` for `projectQuoteTitle` covering the format, fallback paths, sanitization, and date extraction. All 226 tests pass; build is clean.
+
+### Decisions captured
+
+- The snapshot `identifier` field (`${dealId}-V${version}-${date}`) is unchanged — it is used in the PDF footer and is a separate concern from the filename/title canonical format.
+
+---
+
 ## 2026-06-23 — Phase 10 Step 6 extension: multisensor camera seed (Hanwha, Axis, Avigilon)
 
 ### Work done

@@ -744,10 +744,15 @@ export function CalculatorForm({
                 >
                   <ResetIcon /> Reset
                 </button>
+                {isInternal && !onBehalfPartnerId && !onBehalfNewCompany.trim() && (
+                  <span className="ax-save-hint" style={{ color: "var(--am)", fontSize: 12 }}>
+                    Select a company or add a new name before saving.
+                  </span>
+                )}
                 <button
                   type="button"
                   className="ax-save-btn"
-                  disabled={!hasInteracted || isSaving}
+                  disabled={!hasInteracted || isSaving || (isInternal && !onBehalfPartnerId && !onBehalfNewCompany.trim())}
                   data-saving={isSaving || undefined}
                   onClick={handleSave}
                 >

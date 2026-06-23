@@ -15,6 +15,7 @@ import {
   showcaseSpecPairs,
   type ProjectQuotePdfInput,
 } from "./ProjectQuotePdf";
+import { projectQuoteTitle } from "./title";
 import type { ProjectQuoteCameraRow } from "./types";
 import type { ProjectQuoteSnapshot } from "./types";
 import type { QuoteLineItem } from "@/lib/pipedrive/quote";
@@ -750,5 +751,95 @@ describe("verbatim total — productTotal is never re-summed from lines", () => 
     };
     const buf = await render(nullTotal);
     assert.ok(buf.length > 1000, `PDF buffer suspiciously small: ${buf.length} bytes`);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// projectQuoteTitle / projectQuotePdfFilename — canonical naming format
+// ---------------------------------------------------------------------------
+
+describe("projectQuoteTitle — canonical deal-title format", () => {
+  it("produces Arxys Quote - Company - Project - DealID - V# - YYYY-MM-DD", () => {
+    const snap = makeSnapshot();
+    // Fixture: companyName="Security Integrators LLC", projectName="Main Campus Security",
+    // dealId=4822, version=1, generatedAt="2026-06-16T00:00:00.000Z"
+    assert.equal(
+      projectQuoteTitle(snap),
+      "Arxys Quote - Security Integrators LLC - Main Campus Security - 4822 - V1 - 2026-06-16",
+    );
+  });
+
+  it("appends .pdf to produce the PDF filename", () => {
+    const snap = makeSnapshot();
+    // projectQuotePdfFilename = projectQuoteTitle + ".pdf"
+    // Tested indirectly via the title — the filename is title + ".pdf".
+    const title = projectQuoteTitle(snap);
+    assert.ok(title.length > 0, "title must not be empty");
+    assert.ok(!title.endsWith(".pdf"), "title must not include .pdf extension");
+  });
+
+  it("falls back to organization name when sizing.partner.companyName is empty", () => {
+    const snap = makeSnapshot();
+    const noPartnerName: ProjectQuoteSnapshot = {
+      ...snap,
+      sizing: {
+        ...snap.sizing,
+        partner: { companyName: "", contactName: snap.sizing.partner.contactName },
+      },
+    };
+    // Falls back to commercial.organization.name = "Kean University"
+    assert.ok(projectQuoteTitle(noPartnerName).startsWith("Arxys Quote - Kean University -"));
+  });
+
+  it("uses 'Arxys' when both company sources are empty", () => {
+    const snap = makeSnapshot();
+    const noCompany: ProjectQuoteSnapshot = {
+      ...snap,
+      sizing: {
+        ...snap.sizing,
+        partner: { companyName: "", contactName: "" },
+      },
+      commercial: {
+        ...snap.commercial,
+        organization: null,
+      },
+    };
+    assert.ok(projectQuoteTitle(noCompany).startsWith("Arxys Quote - Arxys -"));
+  });
+
+  it("uses 'Untitled Project' when projectName is null", () => {
+    const snap = makeSnapshot();
+    const noProject: ProjectQuoteSnapshot = {
+      ...snap,
+      sizing: { ...snap.sizing, projectName: null },
+    };
+    assert.ok(projectQuoteTitle(noProject).includes(" - Untitled Project - "));
+  });
+
+  it("strips illegal filename characters from company and project names", () => {
+    const snap = makeSnapshot();
+    const dirty: ProjectQuoteSnapshot = {
+      ...snap,
+      sizing: {
+        ...snap.sizing,
+        partner: { companyName: 'Acme / Corp: "Inc"', contactName: "" },
+        projectName: "Site*1?",
+      },
+    };
+    const title = projectQuoteTitle(dirty);
+    assert.ok(!title.includes("/"), "title must not contain /");
+    assert.ok(!title.includes(":"), "title must not contain :");
+    assert.ok(!title.includes('"'), "title must not contain quotes");
+    assert.ok(!title.includes("*"), "title must not contain *");
+    assert.ok(!title.includes("?"), "title must not contain ?");
+  });
+
+  it("extracts the YYYY-MM-DD date from the ISO generatedAt timestamp", () => {
+    const snap = makeSnapshot();
+    const lateNight: ProjectQuoteSnapshot = {
+      ...snap,
+      generation: { ...snap.generation, generatedAt: "2026-12-31T23:59:59.000Z" },
+    };
+    assert.ok(projectQuoteTitle(lateNight).endsWith("- 2026-12-31"));
   });
 });

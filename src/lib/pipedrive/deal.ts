@@ -85,6 +85,15 @@ export type DealSubmissionInput = {
   addOnManagementServer?: boolean;
 };
 
+// Strip characters illegal in filenames / deal titles and collapse whitespace.
+// Mirrors the sanitizeFilenamePart helper in project-quote/render.ts.
+function sanitizeTitlePart(value: string): string {
+  return value
+    .replace(/[\\/:*?"<>|]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 // Distinct values, sorted ascending, comma-separated — the human-readable
 // list format for the free-text per-stream fields when groups differ.
 function distinctSortedNumberList(values: number[]): string {
@@ -256,9 +265,12 @@ export async function createDealFromSubmission(
         })
       : undefined;
 
-  const title = `${partner.companyName} | ${
-    submission.projectName?.trim() || "Untitled Project"
-  } | ${submission.submissionDate}`;
+  const title = [
+    "Arxys Quote",
+    sanitizeTitlePart(partner.companyName) || "Unknown Company",
+    sanitizeTitlePart(submission.projectName?.trim() || "Untitled Project"),
+    submission.submissionDate,
+  ].join(" - ");
 
   // Calculator-derived fields + the create-only routing/ownership/contact set.
   const payload: Record<string, string | number | undefined> = {
