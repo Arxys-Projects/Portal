@@ -17,6 +17,9 @@ export const DISPLAY_SPECS: DisplaySpec[] = [
   { spec_key: "raid_support",      display_label: "RAID Support",           highlight_if_better: false, is_numeric: false, display_order: 11 },
   { spec_key: "warranty",          display_label: "Warranty",               highlight_if_better: false, is_numeric: false, display_order: 13 },
   { spec_key: "vms_certified",     display_label: "VMS Support",            highlight_if_better: true,  is_numeric: false, display_order: 14 },
+  // Competitor-only (ADR 0073): the rebadged Dell/HP platform. Arxys rows have
+  // no hw_platform value, so the Arxys column renders blank. No advantage badge.
+  { spec_key: "hw_platform",       display_label: "Dell/HP Server Used",    highlight_if_better: false, is_numeric: false, display_order: 15 },
 ];
 
 // Derived from data/server-specs.json messages array.

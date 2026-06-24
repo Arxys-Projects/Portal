@@ -18,6 +18,10 @@ export type ProductSpec = {
   msrp: number;
   notes: string | null;
   product_sku: string | null;
+  // Competitor-only OEM platform column (see ADR 0073). Arxys rows leave this
+  // null; included here so hw_platform is a key of both ProductSpec and
+  // CompetitorProduct (SharedSpecKey requires keyof both).
+  hw_platform?: string | null;
   // QuickCompare columns (Phase 6 Step 1 — see ADR 0044). All nullable; only
   // the /videox-compare tool reads these. The comparison/calculator tools
   // ignore them (DISPLAY_SPECS references only SharedSpecKey fields).
@@ -50,12 +54,13 @@ export type ProductSpec = {
 
 export type CompetitorProduct = {
   id: string;
-  vendor: "milestone" | "avigilon";
+  vendor: "milestone" | "avigilon" | "genetec";
   brand_name: string;
   product_line: string;
   model_name: string;
   sku: string;
   form_factor: string;
+  hw_platform: string | null;
   storage_raw_tb: number;
   cpu_model: string;
   cpu_cores_threads: string;
@@ -88,7 +93,8 @@ export type SharedSpecKey =
   | "network"
   | "raid_support"
   | "warranty"
-  | "vms_certified";
+  | "vms_certified"
+  | "hw_platform";
 
 // Numeric keys where higher = Arxys advantage (delta/percentage is meaningful).
 export type NumericSpecKey = Extract<

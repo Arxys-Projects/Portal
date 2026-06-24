@@ -4,6 +4,94 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-06-24 — Load Genetec StreamVault + hw_platform into the portal DB & UI
+
+### Work done
+
+Brought the canonical competitor values (from the spreadsheet work in the entry below) into the **portal's** data layer — the Supabase `competitor_products` table the `/comparison` tool reads, plus the TS display config and types. This is distinct from the spreadsheet (`exports/comparison-data.xlsx`); the StreamVault spreadsheet tab was not touched.
+
+- **New migration** [`20260624000001_genetec_streamvault_hw_platform.sql`](../supabase/migrations/20260624000001_genetec_streamvault_hw_platform.sql) (not pushed — generated for review):
+  - Adds nullable `hw_platform text` column to `competitor_products` (competitor-only; Arxys `product_specs` rows do not carry it).
+  - Extends the `vendor` CHECK constraint to allow `'genetec'`.
+  - Upserts (ON CONFLICT (id) DO UPDATE) all 51 rows: 14 Milestone + 20 Avigilon (corrected CPU models, base clocks, + hw_platform) and 17 new Genetec StreamVault rows. Idempotent and safe over any stale Genetec rows.
+- **Schema/UI wiring:**
+  - `src/lib/comparison/types.ts`: `genetec` added to the vendor union; `hw_platform` added to `CompetitorProduct` (required) and `ProductSpec` (optional, null for Arxys); `hw_platform` added to `SharedSpecKey`.
+  - `src/lib/comparison/display-specs.ts`: `hw_platform` added as display spec #15 ("Dell/HP Server Used", non-numeric, no highlight). 14 entries total (order 12 = `os` stays excluded).
+  - `src/app/(app)/comparison/comparison-form.tsx`: `fmtVal` now renders `—` for null/blank, so the competitor-only `hw_platform` shows blank on the Arxys column instead of `"undefined"`.
+  - The vendor dropdown is data-driven (`Object.keys(competitorsByVendor)`), so Genetec/StreamVault surfaces automatically once the migration is applied — no UI hardcoding needed.
+- **Loader source-of-truth kept in sync:** `data/server-specs.json` updated (added `genetec` vendor with 17 models, `hw_platform` on all 51 competitor models, corrected Milestone/Avigilon CPU values, `hw_platform` in `display_specs`/`spec_labels`); `scripts/update-comparison-data.ts` now maps `hw_platform`. This prevents a future loader run from reverting the migration.
+- **Verification:** `tsc` clean on all changed files (13 remaining errors are pre-existing in untouched `*.test.ts`); ESLint clean; all 51 migration rows confirmed to have 23 values; all 51 `arxys_match_id`s confirmed against the 21 live `product_specs` IDs (no FK violations); JSON ↔ migration agreement checked for all 17 Genetec rows.
+
+### Detours & fixes
+
+- **`VX5-V200-88` does not exist (FK blocker):** the 3 Genetec `SV-2041E-R4` rows specified `arxys_match_id = 'VX5-V200-88'`, which is absent from `product_specs` (verified against the live cloud DB — the `VX5-V200` tier is `…-64, -80, -96`). Inserting as specified would violate the `arxys_match_id` foreign key. Per user decision, remapped all 3 to the nearest existing higher tier `VX5-V200-96`. See [`0074-genetec-match-id-remap.md`](./decisions/0074-genetec-match-id-remap.md).
+- **`max_cameras_h265` formula strings:** the cleanup rule about `=O##*0.8` strings did not apply — the DB had no pre-existing Genetec rows, so resolved integers (160/240/640/840) were written directly.
+
+### Decisions captured
+
+- [`0074-genetec-match-id-remap.md`](./decisions/0074-genetec-match-id-remap.md)
+
+---
+
+## 2026-06-24 — VMS competitor comparison: spec accuracy + Dell OEM platform data
+
+### Work done
+
+- Read all four vendor spec sheet PDFs (Milestone Husky IVO 350R/700R/1000R/1800R, Avigilon NVR6 Standard/Premium/Premium Plus/Value, Genetec StreamVault source file) to cross-check `exports/comparison-data.xlsx`.
+- **Corrected Milestone CPU models** (spec sheet footers name the Dell base hardware explicitly):
+  - HE700R: `cpu_model` → `Intel Xeon E-2436` (was generic "Intel Xeon E-series (Rev 3)")
+  - HE1000R + HE1800R: `cpu_model` → `Intel Xeon Silver 4410Y`; `cpu_base_ghz` → 2.0 (was 2.1 — spec sheet confirms 2.00 GHz base)
+- **Corrected Avigilon NVR6 Premium** `cpu_base_ghz`: 2.8 → 2.0 (Xeon Silver 4410Y base is 2.0 GHz; 2.8 was likely a copy-paste from a turbo frequency)
+- **Corrected dual-CPU Passmark scores** for Genetec's dual-socket models using actual measured dual-socket scores from cpubenchmark.net (prior values were 2× single-socket, which inflates by 25–32%):
+  - SV-4041EX-R28 (2× Xeon Gold 5416S): 71,162 → 53,750
+  - SV-7041EX-R6S (2× Xeon Silver 4416+): 87,318 → 70,032
+- **Added `hw_platform` column** to both `competitor_products` and `StreamVault` sheets, identifying the underlying Dell (or HP) server each competitor appliance is built on. Sources: Milestone spec sheet footers (explicit); Avigilon iDRAC/iLO management tier + chassis dimensions (inferred); Genetec `streamvault_specs_for_portal.xlsx` "HW Platform (Dell)" column (explicit).
+- **Expanded Genetec StreamVault rows** from 8 (one per model, max-storage only) to 27 rows, one per storage capacity tier, matching the structure of Milestone and Avigilon rows. Storage tier breakpoints from `streamvault_specs_for_portal.xlsx` "Raw Storage Range (TB)" column. SV-2041E-R15 expanded across 5 drive-count tiers (72/144/216/288/360 TB) based on 15-bay chassis with 24 TB NLSAS drives.
+- Added `scripts/update_comparison_data.py` — idempotent script that applies all the above to `exports/comparison-data.xlsx`.
+- Created timestamped backup: `exports/comparison-data.xlsx.bak-YYYYMMDD`.
+
+### Decisions captured
+
+- [`0072-actual-dual-socket-passmark.md`](./decisions/0072-actual-dual-socket-passmark.md)
+- [`0073-hw-platform-oem-disclosure-column.md`](./decisions/0073-hw-platform-oem-disclosure-column.md)
+
+---
+
+## 2026-06-24 — StreamVault tab enrichment: CPU specs, network, RAID, OS
+
+### Work done
+
+- Added `scripts/update-streamvault-tab.ts` — reads existing `exports/comparison-data.xlsx`, updates only the StreamVault tab, saves in place.
+- Extracted from Genetec StreamVault 2026 H1R1 PDF: `form_factor`, `cpu_model`, `network`, `raid_support`, `os` for all 8 models.
+- Resolved Intel Core Ultra 5 variant for 300E series via Dell product pages: both Dell Pro Slim XE5 (SV-300E) and Dell Pro Max Tower T2 (SV-300E-T4) ship with Core Ultra 5 235 as the base CPU.
+- Fetched CPU specs from Intel ARK product titles and Passmark cpubenchmark.net (CPU Mark multi-thread scores).
+- Added 3 new columns to StreamVault tab: `cpu_cores`, `cpu_threads`, `cpu_passmark_notes`.
+- Dual-CPU models (SV-4041EX-R28: 2× Xeon Gold 5416S; SV-7041EX-R6S: 2× Xeon Silver 4416+): `cpu_passmark` = single-CPU score × 2; `cpu_passmark_notes` = "2x CPU, score doubled".
+- Yellow fill cleared from `cpu_base_ghz` and `cpu_passmark` cells (now populated); yellow fill applied to remaining blank cells.
+- All 8/8 rows updated; no missing models.
+
+### Detours & fixes
+
+- Intel ARK direct product page URLs redirected (HTTP 301 to corporate 404 handler). Resolved via web search to extract core/thread counts from Passmark pages and base frequencies from ARK product title strings in search results.
+- Intel spec pages returned HTTP 403. Base frequencies confirmed from ARK product name conventions (e.g., "Intel® Xeon® E-2436 Processor (18M Cache, 2.90 GHz)").
+
+---
+
+## 2026-06-23 — Export script: comparison-data.xlsx
+
+### Work done
+
+- Added `scripts/export-comparison-sheet.ts` — a read-only script that reconstructs the full competitive comparison dataset from migration seed data and writes `exports/comparison-data.xlsx`.
+- Created `exports/` directory (gitignored output).
+- **Tab 1 — `product_specs`**: 21 VideoX rows with all 44 columns (19 base + 25 QuickCompare columns), with cpu_cache and hdd_count/raid_level_display corrections applied from the 2026-06-05 fix migrations.
+- **Tab 2 — `competitor_products`**: 34 rows (14 Milestone Husky IVO + 20 Avigilon NVR6), schema order, all `arxys_match_id` values verified against Tab 1.
+- **Tab 3 — `StreamVault`**: 8 Genetec StreamVault 2026 H1R1 rows, same column headers as Tab 2 plus a trailing `notes` column. `cpu_base_ghz` and `cpu_passmark` cells have yellow fill (require Passmark lookups). `arxys_match_id` left blank for manual mapping.
+- **Tab 4 — `display_specs`**: 13 rows verbatim from `src/lib/comparison/display-specs.ts`.
+- All 6 verification gates pass. Build clean.
+- Run: `node --import tsx scripts/export-comparison-sheet.ts`
+
+---
+
 ## 2026-06-23 — Bug fixes: internal company gate, deal title format, PDF filename format
 
 ### Work done

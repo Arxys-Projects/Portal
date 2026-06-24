@@ -42,6 +42,7 @@ type JsonCompetitorModel = {
   model_name: string;
   sku: string;
   form_factor: string;
+  hw_platform?: string | null;
   storage_raw_tb: number;
   cpu_model: string;
   cpu_cores_threads: string;
@@ -134,6 +135,7 @@ function toCompetitorProductRow(
     model_name: m.model_name,
     sku: m.sku,
     form_factor: m.form_factor,
+    hw_platform: m.hw_platform ?? null,
     storage_raw_tb: m.storage_raw_tb,
     cpu_model: m.cpu_model,
     cpu_cores_threads: m.cpu_cores_threads,

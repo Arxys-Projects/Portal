@@ -21,7 +21,10 @@ function getVal(obj: ProductSpec | CompetitorProduct, key: SharedSpecKey): strin
   return (obj as Record<string, unknown>)[key] as string | number;
 }
 
-function fmtVal(key: SharedSpecKey, val: string | number): string {
+function fmtVal(key: SharedSpecKey, val: string | number | null | undefined): string {
+  // Competitor-only specs (e.g. hw_platform) have no value on Arxys rows —
+  // render an em dash rather than "null"/"undefined".
+  if (val === null || val === undefined || val === "") return "—";
   switch (key) {
     case "cpu_base_ghz":   return `${val} GHz`;
     case "ram_gb":         return `${val} GB`;
