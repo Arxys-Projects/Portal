@@ -181,6 +181,18 @@
   },
   {
     "vendor": "Hanwha",
+    "model": "TNV-C7013RC",
+    "model_aliases": ["TNVC7013RC", "TNV-C7013", "Wisenet TNV-C7013RC"],
+    "sensor_count": 1,
+    "max_width": 2048,
+    "max_height": 1536,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.hanwhavision.com/en/products/camera/network/dome/tnv-c7013rc/",
+    "as_of_date": "2026-07-01"
+  },
+  {
+    "vendor": "Hanwha",
     "model": "XNV-C7083R",
     "model_aliases": ["XNVC7083R", "XNV-C7083", "Wisenet XNV-C7083R"],
     "sensor_count": 1,

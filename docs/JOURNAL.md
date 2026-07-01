@@ -4,6 +4,25 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-07-01 — camera_specs: add 3 single-sensor fixed cameras (Axis M4216-LV, Axis P3277-LVE, Hanwha TNV-C7013RC)
+
+### Work done
+
+Extended the Phase 10 single-sensor fixed-camera library (ADR 0062 curation rules) with 3 more datasheet-verified models, requested against the seed files, not a "product_specs camera seed" (the calculator's camera library lives in `camera_specs`, seeded from `data/*-camera-specs.json`; `product_specs` is the unrelated Arxys hardware-tier table).
+
+- [`data/axis-camera-specs.json`](../data/axis-camera-specs.json): added **AXIS M4216-LV** (indoor dome, 2304x1728, alias `M4216`) and **AXIS P3277-LVE** (outdoor dome, 2592x1944, alias `P3277`). Axis single-sensor file: 26 → 28 rows.
+- [`data/hanwha-camera-specs.json`](../data/hanwha-camera-specs.json): added **Hanwha TNV-C7013RC** (outdoor corner/wedge mount, 2.39mm fixed lens, 2048x1536, aliases `TNVC7013RC` / `TNV-C7013` / `Wisenet TNV-C7013RC`). Hanwha single-sensor file: 23 → 24 rows.
+- All three: `sensor_count: 1`, `sensor_detail: null`, `currently_shipping: true`, `as_of_date: "2026-07-01"`, `source_url` set to the vendor's own product page (Axis product pages; Hanwha Vision global product page for the Hanwha model, matching the URL pattern already used for other `hanwhavision.com`-hosted rows in the file).
+- Combined single-sensor Axis + Hanwha + Avigilon seed set: 68 → 71 rows.
+- Ran `scripts/validate-camera-specs.ts` against both edited files — all 11 rules pass (uniqueness, resolution-bucket mapping, well-formed URLs, etc.). Not yet loaded into Supabase; that's a separate, gated step (`scripts/load-camera-specs.ts`, admin-only, typed CONFIRM) left for whoever runs the next load pass.
+
+### Detours & fixes
+
+- **Requested fields don't exist in the schema.** The request specified frame rate (30/25 fps by mains frequency), codecs (H.264/H.265/AV1/MJPEG/Zipstream), and notable features (IR, WDR, Lightfinder, IK10, IP66/67, AI classification, anti-ligature, extreamWDR). `camera_specs` (migration [`20260615000002_phase10_camera_specs.sql`](../supabase/migrations/20260615000002_phase10_camera_specs.sql)) has no columns for any of these — it only stores `vendor`, `model`, `model_aliases`, `sensor_count`, `max_width`/`max_height`, `sensor_detail` (jsonb, currently unused for single-sensor rows), `currently_shipping`, `source_url`, `as_of_date`. These fields feed pixel-bucket storage sizing only (ADR 0058), not codec/feature comparison. None of that data was added; only the seed columns that exist were populated. If frame rate, codec, or feature filtering is wanted in the calculator later, that needs a schema change (new columns or a `feature_detail` jsonb) plus new calculator logic — flagging for a future ADR rather than guessing at a shape now, per ADR 0062's "reviewed scope choice, not a schema limit" precedent for phase-1 exclusions.
+- **AV1 in particular**: the P3277-LVE's AV1 support has no home in the schema at all (not even an unused column) — same gap as above, not a special case.
+
+---
+
 ## 2026-06-24 — Load Genetec StreamVault + hw_platform into the portal DB & UI
 
 ### Work done
