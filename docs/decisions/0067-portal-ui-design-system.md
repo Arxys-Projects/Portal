@@ -1,6 +1,6 @@
 # 0067 — Portal UI design system and shared component layer
 
-- **Status**: Proposed
+- **Status**: Superseded by #0075 (palette + gold-retirement only; architecture and component inventory retained)
 - **Date**: 2026-06-19
 
 ## Context

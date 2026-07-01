@@ -14,19 +14,20 @@
 }
 
 #arxys-vxc-root {
+  /* ADR 0075 reskin: navy/gold come from global tokens; local greys warmed. */
   --vxc-bg: #fff;
   --vxc-cd: #f8fafc;
-  --vxc-ip: #f1f5f9;
-  --vxc-bd: #c1c9d6;
-  --vxc-tp: #0f172a;
-  --vxc-ts: #334155;
-  --vxc-td: #475569;
+  --vxc-ip: #f4f6fa;
+  --vxc-bd: #c3cbd6;
+  --vxc-tp: #111826;
+  --vxc-ts: #333f4f;
+  --vxc-td: #4a5568;
   --vxc-tl: #94a3b8;
   --vxc-section-bg: #e9eef5;
-  --vxc-below-bg: #fef2f2;
-  --vxc-below-border: #fca5a5;
-  --vxc-below-text: #dc2626;
-  --vxc-r: 12px;
+  --vxc-below-bg: #fdecec;
+  --vxc-below-border: #f0c6c1;
+  --vxc-below-text: #c0392b;
+  --vxc-r: 14px;
   --vxc-ss: 0 1px 3px rgba(0, 0, 0, 0.06);
   font-family: inherit, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   background: var(--vxc-bg);
@@ -40,7 +41,7 @@
 /* Header */
 #arxys-vxc-root .vxc-hdr { text-align: center; margin-bottom: 20px; padding-bottom: 18px; position: relative; }
 #arxys-vxc-root .vxc-hdr::after { content: ""; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 80px; height: 3px; background: linear-gradient(90deg, var(--color-arxys-gold), #f59e0b); border-radius: 2px; }
-#arxys-vxc-root .vxc-t { font-size: clamp(26px, 5vw, 36px); font-weight: 800; letter-spacing: -0.5px; color: var(--color-arxys-gold); }
+#arxys-vxc-root .vxc-t { font-size: clamp(26px, 5vw, 36px); font-weight: 800; letter-spacing: -0.5px; color: var(--color-arxys-gold-text); }
 #arxys-vxc-root .vxc-st { color: var(--vxc-td); font-size: clamp(12px, 2vw, 16px); margin-top: 6px; max-width: 480px; margin-left: auto; margin-right: auto; text-align: center; }
 
 /* Controls row */
@@ -60,7 +61,7 @@
   width: 140px;
   transition: border-color 0.2s, box-shadow 0.2s;
 }
-#arxys-vxc-root .vxc-min-input:focus { border-color: var(--color-arxys-navy); box-shadow: 0 0 0 3px rgba(5, 74, 145, 0.12); }
+#arxys-vxc-root .vxc-min-input:focus { border-color: var(--color-arxys-navy); box-shadow: 0 0 0 3px rgba(20, 52, 107, 0.12); }
 #arxys-vxc-root .vxc-clear,
 #arxys-vxc-root .vxc-reset {
   background: var(--vxc-ip);
@@ -91,8 +92,8 @@
 #arxys-vxc-root .vxc-th-label-text { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.7px; color: var(--vxc-ts); }
 #arxys-vxc-root .vxc-th-model { min-width: 120px; }
 #arxys-vxc-root .vxc-model-check { display: inline-flex; align-items: center; gap: 7px; cursor: pointer; }
-#arxys-vxc-root .vxc-model-check input { width: 15px; height: 15px; cursor: pointer; accent-color: var(--color-arxys-gold); }
-#arxys-vxc-root .vxc-model-name { font-size: 16px; font-weight: 800; color: var(--color-arxys-gold); letter-spacing: -0.2px; }
+#arxys-vxc-root .vxc-model-check input { width: 15px; height: 15px; cursor: pointer; accent-color: var(--color-arxys-gold-text); }
+#arxys-vxc-root .vxc-model-name { font-size: 16px; font-weight: 800; color: var(--color-arxys-gold-text); letter-spacing: -0.2px; }
 #arxys-vxc-root .vxc-below-badge { display: block; margin-top: 4px; font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; color: var(--vxc-below-text); background: #fee2e2; border-radius: 99px; padding: 2px 6px; }
 
 /* Body */
@@ -110,8 +111,8 @@
 #arxys-vxc-root .vxc-row:hover .vxc-td-label { background: var(--vxc-ip); }
 
 /* Diff highlight (compare mode, values differ across selected models) */
-#arxys-vxc-root .vxc-row-diff td { background: rgba(251, 176, 64, 0.08) !important; }
-#arxys-vxc-root .vxc-row-diff .vxc-td-label { border-left: 3px solid var(--color-arxys-gold); background: rgba(251, 176, 64, 0.08) !important; }
+#arxys-vxc-root .vxc-row-diff td { background: #fff7ea !important; }
+#arxys-vxc-root .vxc-row-diff .vxc-td-label { border-left: 3px solid var(--color-arxys-gold); background: #fff7ea !important; }
 
 /* Section divider rows */
 #arxys-vxc-root .vxc-section-row .vxc-section-cell { position: sticky; left: 0; background: var(--vxc-section-bg); color: var(--color-arxys-navy); text-align: left; font-size: 11.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.8px; padding: 8px 14px; border-bottom: 1px solid var(--vxc-bd); }
@@ -171,7 +172,7 @@
 }
 #arxys-vxc-root .vxc-vms-pill:hover {
   border-color: var(--color-arxys-navy-deep);
-  background: rgba(5, 74, 145, 0.08);
+  background: rgba(20, 52, 107, 0.08);
 }
 #arxys-vxc-root .vxc-vms-pill--active {
   background: var(--color-arxys-navy);
@@ -186,7 +187,7 @@
   display: flex;
   align-items: center;
   gap: 16px;
-  background: rgba(5, 74, 145, 0.06);
+  background: rgba(20, 52, 107, 0.06);
   border-left: 3px solid var(--color-arxys-navy);
   border-radius: 0 8px 8px 0;
   padding: 12px 18px;

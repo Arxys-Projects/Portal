@@ -84,7 +84,7 @@
 #arxys-cmp-root .ac-tbl tbody tr:hover { background: var(--ip); }
 #arxys-cmp-root .ac-td-spec { font-weight: 600; color: var(--ts); white-space: nowrap; }
 #arxys-cmp-root .ac-td-val { font-family: "JetBrains Mono", Consolas, monospace; font-size: 13px; color: var(--tp); }
-#arxys-cmp-root .ac-arxys-col { color: #054A91 !important; font-weight: 600; }
+#arxys-cmp-root .ac-arxys-col { color: #14346b !important; font-weight: 600; }
 #arxys-cmp-root .ac-td-adv { }
 
 /* Advantage badges */
@@ -203,7 +203,7 @@
 #arxys-cmp-root .ac-btn-pdf:hover:not(:disabled) { background: #e2e8f0; border-color: #8898b0; }
 #arxys-cmp-root .ac-btn-pdf:disabled { cursor: not-allowed; opacity: 0.6; }
 #arxys-cmp-root .ac-btn-quote {
-  background: #054A91;
+  background: #14346b;
   border: none;
   border-radius: 8px;
   color: #fff;

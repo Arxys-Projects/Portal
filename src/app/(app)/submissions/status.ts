@@ -13,19 +13,23 @@ export const SUBMISSION_STATUSES = [
 
 export type SubmissionStatus = (typeof SUBMISSION_STATUSES)[number];
 
+// `badge` = soft-tint pill classes; `dot` = the solid status colour used by the
+// pipeline status <select> dot (ADR 0075 palette). Only presentation fields —
+// the enum, labels, and helpers below stay the single source of truth.
 export const STATUS_META: Record<
   SubmissionStatus,
-  { label: string; badge: string }
+  { label: string; badge: string; dot: string }
 > = {
-  draft: { label: "Draft", badge: "bg-neutral-100 text-neutral-700 border-neutral-300" },
-  sent: { label: "Sent", badge: "bg-blue-100 text-blue-800 border-blue-300" },
-  won: { label: "Won", badge: "bg-green-100 text-green-800 border-green-300" },
-  lost: { label: "Lost", badge: "bg-red-100 text-red-800 border-red-300" },
-  "on-hold": { label: "On Hold", badge: "bg-yellow-100 text-yellow-800 border-yellow-300" },
+  draft: { label: "Draft", badge: "bg-[#eef0f3] text-[#5c6472] border-[#d7dce3]", dot: "#8a93a0" },
+  sent: { label: "Sent", badge: "bg-[#eaf1fc] text-[#1f4fa8] border-[#c3d8f4]", dot: "#2b62c9" },
+  won: { label: "Won", badge: "bg-[#e7f4ec] text-[#136340] border-[#b6ddc6]", dot: "#177a4f" },
+  lost: { label: "Lost", badge: "bg-[#fbeceb] text-[#a12c20] border-[#f0c6c1]", dot: "#c0392b" },
+  "on-hold": { label: "On Hold", badge: "bg-[#fdf2e2] text-[#9a5f12] border-[#f2d9ac]", dot: "#d98a1e" },
 };
 
 // Styling for a submission with no status set.
-export const NO_STATUS_BADGE = "bg-neutral-50 text-neutral-400 border-neutral-200";
+export const NO_STATUS_BADGE = "bg-[#f2f4f7] text-[#6b7280] border-[#e0e4ea]";
+export const NO_STATUS_DOT = "#b7bfc9";
 
 // A status counts as "active" (advanced past draft) for pipeline sort order.
 export function isActiveStatus(status: SubmissionStatus | null): boolean {

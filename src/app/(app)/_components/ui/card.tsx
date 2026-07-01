@@ -2,7 +2,8 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { cx } from "./styles";
 
-/** Base surface — true-white card on the tinted page, firmed 2px border. */
+/** Base surface — true-white card on the warm-grey page, 14px radius, 1px border
+ *  (ADR 0075: no resting shadow; whole-card links use NavCard's hover-lift). */
 export function Card({
   className,
   children,
@@ -13,7 +14,7 @@ export function Card({
   return (
     <div
       className={cx(
-        "rounded-xl border-2 border-line bg-surface p-5 shadow-sm",
+        "rounded-[14px] border border-line bg-surface p-5",
         className,
       )}
     >
@@ -90,9 +91,10 @@ export function NavCard({
   className,
 }: NavCardProps) {
   const surface = cx(
-    "group relative block rounded-xl border-[3px] border-line-strong bg-surface",
-    "shadow-[0_2px_8px_rgba(16,24,40,0.10)] transition-[border-color,box-shadow]",
-    "hover:border-arxys-navy hover:shadow-[0_8px_22px_rgba(16,24,40,0.15)]",
+    "group relative block rounded-[14px] border border-line bg-surface",
+    "transition-[transform,border-color,box-shadow] duration-150",
+    "hover:-translate-y-0.5 hover:border-arxys-navy hover:bg-arxys-navy-soft/60",
+    "hover:shadow-[0_10px_24px_-12px_rgba(15,42,83,0.30)]",
     "focus-visible:outline-none focus-visible:border-arxys-navy",
     "focus-visible:ring-2 focus-visible:ring-arxys-navy/40",
     fullWidth ? "flex items-center gap-4 px-6 py-4" : "p-5",

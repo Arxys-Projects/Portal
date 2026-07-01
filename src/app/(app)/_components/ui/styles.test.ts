@@ -33,6 +33,20 @@ test("buttonClasses appends caller className last", () => {
   assert.match(buttonClasses("primary", "md", "w-full"), /w-full$/);
 });
 
+test("buttonClasses reskin variants (ADR 0075) are distinct", () => {
+  // outline: white surface, navy text, fills navy-tint on hover
+  const outline = buttonClasses("outline");
+  assert.match(outline, /bg-surface/);
+  assert.match(outline, /text-arxys-navy/);
+  assert.match(outline, /hover:bg-arxys-navy-soft/);
+  // amber: gold fill, dark-on-gold text (gold reinstated)
+  const amber = buttonClasses("amber");
+  assert.match(amber, /bg-arxys-gold/);
+  assert.match(amber, /text-arxys-text-on-gold/);
+  // invert: white on navy contexts
+  assert.match(buttonClasses("invert"), /bg-white/);
+});
+
 test("icon button tones differ", () => {
   assert.match(iconButtonClasses("default"), /hover:text-arxys-navy/);
   assert.match(iconButtonClasses("danger"), /hover:text-danger/);

@@ -27,9 +27,9 @@ function SkuTable({
   skuExtraData?: Family["skuExtraData"];
 }) {
   return (
-    <div className="overflow-x-auto rounded-lg border border-neutral-200">
+    <div className="overflow-x-auto rounded-lg border border-line">
       <table className="w-full text-sm">
-        <thead className="bg-[#054A91] text-white">
+        <thead className="bg-[#14346b] text-white">
           <tr>
             {columns.map((col) => (
               <th
@@ -47,7 +47,7 @@ function SkuTable({
           {rows.map((row, i) => (
             <tr
               key={row.sku}
-              className={`border-t border-neutral-100 ${
+              className={`border-t border-line-soft ${
                 i % 2 === 1 ? "bg-neutral-50" : ""
               } hover:bg-neutral-100`}
             >
@@ -65,8 +65,8 @@ function SkuTable({
                   <td
                     key={col}
                     className={`px-4 py-3 ${isRight ? "text-right" : ""} ${
-                      isSku ? "font-mono text-xs" : "text-neutral-700"
-                    } ${isMsrp ? "font-semibold text-[#054A91]" : ""}`}
+                      isSku ? "font-mono text-xs" : "text-ink-soft"
+                    } ${isMsrp ? "font-semibold text-[#14346b]" : ""}`}
                   >
                     {val}
                   </td>
@@ -78,7 +78,7 @@ function SkuTable({
             <tr>
               <td
                 colSpan={columns.length}
-                className="px-4 py-6 text-center text-neutral-400 text-xs"
+                className="px-4 py-6 text-center text-ink-soft text-xs"
               >
                 No active SKUs found.
               </td>
@@ -174,12 +174,12 @@ export default async function FamilyDetailPage({
   return (
     <div>
       {/* Breadcrumb */}
-      <div className="text-xs text-neutral-500 mb-5">
-        <Link href="/price-book" className="hover:text-[#054A91]">
+      <div className="text-xs text-ink-soft mb-5">
+        <Link href="/price-book" className="hover:text-[#14346b]">
           ← Price Book
         </Link>
         <span className="mx-2 text-neutral-300">/</span>
-        <span className="text-neutral-700">{family.shortName}</span>
+        <span className="text-ink-soft">{family.shortName}</span>
       </div>
 
       {/* Hero */}
@@ -195,7 +195,7 @@ export default async function FamilyDetailPage({
                 className="max-h-72 object-contain"
               />
             ) : (
-              <span className="text-[#fbb040] font-bold text-5xl">
+              <span className="text-[#c17f10] font-bold text-5xl">
                 {family.shortName}
               </span>
             )}
@@ -204,23 +204,23 @@ export default async function FamilyDetailPage({
           {/* Right: copy */}
           <div className="lg:col-span-7">
             <div>
-              <p className="text-[#fbb040] font-semibold text-sm uppercase tracking-widest">
+              <p className="text-[#c17f10] font-semibold text-sm uppercase tracking-widest">
                 {family.eyebrow}
               </p>
-              <h1 className="mt-2 text-4xl font-semibold text-[#054A91]">
+              <h1 className="mt-2 text-4xl font-semibold text-[#14346b]">
                 {family.shortName}
               </h1>
             </div>
 
-            <p className="mt-3 text-lg text-neutral-700 leading-snug">
+            <p className="mt-3 text-lg text-ink-soft leading-snug">
               {family.tagline}
             </p>
 
             <div className="mt-6 rounded-lg border-l-4 border-[#fbb040] bg-neutral-50 p-4">
-              <p className="text-xs font-semibold uppercase tracking-wider text-[#054A91]">
+              <p className="text-xs font-semibold uppercase tracking-wider text-[#14346b]">
                 Great For
               </p>
-              <p className="mt-1.5 text-sm text-neutral-700 leading-relaxed">
+              <p className="mt-1.5 text-sm text-ink-soft leading-relaxed">
                 {family.greatFor}
               </p>
             </div>
@@ -230,16 +230,16 @@ export default async function FamilyDetailPage({
               {family.kpis.map((kpi) => (
                 <div
                   key={kpi.label}
-                  className="text-center bg-[#f0f5fa] rounded-lg py-3 relative"
+                  className="text-center bg-[#eef2f8] rounded-lg py-3 relative"
                 >
-                  <div className="text-xs text-neutral-500 uppercase tracking-wide flex items-center justify-center gap-1">
+                  <div className="text-xs text-ink-soft uppercase tracking-wide flex items-center justify-center gap-1">
                     {kpi.label}
                     {kpi.vsrTooltip && (
                       <details className="inline-block relative no-print">
-                        <summary className="cursor-help list-none text-[#fbb040] font-bold leading-none">
+                        <summary className="cursor-help list-none text-[#c17f10] font-bold leading-none">
                           ⓘ
                         </summary>
-                        <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 w-64 bg-[#054A91] text-white text-xs font-normal text-left p-3 rounded shadow-lg z-10 normal-case tracking-normal">
+                        <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 w-64 bg-[#14346b] text-white text-xs font-normal text-left p-3 rounded shadow-lg z-10 normal-case tracking-normal">
                           <strong className="text-[#fbb040]">
                             VSR (Video Stream Rate):
                           </strong>{" "}
@@ -250,10 +250,10 @@ export default async function FamilyDetailPage({
                       </details>
                     )}
                   </div>
-                  <div className="mt-1 text-2xl font-semibold text-[#054A91]">
+                  <div className="mt-1 text-2xl font-semibold text-[#14346b]">
                     {kpi.value}
                   </div>
-                  <div className="text-xs text-neutral-500">{kpi.unit}</div>
+                  <div className="text-xs text-ink-soft">{kpi.unit}</div>
                 </div>
               ))}
             </div>
@@ -263,7 +263,7 @@ export default async function FamilyDetailPage({
 
       {/* Compliance badges */}
       <section className="pb-8">
-        <div className="rounded-lg bg-[#f0f5fa] border border-neutral-200 px-6 py-4 flex flex-wrap items-center justify-around gap-4 text-sm font-semibold text-[#054A91]">
+        <div className="rounded-lg bg-[#eef2f8] border border-line px-6 py-4 flex flex-wrap items-center justify-around gap-4 text-sm font-semibold text-[#14346b]">
           {[
             "Multi-VMS Validated: Milestone, Avigilon, Genetec, NXWitness, Hanwha, Exacq, Axxonsoft",
             "NDAA Compliant",
@@ -281,20 +281,20 @@ export default async function FamilyDetailPage({
       <section className="pb-10">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <div>
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-neutral-500 border-b border-neutral-200 pb-2">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-ink-soft border-b border-line pb-2">
               Key Features
             </h2>
-            <ul className="gold-star mt-4 space-y-2 text-sm text-neutral-700">
+            <ul className="gold-star mt-4 space-y-2 text-sm text-ink-soft">
               {family.keyFeatures.map((f) => (
                 <li key={f}>{f}</li>
               ))}
             </ul>
           </div>
           <div>
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-neutral-500 border-b border-neutral-200 pb-2">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-ink-soft border-b border-line pb-2">
               Technical Specs
             </h2>
-            <ul className="gold-star mt-4 space-y-2 text-sm text-neutral-700">
+            <ul className="gold-star mt-4 space-y-2 text-sm text-ink-soft">
               {family.technicalSpecs.map((s) => (
                 <li key={s}>{s}</li>
               ))}
@@ -305,7 +305,7 @@ export default async function FamilyDetailPage({
 
       {/* Primary SKU table */}
       <section className="pb-10">
-        <h2 className="text-xs font-semibold uppercase tracking-wider text-neutral-500 mb-3">
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-ink-soft mb-3">
           {family.shortName} Configurations
         </h2>
         <SkuTable
@@ -321,7 +321,7 @@ export default async function FamilyDetailPage({
         const tierRows = tierProductsMap.get(tier.title) ?? [];
         return (
           <section key={tier.title} className="pb-10">
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-neutral-500 mb-3">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-ink-soft mb-3">
               {tier.title}
             </h2>
             <SkuTable
@@ -331,7 +331,7 @@ export default async function FamilyDetailPage({
               skuExtraData={family.skuExtraData}
             />
             {tier.caption && (
-              <p className="mt-2 text-xs text-neutral-400">{tier.caption}</p>
+              <p className="mt-2 text-xs text-ink-soft">{tier.caption}</p>
             )}
           </section>
         );
@@ -340,34 +340,34 @@ export default async function FamilyDetailPage({
       {/* Upgrade options */}
       {upgrades.length > 0 && (
         <section className="pb-10">
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-neutral-500 mb-3">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-ink-soft mb-3">
             Upgrade Options
           </h2>
-          <div className="overflow-x-auto rounded-lg border border-neutral-200">
+          <div className="overflow-x-auto rounded-lg border border-line">
             <table className="w-full text-sm">
-              <thead className="bg-neutral-100">
+              <thead className="bg-panel">
                 <tr>
-                  <th className="text-left px-4 py-2.5 font-semibold text-neutral-600">
+                  <th className="text-left px-4 py-2.5 font-semibold text-ink-soft">
                     SKU
                   </th>
-                  <th className="text-left px-4 py-2.5 font-semibold text-neutral-600">
+                  <th className="text-left px-4 py-2.5 font-semibold text-ink-soft">
                     Add-on
                   </th>
-                  <th className="text-right px-4 py-2.5 font-semibold text-neutral-600">
+                  <th className="text-right px-4 py-2.5 font-semibold text-ink-soft">
                     MSRP
                   </th>
                 </tr>
               </thead>
               <tbody>
                 {upgrades.map((row) => (
-                  <tr key={row.sku} className="border-t border-neutral-100">
+                  <tr key={row.sku} className="border-t border-line-soft">
                     <td className="px-4 py-2.5 font-mono text-xs">
                       {row.sku}
                     </td>
-                    <td className="px-4 py-2.5 text-neutral-700">
+                    <td className="px-4 py-2.5 text-ink-soft">
                       {row.product_name}
                     </td>
-                    <td className="px-4 py-2.5 text-right font-semibold text-neutral-900">
+                    <td className="px-4 py-2.5 text-right font-semibold text-ink">
                       {formatMsrp(row)}
                     </td>
                   </tr>
@@ -380,7 +380,7 @@ export default async function FamilyDetailPage({
 
       {/* Documentation */}
       <section className="pb-10">
-        <h2 className="text-xs font-semibold uppercase tracking-wider text-neutral-500 border-b border-neutral-200 pb-2 mb-4">
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-ink-soft border-b border-line pb-2 mb-4">
           Documentation
         </h2>
         {family.datasheetUrl ? (
@@ -395,10 +395,10 @@ export default async function FamilyDetailPage({
                 href={btn.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-lg border border-neutral-200 bg-white px-4 py-3 text-sm font-medium text-[#054A91] hover:border-[#054A91] transition"
+                className="inline-flex items-center gap-2 rounded-lg border border-line bg-white px-4 py-3 text-sm font-medium text-[#14346b] hover:border-[#14346b] transition"
               >
                 <svg
-                  className="w-4 h-4 text-[#fbb040]"
+                  className="w-4 h-4 text-[#c17f10]"
                   fill="none"
                   stroke="currentColor"
                   strokeWidth={2}
@@ -415,13 +415,13 @@ export default async function FamilyDetailPage({
             ))}
           </div>
         ) : (
-          <p className="text-sm text-neutral-400">Documentation coming soon.</p>
+          <p className="text-sm text-ink-soft">Documentation coming soon.</p>
         )}
       </section>
 
       {/* Fine print */}
       <section className="pb-12">
-        <div className="rounded-lg bg-neutral-50 border border-neutral-200 p-5 text-xs text-neutral-600 leading-relaxed">
+        <div className="rounded-lg bg-neutral-50 border border-line p-5 text-xs text-ink-soft leading-relaxed">
           <p>
             <span className="font-semibold">VSR (Video Stream Rate):</span> 4MP
             @ 15fps, record on motion, with VMD & metadata capture, 75% motion

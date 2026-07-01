@@ -18,22 +18,24 @@
 }
 
 #arxys-calc-root {
+  /* ADR 0075 reskin: accent shifts blue → navy #14346b; tints follow. Metric
+     value colours (--gn/--cy/--am/--pu) kept as light data-coding. */
   --bg: #fff;
   --cd: #f8fafc;
-  --ip: #f1f5f9;
+  --ip: #f4f6fa;
   --hv: #e8edf4;
-  --bd: #c1c9d6;
-  --tp: #0f172a;
-  --ts: #334155;
-  --td: #475569;
+  --bd: #c3cbd6;
+  --tp: #111826;
+  --ts: #333f4f;
+  --td: #4a5568;
   --tl: #94a3b8;
-  --ac: #2563eb;
-  --al: #dbeafe;
-  --ag: rgba(37, 99, 235, 0.08);
-  --gn: #16a34a;
+  --ac: #14346b;
+  --al: #e7edf7;
+  --ag: rgba(20, 52, 107, 0.06);
+  --gn: #177a4f;
   --am: #d97706;
   --cy: #0891b2;
-  --rd: #dc2626;
+  --rd: #c0392b;
   --pu: #7c3aed;
   --r: 12px;
   --ss: 0 1px 3px rgba(0, 0, 0, 0.06);
@@ -55,20 +57,21 @@
 
 /* Summary Cards */
 #arxys-calc-root .ax-sum { display: grid; grid-template-columns: repeat(3, 1fr); gap: 25px; margin-bottom: 10px; }
-#arxys-calc-root .ax-s { background: var(--cd); border: 4px solid var(--bd); border-radius: var(--r); padding: 3px 2px; text-align: center; overflow: hidden; position: relative; box-shadow: var(--ss); }
-#arxys-calc-root .ax-s::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 5px; border-radius: var(--r) var(--r) 0 0; }
-/* Calmer, single-accent top bars (ADR 0067) — solid navy, no multicolour gradients. */
-#arxys-calc-root .ax-s.bl::before { background: #054A91; }
-#arxys-calc-root .ax-s.gn::before { background: #054A91; }
-#arxys-calc-root .ax-s.cy::before { background: #054A91; }
+#arxys-calc-root .ax-s { background: var(--bg); border: 1px solid #d7dce3; border-radius: 14px; padding: 6px 2px; text-align: center; overflow: hidden; position: relative; }
+#arxys-calc-root .ax-s::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+/* Single-accent top rule (ADR 0075) — solid navy on white totals cards. */
+#arxys-calc-root .ax-s.bl::before { background: #14346b; }
+#arxys-calc-root .ax-s.gn::before { background: #14346b; }
+#arxys-calc-root .ax-s.cy::before { background: #14346b; }
 #arxys-calc-root .ax-sl { font-size: 13px; color: var(--ts); text-transform: uppercase; letter-spacing: 1.2px; font-weight: 800; margin-top: 2px; }
 #arxys-calc-root .ax-sv { font-family: "JetBrains Mono", Consolas, monospace; font-size: clamp(30px, 3.5vw, 35px); font-weight: 700; margin-top: 8px; }
-#arxys-calc-root .ax-sv.bl { color: #054A91; }
-#arxys-calc-root .ax-sv.gn { color: #054A91; }
-#arxys-calc-root .ax-sv.cy { color: #054A91; }
+#arxys-calc-root .ax-sv.bl { color: #14346b; }
+#arxys-calc-root .ax-sv.gn { color: #14346b; }
+#arxys-calc-root .ax-sv.cy { color: #14346b; }
 
 /* Project panel — three stacked bands (attribution / setup / action) */
-#arxys-calc-root .ax-gl { background: var(--cd); border: 3px solid var(--bd); border-radius: var(--r); padding: 14px 16px; margin-bottom: 15px; display: flex; flex-direction: column; gap: 14px; box-shadow: var(--ss); }
+/* Project header panel (ADR 0075): light-navy band + 3px navy top rule. */
+#arxys-calc-root .ax-gl { background: #e7edf7; border: 1px solid #cdd9ee; border-top: 3px solid #14346b; border-radius: 14px; padding: 16px 18px; margin-bottom: 15px; display: flex; flex-direction: column; gap: 14px; }
 #arxys-calc-root .ax-band { display: flex; flex-direction: column; }
 
 /* Band 1 — on-behalf attribution */
@@ -126,7 +129,7 @@
 #arxys-calc-root .ax-sr { display: flex; align-items: center; gap: 8px; }
 #arxys-calc-root .ax-svl { font-family: "JetBrains Mono", Consolas, monospace; font-size: 13px; color: var(--ac); min-width: 38px; text-align: right; font-weight: 600; }
 #arxys-calc-root input[type="range"] { -webkit-appearance: none; appearance: none; width: 100%; height: 5px; border-radius: 3px; background: var(--bd); outline: none; }
-#arxys-calc-root input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 16px; height: 16px; border-radius: 50%; background: var(--ac); cursor: pointer; box-shadow: 0 1px 5px rgba(37, 99, 235, 0.35); border: 2px solid #fff; }
+#arxys-calc-root input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 16px; height: 16px; border-radius: 50%; background: var(--ac); cursor: pointer; box-shadow: 0 1px 5px rgba(20, 52, 107, 0.35); border: 2px solid #fff; }
 /* Disabled motion slider (greyed under Constant recording, mirroring Milestone). */
 
 /* Camera Cards */
@@ -134,9 +137,11 @@
    card edge (the bug that previously forced single-line tooltip copy). The
    header and results rows round their own outer corners instead, so the card
    still reads as a rounded panel while tooltips can escape its bounds. */
-#arxys-calc-root .ax-cam { background: var(--cd); border: 2px solid var(--bd); border-radius: var(--r); margin-bottom: 10px; box-shadow: var(--ss); transition: border-color 0.2s; }
-#arxys-calc-root .ax-cam:hover { border-color: #8898b0; box-shadow: var(--sm); }
-#arxys-calc-root .ax-ch { display: flex; align-items: center; justify-content: space-between; padding: 3px 10px; background: var(--ip); border-bottom: 1px solid var(--bd); border-radius: calc(var(--r) - 2px) calc(var(--r) - 2px) 0 0; }
+/* Three-band camera group card (ADR 0075): white card · grey header strip ·
+   lavender Calculated band. */
+#arxys-calc-root .ax-cam { background: var(--bg); border: 1px solid #d7dce3; border-radius: 14px; margin-bottom: 10px; transition: border-color 0.2s, box-shadow 0.2s; }
+#arxys-calc-root .ax-cam:hover { border-color: #14346b; box-shadow: var(--sm); }
+#arxys-calc-root .ax-ch { display: flex; align-items: center; justify-content: space-between; padding: 8px 14px; background: #f4f6fa; border-bottom: 1px solid #d7dce3; border-radius: 13px 13px 0 0; }
 #arxys-calc-root .ax-chl { display: flex; align-items: center; gap: 5px; }
 #arxys-calc-root .ax-cn {
   background: var(--bg);
@@ -315,7 +320,7 @@
 #arxys-calc-root .ax-cx-ex strong { color: var(--ts); font-weight: 700; }
 
 /* Camera Results Row */
-#arxys-calc-root .ax-cr { padding: 8px 20px; background: var(--ag); border-top: 1px solid var(--bd); display: flex; gap: 30px; flex-wrap: wrap; border-radius: 0 0 calc(var(--r) - 2px) calc(var(--r) - 2px); }
+#arxys-calc-root .ax-cr { padding: 10px 20px; background: #e9f0fb; border-top: 1px solid #d3ddee; display: flex; gap: 30px; flex-wrap: wrap; border-radius: 0 0 13px 13px; }
 #arxys-calc-root .ax-ci { display: flex; align-items: baseline; gap: 6px; }
 #arxys-calc-root .ax-cil { font-size: 11px; color: var(--td); text-transform: uppercase; letter-spacing: 0.4px; font-weight: 600; }
 #arxys-calc-root .ax-civ { font-family: "JetBrains Mono", Consolas, monospace; font-size: 13px; font-weight: 600; }
@@ -339,7 +344,7 @@
   transition: all 0.2s;
   margin-top: 20px;
 }
-#arxys-calc-root .ax-add:hover { border-color: var(--ac); background: #dbeafe; box-shadow: 0 2px 8px rgba(37, 99, 235, 0.15); }
+#arxys-calc-root .ax-add:hover { border-color: var(--ac); background: #e7edf7; box-shadow: 0 2px 8px rgba(20, 52, 107, 0.15); }
 
 /* Results Table */
 #arxys-calc-root .ax-tw { overflow-x: auto; border-radius: var(--r); border: 1px solid var(--bd); box-shadow: var(--ss); margin-top: 20px; }
@@ -359,8 +364,8 @@
 #arxys-calc-root .ax-bl { width: 130px; font-size: 12px; color: var(--ts); text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-shrink: 0; }
 #arxys-calc-root .ax-bt { flex: 1; height: 24px; background: var(--ip); border-radius: 5px; overflow: hidden; border: 1px solid var(--bd); position: relative; }
 #arxys-calc-root .ax-bf { height: 100%; border-radius: 4px; transition: width 0.5s ease; min-width: 2px; }
-#arxys-calc-root .ax-bf.bw { background: linear-gradient(90deg, #2563eb, #60a5fa); }
-#arxys-calc-root .ax-bf.st { background: linear-gradient(90deg, #16a34a, #4ade80); }
+#arxys-calc-root .ax-bf.bw { background: linear-gradient(90deg, #2b62c9, #14346b); }
+#arxys-calc-root .ax-bf.st { background: linear-gradient(90deg, #25a06a, #1f8a5b); }
 #arxys-calc-root .ax-bv { font-family: "JetBrains Mono", Consolas, monospace; font-size: 11px; font-weight: 600; min-width: 90px; color: var(--td); flex-shrink: 0; }
 #arxys-calc-root .ax-bpct { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); font-family: "JetBrains Mono", Consolas, monospace; font-size: 9px; color: rgba(0, 0, 0, 0.35); font-weight: 700; }
 
@@ -423,9 +428,9 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: #054A91;
+  background: #14346b;
   color: #fff;
-  border: 1px solid #054A91;
+  border: 1px solid #14346b;
   border-radius: var(--r);
   padding: 12px 22px;
   font-size: 15px;
@@ -441,9 +446,9 @@
   animation: ax-spin 0.75s linear infinite;
 }
 @keyframes ax-spin { to { transform: rotate(360deg); } }
-#arxys-calc-root .ax-save-btn:hover { background: #03396f; box-shadow: var(--sm); }
+#arxys-calc-root .ax-save-btn:hover { background: #0d244a; box-shadow: var(--sm); }
 #arxys-calc-root .ax-save-btn:disabled { background: var(--tl); border-color: var(--tl); cursor: not-allowed; box-shadow: none; }
-#arxys-calc-root .ax-save-btn[data-saving]:disabled { background: #054A91; border-color: #054A91; cursor: wait; }
+#arxys-calc-root .ax-save-btn[data-saving]:disabled { background: #14346b; border-color: #14346b; cursor: wait; }
 #arxys-calc-root .ax-save-hint { font-size: 13px; color: var(--td); }
 
 #arxys-calc-root .ax-rec-err {
@@ -494,14 +499,14 @@
 #arxys-calc-root .ax-rec-model {
   font-size: 24px;
   font-weight: 700;
-  color: var(--ac);
+  color: #2b62c9;
   font-family: "JetBrains Mono", Consolas, monospace;
 }
 #arxys-calc-root .ax-rec-model-link {
   text-decoration: none;
   transition: color 0.15s;
 }
-#arxys-calc-root .ax-rec-model-link:hover { color: #1d4ed8; text-decoration: underline; }
+#arxys-calc-root .ax-rec-model-link:hover { color: #14346b; text-decoration: underline; }
 #arxys-calc-root .ax-rec-cov {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -548,9 +553,9 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: #054A91;
+  background: #14346b;
   color: #fff;
-  border: 1px solid #054A91;
+  border: 1px solid #14346b;
   border-radius: var(--r);
   padding: 10px 18px;
   font-size: 14px;
@@ -559,7 +564,7 @@
   box-shadow: var(--ss);
   transition: background 0.15s, box-shadow 0.15s;
 }
-#arxys-calc-root .ax-pdf-btn:hover { background: #03396f; box-shadow: var(--sm); }
+#arxys-calc-root .ax-pdf-btn:hover { background: #0d244a; box-shadow: var(--sm); }
 #arxys-calc-root .ax-pdf-btn:visited { color: #fff; }
 @media (max-width: 640px) {
   #arxys-calc-root .ax-rec-cov { grid-template-columns: 1fr; }

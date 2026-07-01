@@ -21,7 +21,7 @@ function statusPill(status: string) {
         ? "bg-amber-50 text-amber-700 border-amber-200"
         : status === "suspended"
           ? "bg-red-50 text-red-700 border-red-200"
-          : "bg-neutral-50 text-neutral-700 border-neutral-200";
+          : "bg-neutral-50 text-ink-soft border-neutral-200";
   return (
     <span
       className={`inline-block rounded border px-2 py-0.5 text-xs font-medium ${cls}`}
@@ -91,7 +91,7 @@ export default async function AdminPartnersPage() {
       </div>
 
       {partners.length === 0 ? (
-        <p className="mt-6 text-sm text-neutral-500">
+        <p className="mt-6 text-sm text-ink-soft">
           No partners yet. Click <strong>Invite partner</strong> to get started.
         </p>
       ) : (
@@ -112,7 +112,7 @@ export default async function AdminPartnersPage() {
             <tbody className="divide-y divide-line-soft">
               {partners.map((p) => (
                 <tr key={p.id}>
-                  <td className="px-4 py-3 text-neutral-900">
+                  <td className="px-4 py-3 text-ink">
                     {isAdmin ? (
                       <EditableName
                         id={p.id}
@@ -125,7 +125,7 @@ export default async function AdminPartnersPage() {
                       p.company_name
                     )}
                   </td>
-                  <td className="px-4 py-3 text-neutral-700">
+                  <td className="px-4 py-3 text-ink-soft">
                     {isAdmin ? (
                       <EditableName
                         id={p.id}
@@ -138,21 +138,21 @@ export default async function AdminPartnersPage() {
                       p.contact_name
                     )}
                   </td>
-                  <td className="px-4 py-3 text-neutral-600">
+                  <td className="px-4 py-3 text-ink-soft">
                     {emailById.get(p.id) ?? "—"}
                   </td>
-                  <td className="px-4 py-3 text-neutral-700">{p.role}</td>
+                  <td className="px-4 py-3 text-ink-soft">{p.role}</td>
                   <td className="px-4 py-3">{statusPill(p.status)}</td>
                   <td className="px-4 py-3">
                     {isAdmin ? (
                       <InternalToggle id={p.id} isInternal={Boolean(p.is_internal)} />
                     ) : (
-                      <span className="text-xs text-neutral-500">
+                      <span className="text-xs text-ink-soft">
                         {p.is_internal ? "Internal ✓" : "—"}
                       </span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-neutral-600">
+                  <td className="px-4 py-3 text-ink-soft">
                     {formatDate(p.created_at)}
                   </td>
                   <td className="px-4 py-3">
@@ -162,7 +162,7 @@ export default async function AdminPartnersPage() {
                         status={p.status as "active" | "invited" | "suspended"}
                       />
                     ) : (
-                      <span className="text-xs text-neutral-400">—</span>
+                      <span className="text-xs text-ink-soft">—</span>
                     )}
                   </td>
                 </tr>

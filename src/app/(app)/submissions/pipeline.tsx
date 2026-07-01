@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import {
   STATUS_META,
+  NO_STATUS_DOT,
   SUBMISSION_STATUSES,
   isDeletable,
   type SubmissionStatus,
@@ -73,8 +74,8 @@ function StarIcon({ filled }: { filled: boolean }) {
       width="18"
       height="18"
       viewBox="0 0 24 24"
-      fill={filled ? "#054A91" : "none"}
-      stroke={filled ? "#054A91" : "currentColor"}
+      fill={filled ? "#14346b" : "none"}
+      stroke={filled ? "#14346b" : "currentColor"}
       strokeWidth="2"
       strokeLinejoin="round"
     >
@@ -164,10 +165,10 @@ export function Pipeline({
                   ? { pathname: "/submissions" }
                   : { pathname: "/submissions", query: { status: f.value } }
               }
-              className={`rounded-full border px-3 py-1 text-xs font-semibold ${
+              className={`rounded-full border px-3.5 py-1 text-xs font-semibold transition-colors ${
                 isActive
                   ? "border-arxys-navy bg-arxys-navy text-white"
-                  : "border-line bg-surface text-ink-soft hover:bg-secondary"
+                  : "border-[#b9c4d5] bg-surface text-ink-soft hover:border-arxys-navy hover:text-arxys-navy"
               }`}
             >
               {f.label}
@@ -177,7 +178,7 @@ export function Pipeline({
       </div>
 
       {totalOpenPipeline !== undefined && weightedForecast !== undefined ? (
-        <div className="mt-3 rounded-lg bg-arxys-navy-soft px-4 py-2 text-sm text-ink-soft">
+        <div className="mt-3 rounded-lg border border-line border-l-[3px] border-l-arxys-navy bg-surface px-4 py-2.5 text-sm text-ink-soft">
           <span className="font-semibold text-ink">Open Pipeline:</span>{" "}
           {fmtAmount(totalOpenPipeline)}
           {" · "}
@@ -210,10 +211,10 @@ export function Pipeline({
           {groups.map((group) => (
             <section
               key={group.key}
-              className="overflow-hidden rounded-xl border-2 border-line bg-surface"
+              className="overflow-hidden rounded-[14px] border border-line bg-surface"
             >
-              <header className="flex flex-wrap items-center gap-2 border-b border-line px-4 py-2.5">
-                <h2 className="text-sm font-bold text-ink">
+              <header className="flex flex-wrap items-center gap-2 border-b border-line px-4 py-3">
+                <h2 className="text-base font-bold text-ink">
                   {group.projectName ?? <span className="text-ink-soft">Ungrouped</span>}
                 </h2>
                 {group.onBehalfCompanyName ? (
@@ -231,7 +232,7 @@ export function Pipeline({
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b-2 border-line bg-arxys-navy-soft text-left text-[11px] font-extrabold uppercase tracking-wide text-ink-soft">
+                    <tr className="border-b border-line bg-panel text-left text-[11px] font-bold uppercase tracking-[0.06em] text-[#3f4b5b]">
                       <th className="w-10 px-4 py-2.5"></th>
                       <th className="px-4 py-2.5">Date</th>
                       <th className="px-4 py-2.5">Recommendation</th>
@@ -254,7 +255,7 @@ export function Pipeline({
                               title={row.isPreferred ? "Preferred quote" : "Mark as preferred"}
                               disabled={isPending}
                               onClick={() => perform(row.id, () => togglePreferred(row.id))}
-                              className="text-neutral-300 transition-colors hover:text-arxys-navy disabled:cursor-not-allowed"
+                              className="text-[#c8cfda] transition-colors hover:text-arxys-navy disabled:cursor-not-allowed"
                             >
                               <StarIcon filled={row.isPreferred} />
                             </button>
@@ -283,9 +284,19 @@ export function Pipeline({
                             {formatPrice(row.totalListPriceUsd)}
                           </td>
 
-                          {/* Status selector */}
+                          {/* Status selector — colored dot + native select */}
                           <td className="px-4 py-2.5">
-                            <div className="w-36">
+                            <div className="flex items-center gap-2">
+                              <span
+                                aria-hidden="true"
+                                className="h-2 w-2 shrink-0 rounded-full"
+                                style={{
+                                  background: row.status
+                                    ? STATUS_META[row.status].dot
+                                    : NO_STATUS_DOT,
+                                }}
+                              />
+                              <div className="w-36">
                               <Select
                                 aria-label="Submission status"
                                 disabled={isPending}
@@ -309,6 +320,7 @@ export function Pipeline({
                                   </option>
                                 ))}
                               </Select>
+                              </div>
                             </div>
                           </td>
 

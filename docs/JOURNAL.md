@@ -4,6 +4,82 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-07-01 — Portal UI reskin (new palette + gold reinstated)
+
+### Work done
+
+A **presentation-only** reskin of the portal to a new design pass authored in Claude
+Design (`.dc.html` mockups + written handoff). New navy `#14346b` (was `#054A91`), gold
+reinstated as a sparing brand accent, warmer page/border palette, and restructured screens.
+**No business logic touched** — `git diff` confirms zero changes under `src/lib/`, no
+`actions.ts`, no `/api/` routes. The UI binds to the existing functions; math,
+recommendation, forecast, RLS, and PDF/XLSX exports are byte-for-byte unchanged. `npm test`
+(227/227) and `npm run build` (all 23 routes) both green after every phase.
+
+- **Constraint:** Andy ruled out changing fonts. Kept Geist Sans/Mono + Poppins/Montserrat
+  (price-book); took the conservative reading — introduced **no** new font family and **no**
+  mono where it wasn't already. The mockups' Space Grotesk / IBM Plex identity is
+  approximated via weight/size/letter-spacing/case/colour on the existing families.
+- **Tokens** (`globals.css @theme`): retinted navy/page/line/ink, added `--color-panel`,
+  `--color-arxys-gold-text` (`#c17f10`, legible gold on white), and per-status accent
+  tokens. The navy token shift cascades to every consumer (price-book, compare, footer).
+- **Primitives** (`_components/ui/`) restyled *without API changes*: `styles.ts` gains
+  `outline`/`ghost`/`amber`/`invert` button variants; `Card`/`NavCard` → 14px radius +
+  translateY(-2px) hover-lift; `Table` header → `--color-panel`; `MetricTile` gains a `stat`
+  treatment (white + 3px navy top rule); `Select` input border firmed; `StatusBadge` +
+  `STATUS_META` retinted to the new status colours with a `dot` colour added.
+- **PortalHeader** (new client component): full-width bar, 7-item nav with active underline,
+  Portal guide (reuses `HelpModal`), role-gated Admin, avatar, sign-out, <900px collapse.
+  Replaces the inline header in `(app)/layout.tsx`.
+- **Calculator**: retinted the scoped `calculator.css` (accent blue→navy, save/PDF buttons
+  `#054A91`→navy, chart gradients) + the three-band camera card (grey header / white fields /
+  lavender `#e9f0fb` Calculated band) + white totals cards with navy top rule. All values
+  bind to the untouched `computeGroup`/`recommend`.
+- **Quick Compare**: retinted `videox-compare.css` (gold-text `#c17f10` model headers, cream
+  `#fff7ea` diff, red `#fdecec` below-requirement). Navy/gold cascade from global tokens.
+- **Pipeline**: filter pills, summary band (white + 3px navy **left** border), coloured
+  status dot beside the status select, retinted group tables — bound to existing grouping +
+  `computeWeightedForecast`.
+- **Admin**: new client `AdminNav` with active highlighting; stat cards → navy top rule +
+  navy number; recent-submissions table + partners roster retinted to ink tokens (semantic
+  active/invited/suspended pills kept).
+- **Products & Prices + detail**: `#054A91`→navy and `#1E4E8C`→navy throughout;
+  gradient hero; gold-on-white → `#c17f10` (eyebrows, fallback model name, tooltip/datasheet
+  icons) while gold fills/dots/on-navy stay `#fbb040`; neutral greys → ink tokens.
+- **Shared footer** navy links → token; **`/comparison`** (not in the brief) given a light
+  navy retint of its two `#054A91` refs so it doesn't read as orphaned.
+
+### Detours & fixes
+
+- **`<main>` wrapper is load-bearing.** First attempt stripped the layout's
+  `max-w-7xl px-4 py-8` main wrapper (intending pages to own their container). Reverted:
+  most pages start with a bare `<div>` and rely on it for width+padding, and
+  **`price-book/page.tsx` uses `-mx-4 -mt-8` to break its hero out of exactly that
+  `px-4 py-8`** — removing it would have broken the hero. Kept the wrapper as-is.
+
+### Flagged / deferred (need Andy's call — not done)
+
+- **Quick Compare dim-vs-hide.** The brief wants unticked models *dimmed, kept visible*
+  ("do NOT hide — it strands the checkboxes"), but the form currently *filters/hides* them
+  (`visibleModels = models.filter(...)` in `videox-compare-form.tsx`). That's a state-logic
+  change, so per the reskin-only constraint it was left as-is and only the styling retinted.
+  Small, safe follow-up available on request (drop the filter, add a `dim` class).
+- **Resources nav target** points at `https://www.arxys.com/support/` (the footer's
+  "Support & Resources" link) as a known-good placeholder — confirm if a dedicated resources
+  page exists.
+- **Authenticated visual pass pending.** The `(app)` routes are auth-gated, so the reskin
+  couldn't be visually verified headlessly (only `/login` is reachable). Verified via
+  `npm run build` + `npm test` + zero-logic-diff; Andy to eyeball the live pages.
+- Secondary admin screens (`admin/submissions` 645-line view, `partner-row-actions`) still
+  carry some neutral greys — acceptable, optional polish.
+
+### Decisions captured
+
+- [`0075-portal-ui-reskin.md`](./decisions/0075-portal-ui-reskin.md) — supersedes 0067's
+  palette + "gold retired" call; retains 0067's architecture and component inventory.
+
+---
+
 ## 2026-07-01 — camera_specs: add 3 single-sensor fixed cameras (Axis M4216-LV, Axis P3277-LVE, Hanwha TNV-C7013RC)
 
 ### Work done

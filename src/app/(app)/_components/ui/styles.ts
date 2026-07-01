@@ -3,7 +3,14 @@
 // under the repo's `tsx --test "src/**/*.test.ts"` harness, and so both
 // <button> and link-styled-as-button consumers share one source of truth.
 
-export type ButtonVariant = "primary" | "secondary" | "destructive";
+export type ButtonVariant =
+  | "primary"
+  | "secondary"
+  | "destructive"
+  | "outline"
+  | "ghost"
+  | "amber"
+  | "invert";
 export type ButtonSize = "sm" | "md";
 
 const BUTTON_BASE =
@@ -17,10 +24,19 @@ const BUTTON_SIZES: Record<ButtonSize, string> = {
   md: "px-[18px] py-2.5 text-sm",
 };
 
+// ADR 0075: gold reinstated (amber), plus outline/ghost/invert for the reskin.
+// primary/secondary/destructive keep their meaning so existing consumers are untouched.
 const BUTTON_VARIANTS: Record<ButtonVariant, string> = {
   primary: "bg-arxys-navy text-white border-transparent hover:bg-arxys-navy-deep",
   secondary: "bg-secondary text-arxys-navy border-line hover:bg-secondary-hover",
   destructive: "bg-danger text-white border-transparent hover:bg-danger-deep",
+  outline:
+    "bg-surface text-arxys-navy border-[#b9c4d5] hover:bg-arxys-navy-soft hover:border-arxys-navy",
+  ghost:
+    "bg-transparent text-ink-soft border-transparent hover:bg-[#eef1f5] hover:text-ink",
+  amber:
+    "bg-arxys-gold text-arxys-text-on-gold border-transparent hover:bg-arxys-gold-hover",
+  invert: "bg-white text-arxys-navy border-white hover:bg-arxys-navy-soft",
 };
 
 export function cx(...parts: Array<string | false | null | undefined>): string {
@@ -63,4 +79,4 @@ export const BADGE_BASE =
   "text-xs font-semibold leading-none";
 
 export const BADGE_SOURCE = "bg-arxys-navy-soft text-arxys-navy border-[#bcd0e6]";
-export const BADGE_ON_BEHALF = "bg-[#eef0f3] text-[#3a4452] border-line";
+export const BADGE_ON_BEHALF = "bg-[#eef1f6] text-[#3a4656] border-[#dfe3ea]";

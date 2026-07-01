@@ -10,33 +10,42 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  /* Arxys brand tokens — source: ADR 0025 */
+  /* Arxys brand tokens — source: ADR 0025, repalette ADR 0075 */
   --color-arxys-gold: #fbb040;
-  --color-arxys-gold-hover: #e69e2c;
-  --color-arxys-text-on-gold: #1a1a1a;
+  --color-arxys-gold-hover: #eaa52c;
+  --color-arxys-gold-text: #c17f10;   /* legible gold on white (ADR 0075) */
+  --color-arxys-text-on-gold: #1a1205;
   --color-arxys-grey: #d1d2d4;
-  /* Price book tokens — scoped to /price-book/* routes (ADR 0032) */
-  --color-arxys-navy: #054A91;
-  --color-arxys-navy-deep: #03396f;
-  --color-arxys-navy-soft: #f0f5fa;
+  /* Navy accent — ADR 0075 shifts #054A91 → #14346b (cascades to price-book + compare) */
+  --color-arxys-navy: #14346b;
+  --color-arxys-navy-deep: #0d244a;
+  --color-arxys-navy-soft: #eef2f8;
   --font-poppins: "Poppins", system-ui, sans-serif;
 
-  /* ── Portal UI design system — ADR 0067 ──────────────────────────────
-   * Calm, flat, HIGH CONTRAST. One accent = arxys-navy (above). Gold is
-   * retired from buttons/actions. Surfaces are true white on a tinted page;
-   * borders are firmed one step up from hairline grey. */
-  --color-page: #f3f5f9;          /* tinted page background */
+  /* ── Portal UI design system — ADR 0067, repalette ADR 0075 ──────────
+   * Higher-contrast, warmer surface. One primary accent = arxys-navy; gold
+   * reinstated as a sparing brand accent (favourites, dots, eyebrows, one
+   * amber button). Surfaces true white on a warm-grey page. */
+  --color-page: #e7eaee;          /* warm-grey page background */
   --color-surface: #ffffff;       /* true-white card surface */
-  --color-line: #cdd5e0;          /* firmed card/panel border (used at 2px) */
-  --color-line-strong: #c4cdda;   /* NavCard resting border (used at 3px) */
-  --color-line-soft: #e6e9ef;     /* inner dividers / table rows */
-  --color-ink: #14181f;           /* near-black — all content text */
-  --color-ink-soft: #5a6573;      /* secondary text — subtitles / labels only */
-  --color-secondary: #e7eaef;         /* secondary-button fill */
-  --color-secondary-hover: #dbe0e8;
-  --color-danger: #c0362c;            /* destructive */
+  --color-panel: #f4f6fa;         /* header strips / table headers / section bands */
+  --color-line: #d7dce3;          /* card/panel border (used at 2px) */
+  --color-line-strong: #cdd5e0;   /* NavCard resting border (used at 3px) */
+  --color-line-soft: #eceef2;     /* inner dividers / table rows */
+  --color-ink: #111826;           /* near-black — all content text */
+  --color-ink-soft: #4a5568;      /* secondary text — subtitles / labels (floor) */
+  --color-secondary: #e7edf7;         /* secondary/outline hover fill (navy tint) */
+  --color-secondary-hover: #dbe4f2;
+  --color-danger: #c0392b;            /* destructive / Lost */
   --color-danger-deep: #9f2b22;
   --color-danger-soft: #fbeceb;
+  /* Submission status accents — ADR 0075 (mirror STATUS_META dots) */
+  --color-status-sent: #2b62c9;
+  --color-status-won: #177a4f;
+  --color-status-lost: #c0392b;
+  --color-status-hold: #d98a1e;
+  --color-status-draft: #8a93a0;
+  --color-status-none: #b7bfc9;
 }
 
 body {

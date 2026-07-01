@@ -1,9 +1,9 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { signOut } from "./_actions/logout";
+import PortalHeader from "./_components/portal-header";
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const supabase = await createSupabaseServerClient();
@@ -48,80 +48,14 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   const isAdminOrInternal = isAdmin || isInternal;
 
   return (
-    <div className="min-h-screen bg-neutral-50">
-      <header className="border-b border-neutral-200 bg-white">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
-          <div className="flex items-center gap-3">
-            <img
-              src="/email/arxys-logo.png"
-              alt="Arxys"
-              width={140}
-              height={24}
-              style={{ height: "auto" }}
-            />
-            {partner ? (
-              <p className="text-xs text-neutral-500">
-                {partner.company_name} · {partner.contact_name}
-                {partner.role === "admin" ? " · admin" : null}
-              </p>
-            ) : (
-              <p className="text-xs text-amber-600">
-                Your account is missing a partner record. Contact an admin.
-              </p>
-            )}
-          </div>
-          <div className="flex items-center gap-4">
-            <nav className="hidden sm:flex items-center gap-1 text-sm">
-              <Link
-                href="/dashboard"
-                className="px-3 py-1.5 text-neutral-600 hover:text-neutral-900 rounded hover:bg-neutral-100"
-              >
-                Dashboard
-              </Link>
-              <Link
-                href="/calculator"
-                className="px-3 py-1.5 text-neutral-600 hover:text-neutral-900 rounded hover:bg-neutral-100"
-              >
-                Calculator
-              </Link>
-              <Link
-                href="/submissions"
-                className="px-3 py-1.5 text-neutral-600 hover:text-neutral-900 rounded hover:bg-neutral-100"
-              >
-                Pipeline
-              </Link>
-              <Link
-                href="/videox-compare"
-                className="px-3 py-1.5 text-neutral-600 hover:text-neutral-900 rounded hover:bg-neutral-100"
-              >
-                QuickCompare
-              </Link>
-              <Link
-                href="/price-book"
-                className="px-3 py-1.5 text-neutral-600 hover:text-neutral-900 rounded hover:bg-neutral-100"
-              >
-                Price Book
-              </Link>
-            </nav>
-            {isAdminOrInternal ? (
-              <Link
-                href="/admin"
-                className="rounded border border-neutral-300 px-3 py-1.5 text-sm text-neutral-700 hover:bg-neutral-100"
-              >
-                Admin
-              </Link>
-            ) : null}
-            <form action={signOut}>
-              <button
-                type="submit"
-                className="rounded border border-neutral-300 px-3 py-1.5 text-sm text-neutral-700 hover:bg-neutral-100"
-              >
-                Sign out
-              </button>
-            </form>
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen bg-page">
+      <PortalHeader
+        contactName={partner?.contact_name ?? null}
+        companyName={partner?.company_name ?? null}
+        hasPartner={Boolean(partner)}
+        showAdmin={isAdminOrInternal}
+        signOutAction={signOut}
+      />
       <main className="mx-auto max-w-7xl px-4 py-8">{children}</main>
     </div>
   );

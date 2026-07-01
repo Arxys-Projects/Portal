@@ -78,10 +78,10 @@ export default function HelpModal() {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-1.5 rounded-full border border-neutral-300 bg-white px-3 py-1 text-xs font-medium text-neutral-600 shadow-sm transition hover:border-neutral-400 hover:text-neutral-900"
+        className="inline-flex items-center gap-1.5 text-[13.5px] font-medium text-[#3a4351] transition-colors hover:text-arxys-navy"
         aria-label="Open portal help guide"
       >
-        <span className="flex h-4 w-4 items-center justify-center rounded-full bg-neutral-200 text-[10px] font-bold leading-none text-neutral-700">?</span>
+        <span className="flex h-[18px] w-[18px] items-center justify-center rounded-full border border-arxys-navy text-[11px] font-bold leading-none text-arxys-navy">?</span>
         Portal guide
       </button>
 

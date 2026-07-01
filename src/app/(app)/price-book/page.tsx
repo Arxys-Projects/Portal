@@ -55,7 +55,7 @@ export default async function PriceBookIndexPage() {
   return (
     <div>
       {/* ── Page hero ── */}
-      <section className="bg-[#054A91] text-white -mx-4 -mt-8 px-4 py-5">
+      <section className="bg-[linear-gradient(135deg,#173a72,#0d2247)] text-white -mx-4 -mt-8 px-4 py-5">
         <div className="mx-auto max-w-5xl flex flex-col md:flex-row md:items-center md:justify-between gap-8">
           {/* Left: copy */}
           <div className="flex-1">
@@ -110,9 +110,9 @@ export default async function PriceBookIndexPage() {
 
       {/* ── H.265 + Enterprise Grade (two-column row) ── */}
       <div className="mx-auto max-w-5xl mt-8">
-        <div className="grid grid-cols-1 md:[grid-template-columns:38%_62%] rounded-lg border border-neutral-200 overflow-hidden">
+        <div className="grid grid-cols-1 md:[grid-template-columns:38%_62%] rounded-lg border border-line overflow-hidden">
           {/* Left 38% — H.265 performance */}
-          <section className="bg-[#1E4E8C] text-white border-r border-white/10 p-5">
+          <section className="bg-[#14346b] text-white border-r border-white/10 p-5">
             <div className="flex items-center gap-3 mb-3">
               <span className="inline-block rounded border border-[#fbb040] px-2 py-0.5 text-xs font-bold text-[#fbb040] tracking-widest uppercase">
                 H.265 HEVC
@@ -132,7 +132,7 @@ export default async function PriceBookIndexPage() {
                 href="https://www.arxys.com/videox-v5-launch-deliver-on-the-promise-of-h-265-today/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center rounded bg-[#fbb040] px-5 py-2.5 text-sm font-semibold text-[#1a1a1a] transition hover:bg-[#e69e2c]"
+                className="inline-flex items-center rounded bg-[#fbb040] px-5 py-2.5 text-sm font-semibold text-[#1a1205] transition hover:bg-[#eaa52c]"
               >
                 Learn More →
               </a>
@@ -141,13 +141,13 @@ export default async function PriceBookIndexPage() {
 
           {/* Right 62% — Enterprise Grade */}
           <div className="bg-white p-5">
-            <p className="font-bold text-neutral-900 text-sm mb-3">
+            <p className="font-bold text-ink text-sm mb-3">
               Enterprise Grade:{" "}
               <span className="font-normal">
                 Arxys VideoX servers come standard with:
               </span>
             </p>
-            <div className="grid grid-cols-2 gap-x-8 gap-y-1.5 text-sm text-neutral-900">
+            <div className="grid grid-cols-2 gap-x-8 gap-y-1.5 text-sm text-ink">
               <ul className="space-y-1.5">
                 {[
                   "Microsoft Windows Server 2022 or 2025",
@@ -183,7 +183,7 @@ export default async function PriceBookIndexPage() {
       <div className="mx-auto max-w-5xl py-10">
         {sections.map((section) => (
           <div key={section.cat} className="mt-10 first:mt-0">
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-neutral-500">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-ink-soft">
               {section.label}
               <span className="ml-2 normal-case font-normal">
                 · {section.warranty}
@@ -194,7 +194,7 @@ export default async function PriceBookIndexPage() {
                 <Link
                   key={family.slug}
                   href={`/price-book/${family.slug}`}
-                  className="group block rounded-lg border border-neutral-200 bg-white overflow-hidden hover:border-[#054A91] transition"
+                  className="group block rounded-lg border border-line bg-white overflow-hidden hover:border-[#14346b] transition"
                 >
                   <div className="aspect-[4/3] bg-neutral-50 flex items-center justify-center p-6">
                     {family.heroImage ? (
@@ -205,24 +205,24 @@ export default async function PriceBookIndexPage() {
                         className="max-h-full object-contain"
                       />
                     ) : (
-                      <span className="text-[#fbb040] font-bold text-3xl">
+                      <span className="text-[#c17f10] font-bold text-3xl">
                         {family.shortName}
                       </span>
                     )}
                   </div>
-                  <div className="p-4 border-t border-neutral-100">
-                    <p className="text-xs font-semibold text-[#fbb040] uppercase tracking-wide">
+                  <div className="p-4 border-t border-line-soft">
+                    <p className="text-xs font-semibold text-[#c17f10] uppercase tracking-wide">
                       {family.cardEyebrow}
                     </p>
-                    <h3 className="mt-1 font-semibold text-[#054A91]">
+                    <h3 className="mt-1 font-semibold text-[#14346b]">
                       {family.displayName}
                     </h3>
-                    <p className="mt-1 text-xs text-neutral-600 leading-snug line-clamp-2">
+                    <p className="mt-1 text-xs text-ink-soft leading-snug line-clamp-2">
                       {family.tagline}
                     </p>
                     <div className="mt-3 flex items-baseline justify-between">
-                      <span className="text-xs text-neutral-500">From</span>
-                      <span className="text-lg font-semibold text-[#054A91]">
+                      <span className="text-xs text-ink-soft">From</span>
+                      <span className="text-lg font-semibold text-[#14346b]">
                         {formatFrom(minBySlug.get(family.slug) ?? null)}
                       </span>
                     </div>
@@ -234,7 +234,7 @@ export default async function PriceBookIndexPage() {
         ))}
 
         {/* Disclaimer + footer */}
-        <div className="mt-12 pt-6 border-t border-neutral-200 text-xs text-neutral-500 leading-relaxed">
+        <div className="mt-12 pt-6 border-t border-line text-xs text-ink-soft leading-relaxed">
           <p>
             Prices and specs subject to change without notice. All tariff taxes
             are passed on to buyers. Prices and quotes expire immediately upon

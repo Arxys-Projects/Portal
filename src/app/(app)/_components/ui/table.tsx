@@ -15,7 +15,7 @@ export function Table({
   children: ReactNode;
 }) {
   return (
-    <div className="overflow-x-auto rounded-xl border-2 border-line">
+    <div className="overflow-x-auto rounded-[14px] border border-line">
       <table className={cx("w-full border-collapse text-sm", className)}>
         {children}
       </table>
@@ -60,8 +60,8 @@ export function TH({
   return (
     <th
       className={cx(
-        "border-b-2 border-line bg-arxys-navy-soft px-3.5 py-2.5",
-        "text-[11px] font-extrabold uppercase tracking-wide text-ink-soft",
+        "border-b border-line bg-panel px-3.5 py-2.5",
+        "text-[11px] font-bold uppercase tracking-[0.06em] text-[#3f4b5b]",
         numeric ? "text-right" : "text-left",
         className,
       )}

@@ -27,8 +27,8 @@ function PreferredStar({ preferred }: { preferred: boolean }) {
       width="16"
       height="16"
       viewBox="0 0 24 24"
-      fill={preferred ? "#054A91" : "none"}
-      stroke={preferred ? "#054A91" : "#d4d4d4"}
+      fill={preferred ? "#14346b" : "none"}
+      stroke={preferred ? "#14346b" : "#c8cfda"}
       strokeWidth="2"
       strokeLinejoin="round"
       aria-label={preferred ? "Preferred quote" : "Not preferred"}

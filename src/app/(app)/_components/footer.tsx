@@ -1,6 +1,6 @@
 export default function Footer() {
   return (
-    <div className="mt-12 pt-6 border-t border-neutral-200 text-xs text-neutral-500 leading-relaxed">
+    <div className="mt-12 pt-6 border-t border-line text-xs text-ink-soft leading-relaxed">
       <p>
         Prices and specs subject to change without notice. Arxys reserves the
         right to substitute components, ensuring equivalent or superior
@@ -12,7 +12,7 @@ export default function Footer() {
         © Arxys 2026 · VideoX© · DataX© · AnalyticX©{" "}
         <a
           href="https://www.arxys.com"
-          className="text-[#054A91] hover:underline"
+          className="text-arxys-navy hover:underline"
           target="_blank"
           rel="noopener noreferrer"
         >
@@ -21,7 +21,7 @@ export default function Footer() {
         ·{" "}
         <a
           href="https://www.arxys.com/about/"
-          className="text-[#054A91] hover:underline"
+          className="text-arxys-navy hover:underline"
           target="_blank"
           rel="noopener noreferrer"
         >
@@ -30,7 +30,7 @@ export default function Footer() {
         ·{" "}
         <a
           href="https://www.arxys.com/support/"
-          className="text-[#054A91] hover:underline"
+          className="text-arxys-navy hover:underline"
           target="_blank"
           rel="noopener noreferrer"
         >
@@ -39,7 +39,7 @@ export default function Footer() {
         ·{" "}
         <a
           href="https://www.arxys.com/contact/"
-          className="text-[#054A91] hover:underline"
+          className="text-arxys-navy hover:underline"
           target="_blank"
           rel="noopener noreferrer"
         >

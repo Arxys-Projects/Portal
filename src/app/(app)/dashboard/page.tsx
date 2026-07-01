@@ -5,10 +5,10 @@ import {
   Card,
   NavCard,
   MetricTile,
-  StatusBadge,
 } from "@/app/(app)/_components/ui";
+import Link from "next/link";
+import type { ReactNode } from "react";
 import RegisterDealForm from "./register-deal-form";
-import HelpModal from "./help-modal";
 import {
   CalculatorIcon,
   PipelineIcon,
@@ -21,7 +21,7 @@ import {
   DealIcon,
 } from "./icons";
 import { groupIntoDeals, computeWeightedForecast, type SubmissionRow } from "@/lib/pipeline/forecast";
-import { type SubmissionStatus } from "@/app/(app)/submissions/status";
+import { STATUS_META, type SubmissionStatus } from "@/app/(app)/submissions/status";
 
 export default async function DashboardPage() {
   const supabase = await createSupabaseServerClient();
@@ -90,143 +90,227 @@ export default async function DashboardPage() {
       statusCounts[s] = (statusCounts[s] ?? 0) + 1;
     }
   }
-  const statusEntries = Object.entries(statusCounts) as [SubmissionStatus, number][];
+
+  const recent = ownSubmissions.slice(0, 3);
+  const firstName = partner?.contact_name?.trim().split(/\s+/)[0] ?? null;
+  const sentCount = statusCounts["sent"] ?? 0;
 
   return (
-    <div className="min-h-screen bg-page">
-      <div className="mx-auto max-w-5xl px-4 py-10">
-        <div className="flex items-center gap-3">
-          <h1 className="text-3xl font-extrabold tracking-tight text-ink">
-            Arxys Partner Dashboard
-          </h1>
-          <HelpModal />
-        </div>
-        <p className="mt-1 text-sm text-ink-soft">
-          Welcome back{partner?.contact_name ? `, ${partner.contact_name}` : ""}
-          {partner?.company_name ? ` · ${partner.company_name}` : ""}.
-        </p>
+    <div className="mx-auto max-w-6xl">
+      {/* Greeting */}
+      <h1 className="text-3xl font-extrabold tracking-tight text-ink">
+        Welcome back{firstName ? `, ${firstName}` : ""}
+      </h1>
+      <p className="mt-1 text-sm text-ink-soft">
+        Arxys{partner?.company_name ? ` · ${partner.company_name}` : ""} — here&apos;s
+        your pipeline and tools.
+      </p>
 
-        <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {/* ── Tools ── */}
-          <NavCard
-            href="/calculator"
-            icon={<CalculatorIcon />}
-            title="Calculator"
-            subtitle="Estimate bandwidth and storage for a new deployment."
+      {/* Metric strip — each tile links into the pipeline */}
+      <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <Link href="/submissions" className="block">
+          <MetricTile
+            variant="stat"
+            label="Open pipeline"
+            value={fmtPrice(totalOpenPipeline)}
+            className="h-full transition-colors hover:border-arxys-navy"
           />
-          <NavCard
-            href="/submissions"
-            icon={<PipelineIcon />}
-            title="My Pipeline"
-            subtitle="Browse your past calculator submissions and reports."
+        </Link>
+        <Link href="/submissions" className="block">
+          <MetricTile
+            variant="stat"
+            label="Weighted forecast"
+            value={fmtPrice(weightedForecast)}
+            className="h-full transition-colors hover:border-arxys-navy"
           />
-          <NavCard
-            href="/price-book"
-            icon={<PriceBookIcon />}
-            title="VideoX V5 Price Book"
-            subtitle="Browse families, specs, and current MSRPs."
+        </Link>
+        <Link href={{ pathname: "/submissions", query: { status: "sent" } }} className="block">
+          <MetricTile
+            variant="stat"
+            label="Sent"
+            value={String(sentCount)}
+            className="h-full transition-colors hover:border-arxys-navy"
           />
-
-          {/* ── Pipeline Summary — data panel, no arrow (not a destination) ── */}
-          {deals.length > 0 ? (
-            <Card className="lg:col-span-3 sm:col-span-2">
-              <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <h2 className="text-base font-bold text-ink">Pipeline Summary</h2>
-                <p className="text-xs text-ink-soft">
-                  Pre-CRM activity — one value per project (preferred or most recent quote).
-                </p>
-              </div>
-              <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                <MetricTile label="Open pipeline" value={fmtPrice(totalOpenPipeline)} />
-                <MetricTile label="Weighted forecast" value={fmtPrice(weightedForecast)} />
-                <MetricTile
-                  label="By status"
-                  value={
-                    statusEntries.length > 0 ? (
-                      <div className="flex flex-wrap gap-1.5 pt-0.5 text-[13px] font-bold">
-                        {statusEntries.map(([st, n]) => (
-                          <StatusBadge key={st} variant="status" status={st}>
-                            {n}
-                          </StatusBadge>
-                        ))}
-                      </div>
-                    ) : (
-                      <span className="text-base text-ink-soft">—</span>
-                    )
-                  }
-                />
-                <MetricTile
-                  label="Drafts (excl. $)"
-                  value={String(draftCount)}
-                />
-              </div>
-            </Card>
-          ) : null}
-
-          {/* ── Resources ── */}
-          <NavCard
-            href="/comparison"
-            icon={<ComparisonIcon />}
-            title="VMS Server Comparison"
-            subtitle="See how Arxys VideoX stacks up against Milestone and Avigilon — spec for spec, price for price."
+        </Link>
+        <Link href={{ pathname: "/submissions", query: { status: "draft" } }} className="block">
+          <MetricTile
+            variant="stat"
+            label="Drafts"
+            value={String(draftCount)}
+            className="h-full transition-colors hover:border-arxys-navy"
           />
-          <NavCard
-            href="/videox-compare"
-            icon={<QuickCompareIcon />}
-            title="VideoX Quick Compare"
-            subtitle="Compare every VideoX V5 NVR model side by side."
-          />
-          <NavCard
-            href="/api/price-book/xlsx"
-            icon={<SpreadsheetIcon />}
-            title="VideoX Price List"
-            subtitle="Download the current VideoX MSRP price book as Excel (XLSX)."
-            variant="download"
-          />
-
-          {/* ── Support (one card) + Register a Deal ── */}
-          <NavCard
-            href="https://www.arxys.com/company/support/"
-            icon={<SupportIcon />}
-            title="Support"
-            subtitle="Documentation and tickets with the Arxys support team."
-            external
-          />
-          <Card className="sm:col-span-2">
-            <div className="flex items-start gap-3">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-arxys-navy-soft text-arxys-navy">
-                <DealIcon />
-              </span>
-              <div className="min-w-0">
-                <h2 className="text-[15px] font-bold text-ink">Register a Deal</h2>
-                <p className="mt-1 text-[13px] text-ink-soft">
-                  Lock in partner protection on a specific opportunity. Andy will follow up.
-                </p>
-              </div>
-            </div>
-            <div className="mt-4">
-              <RegisterDealForm />
-            </div>
-          </Card>
-
-          {/* ── Admin — full-width footer destination ── */}
-          {isAdmin ? (
-            <div className="lg:col-span-3 sm:col-span-2">
-              <NavCard
-                href="/admin"
-                icon={<AdminIcon />}
-                title="Admin"
-                subtitle="Manage partners and review all submissions."
-                fullWidth
-              />
-            </div>
-          ) : null}
-        </div>
-
-        <Footer />
+        </Link>
       </div>
+
+      {/* Calculator hero + pick up where you left off */}
+      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-[1.15fr_1fr]">
+        <div className="rounded-[14px] bg-[linear-gradient(140deg,#1a3f7c,#0d2247)] p-7 text-white">
+          <span className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.12em] text-white/70">
+            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/15 text-white">
+              <CalculatorIcon />
+            </span>
+            Start here
+          </span>
+          <h2 className="mt-3 text-2xl font-bold tracking-tight">
+            Storage &amp; Bandwidth Calculator
+          </h2>
+          <p className="mt-2 max-w-md text-sm leading-relaxed text-white/85">
+            Size a job in minutes — cameras, retention, recording mode. H.265
+            savings and Arxys pricing calculated automatically.
+          </p>
+          <Link
+            href="/calculator"
+            className="mt-5 inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2.5 text-sm font-semibold text-arxys-navy transition-colors hover:bg-arxys-navy-soft"
+          >
+            New estimate →
+          </Link>
+        </div>
+
+        <div>
+          <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-[#222c3a]">
+            Pick up where you left off
+          </p>
+          {recent.length > 0 ? (
+            <div className="mt-2 space-y-2.5">
+              {recent.map((s) => (
+                <Link
+                  key={s.id}
+                  href={`/calculator?revise=${s.id}`}
+                  className="group block rounded-[14px] border border-line bg-surface px-4 py-3 transition-[transform,border-color,box-shadow] duration-150 hover:-translate-y-0.5 hover:border-arxys-navy hover:shadow-[0_10px_24px_-12px_rgba(15,42,83,0.30)]"
+                >
+                  <p className="truncate text-sm font-semibold text-ink">
+                    {s.project_name?.trim() || "Untitled quote"}
+                  </p>
+                  <p className="mt-0.5 text-xs text-ink-soft">
+                    {s.status
+                      ? STATUS_META[s.status as SubmissionStatus]?.label ?? "No status"
+                      : "No status"}{" "}
+                    · {fmtEditedDate(s.created_at)}
+                  </p>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <p className="mt-2 text-sm text-ink-soft">No saved quotes yet.</p>
+          )}
+          <Link
+            href="/submissions"
+            className="mt-3 inline-block text-sm font-semibold text-arxys-navy hover:underline"
+          >
+            View all saved quotes →
+          </Link>
+        </div>
+      </div>
+
+      {/* ── Tools ── */}
+      <SectionLabel>Tools</SectionLabel>
+      <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <NavCard
+          href="/calculator"
+          icon={<CalculatorIcon />}
+          title="Calculator"
+          subtitle="Estimate bandwidth and storage for a new deployment."
+        />
+        <NavCard
+          href="/submissions"
+          icon={<PipelineIcon />}
+          title="My Pipeline"
+          subtitle="Browse your past calculator submissions and reports."
+        />
+      </div>
+
+      {/* ── Reference ── */}
+      <SectionLabel>Reference</SectionLabel>
+      <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <NavCard
+          href="/price-book"
+          icon={<PriceBookIcon />}
+          title="VideoX V5 Price Book"
+          subtitle="Browse families, specs, and current MSRPs."
+        />
+        <NavCard
+          href="/comparison"
+          icon={<ComparisonIcon />}
+          title="VMS Server Comparison"
+          subtitle="See how Arxys VideoX stacks up against Milestone, Avigilon, and Genetec — spec for spec, price for price."
+        />
+        <NavCard
+          href="/videox-compare"
+          icon={<QuickCompareIcon />}
+          title="VideoX Quick Compare"
+          subtitle="Compare every VideoX V5 NVR model side by side."
+        />
+        <NavCard
+          href="/api/price-book/xlsx"
+          icon={<SpreadsheetIcon />}
+          title="VideoX Price List"
+          subtitle="Download the current VideoX MSRP price book as Excel (XLSX)."
+          variant="download"
+        />
+      </div>
+
+      {/* ── Your work ── */}
+      <SectionLabel>Your work</SectionLabel>
+      <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <Card className="sm:col-span-2">
+          <div className="flex items-start gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-arxys-navy-soft text-arxys-navy">
+              <DealIcon />
+            </span>
+            <div className="min-w-0">
+              <h2 className="text-[15px] font-bold text-ink">Register a Deal</h2>
+              <p className="mt-1 text-[13px] text-ink-soft">
+                Lock in partner protection on a specific opportunity. Andy will
+                follow up.
+              </p>
+            </div>
+          </div>
+          <div className="mt-4">
+            <RegisterDealForm />
+          </div>
+        </Card>
+        <NavCard
+          href="https://www.arxys.com/company/support/"
+          icon={<SupportIcon />}
+          title="Support"
+          subtitle="Documentation and tickets with the Arxys support team."
+          external
+        />
+      </div>
+
+      {isAdmin ? (
+        <div className="mt-8">
+          <NavCard
+            href="/admin"
+            icon={<AdminIcon />}
+            title="Admin"
+            subtitle="Manage partners and review all submissions."
+            fullWidth
+          />
+        </div>
+      ) : null}
+
+      <Footer />
     </div>
   );
+}
+
+function SectionLabel({ children }: { children: ReactNode }) {
+  return (
+    <h2 className="mt-8 text-[12.5px] font-bold uppercase tracking-[0.1em] text-[#222c3a]">
+      {children}
+    </h2>
+  );
+}
+
+function fmtEditedDate(value: string): string {
+  const then = new Date(value).getTime();
+  if (Number.isNaN(then)) return "—";
+  const days = Math.floor((Date.now() - then) / 86_400_000);
+  if (days <= 0) return "today";
+  if (days === 1) return "1 day ago";
+  if (days < 30) return `${days} days ago`;
+  return new Date(value).toISOString().slice(0, 10);
 }
 
 function fmtPrice(n: number): string {

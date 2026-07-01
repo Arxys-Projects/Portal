@@ -18,7 +18,7 @@ export function Select({
     <div className="relative">
       <select
         className={cx(
-          "w-full appearance-none rounded-lg border border-line bg-surface text-ink",
+          "w-full appearance-none rounded-lg border border-[#b9c4d5] bg-surface text-ink",
           "text-sm pl-3 pr-9 py-2.5 cursor-pointer transition-colors",
           "focus:outline-none focus:border-arxys-navy focus:ring-2 focus:ring-arxys-navy/15",
           "disabled:opacity-50 disabled:cursor-not-allowed",

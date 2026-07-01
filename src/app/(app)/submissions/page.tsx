@@ -52,8 +52,8 @@ export default async function PartnerSubmissionsPage({
     console.error("[load submissions]", error);
     return (
       <div>
-        <h1 className="text-2xl font-semibold text-neutral-900">My Pipeline</h1>
-        <p className="mt-3 text-sm text-red-600">
+        <h1 className="text-2xl font-bold text-ink">My Pipeline</h1>
+        <p className="mt-3 text-sm text-danger">
           Failed to load submissions. Please try again.
         </p>
       </div>
