@@ -14,7 +14,8 @@ Extended the Phase 10 single-sensor fixed-camera library (ADR 0062 curation rule
 - [`data/hanwha-camera-specs.json`](../data/hanwha-camera-specs.json): added **Hanwha TNV-C7013RC** (outdoor corner/wedge mount, 2.39mm fixed lens, 2048x1536, aliases `TNVC7013RC` / `TNV-C7013` / `Wisenet TNV-C7013RC`). Hanwha single-sensor file: 23 → 24 rows.
 - All three: `sensor_count: 1`, `sensor_detail: null`, `currently_shipping: true`, `as_of_date: "2026-07-01"`, `source_url` set to the vendor's own product page (Axis product pages; Hanwha Vision global product page for the Hanwha model, matching the URL pattern already used for other `hanwhavision.com`-hosted rows in the file).
 - Combined single-sensor Axis + Hanwha + Avigilon seed set: 68 → 71 rows.
-- Ran `scripts/validate-camera-specs.ts` against both edited files — all 11 rules pass (uniqueness, resolution-bucket mapping, well-formed URLs, etc.). Not yet loaded into Supabase; that's a separate, gated step (`scripts/load-camera-specs.ts`, admin-only, typed CONFIRM) left for whoever runs the next load pass.
+- Ran `scripts/validate-camera-specs.ts` against both edited files — all 11 rules pass (uniqueness, resolution-bucket mapping, well-formed URLs, etc.).
+- Loaded into the live Supabase `camera_specs` table via `scripts/load-camera-specs.ts` (dry-run previewed 2 new/26 update for Axis and 1 new/23 update for Hanwha; both matched exactly on the real run, confirming no unrelated rows drifted). Verified the 3 new rows by direct query post-load.
 
 ### Detours & fixes
 
