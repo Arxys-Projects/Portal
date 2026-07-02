@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 import { requireAdminOrInternal } from "@/lib/auth/require-admin-or-internal";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 import AdminNav from "./_components/admin-nav";
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
@@ -11,10 +12,18 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   const gate = await requireAdminOrInternal();
   if (!gate.ok) notFound();
 
+  // Pending access-request count for the nav badge. RLS lets admin/internal
+  // read access_requests; no polling — refreshes on normal navigation.
+  const supabase = await createSupabaseServerClient();
+  const { count: pendingRequests } = await supabase
+    .from("access_requests")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "pending");
+
   return (
     <div className="grid grid-cols-1 gap-6 md:grid-cols-[208px_1fr]">
       <nav className="md:sticky md:top-4 md:self-start">
-        <AdminNav />
+        <AdminNav pendingRequests={pendingRequests ?? 0} />
       </nav>
       <div>{children}</div>
     </div>

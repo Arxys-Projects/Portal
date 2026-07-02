@@ -134,6 +134,29 @@ export async function invitePartner(
     };
   }
 
+  // Approve → convert an access request (ADR 0077). Only stamp on a fully
+  // successful invite (auth user + partners row created), so a failed invite
+  // never silently marks a request approved. The requestId is optional — plain
+  // invites (not started from a request) omit it. Guard on status='pending' so
+  // a re-approve can't overwrite an already-converted row's converted_at.
+  const requestId = String(formData.get("requestId") ?? "");
+  if (requestId && z.uuid().safeParse(requestId).success) {
+    const { error: convertErr } = await admin
+      .from("access_requests")
+      .update({ status: "approved", converted_at: new Date().toISOString() })
+      .eq("id", requestId)
+      .eq("status", "pending");
+    if (convertErr) {
+      // Non-fatal: the invite already succeeded. Log so an admin can reconcile
+      // the request row manually; do not fail the action.
+      console.error("access_request conversion failed", {
+        requestId,
+        error: convertErr.message,
+      });
+    }
+    revalidatePath("/admin/requests");
+  }
+
   revalidatePath("/admin/partners");
   return {
     status: "ok",

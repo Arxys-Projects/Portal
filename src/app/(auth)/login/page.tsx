@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { LoginForm } from "./login-form";
+import { RequestAccessForm } from "./request-access-form";
 
 type Search = Promise<{ next?: string; error?: string }>;
 
@@ -43,6 +44,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Search
           .
         </p>
       </div>
+      <RequestAccessForm />
       <p className="mt-4 text-center text-sm text-neutral-600">
         <Link href="/forgot-password" className="text-blue-600 hover:underline">
           Forgot password?

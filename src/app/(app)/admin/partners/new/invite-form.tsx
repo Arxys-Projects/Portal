@@ -12,7 +12,19 @@ function FieldError({ errors }: { errors?: string[] }) {
   return <p className="mt-1 text-xs text-red-600">{errors[0]}</p>;
 }
 
-export function InviteForm({ showInternalToggle = false }: { showInternalToggle?: boolean }) {
+export function InviteForm({
+  showInternalToggle = false,
+  defaultEmail = "",
+  defaultContactName = "",
+  defaultCompanyName = "",
+  requestId,
+}: {
+  showInternalToggle?: boolean;
+  defaultEmail?: string;
+  defaultContactName?: string;
+  defaultCompanyName?: string;
+  requestId?: string;
+}) {
   const [state, formAction, pending] = useActionState<InviteState, FormData>(
     invitePartner,
     INITIAL,
@@ -21,6 +33,9 @@ export function InviteForm({ showInternalToggle = false }: { showInternalToggle?
 
   return (
     <form action={formAction} className="space-y-4">
+      {requestId ? (
+        <input type="hidden" name="requestId" value={requestId} />
+      ) : null}
       <div>
         <label
           htmlFor="email"
@@ -34,6 +49,7 @@ export function InviteForm({ showInternalToggle = false }: { showInternalToggle?
           type="email"
           required
           autoComplete="off"
+          defaultValue={defaultEmail}
           className="mt-1 block w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink focus:border-arxys-navy focus:outline-none focus:ring-2 focus:ring-arxys-navy/15"
         />
         <FieldError errors={fieldErrors?.email} />
@@ -50,6 +66,7 @@ export function InviteForm({ showInternalToggle = false }: { showInternalToggle?
           name="contactName"
           type="text"
           required
+          defaultValue={defaultContactName}
           className="mt-1 block w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink focus:border-arxys-navy focus:outline-none focus:ring-2 focus:ring-arxys-navy/15"
         />
         <FieldError errors={fieldErrors?.contactName} />
@@ -66,6 +83,7 @@ export function InviteForm({ showInternalToggle = false }: { showInternalToggle?
           name="companyName"
           type="text"
           required
+          defaultValue={defaultCompanyName}
           className="mt-1 block w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink focus:border-arxys-navy focus:outline-none focus:ring-2 focus:ring-arxys-navy/15"
         />
         <FieldError errors={fieldErrors?.companyName} />

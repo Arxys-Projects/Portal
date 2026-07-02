@@ -11,10 +11,11 @@ import { cx } from "@/app/(app)/_components/ui/styles";
 const ITEMS = [
   { label: "Overview", href: "/admin", exact: true },
   { label: "Partners", href: "/admin/partners" },
+  { label: "Requests", href: "/admin/requests" },
   { label: "Partner Pipeline", href: "/admin/submissions" },
 ];
 
-export default function AdminNav() {
+export default function AdminNav({ pendingRequests = 0 }: { pendingRequests?: number }) {
   const pathname = usePathname();
   const isActive = (href: string, exact?: boolean) =>
     exact ? pathname === href : pathname === href || pathname.startsWith(href + "/");
@@ -33,13 +34,30 @@ export default function AdminNav() {
         Admin
       </p>
       <ul className="flex flex-col gap-1">
-        {ITEMS.map((item) => (
-          <li key={item.href}>
-            <Link href={item.href} className={linkClass(isActive(item.href, item.exact))}>
-              {item.label}
-            </Link>
-          </li>
-        ))}
+        {ITEMS.map((item) => {
+          const showBadge = item.href === "/admin/requests" && pendingRequests > 0;
+          return (
+            <li key={item.href}>
+              <Link
+                href={item.href}
+                className={cx(
+                  linkClass(isActive(item.href, item.exact)),
+                  "flex items-center justify-between gap-2",
+                )}
+              >
+                <span>{item.label}</span>
+                {showBadge ? (
+                  <span
+                    className="inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-arxys-gold px-1.5 py-0.5 text-[11px] font-bold leading-none text-arxys-text-on-gold"
+                    aria-label={`${pendingRequests} pending`}
+                  >
+                    {pendingRequests}
+                  </span>
+                ) : null}
+              </Link>
+            </li>
+          );
+        })}
       </ul>
       <p className="mt-6 mb-2 text-[11px] font-bold uppercase tracking-[0.09em] text-[#5c6472]">
         Back to

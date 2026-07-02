@@ -4,6 +4,64 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-07-02 — Public "Request access" intake (first anonymous write path)
+
+### Work done
+
+Added a public **Request access** form to the login page for partners who haven't been
+invited, plus an admin surface to triage the submissions. No email is sent anywhere — the
+new table is the entire notification mechanism, and every request needs a human click to
+become an invite.
+
+- **New table `access_requests`** (migration `20260702000002_access_requests.sql`, staged —
+  not yet applied): `id, name, email, company_name, status(pending/approved/rejected),
+  ip_address, existing_user, created_at, converted_at`. RLS: `anon` gets **nothing**;
+  `authenticated` SELECT/UPDATE narrowed to `is_admin OR is_internal`; no INSERT/DELETE policy.
+  Rollback in `supabase/rollback/access-requests-rollback.sql`.
+- **Public form** (`(auth)/login/request-access-form.tsx`) — a collapsible `<details>` box
+  below "First time here?", three fields (name / work email / company). Wired into
+  `login/page.tsx`. **Honeypot**: an off-screen (`left:-9999px`, not `display:none`),
+  `aria-hidden`, `tabIndex=-1` input named `website`; if filled, the action returns the same
+  success UI without inserting.
+- **`requestAccess` server action** (`(auth)/login/request-access-actions.ts`) runs
+  honeypot → validate → capture IP (`x-forwarded-for` first entry, else `x-real-ip`) → pending
+  dedup → throttle (≥3/IP in 1h or ≥3/email in 24h) → `existing_user` flag (reuses the partners
+  page's `admin.auth.admin.listUsers` join — no second lookup path) → **service-role insert**.
+  Email is lower-cased on the way in.
+- **Admin surface**: new `/admin/requests` page (pending-first table), `rejectAccessRequest`
+  action (confirm-dialog Reject, mirrors Suspend), and `RequestRowActions` with an
+  **Approve → invite** link. New **Requests** nav item in `AdminNav` with a pending-count badge
+  fed by a count query in the admin layout (RLS lets admin/internal read it; refreshes on
+  navigation, no polling).
+- **Approve → prefill handoff**:
+  `/admin/partners/new?requestId={id}&email={email}&contactName={name}&companyName={company_name}`
+  (param names match the invite form's input names → straight-through prefill). `invitePartner`
+  now reads optional `requestId` and, **only on a fully successful invite**, stamps the request
+  `status='approved', converted_at=now()` (guarded on `status='pending'`). A failed invite leaves
+  the request `pending`; a failed conversion update is logged, not fatal.
+- **RLS suite** (`scripts/test-rls.ts`) extended with 8 `access_requests` cases (anon INSERT/SELECT
+  denied — Postgres `42501`; plain partner sees/updates nothing; admin & internal SELECT + UPDATE;
+  service-role seed). Migration applied to cloud 2026-07-02; **all 8 pass** (+ the 43 pre-existing
+  cases, no regression). Run with `node --env-file=.env.local --import tsx scripts/test-rls.ts`.
+- **Verified**: `next build` green (`/admin/requests` registered, TypeScript clean); my files lint
+  clean; `/login` renders and expands the box with no console errors and the honeypot confirmed
+  off-screen/untabbable. Full submit→badge→approve→invite loop is a manual check after `db push`.
+
+### Detours & fixes
+
+- **Security deviation from the brief, confirmed before building.** The brief specified an
+  `anon: INSERT-only` RLS policy. But the anon key is public (`NEXT_PUBLIC_`), so granting anon
+  INSERT lets anyone POST directly to Supabase and bypass the server-side honeypot/throttle/dedup.
+  Since the form must go through a server action anyway (you can't capture IP or throttle a direct
+  anon insert), the write goes through `service_role` and `anon` gets **no** grant — strictly more
+  secure. Captured in ADR 0077.
+
+### Decisions captured
+
+- [`0077-anonymous-access-requests.md`](./decisions/0077-anonymous-access-requests.md)
+
+---
+
 ## 2026-07-02 — First production price run: July prices + V270→V265 rename + 4 EOL
 
 ### Work done

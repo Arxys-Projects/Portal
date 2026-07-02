@@ -959,6 +959,152 @@ async function run() {
       // submission (project_quotes.submission_id is on delete restrict).
       await admin.from("project_quotes").delete().eq("submission_id", quoteSubmissionId);
     }
+
+    // --- ADR 0077: access_requests anonymous-intake policies ----------------
+    // anon holds NO grant (write is service_role-only via the requestAccess
+    // action). authenticated SELECT/UPDATE is granted but RLS narrows both to
+    // admin/internal. Plain partners see nothing. adminPersona was reactivated
+    // at 12g so is_admin() is true here.
+    {
+      // A brand-new anon client — signed in to nothing → the `anon` role.
+      const anonClient = createClient(supabaseUrl, anonKey, {
+        auth: { persistSession: false, autoRefreshToken: false },
+      });
+
+      // Seed a pending row via service-role (bypasses RLS) to read/update.
+      const { data: seeded, error: seedErr } = await admin
+        .from("access_requests")
+        .insert({
+          name: "RLS Req Tester",
+          email: `rls-req-${Date.now()}@arxys-rls-test.invalid`,
+          company_name: "RLS Req Co",
+          status: "pending",
+        })
+        .select("id")
+        .single();
+      if (seedErr || !seeded) {
+        record("20: seed access_requests row (service-role)", false, seedErr?.message);
+      }
+      const reqId = (seeded?.id ?? "") as string;
+
+      // Test 20a: anon cannot INSERT (no grant → error, not a silent write).
+      {
+        const { error } = await anonClient.from("access_requests").insert({
+          name: "Anon Attacker",
+          email: `rls-anon-${Date.now()}@arxys-rls-test.invalid`,
+          company_name: "Anon Co",
+        });
+        record(
+          "20a: anon cannot INSERT access_requests (service_role-only write path)",
+          Boolean(error),
+          error ? `blocked: ${error.code ?? error.message}` : "INSERT unexpectedly succeeded",
+        );
+      }
+
+      // Test 20b: anon cannot SELECT — no rows leak (blocked or empty).
+      {
+        const { data, error } = await anonClient
+          .from("access_requests")
+          .select("id");
+        record(
+          "20b: anon cannot SELECT access_requests",
+          Boolean(error) || (data?.length ?? 0) === 0,
+          error ? `blocked: ${error.code ?? error.message}` : `count=${data?.length}`,
+        );
+      }
+
+      // Test 20c: a plain partner (not admin/internal) sees no rows.
+      {
+        const { data, error } = await a.client
+          .from("access_requests")
+          .select("id");
+        record(
+          "20c: plain partner cannot SELECT access_requests",
+          !error && (data?.length ?? 0) === 0,
+          error ? `error: ${error.message}` : `count=${data?.length}`,
+        );
+      }
+
+      // Test 20d: internal user SELECTs the seeded row.
+      {
+        const { data, error } = await internalPersona.client
+          .from("access_requests")
+          .select("id")
+          .eq("id", reqId);
+        record(
+          "20d: internal user can SELECT access_requests",
+          !error && (data?.length ?? 0) === 1,
+          error ? `error: ${error.message}` : `count=${data?.length}`,
+        );
+      }
+
+      // Test 20e: admin SELECTs the seeded row.
+      {
+        const { data, error } = await adminPersona.client
+          .from("access_requests")
+          .select("id")
+          .eq("id", reqId);
+        record(
+          "20e: admin can SELECT access_requests",
+          !error && (data?.length ?? 0) === 1,
+          error ? `error: ${error.message}` : `count=${data?.length}`,
+        );
+      }
+
+      // Test 20f: a plain partner cannot UPDATE (no matching policy → 0 rows,
+      // status unchanged).
+      {
+        const { data, error } = await a.client
+          .from("access_requests")
+          .update({ status: "rejected" })
+          .eq("id", reqId)
+          .select("id");
+        const { data: after } = await admin
+          .from("access_requests")
+          .select("status")
+          .eq("id", reqId)
+          .single();
+        record(
+          "20f: plain partner cannot UPDATE access_requests",
+          !error && (data?.length ?? 0) === 0 && after?.status === "pending",
+          error ? `error: ${error.message}` : `affected=${data?.length} status=${after?.status}`,
+        );
+      }
+
+      // Test 20g: internal user CAN UPDATE status (Reject path).
+      {
+        const { data, error } = await internalPersona.client
+          .from("access_requests")
+          .update({ status: "rejected" })
+          .eq("id", reqId)
+          .select("id");
+        record(
+          "20g: internal user can UPDATE access_requests status",
+          !error && (data?.length ?? 0) === 1,
+          error ? `error: ${error.message}` : `affected=${data?.length}`,
+        );
+      }
+
+      // Test 20h: admin CAN UPDATE status (Approve → converted stamp path).
+      {
+        const { data, error } = await adminPersona.client
+          .from("access_requests")
+          .update({ status: "approved" })
+          .eq("id", reqId)
+          .select("id");
+        record(
+          "20h: admin can UPDATE access_requests status",
+          !error && (data?.length ?? 0) === 1,
+          error ? `error: ${error.message}` : `affected=${data?.length}`,
+        );
+      }
+
+      // Cleanup every RLS access_requests row via service-role.
+      await admin
+        .from("access_requests")
+        .delete()
+        .like("email", "%arxys-rls-test.invalid");
+    }
   } finally {
     await teardownPersona(a);
     await teardownPersona(b);
