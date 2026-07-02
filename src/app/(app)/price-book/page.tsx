@@ -13,15 +13,32 @@ function formatFrom(msrp: number | null): string {
   return `$${msrp.toLocaleString("en-US")}`;
 }
 
+// effective_date is a plain 'YYYY-MM-DD' string from Postgres. Parse it directly —
+// `new Date(iso)` treats it as UTC midnight and can render the previous day locally.
+function formatEffectiveDate(iso: string | null): string | null {
+  if (!iso) return null;
+  const [y, m, d] = iso.split("-");
+  if (!y || !m || !d) return null;
+  return `${m}/${d}/${y}`;
+}
+
 export default async function PriceBookIndexPage() {
   const supabase = await createSupabaseServerClient();
 
   const allGroups = FAMILIES.flatMap((f) => f.productGroups);
   const { data: products } = await supabase
     .from("current_products")
-    .select("product_group, msrp, price_type")
+    .select("product_group, msrp, price_type, effective_date")
     .eq("active", true)
     .in("product_group", allGroups);
+
+  // "Effective" date = the most recent effective_date among the currently-in-effect
+  // prices shown on this page (dates are lexicographically ordered as YYYY-MM-DD).
+  const latestEffective = (products ?? []).reduce<string | null>(
+    (max, p) => (p.effective_date && (!max || p.effective_date > max) ? p.effective_date : max),
+    null,
+  );
+  const effectiveLabel = formatEffectiveDate(latestEffective);
 
   const minBySlug = new Map<string, number | null>();
   for (const f of FAMILIES) {
@@ -73,10 +90,14 @@ export default async function PriceBookIndexPage() {
               30% more margin than Dell-branded quotes.
             </p>
             <div className="mt-4 flex items-center gap-2 flex-wrap">
-              <span className="text-sm font-bold text-white tracking-wide">
-                Effective: 05/05/2026
-              </span>
-              <span className="text-white/60">·</span>
+              {effectiveLabel && (
+                <>
+                  <span className="text-sm font-bold text-white tracking-wide">
+                    Effective: {effectiveLabel}
+                  </span>
+                  <span className="text-white/60">·</span>
+                </>
+              )}
               <a
                 href="https://www.arxys.com/videox-appliances/"
                 target="_blank"

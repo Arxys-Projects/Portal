@@ -25,6 +25,11 @@ First real use of the new pipeline, portal-only (Pipedrive deliberately untouche
   edit) is what also drops them from the **Excel export**, which lists all active SKUs.
 - **Verified** against the cloud DB: 32 active SKUs on portal/Excel, `VX5-V265-ACM` priced,
   zero EOL SKUs still active.
+- **Dynamic "Effective" date:** the price-book hero was hardcoded `Effective: 05/05/2026`.
+  It now derives from data — the max `effective_date` among the in-effect prices shown on the
+  page (`price-book/page.tsx`) — so it tracks each push automatically. Renders `07/02/2026`
+  after this run. Parsed from the `YYYY-MM-DD` string directly (not `new Date`) to avoid a
+  UTC-midnight off-by-one.
 - **Open items:** the ACM datasheet URL still points to the external `…V260-V270-ACM-V5.pdf`
   (swap when a V265 factsheet exists); the 5 deactivated SKUs still exist as Pipedrive products
   — handle them on the next `--target=pipedrive` run.
