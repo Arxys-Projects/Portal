@@ -225,7 +225,7 @@ export const FAMILIES: Family[] = [
       { label: "Redundant PSU", value: "2x", unit: "Hot Swap" },
       { label: "Warranty Support", value: "5 Years", unit: "Next Business Day Parts" },
     ],
-    productGroups: ["V260", "V270"],
+    productGroups: ["V260", "V265"],
     skuTableColumns: ["sku", "product", "ssdStorage", "msrp"],
     tierSections: [],
     upgradeSkus: [],
@@ -235,7 +235,7 @@ export const FAMILIES: Family[] = [
     sortOrder: 3,
     skuExtraData: {
       "VX5-V260-ACM": { ssdStorage: "2x DB & 2x OS" },
-      "VX5-V270-ACM": { ssdStorage: "2x DB & 2x OS" },
+      "VX5-V265-ACM": { ssdStorage: "2x DB & 2x OS" },
     },
   },
 
@@ -473,7 +473,6 @@ export const FAMILIES: Family[] = [
       "VX5-NIC-SFP28",
       "VX5-NIC-SFP28x10",
       "VX5-NIC-SFP28x25",
-      "VX5-RAM-32GB",
     ],
     heroImage: "/price-book/v700-v800-hero.png",
     datasheetUrl: datasheetUrlFor("V700"),
@@ -524,7 +523,6 @@ export const FAMILIES: Family[] = [
       "VX5-NIC-SFP28",
       "VX5-NIC-SFP28x10",
       "VX5-NIC-SFP28x25",
-      "VX5-RAM-32GB",
     ],
     heroImage: "/price-book/v700-v800-hero.png",
     datasheetUrl: datasheetUrlFor("V800"),
@@ -567,7 +565,7 @@ export const FAMILIES: Family[] = [
       { label: "Monitor Support", value: "8x", unit: "displays" },
       { label: "Warranty Support", value: "3 Years", unit: "Next Business Day Parts" },
     ],
-    productGroups: ["SW10", "SW20", "SW25", "SW30", "SW35"],
+    productGroups: ["SW10", "SW20"],
     skuTableColumns: ["sku", "product", "bandwidth", "monitors", "msrp"],
     tierSections: [],
     upgradeSkus: ["VX5-PP5-V100"],
@@ -588,7 +586,6 @@ export const FAMILIES: Family[] = [
     skuExtraData: {
       "VX5-SW10-100": { bandwidth: "125 Mbit/s", monitors: "4*" },
       "VX5-SW20-200": { bandwidth: "225 Mbit/s", monitors: "8*" },
-      "VX5-SW30-300": { bandwidth: "325 Mbit/s", monitors: "8*" },
     },
   },
 ];

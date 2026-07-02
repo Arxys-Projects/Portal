@@ -4,6 +4,38 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-07-02 — First production price run: July prices + V270→V265 rename + 4 EOL
+
+### Work done
+
+First real use of the new pipeline, portal-only (Pipedrive deliberately untouched).
+
+- **Backups** taken first (`products` 36 rows; Pipedrive 1023 products).
+- **Price push:** `push-prices.ts --target=portal` wrote **31 versioned rows** effective
+  `2026-07-02` from the Master Sheet — 1 new SKU (`VX5-V265-ACM`, $17,814) + 30 price
+  updates (mostly increases, e.g. `VX5-V800-864` $87,971 → $117,054). `pushed_to_pipedrive_at`
+  untouched.
+- **V270 → V265 rename:** `VX5-V265-ACM` came in via the push; `VX5-V270-ACM` deactivated as
+  superseded. In `families.ts`, the ACM family `productGroups` went `["V260","V270"]` →
+  `["V260","V265"]` and the spec key `VX5-V270-ACM` → `VX5-V265-ACM`.
+- **EOL:** deactivated (`active = false`, not deleted — history preserved) `VX5-SW25-200`,
+  `VX5-SW30-300`, `VX5-SW35-300`, `VX5-RAM-32GB` (+ `VX5-V270-ACM`). Removed SW25/30/35 from
+  the workstations family and `VX5-RAM-32GB` from the V700/V800 `upgradeSkus`. RLS + the
+  pages' `.eq("active", true)` hide them from partners; deactivation (not just a `families.ts`
+  edit) is what also drops them from the **Excel export**, which lists all active SKUs.
+- **Verified** against the cloud DB: 32 active SKUs on portal/Excel, `VX5-V265-ACM` priced,
+  zero EOL SKUs still active.
+- **Open items:** the ACM datasheet URL still points to the external `…V260-V270-ACM-V5.pdf`
+  (swap when a V265 factsheet exists); the 5 deactivated SKUs still exist as Pipedrive products
+  — handle them on the next `--target=pipedrive` run.
+
+### Detours & fixes
+
+- **The rename needed a code change, not just data.** `current_products` alone would not
+  surface `VX5-V265-ACM`: the price book maps families by `product_group` in `families.ts`,
+  which knew `"V270"` but not the new `"V265"` group. Caught by inspecting `families.ts`
+  before the push, so V265 renders where V270 did.
+
 ## 2026-07-02 — Decouple portal price effectivity from Pipedrive (append-only versioning)
 
 ### Work done
