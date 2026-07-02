@@ -143,7 +143,7 @@ export default async function PartnerSubmissionsPage({
   const productBySku = new Map<string, { product_group: string }>();
   if (skuSet.size > 0) {
     const { data: productRows } = await supabase
-      .from("products")
+      .from("current_products")
       .select("sku, product_group")
       .in("sku", [...skuSet]);
     for (const p of productRows ?? []) {

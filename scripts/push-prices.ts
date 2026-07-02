@@ -1,19 +1,31 @@
-// Push the Arxys Master Sheet (Google Sheets CSV) to Supabase products and
-// Pipedrive Products. Shows a full change preview and requires typing CONFIRM
-// before writing anything.
+// Push the Arxys Master Sheet (Google Sheets CSV) to the portal (Supabase
+// products) and/or to Pipedrive Products. Shows a full change preview and
+// requires typing CONFIRM before writing anything.
 //
-// Run:         node --env-file=.env.local --import tsx scripts/push-prices.ts
-// Dry-run:     node --env-file=.env.local --import tsx scripts/push-prices.ts --dry-run
+// products is APPEND-ONLY (migration 20260702000001): each price change is a
+// new row for the SKU with its own effective_date. The portal + Excel read the
+// current_products view, which resolves the latest row with effective_date <=
+// today. Pipedrive is NEVER pushed automatically — only the explicit
+// --target=pipedrive / --target=all steps below push it.
 //
-// Prerequisites:
-//   1. Run scripts/backup-tables.ts pre-step-5-6-real-pricing
-//   2. Run scripts/backup-pipedrive-products.ts
+// Run:
+//   Portal + Pipedrive (default, matches the monthly cycle):
+//     node --env-file=.env.local --import tsx scripts/push-prices.ts
+//   Portal only (write versioned rows; any effective date, past or future):
+//     node --env-file=.env.local --import tsx scripts/push-prices.ts --target=portal
+//     node --env-file=.env.local --import tsx scripts/push-prices.ts --target=portal --effective-date=2026-08-01
+//   Pipedrive only (push current-as-of-today prices; idempotent):
+//     node --env-file=.env.local --import tsx scripts/push-prices.ts --target=pipedrive
+//   Dry run (no writes): add --dry-run to any of the above.
 //
-// Capacity preservation: max_cameras + max_storage_tb on the 6 V-family seed
-// rows must not be clobbered by this UPSERT. The script reads existing Supabase
-// products first and carries those values forward in the UPSERT payload.
-// Non-V-family rows that have null capacity stay null — the calculator's product
-// query filters to `not('max_cameras', 'is', null)` so they're never recommended.
+// Prerequisites (run before a live push):
+//   1. scripts/backup-tables.ts   (dumps products + friends to backups/)
+//   2. scripts/backup-pipedrive-products.ts
+//
+// Capacity preservation: max_cameras + max_storage_tb are carried forward from
+// the SKU's current row into each new versioned row. The calculator's product
+// query filters to `not('max_cameras', 'is', null)` so capacity-less rows are
+// never recommended.
 
 import { validateSheet } from "./validate-prices-sheet";
 import { parse } from "csv-parse/sync";
@@ -28,6 +40,8 @@ import { env } from "../src/lib/env";
 
 type PriceType = "numeric" | "market" | "call_for_quote";
 
+type Target = "portal" | "pipedrive" | "all";
+
 type SheetRow = {
   sku: string;
   productName: string;
@@ -37,7 +51,10 @@ type SheetRow = {
   sortOrder: number;
 };
 
-type SupabaseProduct = {
+// A row of the current_products view: the current-as-of-today price + attrs
+// for a SKU. `id` is the winning products row (used to stamp pushed_to_pipedrive_at).
+type CurrentProduct = {
+  id: number;
   sku: string;
   product_name: string;
   msrp: number | null;
@@ -47,6 +64,7 @@ type SupabaseProduct = {
   active: boolean;
   max_cameras: number | null;
   max_storage_tb: number | null;
+  pushed_to_pipedrive_at: string | null;
 };
 
 type PdProduct = {
@@ -55,6 +73,40 @@ type PdProduct = {
   code: string | null;
   prices: Array<{ price: number; currency: string }>;
 };
+
+// ---------------------------------------------------------------------------
+// CLI args
+// ---------------------------------------------------------------------------
+
+type Args = { target: Target; dryRun: boolean; effectiveDate: string };
+
+function todayIso(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function parseArgs(argv: string[]): Args {
+  const dryRun = argv.includes("--dry-run");
+
+  const targetArg = argv.find((a) => a.startsWith("--target="));
+  const targetRaw = targetArg ? targetArg.split("=")[1] : "all";
+  if (targetRaw !== "portal" && targetRaw !== "pipedrive" && targetRaw !== "all") {
+    console.error(`Invalid --target=${targetRaw}. Use portal | pipedrive | all.`);
+    process.exit(1);
+  }
+
+  const edArg = argv.find((a) => a.startsWith("--effective-date="));
+  const effectiveDate = edArg ? edArg.split("=")[1] : todayIso();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(effectiveDate) || isNaN(Date.parse(effectiveDate))) {
+    console.error(`Invalid --effective-date=${effectiveDate}. Use YYYY-MM-DD.`);
+    process.exit(1);
+  }
+  if (edArg && targetRaw === "pipedrive") {
+    console.error("--effective-date is meaningless with --target=pipedrive (it pushes current-as-of-today). Aborting.");
+    process.exit(1);
+  }
+
+  return { target: targetRaw, dryRun, effectiveDate };
+}
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -70,18 +122,30 @@ function derivePriceType(msrpRaw: string): PriceType {
   return "numeric";
 }
 
-function pdName(row: SheetRow): string {
-  if (row.priceType === "market") return `[MKT] ${row.productName}`;
-  if (row.priceType === "call_for_quote") return `[CFQ] ${row.productName}`;
-  return row.productName;
+// Pipedrive display name + price, from a price_type + name/msrp pair.
+function pdName(name: string, priceType: PriceType): string {
+  if (priceType === "market") return `[MKT] ${name}`;
+  if (priceType === "call_for_quote") return `[CFQ] ${name}`;
+  return name;
 }
 
-function pdPrice(row: SheetRow): number {
-  return row.priceType === "numeric" ? Number(row.msrpRaw) : 0;
+function pdPrice(priceType: PriceType, msrp: number | null): number {
+  return priceType === "numeric" ? Number(msrp ?? 0) : 0;
 }
 
-function fmt(n: number): string {
+function sheetMsrp(row: SheetRow): number | null {
+  return row.priceType === "numeric" ? Number(row.msrpRaw) : null;
+}
+
+function fmt(n: number | null): string {
+  if (n == null) return "—";
   return "$" + n.toLocaleString("en-US");
+}
+
+function priceLabel(priceType: PriceType, msrp: number | null): string {
+  if (priceType === "numeric") return fmt(msrp);
+  if (priceType === "market") return "MKT";
+  return "CFQ";
 }
 
 // ---------------------------------------------------------------------------
@@ -110,12 +174,16 @@ async function fetchSheetRows(): Promise<SheetRow[]> {
   });
 }
 
-async function fetchSupabaseProducts(
-  admin: SupabaseClient,
-): Promise<SupabaseProduct[]> {
-  const { data, error } = await admin.from("products").select("*");
-  if (error) throw new Error(`Supabase select failed: ${error.message}`);
-  return (data ?? []) as SupabaseProduct[];
+// Current-as-of-today price per SKU — the SAME resolution the portal + Excel
+// use. Reads the current_products view, not the raw products history.
+async function fetchCurrentProducts(admin: SupabaseClient): Promise<CurrentProduct[]> {
+  const { data, error } = await admin
+    .from("current_products")
+    .select(
+      "id, sku, product_name, msrp, price_type, product_group, sort_order, active, max_cameras, max_storage_tb, pushed_to_pipedrive_at",
+    );
+  if (error) throw new Error(`Supabase select current_products failed: ${error.message}`);
+  return (data ?? []) as CurrentProduct[];
 }
 
 async function fetchPdProducts(): Promise<PdProduct[]> {
@@ -176,135 +244,190 @@ async function pdPut(path: string, body: unknown): Promise<unknown> {
 }
 
 // ---------------------------------------------------------------------------
-// Change set
+// Portal change set: Master Sheet vs current_products (what versioned rows to
+// insert). A SKU that is unchanged vs its current row is NOT re-versioned.
 // ---------------------------------------------------------------------------
 
-type ChangeSet = {
-  newInSupabase: SheetRow[];
-  updatedInSupabase: SheetRow[];
-  flaggedForRemovalSupabase: SupabaseProduct[];
-  newInPipedrive: SheetRow[];
-  updatedInPipedrive: Array<{ row: SheetRow; id: number }>;
-  flaggedForRemovalPipedrive: PdProduct[];
+type PortalChange = {
+  row: SheetRow;
+  oldPriceType: PriceType | null;
+  oldMsrp: number | null;
 };
 
-function computeChangeSet(
-  sheetRows: SheetRow[],
-  sbProducts: SupabaseProduct[],
-  pdProducts: PdProduct[],
-): ChangeSet {
-  const sheetSkus = new Set(sheetRows.map((r) => r.sku));
-  const sbBysku = new Map(sbProducts.map((p) => [p.sku, p]));
-  const pdByCode = new Map(
-    pdProducts.filter((p) => p.code).map((p) => [p.code!, p]),
-  );
+type PortalChanges = {
+  newRows: SheetRow[]; // SKU not present as a current product
+  updatedRows: PortalChange[]; // present but price/name/group/type differs
+  flaggedRemoval: CurrentProduct[]; // current product no longer in the Sheet
+};
 
-  const newInSupabase: SheetRow[] = [];
-  const updatedInSupabase: SheetRow[] = [];
-  const newInPipedrive: SheetRow[] = [];
-  const updatedInPipedrive: Array<{ row: SheetRow; id: number }> = [];
+function computePortalChanges(
+  sheetRows: SheetRow[],
+  current: CurrentProduct[],
+): PortalChanges {
+  const sheetSkus = new Set(sheetRows.map((r) => r.sku));
+  const curBySku = new Map(current.map((c) => [c.sku, c]));
+
+  const newRows: SheetRow[] = [];
+  const updatedRows: PortalChange[] = [];
 
   for (const row of sheetRows) {
-    const sbExisting = sbBysku.get(row.sku);
-    if (!sbExisting) {
-      newInSupabase.push(row);
-    } else {
-      const expectedMsrp = row.priceType === "numeric" ? Number(row.msrpRaw) : null;
-      const sbDiffers =
-        sbExisting.product_name !== row.productName ||
-        sbExisting.msrp !== expectedMsrp ||
-        sbExisting.product_group !== row.productGroup ||
-        sbExisting.price_type !== row.priceType;
-      if (sbDiffers) updatedInSupabase.push(row);
+    const cur = curBySku.get(row.sku);
+    if (!cur) {
+      newRows.push(row);
+      continue;
     }
-
-    const pdExisting = pdByCode.get(row.sku);
-    if (!pdExisting) {
-      newInPipedrive.push(row);
-    } else {
-      const existingPrice = pdExisting.prices?.[0]?.price ?? null;
-      const pdDiffers =
-        pdExisting.name !== pdName(row) || existingPrice !== pdPrice(row);
-      if (pdDiffers) updatedInPipedrive.push({ row, id: pdExisting.id });
+    const expectedMsrp = sheetMsrp(row);
+    const curMsrp = cur.msrp == null ? null : Number(cur.msrp);
+    const differs =
+      cur.product_name !== row.productName ||
+      curMsrp !== expectedMsrp ||
+      cur.product_group !== row.productGroup ||
+      cur.price_type !== row.priceType;
+    if (differs) {
+      updatedRows.push({ row, oldPriceType: cur.price_type, oldMsrp: curMsrp });
     }
   }
 
-  const flaggedForRemovalSupabase = sbProducts.filter((p) => !sheetSkus.has(p.sku));
-  const flaggedForRemovalPipedrive = pdProducts.filter(
-    (p) => p.code && !sheetSkus.has(p.code),
-  );
+  const flaggedRemoval = current.filter((c) => !sheetSkus.has(c.sku));
+  return { newRows, updatedRows, flaggedRemoval };
+}
 
-  return {
-    newInSupabase,
-    updatedInSupabase,
-    flaggedForRemovalSupabase,
-    newInPipedrive,
-    updatedInPipedrive,
-    flaggedForRemovalPipedrive,
-  };
+// ---------------------------------------------------------------------------
+// Pipedrive change set: current_products vs live Pipedrive (what to push).
+// Pipedrive receives current-as-of-today prices, NOT the raw Sheet — so a
+// future-dated portal row does not reach Pipedrive until its date arrives.
+// ---------------------------------------------------------------------------
+
+type PipedriveChanges = {
+  newInPd: CurrentProduct[];
+  updatedInPd: Array<{ cur: CurrentProduct; id: number }>;
+  flaggedRemoval: PdProduct[];
+};
+
+function computePipedriveChanges(
+  current: CurrentProduct[],
+  pdProducts: PdProduct[],
+): PipedriveChanges {
+  const curSkus = new Set(current.map((c) => c.sku));
+  const pdByCode = new Map(pdProducts.filter((p) => p.code).map((p) => [p.code!, p]));
+
+  const newInPd: CurrentProduct[] = [];
+  const updatedInPd: Array<{ cur: CurrentProduct; id: number }> = [];
+
+  for (const cur of current) {
+    const pd = pdByCode.get(cur.sku);
+    if (!pd) {
+      newInPd.push(cur);
+      continue;
+    }
+    const existingPrice = pd.prices?.[0]?.price ?? null;
+    const differs =
+      pd.name !== pdName(cur.product_name, cur.price_type) ||
+      existingPrice !== pdPrice(cur.price_type, cur.msrp);
+    if (differs) updatedInPd.push({ cur, id: pd.id });
+  }
+
+  const flaggedRemoval = pdProducts.filter((p) => p.code && !curSkus.has(p.code));
+  return { newInPd, updatedInPd, flaggedRemoval };
+}
+
+// For the --target=all DRY-RUN preview only: the Pipedrive diff must reflect the
+// current state AFTER the portal rows are inserted (the live run re-reads the DB
+// post-insert). Apply the portal changes to a copy of `current` when the effective
+// date is today or past; future-dated rows don't affect current-as-of-today.
+function projectCurrentAsOfToday(
+  current: CurrentProduct[],
+  portal: PortalChanges,
+  effectiveDate: string,
+): CurrentProduct[] {
+  if (effectiveDate > todayIso()) return current;
+  const bySku = new Map(current.map((c) => [c.sku, { ...c }]));
+  const applied = [...portal.newRows, ...portal.updatedRows.map((u) => u.row)];
+  for (const r of applied) {
+    const existing = bySku.get(r.sku);
+    bySku.set(r.sku, {
+      id: existing?.id ?? -1,
+      sku: r.sku,
+      product_name: r.productName,
+      msrp: sheetMsrp(r),
+      price_type: r.priceType,
+      product_group: r.productGroup,
+      sort_order: r.sortOrder,
+      active: true,
+      max_cameras: existing?.max_cameras ?? null,
+      max_storage_tb: existing?.max_storage_tb ?? null,
+      pushed_to_pipedrive_at: existing?.pushed_to_pipedrive_at ?? null,
+    });
+  }
+  return [...bySku.values()];
 }
 
 // ---------------------------------------------------------------------------
 // Preview printer
 // ---------------------------------------------------------------------------
 
-function printPreview(cs: ChangeSet): void {
+function printPreview(
+  portal: PortalChanges,
+  pipedrive: PipedriveChanges | null,
+  args: Args,
+): void {
   console.log("\n=== Change preview ===\n");
+  console.log(`Target:            ${args.target}`);
+  if (args.target !== "pipedrive") {
+    console.log(`Effective date:    ${args.effectiveDate}${args.effectiveDate > todayIso() ? "  (FUTURE — not current until this date)" : ""}`);
+  }
+  console.log(`Touches Pipedrive: ${pipedrive ? "YES" : "NO"}\n`);
 
-  console.log(`Supabase:`);
-  console.log(`  New:              ${cs.newInSupabase.length} row(s)`);
-  console.log(`  Updated:          ${cs.updatedInSupabase.length} row(s)`);
-  console.log(`  Flagged removal:  ${cs.flaggedForRemovalSupabase.length} row(s)`);
+  if (args.target !== "pipedrive") {
+    console.log(`Portal (Supabase products — append-only):`);
+    console.log(`  New versioned rows:      ${portal.newRows.length}`);
+    console.log(`  Updated (new versions):  ${portal.updatedRows.length}`);
+    console.log(`  Flagged removal:         ${portal.flaggedRemoval.length} (not touched automatically)`);
 
-  console.log(`\nPipedrive:`);
-  console.log(`  New:              ${cs.newInPipedrive.length} product(s)`);
-  console.log(`  Updated:          ${cs.updatedInPipedrive.length} product(s)`);
-  console.log(`  Flagged removal:  ${cs.flaggedForRemovalPipedrive.length} product(s)`);
-
-  if (cs.newInSupabase.length > 0) {
-    console.log(`\n[Supabase NEW]`);
-    for (const r of cs.newInSupabase) {
-      const price =
-        r.priceType === "numeric" ? fmt(Number(r.msrpRaw)) : r.msrpRaw || "MKT";
-      console.log(`  + ${r.sku}  ${r.productName}  ${price}`);
+    if (portal.newRows.length > 0) {
+      console.log(`\n[Portal NEW — effective ${args.effectiveDate}]`);
+      for (const r of portal.newRows) {
+        console.log(`  + ${r.sku}  ${r.productName}  ${priceLabel(r.priceType, sheetMsrp(r))}`);
+      }
+    }
+    if (portal.updatedRows.length > 0) {
+      console.log(`\n[Portal UPDATED — new version effective ${args.effectiveDate}]`);
+      for (const c of portal.updatedRows) {
+        const oldLabel = priceLabel(c.oldPriceType ?? "numeric", c.oldMsrp);
+        const newLabel = priceLabel(c.row.priceType, sheetMsrp(c.row));
+        console.log(`  ~ ${c.row.sku}  ${c.row.productName}  ${oldLabel} → ${newLabel}`);
+      }
+    }
+    if (portal.flaggedRemoval.length > 0) {
+      console.log(`\n[Portal FLAGGED FOR REMOVAL — not touched automatically]`);
+      for (const p of portal.flaggedRemoval) console.log(`  ? ${p.sku}  ${p.product_name}`);
     }
   }
 
-  if (cs.updatedInSupabase.length > 0) {
-    console.log(`\n[Supabase UPDATED]`);
-    for (const r of cs.updatedInSupabase) {
-      const price =
-        r.priceType === "numeric" ? fmt(Number(r.msrpRaw)) : r.msrpRaw || "MKT";
-      console.log(`  ~ ${r.sku}  ${r.productName}  ${price}`);
-    }
-  }
+  if (pipedrive) {
+    console.log(`\nPipedrive (from current-as-of-today prices):`);
+    console.log(`  New:              ${pipedrive.newInPd.length} product(s)`);
+    console.log(`  Updated:          ${pipedrive.updatedInPd.length} product(s)`);
+    console.log(`  Flagged removal:  ${pipedrive.flaggedRemoval.length} product(s) (not touched automatically)`);
 
-  if (cs.flaggedForRemovalSupabase.length > 0) {
-    console.log(`\n[Supabase FLAGGED FOR REMOVAL — not touched automatically]`);
-    for (const p of cs.flaggedForRemovalSupabase) {
-      console.log(`  ? ${p.sku}  ${p.product_name}`);
+    if (pipedrive.newInPd.length > 0) {
+      console.log(`\n[Pipedrive NEW]`);
+      for (const c of pipedrive.newInPd) {
+        console.log(`  + ${c.sku}  ${pdName(c.product_name, c.price_type)}  ${fmt(pdPrice(c.price_type, c.msrp))}`);
+      }
     }
-  }
-
-  if (cs.newInPipedrive.length > 0) {
-    console.log(`\n[Pipedrive NEW]`);
-    for (const r of cs.newInPipedrive) {
-      console.log(`  + ${r.sku}  ${pdName(r)}  ${r.priceType === "numeric" ? fmt(pdPrice(r)) : pdPrice(r)}`);
+    if (pipedrive.updatedInPd.length > 0) {
+      console.log(`\n[Pipedrive UPDATED]`);
+      for (const { cur } of pipedrive.updatedInPd) {
+        console.log(`  ~ ${cur.sku}  ${pdName(cur.product_name, cur.price_type)}  ${fmt(pdPrice(cur.price_type, cur.msrp))}`);
+      }
     }
-  }
-
-  if (cs.updatedInPipedrive.length > 0) {
-    console.log(`\n[Pipedrive UPDATED]`);
-    for (const { row } of cs.updatedInPipedrive) {
-      console.log(`  ~ ${row.sku}  ${pdName(row)}  ${row.priceType === "numeric" ? fmt(pdPrice(row)) : pdPrice(row)}`);
+    if (pipedrive.flaggedRemoval.length > 0) {
+      console.log(`\n[Pipedrive FLAGGED FOR REMOVAL — not touched automatically]`);
+      for (const p of pipedrive.flaggedRemoval) console.log(`  ? ${p.code}  ${p.name}`);
     }
-  }
-
-  if (cs.flaggedForRemovalPipedrive.length > 0) {
-    console.log(`\n[Pipedrive FLAGGED FOR REMOVAL — not touched automatically]`);
-    for (const p of cs.flaggedForRemovalPipedrive) {
-      console.log(`  ? ${p.code}  ${p.name}`);
-    }
+  } else if (args.target === "portal") {
+    console.log(`\nPipedrive: SKIPPED (target=portal). pushed_to_pipedrive_at untouched.`);
   }
 }
 
@@ -316,7 +439,7 @@ async function promptConfirm(): Promise<boolean> {
   return new Promise((resolve) => {
     const rl = createInterface({ input: stdin, output: stdout });
     rl.question(
-      '\nReview the changes above. Type CONFIRM to push or CANCEL to exit: ',
+      "\nReview the changes above. Type CONFIRM to push or CANCEL to exit: ",
       (answer) => {
         rl.close();
         resolve(answer.trim() === "CONFIRM");
@@ -326,47 +449,57 @@ async function promptConfirm(): Promise<boolean> {
 }
 
 // ---------------------------------------------------------------------------
-// Push
+// Portal write — APPEND-ONLY. Inserts a new versioned row (sku, effective_date)
+// for each new/changed SKU. Unchanged SKUs are not re-versioned. Same-day
+// re-runs overwrite that day's row via onConflict(sku, effective_date).
 // ---------------------------------------------------------------------------
 
-async function pushToSupabase(
+async function pushPortalRows(
   admin: SupabaseClient,
-  sheetRows: SheetRow[],
-  existingProducts: SupabaseProduct[],
+  portal: PortalChanges,
+  current: CurrentProduct[],
+  effectiveDate: string,
 ): Promise<{ successCount: number; errors: string[] }> {
-  const existingBysku = new Map(existingProducts.map((p) => [p.sku, p]));
+  const curBySku = new Map(current.map((c) => [c.sku, c]));
   const timestamp = new Date().toISOString();
 
-  const upsertRows = sheetRows.map((r) => {
-    const existing = existingBysku.get(r.sku);
+  const changedRows: SheetRow[] = [
+    ...portal.newRows,
+    ...portal.updatedRows.map((c) => c.row),
+  ];
+
+  const insertRows = changedRows.map((r) => {
+    const cur = curBySku.get(r.sku);
     return {
       sku: r.sku,
       product_name: r.productName,
-      msrp: r.priceType === "numeric" ? Number(r.msrpRaw) : null,
+      msrp: sheetMsrp(r),
       price_type: r.priceType,
       product_group: r.productGroup,
       sort_order: r.sortOrder,
       active: true,
-      max_cameras: existing?.max_cameras ?? null,
-      max_storage_tb: existing?.max_storage_tb ?? null,
+      max_cameras: cur?.max_cameras ?? null,
+      max_storage_tb: cur?.max_storage_tb ?? null,
+      effective_date: effectiveDate,
       updated_at: timestamp,
     };
   });
 
   const errors: string[] = [];
   let successCount = 0;
-  const CHUNK = 100;
+  if (insertRows.length === 0) return { successCount, errors };
 
-  for (let i = 0; i < upsertRows.length; i += CHUNK) {
-    const chunk = upsertRows.slice(i, i + CHUNK);
-    // Supabase untyped client (no Database generic) resolves upsert values as
-    // `never` for literal table names. Escape via double assertion — the runtime
-    // type is correct; only the TypeScript inference is wrong here.
+  const CHUNK = 100;
+  for (let i = 0; i < insertRows.length; i += CHUNK) {
+    const chunk = insertRows.slice(i, i + CHUNK);
+    // Untyped client resolves upsert values as `never` for literal table names;
+    // the runtime type is correct. onConflict on the (sku, effective_date) key
+    // makes same-day re-runs idempotent (a correction overwrites that day's row).
     const { error } = await admin
       .from("products")
-      .upsert(chunk as unknown as never[], { onConflict: "sku" });
+      .upsert(chunk as unknown as never[], { onConflict: "sku,effective_date" });
     if (error) {
-      errors.push(`Supabase upsert chunk ${i}-${i + chunk.length}: ${error.message}`);
+      errors.push(`Supabase insert chunk ${i}-${i + chunk.length}: ${error.message}`);
     } else {
       successCount += chunk.length;
     }
@@ -375,38 +508,54 @@ async function pushToSupabase(
   return { successCount, errors };
 }
 
-async function pushToPipedrive(
-  sheetRows: SheetRow[],
-  existingPd: PdProduct[],
-): Promise<{ successCount: number; errors: string[] }> {
-  const pdByCode = new Map(
-    existingPd.filter((p) => p.code).map((p) => [p.code!, p]),
-  );
-  const errors: string[] = [];
-  let successCount = 0;
+// ---------------------------------------------------------------------------
+// Pipedrive write — pushes current-as-of-today prices, then stamps
+// pushed_to_pipedrive_at on the winning products rows it actually pushed.
+// Idempotent: a second run finds no diff and pushes/stamps nothing.
+// ---------------------------------------------------------------------------
 
-  for (const row of sheetRows) {
+async function pushPipedrive(
+  admin: SupabaseClient,
+  pipedrive: PipedriveChanges,
+): Promise<{ successCount: number; errors: string[]; stampErrors: string[] }> {
+  const errors: string[] = [];
+  const pushedIds: number[] = [];
+
+  const toPush: Array<{ cur: CurrentProduct; id?: number }> = [
+    ...pipedrive.newInPd.map((cur) => ({ cur })),
+    ...pipedrive.updatedInPd.map(({ cur, id }) => ({ cur, id })),
+  ];
+
+  for (const { cur, id } of toPush) {
     const payload = {
-      name: pdName(row),
-      code: row.sku,
-      prices: [{ price: pdPrice(row), currency: "USD" }],
+      name: pdName(cur.product_name, cur.price_type),
+      code: cur.sku,
+      prices: [{ price: pdPrice(cur.price_type, cur.msrp), currency: "USD" }],
       active_flag: true,
     };
-
-    const existing = pdByCode.get(row.sku);
     try {
-      if (existing) {
-        await pdPut(`/products/${existing.id}`, payload);
+      if (id !== undefined) {
+        await pdPut(`/products/${id}`, payload);
       } else {
         await pdPost("/products", payload);
       }
-      successCount++;
+      pushedIds.push(cur.id);
     } catch (err) {
-      errors.push(`${row.sku}: ${err instanceof Error ? err.message : String(err)}`);
+      errors.push(`${cur.sku}: ${err instanceof Error ? err.message : String(err)}`);
     }
   }
 
-  return { successCount, errors };
+  // Stamp pushed_to_pipedrive_at on the exact products rows that were pushed.
+  const stampErrors: string[] = [];
+  if (pushedIds.length > 0) {
+    const { error } = await admin
+      .from("products")
+      .update({ pushed_to_pipedrive_at: new Date().toISOString() } as unknown as never)
+      .in("id", pushedIds);
+    if (error) stampErrors.push(`stamp pushed_to_pipedrive_at: ${error.message}`);
+  }
+
+  return { successCount: pushedIds.length, errors, stampErrors };
 }
 
 // ---------------------------------------------------------------------------
@@ -414,92 +563,108 @@ async function pushToPipedrive(
 // ---------------------------------------------------------------------------
 
 async function main() {
-  const isDryRun = process.argv.includes("--dry-run");
-  if (isDryRun) {
-    console.log("=== push-prices.ts [DRY RUN] ===\n");
-  } else {
-    console.log("=== push-prices.ts ===\n");
-  }
+  const args = parseArgs(process.argv);
+  console.log(`=== push-prices.ts [target=${args.target}${args.dryRun ? ", DRY RUN" : ""}] ===\n`);
 
-  // 1. Validate the sheet
-  console.log("Step 1/4: Validating master sheet...");
-  const { violations, rowCount } = await validateSheet();
-  if (violations.length > 0) {
-    console.error(`\n${violations.length} validation violation(s) — fix before pushing:`);
-    for (const v of violations) console.error(`  - ${v}`);
-    process.exit(1);
-  }
-  console.log(`Sheet valid. ${rowCount} data row(s).\n`);
-
-  // 2. Fetch data
-  console.log("Step 2/4: Fetching sheet rows, Supabase products, Pipedrive products...");
-
-  const sheetRows = await fetchSheetRows();
-
-  // Extra check: product names must be non-empty
-  const emptyNames = sheetRows.filter((r) => r.productName === "");
-  if (emptyNames.length > 0) {
-    console.error(`${emptyNames.length} row(s) with empty product name:`);
-    for (const r of emptyNames) console.error(`  - ${r.sku}`);
-    process.exit(1);
-  }
-
+  // 1. Validate the sheet (only relevant when we read it — portal / all).
   const admin = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 
-  const [sbProducts, pdProducts] = await Promise.all([
-    fetchSupabaseProducts(admin),
-    fetchPdProducts(),
-  ]);
+  let sheetRows: SheetRow[] = [];
+  if (args.target !== "pipedrive") {
+    console.log("Step 1: Validating master sheet...");
+    const { violations, rowCount } = await validateSheet();
+    if (violations.length > 0) {
+      console.error(`\n${violations.length} validation violation(s) — fix before pushing:`);
+      for (const v of violations) console.error(`  - ${v}`);
+      process.exit(1);
+    }
+    console.log(`Sheet valid. ${rowCount} data row(s).\n`);
+
+    sheetRows = await fetchSheetRows();
+    const emptyNames = sheetRows.filter((r) => r.productName === "");
+    if (emptyNames.length > 0) {
+      console.error(`${emptyNames.length} row(s) with empty product name:`);
+      for (const r of emptyNames) console.error(`  - ${r.sku}`);
+      process.exit(1);
+    }
+  }
+
+  // 2. Fetch current portal state (+ Pipedrive if we'll touch it).
+  console.log("Step 2: Fetching current products (+ Pipedrive if targeted)...");
+  const willTouchPipedrive = args.target === "pipedrive" || args.target === "all";
+  const current = await fetchCurrentProducts(admin);
+  const pdProducts = willTouchPipedrive ? await fetchPdProducts() : [];
 
   console.log(`  Sheet: ${sheetRows.length} row(s)`);
-  console.log(`  Supabase: ${sbProducts.length} existing product(s)`);
-  console.log(`  Pipedrive: ${pdProducts.length} existing product(s)`);
+  console.log(`  Supabase (current_products): ${current.length} SKU(s)`);
+  if (willTouchPipedrive) console.log(`  Pipedrive: ${pdProducts.length} existing product(s)`);
 
-  // 3. Compute change set + print preview
-  console.log("\nStep 3/4: Computing change set...");
-  const cs = computeChangeSet(sheetRows, sbProducts, pdProducts);
-  printPreview(cs);
+  // 3. Compute change sets + preview.
+  console.log("\nStep 3: Computing change set...");
+  const portal =
+    args.target === "pipedrive"
+      ? { newRows: [], updatedRows: [], flaggedRemoval: [] }
+      : computePortalChanges(sheetRows, current);
+  const pipedrivePreview = willTouchPipedrive
+    ? computePipedriveChanges(
+        args.target === "all" ? projectCurrentAsOfToday(current, portal, args.effectiveDate) : current,
+        pdProducts,
+      )
+    : null;
+  printPreview(portal, pipedrivePreview, args);
 
-  if (isDryRun) {
+  if (args.dryRun) {
     console.log("\n[DRY RUN] No writes performed.");
     process.exit(0);
   }
 
-  // 4. Confirm
+  // 4. Confirm.
   const confirmed = await promptConfirm();
   if (!confirmed) {
     console.log("Cancelled. No changes made.");
     process.exit(0);
   }
 
-  // 5. Push
-  console.log("\nStep 4/4: Pushing...");
+  // 5. Push.
+  console.log("\nStep 4: Pushing...");
+  let totalErrors = 0;
 
-  console.log("  → Supabase UPSERT...");
-  const sbResult = await pushToSupabase(admin, sheetRows, sbProducts);
-  if (sbResult.errors.length > 0) {
-    console.error(`  Supabase errors:`);
-    for (const e of sbResult.errors) console.error(`    ${e}`);
-  } else {
-    console.log(`  ✓ Supabase: ${sbResult.successCount} row(s) upserted`);
+  if (args.target === "portal" || args.target === "all") {
+    console.log("  → Portal: inserting versioned rows...");
+    const res = await pushPortalRows(admin, portal, current, args.effectiveDate);
+    if (res.errors.length > 0) {
+      console.error("  Portal errors:");
+      for (const e of res.errors) console.error(`    ${e}`);
+    } else {
+      console.log(`  ✓ Portal: ${res.successCount} versioned row(s) written (effective ${args.effectiveDate})`);
+    }
+    totalErrors += res.errors.length;
   }
 
-  console.log("  → Pipedrive UPSERT...");
-  const pdResult = await pushToPipedrive(sheetRows, pdProducts);
-  if (pdResult.errors.length > 0) {
-    console.error(`  Pipedrive errors:`);
-    for (const e of pdResult.errors) console.error(`    ${e}`);
-  } else {
-    console.log(`  ✓ Pipedrive: ${pdResult.successCount} product(s) upserted`);
+  if (args.target === "pipedrive" || args.target === "all") {
+    // Re-resolve current-as-of-today so a target=all run picks up rows just
+    // inserted with today's effective date.
+    const currentForPd = await fetchCurrentProducts(admin);
+    const pdChanges = computePipedriveChanges(currentForPd, pdProducts);
+    console.log("  → Pipedrive: pushing current-as-of-today prices...");
+    const res = await pushPipedrive(admin, pdChanges);
+    if (res.errors.length > 0) {
+      console.error("  Pipedrive errors:");
+      for (const e of res.errors) console.error(`    ${e}`);
+    }
+    if (res.stampErrors.length > 0) {
+      console.error("  Stamp errors:");
+      for (const e of res.stampErrors) console.error(`    ${e}`);
+    }
+    if (res.errors.length === 0 && res.stampErrors.length === 0) {
+      console.log(`  ✓ Pipedrive: ${res.successCount} product(s) pushed + stamped`);
+    }
+    totalErrors += res.errors.length + res.stampErrors.length;
   }
 
-  const totalErrors = sbResult.errors.length + pdResult.errors.length;
-  console.log(`\n=== Complete ===`);
-  console.log(`Supabase: ${sbResult.successCount} ok, ${sbResult.errors.length} error(s)`);
-  console.log(`Pipedrive: ${pdResult.successCount} ok, ${pdResult.errors.length} error(s)`);
-
+  console.log(`\n=== Complete (${totalErrors} error(s)) ===`);
   process.exit(totalErrors > 0 ? 1 : 0);
 }
 

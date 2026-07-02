@@ -52,7 +52,7 @@ export async function loadSubmissionDetail(
   let product: SubmissionDetailRow["product"] = null;
   if (data.recommended_product_id && !isUuidShaped(data.recommended_product_id)) {
     const { data: productRow } = await supabase
-      .from("products")
+      .from("current_products")
       .select("sku, product_name, product_group")
       .eq("sku", data.recommended_product_id)
       .maybeSingle();

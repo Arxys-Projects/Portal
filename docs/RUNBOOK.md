@@ -117,25 +117,49 @@ You'll be prompted to confirm. Type `Y`. The CLI runs all files in timestamp ord
 
 For a true reset on a cloud project, drop the schema from the dashboard SQL editor and re-push.
 
-## 6a. Push the Master Sheet to Supabase + Pipedrive
+## 6a. Push the Master Sheet to the portal (Supabase) and/or Pipedrive
 
-After applying migrations, the `products` table has 6 V-family seed rows. Run the push script to load the full ~36-row Master Sheet:
+`products` is **append-only** (migration `20260702000001`): each price change is a new
+row for the SKU with its own `effective_date`, and the portal + Excel read the
+`current_products` view (latest row with `effective_date <= today`). Pipedrive is **never**
+pushed automatically — only an explicit `--target` run pushes it. `push-prices.ts` takes
+`--target=portal|pipedrive|all` (default `all`).
+
+After applying migrations, `products` has 6 V-family seed rows. Load the full ~36-row Sheet:
 
 ```bash
 # 1. Pre-push backups (both targets)
 node --env-file=.env.local --import tsx scripts/backup-tables.ts pre-step-5-6-real-pricing
 node --env-file=.env.local --import tsx scripts/backup-pipedrive-products.ts
 
-# 2. Dry-run — review the change preview; verify 30+ new rows and 0 errors
+# 2. Dry-run — review the preview (old→new price, effective date, Touches Pipedrive: Y/N)
 node --env-file=.env.local --import tsx scripts/push-prices.ts --dry-run
 
-# 3. Real push — type CONFIRM after reviewing the preview
+# 3. Real push — portal + Pipedrive, effective today (the monthly cycle) — type CONFIRM
 node --env-file=.env.local --import tsx scripts/push-prices.ts
 ```
 
-Expected on first run: ~30 new Supabase rows, the 6 seed rows updated with Sheet names/prices, 0 Supabase errors. Pipedrive row counts depend on what's already in the account (all 36 Sheet SKUs may already exist as updates). The script is idempotent: re-running after a Sheet update produces a diff of only the changed rows.
+Split usage (decoupled effectivity):
 
-Capacity columns (`max_cameras`, `max_storage_tb`) on the 6 V-family rows are preserved automatically — the script reads existing values before UPSERTing so they are never clobbered.
+```bash
+# Portal only — stage prices now, effective on a FUTURE date (portal/Excel adopt it that day)
+node --env-file=.env.local --import tsx scripts/push-prices.ts --target=portal --effective-date=2026-08-01
+
+# Portal only — effective today (default effective date)
+node --env-file=.env.local --import tsx scripts/push-prices.ts --target=portal
+
+# Pipedrive only — push current-as-of-today prices, whenever you choose (idempotent)
+node --env-file=.env.local --import tsx scripts/push-prices.ts --target=pipedrive
+```
+
+Expected on the first `--target=all` run: ~30 new versioned rows + the 6 seed SKUs get a
+new version, 0 Supabase errors. Pipedrive row counts depend on the account (all 36 SKUs may
+already exist as updates). Every mode is idempotent: `portal` re-runs only version changed
+SKUs (same-day re-runs overwrite that day's row); `pipedrive` re-runs push only rows that
+differ from live Pipedrive, so a second run is a no-op.
+
+Capacity columns (`max_cameras`, `max_storage_tb`) are preserved automatically — the script
+carries the SKU's current values forward into each new versioned row.
 
 ## 6b. Supabase: load the camera_specs seed
 

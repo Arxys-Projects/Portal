@@ -103,7 +103,7 @@ async function loadShowcaseCatalog(
   if (skus.length === 0) return map;
 
   const [{ data: products }, { data: specs }] = await Promise.all([
-    supabase.from("products").select("sku, product_name, product_group, price_type, msrp").in("sku", skus),
+    supabase.from("current_products").select("sku, product_name, product_group, price_type, msrp").in("sku", skus),
     supabase.from("product_specs").select(PRODUCT_SPEC_COLUMNS).in("id", skus),
   ]);
 
@@ -192,7 +192,7 @@ export async function assembleProjectQuoteSnapshot(
         .maybeSingle<{ company_name: string | null; contact_name: string | null }>(),
       recommendedSku
         ? supabase
-            .from("products")
+            .from("current_products")
             .select("product_group, product_name, max_cameras, max_storage_tb")
             .eq("sku", recommendedSku)
             .maybeSingle()

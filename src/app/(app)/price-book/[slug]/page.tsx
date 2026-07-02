@@ -104,7 +104,7 @@ export default async function FamilyDetailPage({
   // Primary SKU table
   const allPrimaryGroups = family.productGroups;
   const { data: primaryProducts } = await supabase
-    .from("products")
+    .from("current_products")
     .select("sku, product_name, msrp, price_type, max_storage_tb, max_cameras")
     .in("product_group", allPrimaryGroups)
     .eq("active", true)
@@ -114,7 +114,7 @@ export default async function FamilyDetailPage({
   const tierProductsMap = new Map<string, ProductRow[]>();
   for (const tier of family.tierSections) {
     const { data: tierRows } = await supabase
-      .from("products")
+      .from("current_products")
       .select(
         "sku, product_name, msrp, price_type, max_storage_tb, max_cameras",
       )
@@ -128,7 +128,7 @@ export default async function FamilyDetailPage({
   const { data: upgradeProducts } =
     family.upgradeSkus.length > 0
       ? await supabase
-          .from("products")
+          .from("current_products")
           .select("sku, product_name, msrp, price_type, max_storage_tb, max_cameras")
           .in("sku", family.upgradeSkus)
           .eq("active", true)

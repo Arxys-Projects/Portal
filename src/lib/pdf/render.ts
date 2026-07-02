@@ -286,7 +286,7 @@ async function loadProductBySku(
   };
 } | null> {
   const { data: product } = await supabase
-    .from("products")
+    .from("current_products")
     .select("sku, product_name, product_group, max_cameras, max_storage_tb")
     .eq("sku", sku)
     .maybeSingle();

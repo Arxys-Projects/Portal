@@ -24,7 +24,7 @@ export async function GET() {
 
   // RLS constrains this read: active=true rows only for non-admins.
   const { data, error } = await supabase
-    .from("products")
+    .from("current_products")
     .select("sku, product_name, product_group, msrp, price_type")
     .eq("active", true)
     .order("sort_order");

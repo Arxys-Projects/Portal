@@ -18,7 +18,7 @@ export default async function PriceBookIndexPage() {
 
   const allGroups = FAMILIES.flatMap((f) => f.productGroups);
   const { data: products } = await supabase
-    .from("products")
+    .from("current_products")
     .select("product_group, msrp, price_type")
     .eq("active", true)
     .in("product_group", allGroups);

@@ -239,7 +239,7 @@ export async function submitCalculation(
   // raid_level_display) via usableCapacityTb — products.max_storage_tb is raw.
   // product_specs.id == products.sku, so we join in-process.
   const { data: productRows, error: productError } = await supabase
-    .from("products")
+    .from("current_products")
     .select("sku, product_name, product_group, msrp, price_type, max_cameras, max_storage_tb")
     .eq("active", true)
     .eq("price_type", "numeric")
