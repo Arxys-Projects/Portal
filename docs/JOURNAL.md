@@ -4,6 +4,24 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-07-02 — Price-book hero copy + appliance link relocation
+
+### Work done
+
+Applied a three-edit design handoff to `src/app/(app)/price-book/page.tsx` (markup-only,
+no new imports, no logic change):
+
+- Hero `<h1>` renamed "MSRP Price Book" → "Products & Prices" to match the nav label.
+- The hero's outbound "View all VideoX Appliances on arxys.com →" anchor replaced with an
+  in-app `<Link href="/dashboard">` reading "Go to Dashboard to download a price list →".
+- The arxys.com appliances link moved into the Enterprise Grade box (bottom of the white
+  panel, top-bordered and restyled navy so it reads on white).
+
+Result verified byte-identical to the handoff's reference `page.tsx.updated`. Lint/typecheck
+on the file are clean (pre-existing unrelated errors in PDF/xlsx test files are untouched).
+
+---
+
 ## 2026-07-02 — Public "Request access" intake (first anonymous write path)
 
 ### Work done

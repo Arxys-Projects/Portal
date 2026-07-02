@@ -81,7 +81,7 @@ export default async function PriceBookIndexPage() {
                 VIDEOX V5
               </span>
               <h1 className="text-4xl font-semibold leading-tight">
-                MSRP Price Book
+                Products & Prices
               </h1>
             </div>
             <p className="mt-3 text-white/90 max-w-2xl text-sm leading-relaxed">
@@ -98,14 +98,12 @@ export default async function PriceBookIndexPage() {
                   <span className="text-white/60">·</span>
                 </>
               )}
-              <a
-                href="https://www.arxys.com/videox-appliances/"
-                target="_blank"
-                rel="noopener noreferrer"
+              <Link
+                href="/dashboard"
                 className="text-xs text-white/70 hover:text-white underline"
               >
-                View all VideoX Appliances on arxys.com →
-              </a>
+                Go to Dashboard to download a price list →
+              </Link>
             </div>
           </div>
 
@@ -195,6 +193,16 @@ export default async function PriceBookIndexPage() {
                   </li>
                 ))}
               </ul>
+            </div>
+            <div className="mt-4 pt-3 border-t border-line-soft">
+              <a
+                href="https://www.arxys.com/videox-appliances/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-[#14346b] hover:text-[#0d2247] font-medium underline"
+              >
+                View all VideoX Appliances on arxys.com →
+              </a>
             </div>
           </div>
         </div>
