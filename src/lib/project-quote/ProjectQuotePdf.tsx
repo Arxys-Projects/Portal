@@ -16,10 +16,12 @@ import {
   TEXT_SLATE,
   TRACK_GRAY,
 } from "../pdf/colors";
+import { usableCapacityTb } from "@/lib/capacity-utils";
 import type { QuoteLineItem } from "@/lib/pipedrive/quote";
 
 import type {
   ProjectQuoteCameraRow,
+  ProjectQuoteShowcaseItem,
   ProjectQuoteShowcaseSpecHighlights,
   ProjectQuoteSnapshot,
 } from "./types";
@@ -450,6 +452,9 @@ const styles = StyleSheet.create({
   showcaseSpecVal: { fontSize: 7.5, lineHeight: 1.15, fontFamily: "Helvetica-Bold", color: TEXT_SLATE },
   emptyShowcase: { fontSize: 9, color: TEXT_MUTED, marginTop: 10 },
 
+  // Quoted solution capacity bars (page 2), below the product cards.
+  quotedSolutionBlock: { marginTop: 14 },
+
   // Commercial table (page 3)
   commInfoBlock: {
     flexDirection: "row",
@@ -641,6 +646,65 @@ function PageFooter({
       </View>
     </View>
   );
+}
+
+// Sum the capacity DELIVERED by the equipment quoted on page 2, for the
+// "Quoted solution" bars. Quantity-weighted: N boxes deliver N× capacity (the
+// same weighting page 1 applies to the recommended server via recUnits), so a
+// line's quantity multiplies its per-unit spec. Summed across every quoted
+// server product — multi-product quotes add, they do not average.
+//
+// Net-usable storage is DERIVED from the frozen structured spec fields
+// (storageRawTb / hddCount / raidLevelDisplay) via the shared usableCapacityTb
+// helper, never parsed from a product title; bandwidth is the structured
+// maxBandwidthMbps field. Both are already frozen in the snapshot showcase, so
+// this computes at render with no new snapshot field and no version bump.
+//
+// A showcase card with no product_specs row (specHighlights null) or a null
+// component contributes 0 to that bar; a SW workstation with bandwidth but no
+// storage therefore adds to the bandwidth denominator only. `hasStorage` /
+// `hasBandwidth` distinguish a genuine zero denominator (no delivering
+// equipment) from a real total, mirroring page 1's "of X usable" vs "required".
+// Exported for unit testing.
+export function sumQuotedCapacity(
+  showcase: ProjectQuoteShowcaseItem[],
+  lineItems: QuoteLineItem[],
+): {
+  usableStorageTb: number;
+  bandwidthMbps: number;
+  hasStorage: boolean;
+  hasBandwidth: boolean;
+} {
+  // Quantity per SKU, summed across line items (a SKU may appear on >1 line).
+  // The showcase is keyed by SKU (deduped), so quantity lives on the raw deal
+  // line items, joined by productCode === showcase sku.
+  const qtyBySku = new Map<string, number>();
+  for (const li of lineItems) {
+    if (!li.productCode) continue;
+    const q = li.quantity ?? 0;
+    qtyBySku.set(li.productCode, (qtyBySku.get(li.productCode) ?? 0) + q);
+  }
+
+  let usableStorageTb = 0;
+  let bandwidthMbps = 0;
+  let hasStorage = false;
+  let hasBandwidth = false;
+  for (const item of showcase) {
+    const h = item.specHighlights;
+    if (!h) continue;
+    const qty = qtyBySku.get(item.sku) ?? 0;
+    if (qty <= 0) continue;
+    const perUnit = usableCapacityTb(h.storageRawTb, h.hddCount, h.raidLevelDisplay);
+    if (perUnit != null && perUnit > 0) {
+      usableStorageTb += perUnit * qty;
+      hasStorage = true;
+    }
+    if (h.maxBandwidthMbps != null && h.maxBandwidthMbps > 0) {
+      bandwidthMbps += h.maxBandwidthMbps * qty;
+      hasBandwidth = true;
+    }
+  }
+  return { usableStorageTb, bandwidthMbps, hasStorage, hasBandwidth };
 }
 
 function CapacityBar({
@@ -930,6 +994,52 @@ export function ProjectQuotePdf({ data }: { data: ProjectQuotePdfInput }) {
             );
           })
         )}
+
+        {/* Quoted solution — delivered capacity of the equipment above vs the
+            page-1 calculated requirement. Only shown when there is quoted
+            equipment to measure; same bar pattern as page 1's System capacity. */}
+        {showcase.length > 0
+          ? (() => {
+              const quoted = sumQuotedCapacity(showcase, commercial.lineItems);
+              const storagePct =
+                quoted.usableStorageTb > 0
+                  ? (sizing.storageTb / quoted.usableStorageTb) * 100
+                  : 0;
+              const bandwidthPct =
+                quoted.bandwidthMbps > 0
+                  ? (sizing.bandwidthMbps / quoted.bandwidthMbps) * 100
+                  : 0;
+              return (
+                <View style={styles.quotedSolutionBlock} wrap={false}>
+                  <Text style={styles.sectionTitle}>Quoted solution</Text>
+                  <Text style={styles.tableNote}>
+                    Capacity delivered by the equipment above, compared to the original
+                    calculated requirement on page 1.
+                  </Text>
+                  <CapacityBar
+                    label="Total storage"
+                    fillPct={storagePct}
+                    color={ARXYS_NAVY}
+                    value={
+                      quoted.hasStorage
+                        ? `${fmtTb(sizing.storageTb)} of ${fmtTb(quoted.usableStorageTb)} usable`
+                        : `${fmtTb(sizing.storageTb)} required`
+                    }
+                  />
+                  <CapacityBar
+                    label="Bandwidth"
+                    fillPct={bandwidthPct}
+                    color={ARXYS_NAVY}
+                    value={
+                      quoted.hasBandwidth
+                        ? `${fmtMbps(sizing.bandwidthMbps)} of ${fmtMbps(quoted.bandwidthMbps)}`
+                        : `${fmtMbps(sizing.bandwidthMbps)} required`
+                    }
+                  />
+                </View>
+              );
+            })()
+          : null}
       </Page>
 
       {/* ── Page 3: Commercial ──────────────────────────────────────────── */}

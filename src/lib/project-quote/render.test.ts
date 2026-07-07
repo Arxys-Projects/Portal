@@ -13,10 +13,12 @@ import {
   COMMERCIAL_COLUMNS,
   QUOTE_FOB_BLOCK,
   showcaseSpecPairs,
+  sumQuotedCapacity,
   type ProjectQuotePdfInput,
 } from "./ProjectQuotePdf";
 import { projectQuoteTitle } from "./title";
 import type { ProjectQuoteCameraRow } from "./types";
+import type { ProjectQuoteShowcaseItem } from "./types";
 import type { ProjectQuoteSnapshot } from "./types";
 import type { QuoteLineItem } from "@/lib/pipedrive/quote";
 
@@ -841,5 +843,103 @@ describe("projectQuoteTitle — canonical deal-title format", () => {
       generation: { ...snap.generation, generatedAt: "2026-12-31T23:59:59.000Z" },
     };
     assert.ok(projectQuoteTitle(lateNight).endsWith("- 2026-12-31"));
+  });
+});
+
+describe("sumQuotedCapacity — page-2 Quoted-solution denominators", () => {
+  // Minimal builders: sumQuotedCapacity reads only sku + specHighlights from a
+  // showcase item, and productCode + quantity from a line item.
+  const spec = (
+    over: Partial<ProjectQuoteShowcaseItem["specHighlights"] & object>,
+  ): ProjectQuoteShowcaseItem["specHighlights"] => ({
+    formFactor: null,
+    rackUnits: null,
+    cpuModelFull: null,
+    ramSpec: null,
+    driveBays: null,
+    storageRawTb: null,
+    maxCameras: null,
+    maxBandwidthMbps: null,
+    osEdition: null,
+    raidLevelDisplay: null,
+    hddCount: null,
+    ...over,
+  });
+  const card = (
+    sku: string,
+    highlights: ProjectQuoteShowcaseItem["specHighlights"],
+  ): ProjectQuoteShowcaseItem => ({
+    sku,
+    productName: sku,
+    productGroup: sku,
+    msrp: null,
+    heroImagePath: null,
+    specHighlights: highlights,
+  });
+  const line = (productCode: string | null, quantity: number | null): QuoteLineItem =>
+    ({ productCode, quantity } as QuoteLineItem);
+
+  // V800: 720 raw, 36 drives, RAID 60 → 720 × (36-4)/36 = 640 TB usable.
+  const v800 = spec({ storageRawTb: 720, hddCount: 36, raidLevelDisplay: "60", maxBandwidthMbps: 4000 });
+
+  it("single product, quantity 1: net-usable derived, bandwidth passed through", () => {
+    const r = sumQuotedCapacity([card("V800", v800)], [line("V800", 1)]);
+    assert.equal(r.usableStorageTb, 640);
+    assert.equal(r.bandwidthMbps, 4000);
+    assert.equal(r.hasStorage, true);
+    assert.equal(r.hasBandwidth, true);
+  });
+
+  it("quantity-weights: N boxes deliver N× capacity", () => {
+    const r = sumQuotedCapacity([card("V800", v800)], [line("V800", 3)]);
+    assert.equal(r.usableStorageTb, 1920);
+    assert.equal(r.bandwidthMbps, 12000);
+  });
+
+  it("sums across multiple quoted products, never averages", () => {
+    // V700: 480 raw, 24 drives, RAID 6 → 480 × (24-2)/24 = 440 TB usable.
+    const v700 = spec({ storageRawTb: 480, hddCount: 24, raidLevelDisplay: "6", maxBandwidthMbps: 2000 });
+    const r = sumQuotedCapacity(
+      [card("V800", v800), card("V700", v700)],
+      [line("V800", 1), line("V700", 2)],
+    );
+    assert.equal(r.usableStorageTb, 640 + 440 * 2); // 1520
+    assert.equal(r.bandwidthMbps, 4000 + 2000 * 2); // 8000
+  });
+
+  it("a SKU split across lines sums its quantities", () => {
+    const r = sumQuotedCapacity([card("V800", v800)], [line("V800", 1), line("V800", 2)]);
+    assert.equal(r.usableStorageTb, 1920);
+    assert.equal(r.bandwidthMbps, 12000);
+  });
+
+  it("workstation with bandwidth but no storage adds to bandwidth only", () => {
+    const sw = spec({ maxBandwidthMbps: 225, storageRawTb: null });
+    const r = sumQuotedCapacity([card("SW20", sw)], [line("SW20", 1)]);
+    assert.equal(r.usableStorageTb, 0);
+    assert.equal(r.hasStorage, false);
+    assert.equal(r.bandwidthMbps, 225);
+    assert.equal(r.hasBandwidth, true);
+  });
+
+  it("card with no product_specs row (null highlights) contributes nothing", () => {
+    const r = sumQuotedCapacity([card("MISC", null)], [line("MISC", 5)]);
+    assert.equal(r.usableStorageTb, 0);
+    assert.equal(r.bandwidthMbps, 0);
+    assert.equal(r.hasStorage, false);
+    assert.equal(r.hasBandwidth, false);
+  });
+
+  it("ignores line items with no matching showcase card (add-ons, warranties)", () => {
+    const r = sumQuotedCapacity([card("V800", v800)], [line("V800", 1), line("VX5-WTY-5Y", 1)]);
+    assert.equal(r.usableStorageTb, 640);
+    assert.equal(r.bandwidthMbps, 4000);
+  });
+
+  it("a card quoted with zero/absent quantity does not inflate the totals", () => {
+    const r = sumQuotedCapacity([card("V800", v800)], [line("V800", null)]);
+    assert.equal(r.usableStorageTb, 0);
+    assert.equal(r.bandwidthMbps, 0);
+    assert.equal(r.hasStorage, false);
   });
 });

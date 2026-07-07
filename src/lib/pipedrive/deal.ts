@@ -31,6 +31,7 @@ const VMS_OPTION_IDS: Record<string, number> = {
   Avigilon: 16,
   Hanwha: 169,
   "NX Witness": 168,
+  ExacqVision: 40,
   Other: 18,
 };
 

@@ -68,6 +68,7 @@ export const VMS_OPTIONS: readonly string[] = [
   "Genetec",
   "Hanwha",
   "NX Witness",
+  "ExacqVision",
   "Other",
 ];
 

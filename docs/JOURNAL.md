@@ -4,6 +4,76 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-07-07 — VMS "ExacqVision" option + Project Quote page-2 "Quoted solution"
+
+### Work done
+
+**2a — ExacqVision added to the VMS list.**
+
+- Added `"ExacqVision"` to `VMS_OPTIONS` (`src/lib/calculator/tables.ts`) — the
+  single source for the calculator dropdown and the `actions.ts` submission
+  validator. Data only; the string flows through unchanged to the submission
+  email (`vms ?? "(not specified)"`), the frozen Project Quote snapshot
+  (`sizing.vms`) and page-1 "VMS" field (`sizing.vms ?? "—"`). The System
+  Estimate PDF threads `vms` into its input model (`render.ts`) unchanged but
+  does not surface a VMS value field (only a generic footnote), so no template
+  change was needed there.
+- Added `ExacqVision: 40` to `VMS_OPTION_IDS` (`src/lib/pipedrive/deal.ts`) so
+  the deal-field payload sends the correct Pipedrive option ID.
+
+**2b — "Quoted solution" section on Project Quote page 2 (ADR 0080).**
+
+- New page-2 section below the product cards, matching page 1's bar pattern
+  (label / navy fill on gray track / italic caption). Storage bar numerator =
+  `sizing.storageTb`; bandwidth numerator = `sizing.bandwidthMbps` (the same
+  page-1 figures). Denominators are the summed delivered capacity of the quoted
+  equipment.
+- New pure exported helper `sumQuotedCapacity(showcase, lineItems)`
+  (`ProjectQuotePdf.tsx`): quantity-weighted sum across showcase cards. Net-usable
+  storage is derived from the frozen `storageRawTb`/`hddCount`/`raidLevelDisplay`
+  via the shared `usableCapacityTb` helper — never parsed from the product title;
+  bandwidth is the structured `maxBandwidthMbps`. Null specs contribute 0, so a
+  SW workstation adds to bandwidth only. Caption verbatim: "Capacity delivered by
+  the equipment above, compared to the original calculated requirement on page 1."
+- Derived entirely at render from data already frozen in the snapshot: no schema
+  change, no migration, and **no `snapshotVersion` bump** — existing quotes gain
+  the section on re-render (renderer reads `snapshot.showcase ?? []` defensively).
+  See [`0080-quoted-solution-derived-at-render.md`](./decisions/0080-quoted-solution-derived-at-render.md).
+- 8 unit tests added to `render.test.ts` (quantity weighting, multi-product sum,
+  split-line quantities, workstation bandwidth-only, null-highlights, add-on
+  exclusion, zero-quantity). All pass; existing 4-page render/pdfinfo assertions
+  unchanged.
+
+### Detours & fixes
+
+- **2a premise was false — VMS is NOT plain text.** The task assumed the VMS deal
+  field had been switched from enum to plain text, reversing the 2026-06-17 fix,
+  and asked to (a) simplify away the now-"dead" option-ID handling and (b) record
+  the enum→text change. A live read-only `/v1/dealFields` check found VMS is
+  **still `field_type=set`** with its option list intact — nothing reversed the
+  2026-06-17 fix. Consequences: the `VMS_OPTION_IDS` map is still load-bearing and
+  was **kept** (not simplified); the change is purely additive. Pipedrive already
+  carries an `ExacqVision` option (id **40**), so the correct wiring is
+  `ExacqVision: 40`, not a plain-text passthrough. There is no enum→text behavior
+  change to document — this note *is* the record, and it flags that a future dev
+  must not "simplify" the option-ID map on the mistaken belief the field is text.
+
+### Decisions captured
+
+- [`0080-quoted-solution-derived-at-render.md`](./decisions/0080-quoted-solution-derived-at-render.md)
+
+### Verification gates
+
+- `npm run build`: clean, all routes compiled.
+- `npm test`: my 8 new tests pass; render pipeline (`renderToBuffer`) still emits
+  4 pages. Two `isShowcaseProductGroup` failures in `snapshot.test.ts` are
+  **pre-existing** (fail identically on the clean tree, unrelated to these files).
+- `eslint` on all changed files: clean.
+- `tsc --noEmit`: no new errors (13 pre-existing react-pdf/Buffer type quirks in
+  `.test.ts` files, unchanged in count; none reference the new code).
+
+---
+
 ## 2026-07-06 — Project Quote clarity + camera-stream label sweep
 
 ### Work done
