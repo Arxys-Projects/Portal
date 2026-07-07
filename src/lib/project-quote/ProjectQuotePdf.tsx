@@ -143,7 +143,7 @@ export function showcaseSpecPairs(
     spec.formFactor ? { key: "Form factor", value: spec.formFactor } : null,
     spec.rackUnits ? { key: "Rack units", value: spec.rackUnits } : null,
     spec.maxCameras != null
-      ? { key: "Max cameras", value: `${spec.maxCameras} streams` }
+      ? { key: "Max camera streams", value: `${spec.maxCameras} streams` }
       : null,
     spec.maxBandwidthMbps != null
       ? {
@@ -834,6 +834,11 @@ export function ProjectQuotePdf({ data }: { data: ProjectQuotePdfInput }) {
           Retention: {sizing.retentionDays} days. Figures derived from validated compression
           modeling; actual results depend on camera models, scene conditions, and VMS
           configuration. All figures assume even camera distribution across recording servers.
+        </Text>
+        <Text style={styles.tableNote}>
+          Figures below reflect the camera requirements from the original calculator
+          submission, not the equipment quoted in this document. See the quoted solution on
+          page 2 for actual delivered capacity.
         </Text>
 
         {/* System capacity */}

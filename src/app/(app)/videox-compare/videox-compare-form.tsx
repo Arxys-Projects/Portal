@@ -85,7 +85,7 @@ export function VideoxCompareForm({ models, specs, sections, footnote }: Props) 
       <div className="vxc-controls">
         <div className="vxc-filter">
           <label htmlFor="vxc-min-cameras" className="vxc-fl">
-            Minimum cameras needed
+            Minimum camera streams needed
           </label>
           <input
             id="vxc-min-cameras"

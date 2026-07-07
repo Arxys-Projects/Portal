@@ -364,7 +364,7 @@ export default async function AdminSubmissionsPage({
                 <th className="px-4 py-2">Recommendation</th>
                 <th className="px-4 py-2">Status</th>
                 <th className="px-4 py-2 text-center">Preferred</th>
-                <th className="px-4 py-2 text-right">Cameras</th>
+                <th className="px-4 py-2 text-right">Streams</th>
                 <th className="px-4 py-2 text-right">List price</th>
                 <th className="px-4 py-2"></th>
               </tr>

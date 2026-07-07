@@ -4,6 +4,39 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-07-06 — Project Quote clarity + camera-stream label sweep
+
+### Work done
+
+Copy-only changes, no logic changes:
+
+- Added an italic disclaimer above the "System capacity" heading on page 1 of the Project Quote
+  PDF (`ProjectQuotePdf.tsx`), clarifying that the capacity bars reflect the original calculator
+  submission's camera requirements, not the equipment actually quoted — page 2 has the real
+  delivered capacity.
+- Renamed "Max cameras"/"Max Cameras" labels to "Max camera streams" (or a fitting variant)
+  everywhere the underlying value is a stream count rather than a physical camera count:
+  `ProjectQuotePdf.tsx` (showcase spec highlights), `SubmissionPdf.tsx` (server spec card),
+  the admin submissions list column header (`Cameras` → `Streams`, kept short for the
+  fixed-width column), and QuickCompare (`videox-compare/specs.ts` spec label plus the
+  "Minimum cameras needed" filter label).
+- Explicitly left untouched: the VMS-vs-Arxys comparison tool (`src/app/(app)/comparison`,
+  `src/lib/comparison/display-specs.ts` — "Maximum Cameras" / "Maximum H.265 Cameras"), and the
+  price-book KPI cards, which already say "Max VSR" + unit "streams" from an earlier fix.
+
+### Detours & fixes
+
+- The brief's assumption that price-book cards currently show a bare "MAX CAMERAS" label turned
+  out to be stale — that path was already corrected to "Max VSR" (see
+  `cell-value.test.ts` comment). Verified current source before editing rather than re-applying
+  an already-fixed rename.
+- "QuickCompare" (the VideoX NVR model comparison at `/videox-compare`) and "the VMS comparison
+  tool" (the Arxys-vs-VMS-branded-appliance calculator at `/comparison`) are two separate
+  features that share the word "compare" — confirmed which files belonged to each before editing
+  so the explicitly-out-of-scope tool wasn't touched.
+
+---
+
 ## 2026-07-02 — Price-book hero copy + appliance link relocation
 
 ### Work done

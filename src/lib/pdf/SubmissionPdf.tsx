@@ -396,7 +396,7 @@ export function SubmissionPdf({ data }: { data: SubmissionPdfInput }) {
   const specPairs: Array<{ key: string; value: string }> = serverSpec
     ? [
         {
-          key: "Max cameras",
+          key: "Max camera streams",
           value: serverSpec.maxCameras != null ? `${serverSpec.maxCameras} (H.265/H.264)` : "—",
         },
         {

@@ -39,7 +39,7 @@ const TOOLTIPS: Record<string, string> = {
 // and camera filter both key off `key`.
 export const QUICK_COMPARE_SPECS: QuickCompareSpec[] = [
   // Overview
-  { key: "maxCameras", label: "Max Cameras (H.265/H.264)", section: "overview", type: "integer" },
+  { key: "maxCameras", label: "Max Camera Streams (H.265/H.264)", section: "overview", type: "integer" },
   { key: "maxBandwidthMbps", label: "Max Bandwidth (Mbit/s)", section: "overview", type: "integer" },
   { key: "rackUnits", label: "Rack Units", section: "overview", type: "text" },
   { key: "driveBays", label: "Drive Bays", section: "overview", type: "integer" },
