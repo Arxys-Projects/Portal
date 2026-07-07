@@ -12,11 +12,8 @@ import HelpModal from "@/app/(app)/dashboard/help-modal";
 import { cx } from "./ui/styles";
 
 // ── Nav ────────────────────────────────────────────────────────────────────
-// Internal items map 1:1 to routes; the two "external" items are the brief's
-// Resources + Support. Support points at the live Arxys support page (same URL
-// the dashboard card uses). Resources has no in-app route yet — PLACEHOLDER
-// until Andy confirms the real destination.
-const RESOURCES_URL = "https://www.arxys.com/support/"; // footer's "Support & Resources" target; confirm if a dedicated resources page exists
+// Internal items map 1:1 to routes; "Support" is the one external item,
+// pointing at the live Arxys support page (same URL the dashboard card uses).
 const SUPPORT_URL = "https://www.arxys.com/company/support/";
 
 type NavItem = { label: string; href: string; external?: boolean };
@@ -27,7 +24,6 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Pipeline", href: "/submissions" },
   { label: "Compare", href: "/videox-compare" },
   { label: "Products & Prices", href: "/price-book" },
-  { label: "Resources", href: RESOURCES_URL, external: true },
   { label: "Support", href: SUPPORT_URL, external: true },
 ];
 

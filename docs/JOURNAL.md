@@ -4,6 +4,40 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-07-07 — Fix duplicate nav link and admin table overflow
+
+### Work done
+
+- **Removed "Resources" from the header nav** (`src/app/(app)/_components/portal-header.tsx`).
+  It and "Support" pointed at the same live `arxys.com` support URL — a
+  leftover placeholder from before the nav destination was confirmed
+  (see the old inline comment it replaced). `NAV_ITEMS` feeds both the
+  desktop and the <900px collapsed mobile nav, so removing it from the one
+  array fixed both. Footer's combined "Support & Resources" link (a single
+  link, not a duplicate nav entry) was left untouched.
+- **Fixed admin table overflow/clipping** (`src/app/(app)/admin/layout.tsx`).
+  The admin section layout is a CSS grid (`grid-cols-[208px_1fr]`) and the
+  content column had no `min-width: 0`. Grid tracks default to
+  `min-width: auto`, so the `1fr` column grew to fit the table's intrinsic
+  width instead of respecting the viewport — the table's own
+  `overflow-x-auto` wrapper never got a chance to engage, and the page just
+  got clipped at the right edge. Added `min-w-0` to the content `<div>`.
+  Since this layout wraps every `/admin/*` page, it fixed Partners,
+  Requests, and Partner Pipeline (submissions) in one change — all three
+  share the identical `overflow-x-auto` table wrapper pattern.
+
+### Detours & fixes
+
+- **Couldn't verify visually in the live preview**: `/admin/*` routes sit
+  behind the Supabase auth gate and redirect to `/login` headlessly (known
+  limitation). Verified the grid fix instead with an isolated static HTML
+  reproduction of the same `grid-cols-[208px_1fr]` + `overflow-x-auto`
+  structure: without `min-w-0` the content column measured 1680px wide in a
+  1280px viewport (blown out, clipped); with it, 1016px and the table
+  wrapper scrolled internally as expected.
+
+---
+
 ## 2026-07-07 — VMS "ExacqVision" option + Project Quote page-2 "Quoted solution"
 
 ### Work done

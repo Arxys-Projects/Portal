@@ -25,7 +25,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
       <nav className="md:sticky md:top-4 md:self-start">
         <AdminNav pendingRequests={pendingRequests ?? 0} />
       </nav>
-      <div>{children}</div>
+      <div className="min-w-0">{children}</div>
     </div>
   );
 }
