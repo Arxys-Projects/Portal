@@ -161,6 +161,20 @@ differ from live Pipedrive, so a second run is a no-op.
 Capacity columns (`max_cameras`, `max_storage_tb`) are preserved automatically — the script
 carries the SKU's current values forward into each new versioned row.
 
+**Retiring a SKU (EOL or rename).** Deactivate the SKU in the portal (`active=false`) — this
+hides it from partners + the Excel export. Pipedrive retirement is now automatic: the next
+`push-prices.ts --target=pipedrive` (or `--target=all`) run archives any portal-inactive SKU
+in Pipedrive (`active_flag=false`, **not** delete — deal history preserved), instead of
+re-pushing it active. The dry-run preview lists them under `[Pipedrive ARCHIVE …]`; review it
+first. Idempotent — an already-archived SKU is skipped. No separate archive step or hardcoded
+SKU list to maintain. See ADR 0078.
+
+```bash
+# Preview what will be pushed AND archived, then push
+node --env-file=.env.local --import tsx scripts/push-prices.ts --target=pipedrive --dry-run
+node --env-file=.env.local --import tsx scripts/push-prices.ts --target=pipedrive
+```
+
 ## 6b. Supabase: load the camera_specs seed
 
 The calculator's camera-model picker reads `camera_specs` reference data. Load each per-vendor seed file through the validated, idempotent loader. Single-sensor files load first, then the multisensor extension files (ADR 0058, 0071). Each file is validated before any write and upserts on the `(vendor, model)` natural key, so re-running applies only changed rows.

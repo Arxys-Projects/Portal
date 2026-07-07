@@ -6,7 +6,10 @@
 // new row for the SKU with its own effective_date. The portal + Excel read the
 // current_products view, which resolves the latest row with effective_date <=
 // today. Pipedrive is NEVER pushed automatically — only the explicit
-// --target=pipedrive / --target=all steps below push it.
+// --target=pipedrive / --target=all steps below push it. A SKU that is
+// active=false in the portal (EOL/superseded) is archived in Pipedrive
+// (active_flag=false), never re-pushed active — keeping availability in sync in
+// one run and closing the "resurrection" trap (ADR 0078).
 //
 // Run:
 //   Portal + Pipedrive (default, matches the monthly cycle):
@@ -71,6 +74,7 @@ type PdProduct = {
   id: number;
   name: string;
   code: string | null;
+  active_flag: boolean;
   prices: Array<{ price: number; currency: string }>;
 };
 
@@ -301,6 +305,9 @@ function computePortalChanges(
 type PipedriveChanges = {
   newInPd: CurrentProduct[];
   updatedInPd: Array<{ cur: CurrentProduct; id: number }>;
+  // Portal-deactivated SKUs (active=false) still active_flag=true in Pipedrive —
+  // to be archived (active_flag=false), NOT re-pushed active. See ADR 0078.
+  archiveInPd: Array<{ cur: CurrentProduct; id: number }>;
   flaggedRemoval: PdProduct[];
 };
 
@@ -313,9 +320,22 @@ function computePipedriveChanges(
 
   const newInPd: CurrentProduct[] = [];
   const updatedInPd: Array<{ cur: CurrentProduct; id: number }> = [];
+  const archiveInPd: Array<{ cur: CurrentProduct; id: number }> = [];
 
   for (const cur of current) {
     const pd = pdByCode.get(cur.sku);
+
+    // current_products has no `active` filter, so portal-deactivated SKUs still
+    // resolve here. Treat active=false as an ARCHIVE signal, not a push: never
+    // create it, never re-push it active (that would resurrect an EOL/superseded
+    // SKU — the trap in ADR 0078). If it's present and still active in Pipedrive,
+    // archive it so one pipeline run keeps Pipedrive availability in sync with the
+    // portal. Already-archived / never-created SKUs are skipped (idempotent).
+    if (!cur.active) {
+      if (pd && pd.active_flag) archiveInPd.push({ cur, id: pd.id });
+      continue;
+    }
+
     if (!pd) {
       newInPd.push(cur);
       continue;
@@ -328,7 +348,7 @@ function computePipedriveChanges(
   }
 
   const flaggedRemoval = pdProducts.filter((p) => p.code && !curSkus.has(p.code));
-  return { newInPd, updatedInPd, flaggedRemoval };
+  return { newInPd, updatedInPd, archiveInPd, flaggedRemoval };
 }
 
 // For the --target=all DRY-RUN preview only: the Pipedrive diff must reflect the
@@ -408,6 +428,7 @@ function printPreview(
     console.log(`\nPipedrive (from current-as-of-today prices):`);
     console.log(`  New:              ${pipedrive.newInPd.length} product(s)`);
     console.log(`  Updated:          ${pipedrive.updatedInPd.length} product(s)`);
+    console.log(`  Archived:         ${pipedrive.archiveInPd.length} product(s) (portal active=false → active_flag=false)`);
     console.log(`  Flagged removal:  ${pipedrive.flaggedRemoval.length} product(s) (not touched automatically)`);
 
     if (pipedrive.newInPd.length > 0) {
@@ -420,6 +441,12 @@ function printPreview(
       console.log(`\n[Pipedrive UPDATED]`);
       for (const { cur } of pipedrive.updatedInPd) {
         console.log(`  ~ ${cur.sku}  ${pdName(cur.product_name, cur.price_type)}  ${fmt(pdPrice(cur.price_type, cur.msrp))}`);
+      }
+    }
+    if (pipedrive.archiveInPd.length > 0) {
+      console.log(`\n[Pipedrive ARCHIVE — portal-deactivated, active_flag → false, deal history kept]`);
+      for (const { cur } of pipedrive.archiveInPd) {
+        console.log(`  ⊘ ${cur.sku}  ${pdName(cur.product_name, cur.price_type)}`);
       }
     }
     if (pipedrive.flaggedRemoval.length > 0) {
@@ -509,15 +536,16 @@ async function pushPortalRows(
 }
 
 // ---------------------------------------------------------------------------
-// Pipedrive write — pushes current-as-of-today prices, then stamps
-// pushed_to_pipedrive_at on the winning products rows it actually pushed.
-// Idempotent: a second run finds no diff and pushes/stamps nothing.
+// Pipedrive write — pushes current-as-of-today prices, archives portal-deactivated
+// SKUs (active_flag=false), then stamps pushed_to_pipedrive_at on the winning
+// products rows it pushed or archived. Idempotent: a second run finds no diff and
+// nothing left to archive, so it pushes/stamps nothing.
 // ---------------------------------------------------------------------------
 
 async function pushPipedrive(
   admin: SupabaseClient,
   pipedrive: PipedriveChanges,
-): Promise<{ successCount: number; errors: string[]; stampErrors: string[] }> {
+): Promise<{ successCount: number; archivedCount: number; errors: string[]; stampErrors: string[] }> {
   const errors: string[] = [];
   const pushedIds: number[] = [];
 
@@ -545,17 +573,36 @@ async function pushPipedrive(
     }
   }
 
-  // Stamp pushed_to_pipedrive_at on the exact products rows that were pushed.
+  // Archive portal-deactivated SKUs (active_flag=false), NOT delete — the product
+  // stays on existing deals + in reporting but drops off new-deal pickers. This
+  // folds in what scripts/archive-eol-pipedrive-products.ts used to do as a manual
+  // second step, and closes the resurrection trap: an inactive SKU is archived, not
+  // re-pushed active, even if it was re-priced (ADR 0078). Only sends active_flag —
+  // we don't refresh the price of a retired product.
+  const archivedIds: number[] = [];
+  for (const { cur, id } of pipedrive.archiveInPd) {
+    try {
+      await pdPut(`/products/${id}`, { active_flag: false });
+      archivedIds.push(cur.id);
+    } catch (err) {
+      errors.push(`${cur.sku} (archive): ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+
+  // Stamp pushed_to_pipedrive_at on the exact products rows we synced — pushed or
+  // archived. Idempotency comes from the diff / active_flag checks, not the stamp;
+  // this is the audit trail of "last reconciled with Pipedrive".
   const stampErrors: string[] = [];
-  if (pushedIds.length > 0) {
+  const stampIds = [...pushedIds, ...archivedIds];
+  if (stampIds.length > 0) {
     const { error } = await admin
       .from("products")
       .update({ pushed_to_pipedrive_at: new Date().toISOString() } as unknown as never)
-      .in("id", pushedIds);
+      .in("id", stampIds);
     if (error) stampErrors.push(`stamp pushed_to_pipedrive_at: ${error.message}`);
   }
 
-  return { successCount: pushedIds.length, errors, stampErrors };
+  return { successCount: pushedIds.length, archivedCount: archivedIds.length, errors, stampErrors };
 }
 
 // ---------------------------------------------------------------------------
@@ -659,7 +706,7 @@ async function main() {
       for (const e of res.stampErrors) console.error(`    ${e}`);
     }
     if (res.errors.length === 0 && res.stampErrors.length === 0) {
-      console.log(`  ✓ Pipedrive: ${res.successCount} product(s) pushed + stamped`);
+      console.log(`  ✓ Pipedrive: ${res.successCount} product(s) pushed, ${res.archivedCount} archived + stamped`);
     }
     totalErrors += res.errors.length + res.stampErrors.length;
   }

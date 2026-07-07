@@ -107,6 +107,86 @@ Copy-only changes, no logic changes:
 
 ---
 
+## 2026-07-06 — Harden push-prices against the EOL "resurrection" trap
+
+### Work done
+
+Closed the latent resurrection trap that ADR 0078 flagged in its own consequences, rather than
+waiting for it to bite. `scripts/push-prices.ts` now treats portal `active=false` as an archive
+signal instead of always pushing `active_flag: true`:
+
+- **`computePipedriveChanges`**: any `current_products` row with `active=false` is routed to a
+  new `archiveInPd` bucket — never `newInPd`/`updatedInPd`. It is never created and never
+  re-pushed active, so a re-priced EOL SKU can no longer un-archive itself. If it exists and is
+  still `active_flag=true` in Pipedrive it's queued for archiving; already-archived / absent
+  SKUs are skipped (idempotent). Added `active_flag` to the `PdProduct` type to drive that check.
+- **`pushPipedrive`**: after the active pushes, archives the `archiveInPd` set via
+  `PUT active_flag=false` (price left untouched — we don't refresh a retired product). Archived
+  rows are stamped `pushed_to_pipedrive_at` alongside pushed rows (the stamp is the sync audit
+  trail; idempotency comes from the diff / `active_flag` checks, not the stamp).
+- **Dry-run preview**: new `Archived: N` count line + a `[Pipedrive ARCHIVE …]` detail block, so
+  archive actions are reviewed before CONFIRM like every other write.
+- **Deleted `scripts/archive-eol-pipedrive-products.ts`.** Its behavior — and the hardcoded
+  `EOL_SKUS` list — are now folded into the one pipeline run and data-driven off portal `active`.
+- Updated RUNBOOK "Retiring a SKU" to the new single-step flow; typecheck clean.
+
+### Decisions captured
+
+- [`0079-fold-pipedrive-archive-into-price-push.md`](./decisions/0079-fold-pipedrive-archive-into-price-push.md)
+  (supersedes [`0078`](./decisions/0078-pipedrive-eol-archive-not-delete.md) — archive-not-delete
+  principle kept; the "separate deliberate step" mechanism replaced).
+
+---
+
+## 2026-07-06 — Pipedrive price sync (closes the 2026-07-02 gap) + EOL archive
+
+### Work done
+
+Second half of the July cycle: the portal-only run on 2026-07-02 left Pipedrive
+untouched (`pushed_to_pipedrive_at` null). This run pushed the current-as-of-today
+prices to Pipedrive and then retired the five deactivated SKUs there.
+
+- **Backup first** (`backup-pipedrive-products.ts`): 1,023 products →
+  `backups/pipedrive-products-pre-step-5-2026-07-06T21-13-39-878Z.json`.
+- **Dry run reviewed before the live push.** `push-prices.ts --target=pipedrive
+  --dry-run`: 37 current SKUs → **31 Pipedrive writes** (1 create + 30 updates), 6
+  no-diff skips. The 944 "flagged for removal" are the legacy non-Arxys catalog — never
+  touched. Old→new taken vs the *live Pipedrive* prices (last synced in the May/June
+  cycle, so deltas are larger than the 07-02 portal diff): mostly +24–39% on the V-series
+  (e.g. `VX5-V800-864` $87,971 → $117,054, `VX5-V700-480` $54,512 → $75,995), `VX5-V255-MGM`
+  the only decrease ($16,175 → $15,734). `VX5-V400-192` also had a drifted Pipedrive name,
+  corrected by the same write.
+- **Live push** (`push-prices.ts --target=pipedrive`, CONFIRM): **31 product(s) pushed +
+  stamped, 0 errors.** Verified against live Pipedrive: spot-checked prices match;
+  `pushed_to_pipedrive_at` now set on exactly the 31 pushed `current_products` rows (the 6
+  unstamped are the 5 EOL SKUs + `VX5-NIC-SFP28`, all no-diff).
+- **Rename `VX5-V270-ACM` → `VX5-V265-ACM`** resolved as the standing behavior predicts:
+  V265 was absent from Pipedrive (matched by `code`) so it was **created new** (id 1522,
+  $17,814, active). V270 was a no-diff skip by the price push (portal `active=false` but its
+  `current_products` row still resolves and its name/price still matched), i.e. **orphaned** —
+  left active until the archive step below retired it.
+- **EOL archive** (new `scripts/archive-eol-pipedrive-products.ts`, run after the push):
+  archived (`active_flag=false`, **not** deleted) the five portal-deactivated SKUs —
+  `VX5-V270-ACM` (id 1490), `VX5-SW25-200` (1463), `VX5-SW30-300` (1461), `VX5-SW35-300`
+  (1462), `VX5-RAM-32GB` (1483). Verified: all five now absent from Pipedrive's active-product
+  listing; portal and Pipedrive availability agree. Archive-not-delete captured in ADR 0078.
+
+### Detours & fixes
+
+- **The price push cannot retire a product — deactivation had to be a separate step.**
+  `push-prices.ts` only ever sends `active_flag: true` and only writes on a name/price diff;
+  the 5 EOL SKUs matched, so it skipped them and could never archive them. And because
+  `current_products` has no `active` filter, they never appear in its "flagged for removal"
+  list either. So retiring them required the dedicated archive script above — confirmed with
+  Andy before running (chose archive over delete or defer). Latent trap noted in ADR 0078:
+  re-pricing an archived SKU would re-push it as active on the next Pipedrive run.
+
+### Decisions captured
+
+- [`0078-pipedrive-eol-archive-not-delete.md`](./decisions/0078-pipedrive-eol-archive-not-delete.md)
+
+---
+
 ## 2026-07-02 — Price-book hero copy + appliance link relocation
 
 ### Work done
