@@ -1,9 +1,9 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { productGroupToFamilySlug } from "@/lib/price-book/families";
-import { SUBMISSION_STATUSES, isActiveStatus, type SubmissionStatus } from "./status";
+import { SUBMISSION_STATUSES, type SubmissionStatus } from "./status";
 import { Pipeline, type PipelineGroup, type PipelineRow, type StatusFilter } from "./pipeline";
-import { groupIntoDeals, computeWeightedForecast, type SubmissionRow } from "@/lib/pipeline/forecast";
+import { groupIntoDeals, computePipelineTotals, type SubmissionRow } from "@/lib/pipeline/forecast";
 
 // A UUID-shaped recommended_product_id signals a pre-Step-3+4 submission whose
 // FK target was dropped. Post-migration rows carry SKU strings.
@@ -19,11 +19,11 @@ export default async function PartnerSubmissionsPage({
   searchParams: Search;
 }) {
   const { status: statusParam } = await searchParams;
-  const activeStatus: StatusFilter =
-    statusParam === "none" ||
-    (SUBMISSION_STATUSES as readonly string[]).includes(statusParam ?? "")
-      ? (statusParam as StatusFilter)
-      : "all";
+  const activeStatus: StatusFilter = (
+    SUBMISSION_STATUSES as readonly string[]
+  ).includes(statusParam ?? "")
+    ? (statusParam as StatusFilter)
+    : "all";
 
   // RLS scopes the caller to rows they own OR rows prepared on their behalf
   // (Phase 8: submissions_select_on_behalf_target). No application filter on
@@ -41,9 +41,7 @@ export default async function PartnerSubmissionsPage({
        on_behalf_of_partner_id, on_behalf_of_company_name`,
     )
     .order("created_at", { ascending: false });
-  if (activeStatus === "none") {
-    query = query.is("status", null);
-  } else if (activeStatus !== "all") {
+  if (activeStatus !== "all") {
     query = query.eq("status", activeStatus);
   }
   const { data, error } = await query;
@@ -167,7 +165,7 @@ export default async function PartnerSubmissionsPage({
       recommendedUnits: r.recommended_units,
       totalListPriceUsd:
         r.total_list_price_usd === null ? null : Number(r.total_list_price_usd),
-      status: (r.status as SubmissionStatus | null) ?? null,
+      status: r.status as SubmissionStatus,
       isPreferred: Boolean(r.is_preferred),
       productGroup,
       familySlug,
@@ -207,8 +205,9 @@ export default async function PartnerSubmissionsPage({
     }
   }
 
-  // Sort groups: ungrouped last; among the rest, groups with an active-status
-  // submission first; then by most-recent submission within each tier.
+  // Sort groups: ungrouped last; among the rest, by most-recent submission.
+  // (ADR 0081 removed the draft-vs-active tier — every non-terminal row is now
+  // "open", so recency is the only meaningful ordering within the tier.)
   const groups: PipelineGroup[] = [...grouped.values()]
     .map((g) => ({
       key: g.projectName ? g.projectName.toLowerCase() : "__ungrouped__",
@@ -222,17 +221,14 @@ export default async function PartnerSubmissionsPage({
       const aUng = a.projectName === null;
       const bUng = b.projectName === null;
       if (aUng !== bUng) return aUng ? 1 : -1;
-      const aActive = a.rows.some((row) => isActiveStatus(row.status));
-      const bActive = b.rows.some((row) => isActiveStatus(row.status));
-      if (aActive !== bActive) return aActive ? -1 : 1;
       const aRecent = a.rows[0]?.createdAt ?? "";
       const bRecent = b.rows[0]?.createdAt ?? "";
       return bRecent.localeCompare(aRecent);
     });
 
-  // Dollar totals for the summary bar. Uses groupIntoDeals to dedup correctly
-  // (including on-behalf grouping). Lost deals are excluded from open pipeline
-  // — computeWeightedForecast already skips draft/null; lost is pre-filtered here.
+  // Open Pipeline total for the summary bar. Uses groupIntoDeals to dedup
+  // correctly (including on-behalf grouping); computePipelineTotals sums only
+  // Open deals (Won and Lost are excluded — ADR 0081).
   const forecastRows: SubmissionRow[] = rows.map((r) => ({
     id: r.id,
     partner_id: r.partner_id,
@@ -246,15 +242,13 @@ export default async function PartnerSubmissionsPage({
     on_behalf_of_company_name: r.on_behalf_of_company_name,
   }));
   const deals = groupIntoDeals(forecastRows, []);
-  const openDeals = deals.filter((d) => d.status !== "lost");
-  const { totalOpenPipeline, weightedForecast } = computeWeightedForecast(openDeals);
+  const { openPipeline } = computePipelineTotals(deals);
 
   return (
     <Pipeline
       groups={groups}
       activeStatus={activeStatus}
-      totalOpenPipeline={totalOpenPipeline}
-      weightedForecast={weightedForecast}
+      openPipeline={openPipeline}
     />
   );
 }

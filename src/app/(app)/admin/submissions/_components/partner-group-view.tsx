@@ -13,7 +13,7 @@ import type { Deal } from "@/lib/pipeline/forecast";
 type SubmissionMini = {
   id: string;
   project_name: string | null;
-  status: SubmissionStatus | null;
+  status: SubmissionStatus;
   is_preferred: boolean;
   total_list_price_usd: number | null;
   created_at: string;
@@ -23,7 +23,6 @@ export type PartnerGroup = {
   partner_id: string;
   partner_name: string;
   deals: (Deal & { submissions: SubmissionMini[] })[];
-  draft_count: number;
 };
 
 function formatPrice(n: number | null | undefined): string {
@@ -44,11 +43,9 @@ function formatDate(value: string | null | undefined): string {
 function PartnerCard({
   group,
   openPipeline,
-  weighted,
 }: {
   group: PartnerGroup;
   openPipeline: number;
-  weighted: number;
 }) {
   const [expanded, setExpanded] = useState(false);
 
@@ -64,9 +61,6 @@ function PartnerCard({
           <span className="text-sm font-bold text-ink">{group.partner_name}</span>
           <span className="text-xs text-ink-soft">
             {group.deals.length} deal{group.deals.length !== 1 ? "s" : ""}
-            {group.draft_count > 0
-              ? ` · ${group.draft_count} draft${group.draft_count !== 1 ? "s" : ""}`
-              : ""}
           </span>
         </div>
         <div className="flex items-center gap-6 text-right">
@@ -76,11 +70,11 @@ function PartnerCard({
               {formatPrice(openPipeline)}
             </p>
           </div>
+          {/* TODO(0081-ui): Weighted Forecast retired (ADR 0081); value stubbed.
+              The Design pass removes/reworks this column. */}
           <div>
             <p className="text-xs text-ink-soft">Weighted forecast</p>
-            <p className="text-sm font-semibold tabular-nums text-ink">
-              {formatPrice(weighted)}
-            </p>
+            <p className="text-sm font-semibold tabular-nums text-ink-soft">—</p>
           </div>
           <svg
             width="18"
@@ -88,7 +82,7 @@ function PartnerCard({
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
-            strokeWidth="2.5"
+            strokeWidth="2"
             className={`text-arxys-navy transition-transform ${expanded ? "rotate-180" : ""}`}
           >
             <polyline points="6 9 12 15 18 9" />
@@ -110,8 +104,6 @@ function PartnerCard({
 function DealRow({ deal }: { deal: Deal & { submissions: SubmissionMini[] } }) {
   const [expanded, setExpanded] = useState(false);
 
-  const isDraftOrNull = deal.status === null || deal.status === "draft";
-
   return (
     <div className="border-b border-line-soft last:border-0">
       <button
@@ -127,15 +119,11 @@ function DealRow({ deal }: { deal: Deal & { submissions: SubmissionMini[] } }) {
           {deal.pipedrive_deal_id ? (
             <StatusBadge variant="source">Pipedrive</StatusBadge>
           ) : null}
-          <StatusBadge variant="status" status={deal.status as SubmissionStatus | null} />
+          <StatusBadge variant="status" status={deal.status as SubmissionStatus} />
         </div>
         <div className="flex items-center gap-4 text-right">
           <span className="text-sm tabular-nums text-ink">
-            {isDraftOrNull ? (
-              <span className="italic text-ink-soft">—</span>
-            ) : (
-              formatPrice(deal.total_list_price_usd)
-            )}
+            {formatPrice(deal.total_list_price_usd)}
           </span>
           <span className="text-xs text-ink-soft">
             {deal.all_submission_ids.length} submission
@@ -174,11 +162,7 @@ function DealRow({ deal }: { deal: Deal & { submissions: SubmissionMini[] } }) {
                     <StatusBadge variant="status" status={s.status} />
                   </td>
                   <td className="py-1.5 text-right tabular-nums text-ink">
-                    {s.status === null || s.status === "draft" ? (
-                      <span className="italic text-ink-soft">—</span>
-                    ) : (
-                      formatPrice(s.total_list_price_usd)
-                    )}
+                    {formatPrice(s.total_list_price_usd)}
                   </td>
                   <td className="py-1.5 text-right">
                     <Link
@@ -202,24 +186,21 @@ export function PartnerGroupView({
   groups,
   totalActivePartners,
   totalOpenPipeline,
-  totalWeighted,
   statusCounts,
-  draftCount,
 }: {
   groups: PartnerGroup[];
   totalActivePartners: number;
   totalOpenPipeline: number;
-  totalWeighted: number;
   statusCounts: Record<string, number>;
-  draftCount: number;
 }) {
   return (
     <div className="mt-6 space-y-4">
-      {/* Summary tiles */}
+      {/* Summary tiles. TODO(0081-ui): Weighted Forecast retired (ADR 0081) —
+          value stubbed to "—"; the Design pass removes/reworks the tile. */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <MetricTile label="Active partners" value={String(totalActivePartners)} />
         <MetricTile label="Open pipeline" value={formatPrice(totalOpenPipeline)} />
-        <MetricTile label="Weighted forecast" value={formatPrice(totalWeighted)} />
+        <MetricTile label="Weighted forecast" value="—" />
         <MetricTile
           label="By status"
           value={
@@ -229,9 +210,6 @@ export function PartnerGroupView({
                   {st}: <strong>{n}</strong>
                 </span>
               ))}
-              {draftCount > 0 ? (
-                <span className="italic text-ink-soft">drafts: {draftCount}</span>
-              ) : null}
             </div>
           }
         />
@@ -239,42 +217,30 @@ export function PartnerGroupView({
 
       {/* Per-partner rows */}
       <div className="space-y-2">
-        {groups.map((group) => {
-          const { openPipeline, weighted } = groupForecast(group.deals);
-          return (
-            <PartnerCard
-              key={group.partner_id}
-              group={group}
-              openPipeline={openPipeline}
-              weighted={weighted}
-            />
-          );
-        })}
+        {groups.map((group) => (
+          <PartnerCard
+            key={group.partner_id}
+            group={group}
+            openPipeline={groupOpenPipeline(group.deals)}
+          />
+        ))}
       </div>
 
       <p className="text-xs text-ink-soft">
-        Pre-CRM partner activity — not synced with Pipedrive stage.
-        Weights: Sent 40% · On Hold 20% · Won 100% · Lost 0%.
-        Draft/unset values excluded from dollar totals.
+        Pre-CRM partner activity — not synced with Pipedrive stage. Open pipeline
+        is the straight sum of Open-deal list prices (ADR 0081).
       </p>
     </div>
   );
 }
 
-function groupForecast(deals: (Deal & { submissions: SubmissionMini[] })[]) {
+// Straight sum of Open-deal list prices for one partner (ADR 0081; no weighting).
+function groupOpenPipeline(
+  deals: (Deal & { submissions: SubmissionMini[] })[],
+): number {
   let openPipeline = 0;
-  let weighted = 0;
-  const PROB: Record<string, number> = {
-    "on-hold": 0.2,
-    sent: 0.4,
-    won: 1.0,
-    lost: 0.0,
-  };
   for (const deal of deals) {
-    if (deal.status === null || deal.status === "draft") continue;
-    const value = deal.total_list_price_usd ?? 0;
-    openPipeline += value;
-    weighted += value * (PROB[deal.status] ?? 0);
+    if (deal.status === "open") openPipeline += deal.total_list_price_usd ?? 0;
   }
-  return { openPipeline, weighted };
+  return openPipeline;
 }

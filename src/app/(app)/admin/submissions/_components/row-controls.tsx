@@ -20,7 +20,7 @@ export function RowControls({
   status,
 }: {
   submissionId: string;
-  status: SubmissionStatus | null;
+  status: SubmissionStatus;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -28,8 +28,7 @@ export function RowControls({
   const [error, setError] = useState<string | null>(null);
 
   function handleStatusChange(e: React.ChangeEvent<HTMLSelectElement>) {
-    const val = e.target.value;
-    const next = val === "" ? null : (val as SubmissionStatus);
+    const next = e.target.value as SubmissionStatus;
     setError(null);
     startTransition(async () => {
       const res = await adminUpdateStatus(submissionId, next);
@@ -56,12 +55,11 @@ export function RowControls({
       <div className="w-32">
         <Select
           aria-label="Submission status"
-          value={status ?? ""}
+          value={status}
           onChange={handleStatusChange}
           disabled={isPending}
           className="py-1 pr-8 text-xs"
         >
-          <option value="">— no status —</option>
           {SUBMISSION_STATUSES.map((s) => (
             <option key={s} value={s}>
               {STATUS_META[s].label}

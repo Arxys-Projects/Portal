@@ -316,17 +316,18 @@ async function run() {
       await admin.from("products").delete().eq("sku", tempSku);
     }
 
-    // --- Phase 3 Step 5: submissions UPDATE / DELETE policies ---------------
-    // submissions_update_own allows a partner to UPDATE their own rows;
-    // submissions_delete_own_draft allows DELETE only when status is draft/NULL.
+    // --- Phase 3 Step 5 + ADR 0081: submissions UPDATE / DELETE policies -----
+    // submissions_update_authorized allows a partner to UPDATE their own rows;
+    // submissions_delete_authorized allows DELETE only when status = 'open'
+    // (Won/Lost are protected — ADR 0081 replaced the old draft/NULL guard).
     // RLS-blocked UPDATE/DELETE return zero affected rows (not an error).
 
     // Test 11: A UPDATE own submission status → allowed.
     {
-      const id = await seedSubmission(a.id, "draft");
+      const id = await seedSubmission(a.id, "open");
       const { data, error } = await a.client
         .from("submissions")
-        .update({ status: "sent" })
+        .update({ status: "won" })
         .eq("id", id)
         .select("id");
       record(
@@ -338,7 +339,7 @@ async function run() {
 
     // Test 12: A UPDATE own submission is_preferred → allowed.
     {
-      const id = await seedSubmission(a.id, "draft");
+      const id = await seedSubmission(a.id, "open");
       const { data, error } = await a.client
         .from("submissions")
         .update({ is_preferred: true })
@@ -353,7 +354,7 @@ async function run() {
 
     // Test 13: A UPDATE B's submission status → blocked (RLS filters to 0 rows).
     {
-      const id = await seedSubmission(b.id, "draft");
+      const id = await seedSubmission(b.id, "open");
       const { data, error } = await a.client
         .from("submissions")
         .update({ status: "won" })
@@ -366,44 +367,14 @@ async function run() {
         .single();
       record(
         "13: A UPDATE B's submission is blocked",
-        !error && (data?.length ?? 0) === 0 && after?.status === "draft",
+        !error && (data?.length ?? 0) === 0 && after?.status === "open",
         `rows=${data?.length} afterStatus=${after?.status}`,
       );
     }
 
-    // Test 14: A DELETE own submission with status=NULL → allowed.
+    // Test 14: A DELETE own submission with status='lost' → blocked (guard).
     {
-      const id = await seedSubmission(a.id, null);
-      const { data, error } = await a.client
-        .from("submissions")
-        .delete()
-        .eq("id", id)
-        .select("id");
-      record(
-        "14: A DELETE own submission status=NULL",
-        !error && (data?.length ?? 0) === 1,
-        error?.message ?? `rows=${data?.length}`,
-      );
-    }
-
-    // Test 15: A DELETE own submission with status='draft' → allowed.
-    {
-      const id = await seedSubmission(a.id, "draft");
-      const { data, error } = await a.client
-        .from("submissions")
-        .delete()
-        .eq("id", id)
-        .select("id");
-      record(
-        "15: A DELETE own submission status='draft'",
-        !error && (data?.length ?? 0) === 1,
-        error?.message ?? `rows=${data?.length}`,
-      );
-    }
-
-    // Test 16: A DELETE own submission with status='sent' → blocked (guard).
-    {
-      const id = await seedSubmission(a.id, "sent");
+      const id = await seedSubmission(a.id, "lost");
       const { data, error } = await a.client
         .from("submissions")
         .delete()
@@ -415,7 +386,42 @@ async function run() {
         .eq("id", id)
         .maybeSingle();
       record(
-        "16: A DELETE own 'sent' submission is blocked by status guard",
+        "14: A DELETE own 'lost' submission is blocked by status guard",
+        !error && (data?.length ?? 0) === 0 && Boolean(after),
+        `rows=${data?.length} stillExists=${Boolean(after)}`,
+      );
+    }
+
+    // Test 15: A DELETE own submission with status='open' → allowed.
+    {
+      const id = await seedSubmission(a.id, "open");
+      const { data, error } = await a.client
+        .from("submissions")
+        .delete()
+        .eq("id", id)
+        .select("id");
+      record(
+        "15: A DELETE own submission status='open'",
+        !error && (data?.length ?? 0) === 1,
+        error?.message ?? `rows=${data?.length}`,
+      );
+    }
+
+    // Test 16: A DELETE own submission with status='won' → blocked (guard).
+    {
+      const id = await seedSubmission(a.id, "won");
+      const { data, error } = await a.client
+        .from("submissions")
+        .delete()
+        .eq("id", id)
+        .select("id");
+      const { data: after } = await admin
+        .from("submissions")
+        .select("id")
+        .eq("id", id)
+        .maybeSingle();
+      record(
+        "16: A DELETE own 'won' submission is blocked by status guard",
         !error && (data?.length ?? 0) === 0 && Boolean(after),
         `rows=${data?.length} stillExists=${Boolean(after)}`,
       );
@@ -423,7 +429,7 @@ async function run() {
 
     // Test 17: A DELETE B's submission → blocked (ownership).
     {
-      const id = await seedSubmission(b.id, "draft");
+      const id = await seedSubmission(b.id, "open");
       const { data, error } = await a.client
         .from("submissions")
         .delete()
@@ -459,7 +465,7 @@ async function run() {
           retention_days: 30,
           bandwidth_mbps: 120,
           storage_tb: 3,
-          status: "draft",
+          status: "open",
           pipedrive_deal_id: 999999,
         })
         .select("id")
@@ -504,7 +510,7 @@ async function run() {
     // submissions_select_internal lets is_internal partners read every
     // submission. UPDATE/DELETE policies are unchanged: still own-only.
 
-    // Seed one B-owned submission (won, undeleteable by own-draft policy) so
+    // Seed one B-owned submission (won, undeleteable by the status guard) so
     // the internal persona has cross-partner rows to read and (attempt to)
     // mutate. The 7c block already seeded a B-owned row, but tests 11-14
     // mutate it; seed a fresh one here to keep this block self-contained.
@@ -590,7 +596,7 @@ async function run() {
           retention_days: 30,
           bandwidth_mbps: 200,
           storage_tb: 4,
-          status: "draft",
+          status: "open",
         })
         .select("id")
         .single();
@@ -820,7 +826,7 @@ async function run() {
     // quote is immutable: a revision is a new version row, never an edit
     // (ADR 0059 / 0060 / 0061). adminPersona was reactivated at 12g.
     {
-      const quoteSubmissionId = await seedSubmission(b.id, "sent");
+      const quoteSubmissionId = await seedSubmission(b.id, "open");
       const baseQuoteRow = {
         submission_id: quoteSubmissionId,
         pipedrive_deal_id: 4822,

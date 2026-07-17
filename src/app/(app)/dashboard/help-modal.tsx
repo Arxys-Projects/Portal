@@ -19,10 +19,10 @@ const SECTIONS = [
     label: "My Pipeline",
     bullets: [
       "Shows all your submitted quotes grouped by project name.",
-      "Each project displays the preferred or most-recent quote value and its pipeline status (draft, sent, on hold, won, lost).",
+      "Each project displays the preferred or most-recent quote value and its pipeline status (open, won, lost).",
       "Click a row to expand the deal and see individual quote revisions.",
-      "The summary bar at the top shows your total open pipeline and weighted forecast.",
-      "Drafts are excluded from dollar totals until a quote is sent.",
+      "The summary bar at the top shows your total open pipeline.",
+      "Open pipeline is the straight sum of your open deals; won and lost are excluded.",
     ],
   },
   {

@@ -314,9 +314,9 @@ export async function submitCalculation(
       addOnFailoverRecorder: input.addOnFailoverRecorder,
       addOnManagementServer: input.addOnManagementServer,
     },
-    // Phase 3 Step 5: new submissions start in 'draft' so the partner sees a
-    // status badge immediately. Pre-Step-5 rows stay NULL (treated as draft).
-    status: "draft",
+    // ADR 0081: new submissions start Open (the default state). Won/Lost are
+    // set manually. Matches the DB column default; set explicitly for clarity.
+    status: "open",
     // partner_id stays = creator (auth.uid()); the on-behalf columns are what
     // redirect grouping + the Pipedrive deal to the target partner.
     on_behalf_of_partner_id: onBehalfPartnerId,

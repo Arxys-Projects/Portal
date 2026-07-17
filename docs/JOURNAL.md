@@ -4,6 +4,28 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-07-17 — Pipeline status model reduction (ADR 0081, backend + migration)
+
+### Work done
+
+- Reduced `submissions.status` to three states — **open** (default) / **won** / **lost** — retiring the six aspirational values (draft/sent/on-hold + NULL). Migration [`20260717000002_pipeline_status_model_reduction.sql`](../supabase/migrations/20260717000002_pipeline_status_model_reduction.sql): drop old CHECK → fold every non-terminal row to `open` → `default 'open'` + `NOT NULL` + reduced CHECK → remap the A3 delete-guard to `status = 'open'` → refresh the column comment.
+- **Migration result (applied to the arxys-portal project 2026-07-17):** 68 rows total, all folded to `open` (before: 60 draft + 8 sent; 0 won, 0 lost, 0 null — the statuses really were unmaintained). Post-apply verification, read-only via the service-role key: live distribution = `open 68`; the CHECK rejects `draft` (23514) and NULL (23502) and accepts open/won/lost; the delete-guard confirmed via `test-rls.ts` (own `open` deletable; `won`/`lost` blocked; ownership enforced). All authenticated RLS tests pass.
+- **Retired Weighted Forecast.** Removed `computeWeightedForecast`/`STAGE_PROBABILITY`/`ForecastableStatus` from `forecast.ts`; added `computePipelineTotals → { openPipeline, wonTotal }`. Open Pipeline is now the straight (unweighted) sum of Open-deal list prices; Won/Lost excluded. Reworked all five aggregate sites (dashboard, My Pipeline, admin partner-group view, `partner-group-view`'s own inline weighting, and the forecast XLSX export).
+- **App layer aligned with the reduced domain** so no write can violate the new CHECK: `SUBMISSION_STATUSES = [open, won, lost]`; Zod validators de-nullable'd; the calculator insert now writes `open`; the "No status"/null UI paths removed. Filter pills, per-row status dropdowns, and the admin status filter functionally reduce to three from the single `SUBMISSION_STATUSES` source; the visual treatment (Won highlight, Lost grey, dashboard tile removal) is deferred to the Design pass and marked `// TODO(0081-ui)`. Help-modal copy corrected.
+- Delivered behind the required gates: backup (`backups/manual-2026-07-17T19-18-12-701Z.json`, the data-recovery source), a read-only dry-run (`scripts/dry-run-status-migration.ts`), and a paired rollback (`supabase/rollback/pipeline-status-model-reduction-rollback.sql`).
+
+### Detours & fixes
+
+- **`supabase db push` blocked by a CLI 401.** The CLI's personal access token was unauthorized (`supabase projects list` also 401'd) and no DB password was held — `.env.local` carries only the service-role API key, which `supabase-js` can't use for DDL. Confirmed the CLI *was* linked to the correct project (`ddqnpwpouvkgivvbjpju` = arxys-portal, matching `NEXT_PUBLIC_SUPABASE_URL`), so it was a credential problem, not a wrong-target one. The migration was applied by Andy; all verification then ran read-only over PostgREST via the service-role key (which works).
+- **Delete-guard behavior change (accepted):** former `sent` rows became `open` and are therefore now partner-deletable; `won`/`lost` remain protected. Consistent with the reduced "Open = non-terminal" model.
+- **Transient prod skew during rollout:** the DB was migrated before the app code shipped, so the previously-deployed build (which inserts `draft` and lacks an `open` entry in `STATUS_META`) is incompatible with the new CHECK until this code deploys. Closed by shipping the app change.
+
+### Decisions captured
+
+- [`0081-pipeline-status-model-reduction.md`](./0081-pipeline-status-model-reduction.md) (Accepted)
+
+---
+
 ## 2026-07-17 — Drop the unused `product_specs.msrp` column
 
 ### Work done
@@ -42,6 +64,37 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 ### Decisions captured
 
 - [`0086-single-price-source-current-products.md`](./decisions/0086-single-price-source-current-products.md)
+
+---
+
+## 2026-07-15 — Portal fresh-analysis session: status model, Quick Calc, partner quote visibility, IA regroup, convince surfacing
+
+### Work done
+
+- Analysis and decision session, not code. Reviewed the live portal against the buyer-persona model (two operators: partners and internal sales; three integrator archetypes) and produced three planning docs: a per-question findings analysis, a Quick Calc scope, and a unified Claude Design prompt.
+- Locked five planned changes, each captured as a Proposed ADR below:
+  - **Status model reduction** (0081): collapse the six aspirational statuses to Open / Won / Lost, migrate every non-terminal record to Open, retire Weighted Forecast, and make Open Pipeline a straight sum of Open deals.
+  - **Quick Project Calculation & Quote** (0082): a fast-path calculator page that feeds the same submission, deal, and System Estimate pipeline from six inputs, with the VSR standard fixed for everything else.
+  - **Partner visibility of own Project Quotes** (0083): surface a partner's own quote revisions in My Pipeline. Scoped reversal of the 0059 internal-only wall; stop-and-flag before any RLS work.
+  - **Portal IA regroup and Compare split** (0084): regroup the dashboard by job, split the shared "Compare" nav into a persuasion destination and a selection tool, and align naming across nav/cards/headers. Specifics to be informed by the Design session.
+  - **Convince-the-hesitant surfacing** (0085): elevate the existing VMS Server Comparison as the first-class convince destination, carry its on-screen market-reality content into the downloadable leave-behind, and add price-lock / support-model / durability content. The larger "build the case for your customer" packet is deferred to Phase 2.
+- Design and Code split: layout, IA, and the consistency pass go to a single unified Claude Design session (wireframes first, then full screens). Everything touching data, access, or generated documents goes to Claude Code: the status migration (0081), partner quote visibility with RLS (0083), the Quick Calc build, the comparison-PDF changes, and the persuasive-copy components.
+
+### Detours & fixes
+
+- **TForce screenshot was the wrong file.** An earlier idea (post-quote order/delivery status fed by shipment tracking) was built on it and has been dropped entirely; no evidence Arxys has pullable order or tracking data.
+- **Two pricing "contradictions" withdrawn as misreads.** Pre-PO quote language ("prices subject to change," short validity) does not contradict a post-PO acceptance price lock; the two are different moments. The price lock is defensible when framed on Arxys's acceptance of the PO, not the buyer issuing it. The 7-day quote validity vs the "30 days unless otherwise noted" T&C clause was already settled as intentional on 2026-06-18 (the header is the "otherwise noted"); not reopened.
+- **Status system confirmed unused and portal-only.** Draft/Sent/Won/etc. were aspirational, unmaintained, and not mapped to Pipedrive deal stages, so the 0081 migration carries no Pipedrive desync risk.
+- **Partners confirmed as real users** who like the portal, so the Box-Mover simplification work (Quick Calc, the simpler entry) is solving a real problem, not a hypothetical one.
+- **Recommendation engine handles multi-unit jobs gracefully** (confirmed), so Quick Calc's uncapped stream count needs no special handling.
+
+### Decisions captured
+
+- [`0081-pipeline-status-model-reduction.md`](./decisions/0081-pipeline-status-model-reduction.md) (Proposed)
+- [`0082-quick-project-calculation-and-quote.md`](./decisions/0082-quick-project-calculation-and-quote.md) (Proposed)
+- [`0083-partner-visibility-of-own-project-quotes.md`](./decisions/0083-partner-visibility-of-own-project-quotes.md) (Proposed — amends 0059; stop-and-flag before RLS work)
+- [`0084-portal-ia-regroup-and-compare-split.md`](./decisions/0084-portal-ia-regroup-and-compare-split.md) (Proposed)
+- [`0085-convince-the-hesitant-surfacing.md`](./decisions/0085-convince-the-hesitant-surfacing.md) (Proposed)
 
 ---
 

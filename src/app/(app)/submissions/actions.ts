@@ -8,13 +8,14 @@ import { dbError } from "@/lib/errors/safe-message";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
 
-const statusSchema = z.enum(SUBMISSION_STATUSES).nullable();
+const statusSchema = z.enum(SUBMISSION_STATUSES);
 
 // All three actions rely on RLS for authorization:
-//   - submissions_update_own enforces partner_id = auth.uid() on UPDATE.
-//   - submissions_delete_own_draft additionally enforces status draft/NULL on DELETE.
+//   - submissions_update_authorized enforces partner_id = auth.uid() on UPDATE.
+//   - submissions_delete_authorized additionally enforces status = 'open' on
+//     DELETE (Won/Lost are protected — ADR 0081 replaces the old draft/NULL guard).
 // We only confirm a live session here; the database does the row-level work,
-// and an UPDATE/DELETE that matches no row (wrong owner, or a non-draft delete)
+// and an UPDATE/DELETE that matches no row (wrong owner, or a non-open delete)
 // returns zero rows rather than an error, which we surface to the caller.
 
 async function requireSession() {
@@ -30,7 +31,7 @@ const NOT_YOURS = "Submission not found, or it is not yours to edit.";
 
 export async function updateSubmissionStatus(
   submissionId: string,
-  status: SubmissionStatus | null,
+  status: SubmissionStatus,
 ): Promise<ActionResult> {
   const parsed = statusSchema.safeParse(status);
   if (!parsed.success) return { ok: false, error: "Invalid status value." };
@@ -115,8 +116,8 @@ export async function deleteSubmission(submissionId: string): Promise<ActionResu
   const { supabase, user } = await requireSession();
   if (!user) return { ok: false, error: SESSION_EXPIRED };
 
-  // submissions_delete_own_draft enforces ownership AND the draft/NULL guard at
-  // the DB level. A blocked delete returns zero rows, not an error.
+  // submissions_delete_authorized enforces ownership AND the status='open' guard
+  // at the DB level. A blocked delete returns zero rows, not an error.
   const { data, error } = await supabase
     .from("submissions")
     .delete()
@@ -126,7 +127,7 @@ export async function deleteSubmission(submissionId: string): Promise<ActionResu
   if (!data || data.length === 0) {
     return {
       ok: false,
-      error: "This submission cannot be deleted because it has a status other than draft.",
+      error: "This submission cannot be deleted because it is marked Won or Lost.",
     };
   }
 

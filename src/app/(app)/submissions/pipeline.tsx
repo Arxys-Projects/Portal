@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import {
   STATUS_META,
-  NO_STATUS_DOT,
   SUBMISSION_STATUSES,
   isDeletable,
   type SubmissionStatus,
@@ -24,14 +23,14 @@ import {
   type ActionResult,
 } from "./actions";
 
-export type StatusFilter = "all" | SubmissionStatus | "none";
+export type StatusFilter = "all" | SubmissionStatus;
 
 export type PipelineRow = {
   id: string;
   createdAt: string;
   recommendedUnits: number;
   totalListPriceUsd: number | null;
-  status: SubmissionStatus | null;
+  status: SubmissionStatus;
   isPreferred: boolean;
   productGroup: string | null;
   familySlug: string | null;
@@ -51,7 +50,6 @@ export type PipelineGroup = {
 const FILTERS: { value: StatusFilter; label: string }[] = [
   { value: "all", label: "All" },
   ...SUBMISSION_STATUSES.map((s) => ({ value: s, label: STATUS_META[s].label })),
-  { value: "none", label: "No Status" },
 ];
 
 function formatDate(value: string): string {
@@ -102,13 +100,11 @@ function fmtAmount(n: number): string {
 export function Pipeline({
   groups,
   activeStatus,
-  totalOpenPipeline,
-  weightedForecast,
+  openPipeline,
 }: {
   groups: PipelineGroup[];
   activeStatus: StatusFilter;
-  totalOpenPipeline?: number;
-  weightedForecast?: number;
+  openPipeline?: number;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -177,13 +173,12 @@ export function Pipeline({
         })}
       </div>
 
-      {totalOpenPipeline !== undefined && weightedForecast !== undefined ? (
+      {/* TODO(0081-ui): ADR 0081 retired Weighted Forecast; the Design pass
+          finalizes this summary (a Won total could sit alongside Open). */}
+      {openPipeline !== undefined ? (
         <div className="mt-3 rounded-lg border border-line border-l-[3px] border-l-arxys-navy bg-surface px-4 py-2.5 text-sm text-ink-soft">
           <span className="font-semibold text-ink">Open Pipeline:</span>{" "}
-          {fmtAmount(totalOpenPipeline)}
-          {" · "}
-          <span className="font-semibold text-ink">Weighted Forecast:</span>{" "}
-          {fmtAmount(weightedForecast)}
+          {fmtAmount(openPipeline)}
         </div>
       ) : null}
 
@@ -290,30 +285,23 @@ export function Pipeline({
                               <span
                                 aria-hidden="true"
                                 className="h-2 w-2 shrink-0 rounded-full"
-                                style={{
-                                  background: row.status
-                                    ? STATUS_META[row.status].dot
-                                    : NO_STATUS_DOT,
-                                }}
+                                style={{ background: STATUS_META[row.status].dot }}
                               />
                               <div className="w-36">
                               <Select
                                 aria-label="Submission status"
                                 disabled={isPending}
-                                value={row.status ?? ""}
+                                value={row.status}
                                 onChange={(e) =>
                                   perform(row.id, () =>
                                     updateSubmissionStatus(
                                       row.id,
-                                      e.target.value === ""
-                                        ? null
-                                        : (e.target.value as SubmissionStatus),
+                                      e.target.value as SubmissionStatus,
                                     ),
                                   )
                                 }
                                 className="py-1.5 pr-8 text-xs"
                               >
-                                <option value="">No status</option>
                                 {SUBMISSION_STATUSES.map((s) => (
                                   <option key={s} value={s}>
                                     {STATUS_META[s].label}

@@ -4,8 +4,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { dbError } from "@/lib/errors/safe-message";
 import {
   groupIntoDeals,
-  computeWeightedForecast,
-  STAGE_PROBABILITY,
+  computePipelineTotals,
   type SubmissionRow,
   type Deal,
 } from "@/lib/pipeline/forecast";
@@ -61,16 +60,10 @@ export async function GET() {
     company_name: p.company_name,
   }));
   const deals = groupIntoDeals(submissions, partners);
-  const { totalOpenPipeline, weightedForecast } =
-    computeWeightedForecast(deals);
+  const { openPipeline, wonTotal } = computePipelineTotals(deals);
 
   const generatedAt = new Date();
-  const buffer = await buildXlsx(
-    deals,
-    totalOpenPipeline,
-    weightedForecast,
-    generatedAt,
-  );
+  const buffer = await buildXlsx(deals, openPipeline, wonTotal, generatedAt);
 
   const yyyy = generatedAt.getFullYear();
   const mm = String(generatedAt.getMonth() + 1).padStart(2, "0");
@@ -90,8 +83,8 @@ export async function GET() {
 
 async function buildXlsx(
   deals: Deal[],
-  totalOpenPipeline: number,
-  weightedForecast: number,
+  openPipeline: number,
+  wonTotal: number,
   generatedAt: Date,
 ): Promise<Buffer> {
   const wb = new ExcelJS.Workbook();
@@ -101,16 +94,18 @@ async function buildXlsx(
   const ws = wb.addWorksheet("Partner Forecast");
 
   // Title
-  ws.mergeCells("A1:G1");
-  ws.getCell("A1").value = "Arxys Partner Pipeline Forecast";
+  ws.mergeCells("A1:F1");
+  ws.getCell("A1").value = "Arxys Partner Pipeline";
   ws.getCell("A1").font = { bold: true, size: 14 };
 
-  ws.mergeCells("A2:G2");
+  ws.mergeCells("A2:F2");
   ws.getCell("A2").value = `Generated ${generatedAt.toISOString().replace("T", " ").slice(0, 16)} UTC — Pre-CRM partner activity`;
   ws.getCell("A2").font = { italic: true, color: { argb: "FF6B7280" } };
 
-  ws.mergeCells("A3:G3");
-  ws.getCell("A3").value = `Open pipeline: ${fmtUsd(totalOpenPipeline)}   Weighted forecast: ${fmtUsd(weightedForecast)}   Weights: Sent 40% · On Hold 20% · Won 100% · Lost 0% · Draft/unset excluded`;
+  // ADR 0081 — Open Pipeline is a straight sum of Open deals; Weighted Forecast
+  // is retired. Won total shown for reference (no weighting).
+  ws.mergeCells("A3:F3");
+  ws.getCell("A3").value = `Open pipeline: ${fmtUsd(openPipeline)}   Won total: ${fmtUsd(wonTotal)}`;
   ws.getCell("A3").font = { color: { argb: "FF374151" } };
 
   // Header row at row 5
@@ -120,7 +115,6 @@ async function buildXlsx(
     "Project",
     "Status",
     "List Price",
-    "Weighted Value",
     "Pipedrive Deal ID",
     "Quote Date",
   ];
@@ -136,37 +130,21 @@ async function buildXlsx(
   // Data rows start at row 6
   let rowIdx = 6;
   for (const deal of deals) {
-    const isDraftOrNull = deal.status === null || deal.status === "draft";
-    const value = !isDraftOrNull ? (deal.total_list_price_usd ?? 0) : null;
-    const prob = !isDraftOrNull
-      ? (STAGE_PROBABILITY[deal.status as keyof typeof STAGE_PROBABILITY] ?? 0)
-      : 0;
-    const weightedValue = value !== null ? value * prob : null;
+    const value = deal.total_list_price_usd ?? 0;
 
     const dataRow = ws.getRow(rowIdx++);
     dataRow.getCell(1).value = deal.partner_name;
     dataRow.getCell(2).value = deal.project_name ?? "(untitled)";
-    dataRow.getCell(3).value = deal.status ?? "—";
+    dataRow.getCell(3).value = deal.status ?? "open";
 
-    if (value !== null) {
-      dataRow.getCell(4).value = value;
-      dataRow.getCell(4).numFmt = '"$"#,##0.00';
-    } else {
-      dataRow.getCell(4).value = "Draft/unset";
-    }
+    dataRow.getCell(4).value = value;
+    dataRow.getCell(4).numFmt = '"$"#,##0.00';
 
-    if (weightedValue !== null) {
-      dataRow.getCell(5).value = weightedValue;
-      dataRow.getCell(5).numFmt = '"$"#,##0.00';
-    } else {
-      dataRow.getCell(5).value = "—";
-    }
-
-    dataRow.getCell(6).value = deal.pipedrive_deal_id ?? "—";
+    dataRow.getCell(5).value = deal.pipedrive_deal_id ?? "—";
 
     const quoteDate = new Date(deal.representative_created_at);
-    dataRow.getCell(7).value = quoteDate;
-    dataRow.getCell(7).numFmt = "yyyy-mm-dd";
+    dataRow.getCell(6).value = quoteDate;
+    dataRow.getCell(6).numFmt = "yyyy-mm-dd";
   }
 
   // Column widths
@@ -174,9 +152,8 @@ async function buildXlsx(
   ws.getColumn(2).width = 30;
   ws.getColumn(3).width = 10;
   ws.getColumn(4).width = 14;
-  ws.getColumn(5).width = 16;
-  ws.getColumn(6).width = 20;
-  ws.getColumn(7).width = 14;
+  ws.getColumn(5).width = 20;
+  ws.getColumn(6).width = 14;
 
   const arrayBuffer = await wb.xlsx.writeBuffer();
   return Buffer.from(arrayBuffer as ArrayBuffer);

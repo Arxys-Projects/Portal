@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
 import {
   STATUS_META,
-  NO_STATUS_BADGE,
   type SubmissionStatus,
 } from "@/app/(app)/submissions/status";
 import { cx, BADGE_BASE, BADGE_SOURCE, BADGE_ON_BEHALF } from "./styles";
@@ -11,7 +10,7 @@ type StatusBadgeProps =
   | { variant: "on-behalf"; children: ReactNode; className?: string }
   | {
       variant: "status";
-      status: SubmissionStatus | null;
+      status: SubmissionStatus;
       /** Optional trailing content (e.g. a count) shown after the label. */
       children?: ReactNode;
       className?: string;
@@ -27,10 +26,10 @@ type StatusBadgeProps =
  */
 export function StatusBadge(props: StatusBadgeProps) {
   if (props.variant === "status") {
-    const meta = props.status ? STATUS_META[props.status] : null;
+    const meta = STATUS_META[props.status];
     return (
-      <span className={cx(BADGE_BASE, meta?.badge ?? NO_STATUS_BADGE, props.className)}>
-        {meta?.label ?? "No status"}
+      <span className={cx(BADGE_BASE, meta.badge, props.className)}>
+        {meta.label}
         {props.children != null ? (
           <span className="font-bold opacity-80">{props.children}</span>
         ) : null}

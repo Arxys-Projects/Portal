@@ -9,7 +9,7 @@ import {
 } from "@/app/(app)/submissions/status";
 import {
   groupIntoDeals,
-  computeWeightedForecast,
+  computePipelineTotals,
   type SubmissionRow,
 } from "@/lib/pipeline/forecast";
 import {
@@ -112,11 +112,7 @@ export default async function AdminSubmissionsPage({
       .order("created_at", { ascending: false });
 
     if (statusParam && statusParam !== "all") {
-      if (statusParam === "none") {
-        q = q.is("status", null);
-      } else {
-        q = q.eq("status", statusParam);
-      }
+      q = q.eq("status", statusParam);
     }
     if (fromDate) q = q.gte("created_at", `${fromDate}T00:00:00Z`);
     if (toDate) q = q.lte("created_at", `${toDate}T23:59:59Z`);
@@ -134,15 +130,14 @@ export default async function AdminSubmissionsPage({
     }));
 
     const deals = groupIntoDeals(submissions, partners);
-    const { totalOpenPipeline, weightedForecast } =
-      computeWeightedForecast(deals);
+    const { openPipeline } = computePipelineTotals(deals);
 
     // Build per-partner groups for the UI.
     // Each group carries the deals + the individual submission rows for drill-down.
     type SubMini = {
       id: string;
       project_name: string | null;
-      status: SubmissionStatus | null;
+      status: SubmissionStatus;
       is_preferred: boolean;
       total_list_price_usd: number | null;
       created_at: string;
@@ -152,7 +147,7 @@ export default async function AdminSubmissionsPage({
       subById.set(s.id, {
         id: s.id,
         project_name: s.project_name,
-        status: s.status as SubmissionStatus | null,
+        status: s.status as SubmissionStatus,
         is_preferred: s.is_preferred,
         total_list_price_usd: s.total_list_price_usd,
         created_at: s.created_at,
@@ -166,53 +161,27 @@ export default async function AdminSubmissionsPage({
           partner_id: deal.partner_id,
           partner_name: deal.partner_name,
           deals: [],
-          draft_count: 0,
         });
       }
       const group = partnerGroupMap.get(deal.partner_id)!;
       const dealSubs = deal.all_submission_ids
         .map((id) => subById.get(id))
         .filter((s): s is SubMini => s !== undefined);
-
-      if (deal.status === null || deal.status === "draft") {
-        group.draft_count += 1;
-      } else {
-        group.deals.push({
-          ...deal,
-          submissions: dealSubs,
-        });
-      }
-    }
-
-    // Also add draft deals into their partner groups for display.
-    for (const deal of deals) {
-      if (deal.status === null || deal.status === "draft") {
-        const group = partnerGroupMap.get(deal.partner_id);
-        if (group) {
-          const dealSubs = deal.all_submission_ids
-            .map((id) => subById.get(id))
-            .filter((s): s is SubMini => s !== undefined);
-          group.deals.push({ ...deal, submissions: dealSubs });
-        }
-      }
+      group.deals.push({ ...deal, submissions: dealSubs });
     }
 
     const groups = [...partnerGroupMap.values()];
+    // A partner is "active" if they have a live (open or won) deal — ADR 0081
+    // removed the draft state, so lost-only partners are the only exclusion.
     const activePartners = groups.filter((g) =>
-      g.deals.some(
-        (d) => d.status !== null && d.status !== "draft",
-      ),
+      g.deals.some((d) => d.status === "open" || d.status === "won"),
     ).length;
 
-    // Status counts across all non-draft deals (the representative per deal).
+    // Status counts across all deals (the representative per deal).
     const statusCounts: Record<string, number> = {};
-    let draftCount = 0;
     for (const deal of deals) {
-      if (deal.status === null || deal.status === "draft") {
-        draftCount += 1;
-      } else {
-        statusCounts[deal.status] = (statusCounts[deal.status] ?? 0) + 1;
-      }
+      const s = deal.status ?? "open";
+      statusCounts[s] = (statusCounts[s] ?? 0) + 1;
     }
 
     return (
@@ -230,10 +199,8 @@ export default async function AdminSubmissionsPage({
         <PartnerGroupView
           groups={groups}
           totalActivePartners={activePartners}
-          totalOpenPipeline={totalOpenPipeline}
-          totalWeighted={weightedForecast}
+          totalOpenPipeline={openPipeline}
           statusCounts={statusCounts}
-          draftCount={draftCount}
         />
       </div>
     );
@@ -258,11 +225,7 @@ export default async function AdminSubmissionsPage({
 
   if (partnerId) query = query.eq("partner_id", partnerId);
   if (statusParam && statusParam !== "all") {
-    if (statusParam === "none") {
-      query = query.is("status", null);
-    } else {
-      query = query.eq("status", statusParam);
-    }
+    query = query.eq("status", statusParam);
   }
   if (fromDate) query = query.gte("created_at", `${fromDate}T00:00:00Z`);
   if (toDate) query = query.lte("created_at", `${toDate}T23:59:59Z`);
@@ -412,12 +375,12 @@ export default async function AdminSubmissionsPage({
                       {isAdmin ? (
                         <RowControls
                           submissionId={r.id}
-                          status={r.status as SubmissionStatus | null}
+                          status={r.status as SubmissionStatus}
                         />
                       ) : (
                         <StatusBadge
                           variant="status"
-                          status={r.status as SubmissionStatus | null}
+                          status={r.status as SubmissionStatus}
                         />
                       )}
                     </td>
@@ -595,7 +558,6 @@ function PageHeader({
           Status
           <Select name="status" defaultValue={statusParam ?? "all"} className="mt-1 py-1.5 text-sm">
             <option value="all">All</option>
-            <option value="none">No status</option>
             {SUBMISSION_STATUSES.map((s) => (
               <option key={s} value={s}>
                 {STATUS_META[s].label}

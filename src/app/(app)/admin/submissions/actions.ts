@@ -8,7 +8,7 @@ import { SUBMISSION_STATUSES, type SubmissionStatus } from "@/app/(app)/submissi
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
 
-const statusSchema = z.enum(SUBMISSION_STATUSES).nullable();
+const statusSchema = z.enum(SUBMISSION_STATUSES);
 
 const SESSION_EXPIRED = "Your session has expired. Sign in and try again.";
 const NOT_ADMIN = "You do not have permission to perform this action.";
@@ -29,7 +29,7 @@ async function requireAdmin() {
 
 export async function adminUpdateStatus(
   submissionId: string,
-  status: SubmissionStatus | null,
+  status: SubmissionStatus,
 ): Promise<ActionResult> {
   const parsed = statusSchema.safeParse(status);
   if (!parsed.success) return { ok: false, error: "Invalid status value." };

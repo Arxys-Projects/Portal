@@ -1,16 +1,9 @@
 // Pure pipeline-forecast helpers — no Supabase dependency, safe in both
 // server and client bundles.
-
-export type ForecastableStatus = "on-hold" | "sent" | "won" | "lost";
-
-// Probability weights per deal status (OQ-2, Phase 4 locked decisions).
-// draft/NULL is never passed here — callers filter those out upstream.
-export const STAGE_PROBABILITY: Record<ForecastableStatus, number> = {
-  "on-hold": 0.2,
-  sent: 0.4,
-  won: 1.0,
-  lost: 0.0,
-};
+//
+// ADR 0081 — the status model reduced to open / won / lost and Weighted
+// Forecast was retired. Open Pipeline is now a straight (unweighted) sum of the
+// list price across Open deals; a Won total is provided alongside it.
 
 export type SubmissionRow = {
   id: string;
@@ -129,26 +122,24 @@ export function groupIntoDeals(
   return deals;
 }
 
-export type ForecastSummary = {
-  // Total list price of all non-draft/null deals (including won + lost).
-  totalOpenPipeline: number;
-  // Probability-weighted sum (lost contributes 0, draft/null excluded entirely).
-  weightedForecast: number;
+export type PipelineTotals = {
+  // Straight (unweighted) sum of list price across Open deals only.
+  openPipeline: number;
+  // Straight sum of list price across Won deals (informational; no weighting).
+  wonTotal: number;
 };
 
-// Filters out draft/null before weighting. Caller may pass all deals.
-export function computeWeightedForecast(deals: Deal[]): ForecastSummary {
-  let totalOpenPipeline = 0;
-  let weightedForecast = 0;
+// Open Pipeline = sum of Open deal values; Won total = sum of Won deal values.
+// Lost deals contribute to neither. Caller may pass all deals (ADR 0081).
+export function computePipelineTotals(deals: Deal[]): PipelineTotals {
+  let openPipeline = 0;
+  let wonTotal = 0;
 
   for (const deal of deals) {
-    if (deal.status === null || deal.status === "draft") continue;
     const value = deal.total_list_price_usd ?? 0;
-    const prob =
-      STAGE_PROBABILITY[deal.status as ForecastableStatus] ?? 0;
-    totalOpenPipeline += value;
-    weightedForecast += value * prob;
+    if (deal.status === "open") openPipeline += value;
+    else if (deal.status === "won") wonTotal += value;
   }
 
-  return { totalOpenPipeline, weightedForecast };
+  return { openPipeline, wonTotal };
 }

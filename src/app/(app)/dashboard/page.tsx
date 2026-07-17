@@ -20,7 +20,7 @@ import {
   AdminIcon,
   DealIcon,
 } from "./icons";
-import { groupIntoDeals, computeWeightedForecast, type SubmissionRow } from "@/lib/pipeline/forecast";
+import { groupIntoDeals, computePipelineTotals, type SubmissionRow } from "@/lib/pipeline/forecast";
 import { STATUS_META, type SubmissionStatus } from "@/app/(app)/submissions/status";
 
 export default async function DashboardPage() {
@@ -77,23 +77,10 @@ export default async function DashboardPage() {
   const deals = partner
     ? groupIntoDeals(ownSubmissions, partnersForGrouping)
     : [];
-  const { totalOpenPipeline, weightedForecast } = computeWeightedForecast(deals);
-
-  // Status counts per deal (representative submission).
-  const statusCounts: Partial<Record<SubmissionStatus | "none", number>> = {};
-  let draftCount = 0;
-  for (const deal of deals) {
-    if (deal.status === null || deal.status === "draft") {
-      draftCount += 1;
-    } else {
-      const s = deal.status as SubmissionStatus;
-      statusCounts[s] = (statusCounts[s] ?? 0) + 1;
-    }
-  }
+  const { openPipeline } = computePipelineTotals(deals);
 
   const recent = ownSubmissions.slice(0, 3);
   const firstName = partner?.contact_name?.trim().split(/\s+/)[0] ?? null;
-  const sentCount = statusCounts["sent"] ?? 0;
 
   return (
     <div className="mx-auto max-w-6xl">
@@ -106,13 +93,16 @@ export default async function DashboardPage() {
         your pipeline and tools.
       </p>
 
-      {/* Metric strip — each tile links into the pipeline */}
+      {/* Metric strip — each tile links into the pipeline. */}
+      {/* TODO(0081-ui): ADR 0081 retired Weighted Forecast and the Sent/Drafts
+          statuses. Their tile values are stubbed to "—" here; the Design pass
+          removes/reworks these tiles (only Open pipeline remains meaningful). */}
       <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Link href="/submissions" className="block">
           <MetricTile
             variant="stat"
             label="Open pipeline"
-            value={fmtPrice(totalOpenPipeline)}
+            value={fmtPrice(openPipeline)}
             className="h-full transition-colors hover:border-arxys-navy"
           />
         </Link>
@@ -120,23 +110,23 @@ export default async function DashboardPage() {
           <MetricTile
             variant="stat"
             label="Weighted forecast"
-            value={fmtPrice(weightedForecast)}
+            value="—"
             className="h-full transition-colors hover:border-arxys-navy"
           />
         </Link>
-        <Link href={{ pathname: "/submissions", query: { status: "sent" } }} className="block">
+        <Link href="/submissions" className="block">
           <MetricTile
             variant="stat"
             label="Sent"
-            value={String(sentCount)}
+            value="—"
             className="h-full transition-colors hover:border-arxys-navy"
           />
         </Link>
-        <Link href={{ pathname: "/submissions", query: { status: "draft" } }} className="block">
+        <Link href="/submissions" className="block">
           <MetricTile
             variant="stat"
             label="Drafts"
-            value={String(draftCount)}
+            value="—"
             className="h-full transition-colors hover:border-arxys-navy"
           />
         </Link>
