@@ -3,7 +3,7 @@
 Status: Accepted (2026-07-17)
 Deciders: Andy Newbom
 Relates to: My Pipeline and dashboard pipeline summary. Portal-only; not mapped to Pipedrive.
-Implemented by: migration 20260717000002_pipeline_status_model_reduction.sql (applied 2026-07-17). Decisions taken at build time: stored values are lowercase (open/won/lost); the column is NOT NULL default 'open' (the old NULL "No status" state was folded into open and retired).
+Implemented by: commit e9990aa; migration 20260717000002_pipeline_status_model_reduction.sql (applied 2026-07-17). Decisions taken at build time: stored values are lowercase (open/won/lost); the column is NOT NULL default 'open' (the old NULL "No status" state was folded into open and retired).
 
 ## Context
 
