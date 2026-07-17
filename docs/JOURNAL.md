@@ -4,6 +4,22 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-07-17 — Drop the unused `product_specs.msrp` column
+
+### Work done
+
+- Follow-up to the price-source fix earlier today (ADR 0086), closing its drift caveat. Dropped `product_specs.msrp` so the stale duplicate can never leak back into a reader: migration [`20260717000001_drop_product_specs_msrp.sql`](../supabase/migrations/20260717000001_drop_product_specs_msrp.sql) — `alter table public.product_specs drop column if exists msrp`.
+- `scripts/update-comparison-data.ts` no longer writes `msrp` to `product_specs` (the seed source `data/server-specs.json` still carries it, now unused).
+- `src/lib/comparison/data.ts` resolves the comparison price solely from `current_products` (removed the `?? product_specs.msrp` fallback).
+- Price now lives in exactly one place — the `current_products` view — in both code and schema; `product_specs` is purely a spec/attribute reference table.
+- **Kept VX5-NIC-SFP28 on its May price** per decision: the accessory was intentionally out of the July increase, so no 2026-07-02 row was added for it.
+
+### Detours & fixes
+
+- **Migration not applied by the agent.** `supabase db push` needs `SUPABASE_DB_PASSWORD`, which the agent doesn't hold (cached CLI creds returned 401). The code change is safe to deploy independently — no reader references the column — so the code shipped first; the drop is applied separately via the standard `db push`.
+
+---
+
 ## 2026-07-17 — Fix: PDFs/comparison showed pre-July prices (stale `product_specs.msrp`)
 
 ### Work done

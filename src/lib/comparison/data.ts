@@ -25,9 +25,12 @@ export async function getComparisonData(): Promise<ComparisonData> {
     supabase.from("current_products").select("sku, msrp"),
   ]);
 
-  // Price comes from current_products (the versioned, effective-dated source of
-  // truth), NOT product_specs.msrp — that column is a stale reference-table copy
-  // the price pipeline (push-prices.ts) never updates. See ADR 0086.
+  // Price comes solely from current_products (the versioned, effective-dated
+  // source of truth). product_specs.msrp was dropped (ADR 0086) — it was a stale
+  // reference-table copy the price pipeline (push-prices.ts) never updated. Every
+  // Arxys model shown in the comparison is a priced, active SKU present here; a
+  // SKU with no current numeric price falls back to 0 (rejected by the PDF's
+  // positive-price schema rather than shown as stale).
   const msrpBySku = new Map<string, number>(
     (prices ?? [])
       .filter((p) => p.msrp != null)
@@ -38,7 +41,7 @@ export async function getComparisonData(): Promise<ComparisonData> {
   for (const s of specs ?? []) {
     const id = s.id as string;
     const spec = s as unknown as ProductSpec;
-    productSpecs[id] = { ...spec, msrp: msrpBySku.get(id) ?? spec.msrp };
+    productSpecs[id] = { ...spec, msrp: msrpBySku.get(id) ?? 0 };
   }
 
   const competitorsByVendor: Record<string, VendorGroup> = {};

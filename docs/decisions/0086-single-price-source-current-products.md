@@ -52,9 +52,12 @@ spec row, so the type system now prevents re-coupling price to the reference tab
 versioned price. Single source of truth restored per ADR 0076. `product_specs` is now
 purely a spec/attribute table in code.
 
-**Negative:** `product_specs.msrp` still exists in the DB as an unused, stale column —
-a trap for a future reader. Left in place for now (removing it is a migration + a
-`update-comparison-data.ts` change); flagged for follow-up.
+**Negative:** ~~`product_specs.msrp` still exists in the DB as an unused, stale column~~
+**Resolved 2026-07-17:** the column was dropped (migration
+`20260717000001_drop_product_specs_msrp.sql`) and `update-comparison-data.ts` no
+longer writes it, so the drift trap is closed. `product_specs` is now purely a
+spec/attribute table in both code and schema.
 
-**When to revisit:** drop the `product_specs.msrp` column (and stop seeding it) once
-there is a migration window; at that point this ADR's "unused column" caveat closes.
+**When to revisit:** if a price-as-of-a-past-date requirement appears (e.g. reprinting
+a historical quote at its original price), revisit ADR 0076's whole-row versioning
+rather than this ADR.

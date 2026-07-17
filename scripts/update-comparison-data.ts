@@ -116,7 +116,9 @@ function toProductSpecRow(m: JsonArxysModel) {
     os: m.os,
     warranty: m.warranty,
     vms_certified: m.vms_certified,
-    msrp: m.msrp,
+    // product_specs.msrp was dropped (ADR 0086): price lives only in
+    // current_products (the versioned source). Do not write it back here — the
+    // column no longer exists. m.msrp in server-specs.json is retained but unused.
     notes: m.notes ?? null,
     product_sku: null,
   };

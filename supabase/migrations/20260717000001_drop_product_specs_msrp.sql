@@ -1,0 +1,13 @@
+-- Drop the unused product_specs.msrp column.
+--
+-- See docs/decisions/0086-single-price-source-current-products.md. As of the
+-- 2026-07-17 price-source fix, MSRP resolves solely from current_products (the
+-- versioned, effective-dated view); product_specs is a spec/attribute reference
+-- table and carries no price. No application reader references product_specs.msrp
+-- anymore, and scripts/update-comparison-data.ts no longer writes it.
+--
+-- The dropped values were a stale copy (pre-May prices) that the price pipeline
+-- (push-prices.ts) never updated — the root cause of the stale-PDF bug. They are
+-- reproducible from git history (data/server-specs.json + the phase-5 seed
+-- migration) if ever needed. `if exists` keeps this idempotent / safe to re-run.
+alter table public.product_specs drop column if exists msrp;
