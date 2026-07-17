@@ -404,6 +404,7 @@ export async function submitCalculation(
     supabase,
     recommendation.winner.sku,
     recommendation.winner.productGroup,
+    recommendation.winner.unitMsrp,
   );
   const pdfInput: SubmissionPdfInput = {
     generatedAt: new Date(),

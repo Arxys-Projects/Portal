@@ -113,7 +113,6 @@ function makeSpecRow(over: Partial<NonNullable<SizingProductSpecRow>> = {}): Non
     os_edition: "Windows Server 2022 OR 2025 LTSC",
     hdd_count: 36,
     raid_level_display: "6",
-    msrp: 74048,
     ...over,
   };
 }
@@ -166,6 +165,7 @@ function makeSizing(): ProjectQuoteSizing {
       product_name: "VideoX V800 720TB",
       max_cameras: 800,
       max_storage_tb: 720,
+      msrp: 74048,
     },
     productSpec: makeSpecRow(),
   });

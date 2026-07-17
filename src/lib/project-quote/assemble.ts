@@ -57,7 +57,6 @@ const PRODUCT_SPEC_COLUMNS = [
   "os_edition",
   "hdd_count",
   "raid_level_display",
-  "msrp",
 ].join(",");
 
 type SubmissionRow = SizingSubmissionRow & {
@@ -87,7 +86,6 @@ function normalizeSpecRow(row: ProductSpecRow): NonNullable<SizingProductSpecRow
     os_edition: row.os_edition,
     hdd_count: row.hdd_count,
     raid_level_display: row.raid_level_display,
-    msrp: numericOrNull(row.msrp),
   };
 }
 
@@ -193,7 +191,7 @@ export async function assembleProjectQuoteSnapshot(
       recommendedSku
         ? supabase
             .from("current_products")
-            .select("product_group, product_name, max_cameras, max_storage_tb")
+            .select("product_group, product_name, max_cameras, max_storage_tb, msrp")
             .eq("sku", recommendedSku)
             .maybeSingle()
         : Promise.resolve({ data: null }),

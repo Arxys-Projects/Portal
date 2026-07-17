@@ -151,7 +151,12 @@ export async function loadSubmissionPdfInput(
   const totalsStorageGb = Number(submission.storage_tb) * GB_PER_TB;
   const modelCode = productLookup?.product?.product_group ?? (isLegacy ? "(legacy)" : "(unknown)");
 
-  const serverSpec = specRow ? mapServerSpec(specRow, modelCode) : null;
+  // Price comes from current_products (the versioned, effective-dated source),
+  // NOT product_specs — product_specs.msrp is a stale reference-table copy the
+  // price pipeline (push-prices.ts) never updates. See ADR 0086.
+  const serverSpec = specRow
+    ? mapServerSpec(specRow, modelCode, productLookup?.product?.msrp ?? null)
+    : null;
 
   // Resolve which partner to attribute the PDF to. Uses three-tier precedence:
   // on_behalf_of_partner_id → on_behalf_of_company_name → creating partner.
@@ -283,11 +288,12 @@ async function loadProductBySku(
     product_group: string;
     max_cameras: number | null;
     max_storage_tb: number | null;
+    msrp: number | null;
   };
 } | null> {
   const { data: product } = await supabase
     .from("current_products")
-    .select("sku, product_name, product_group, max_cameras, max_storage_tb")
+    .select("sku, product_name, product_group, max_cameras, max_storage_tb, msrp")
     .eq("sku", sku)
     .maybeSingle();
   if (!product) return null;
@@ -298,6 +304,7 @@ async function loadProductBySku(
       product_group: product.product_group,
       max_cameras: product.max_cameras,
       max_storage_tb: product.max_storage_tb === null ? null : Number(product.max_storage_tb),
+      msrp: product.msrp === null ? null : Number(product.msrp),
     },
   };
 }
@@ -308,7 +315,6 @@ type ProductSpecRow = {
   form_factor: string;
   storage_raw_tb: number;
   max_cameras: number;
-  msrp: number;
   max_bandwidth_mbps: number | null;
   drive_bays: number | null;
   cpu_model_full: string | null;
@@ -335,7 +341,6 @@ async function loadProductSpec(
         "form_factor",
         "storage_raw_tb",
         "max_cameras",
-        "msrp",
         "max_bandwidth_mbps",
         "drive_bays",
         "cpu_model_full",
@@ -352,12 +357,18 @@ async function loadProductSpec(
   return {
     ...row,
     storage_raw_tb: Number(row.storage_raw_tb),
-    msrp: Number(row.msrp),
   };
 }
 
-// Pure mapping from a product_specs row to the PDF server-spec view model.
-function mapServerSpec(specRow: ProductSpecRow, modelCode: string): SubmissionPdfServerSpec {
+// Pure mapping from a product_specs row (spec attributes) + the current_products
+// msrp (the price) to the PDF server-spec view model. Price is passed in, not
+// read off specRow: product_specs.msrp is a stale reference-table copy the price
+// pipeline never updates; current_products is the single price source (ADR 0086).
+function mapServerSpec(
+  specRow: ProductSpecRow,
+  modelCode: string,
+  msrp: number | null,
+): SubmissionPdfServerSpec {
   return {
     sku: specRow.id,
     // Family-level name ("VideoX V500"), not the per-tier model_name string
@@ -374,7 +385,7 @@ function mapServerSpec(specRow: ProductSpecRow, modelCode: string): SubmissionPd
     ramSpec: specRow.ram_spec,
     osEdition: specRow.os_edition,
     warranty: "5yr NBD, Advanced Replacement",
-    msrp: specRow.msrp,
+    msrp,
     usablePerUnitTb: usableCapacityTb(
       specRow.storage_raw_tb,
       specRow.hdd_count,
@@ -385,13 +396,15 @@ function mapServerSpec(specRow: ProductSpecRow, modelCode: string): SubmissionPd
 
 // Fetch + map the recommended server's spec for a SKU. Shared by the download
 // Route Handler (via loadSubmissionPdfInput) and the calculator Server Action
-// (which assembles the emailed PDF's view model in-memory).
+// (which assembles the emailed PDF's view model in-memory). `msrp` is the
+// current_products price, supplied by the caller (the versioned source of truth).
 export async function buildServerSpec(
   supabase: SupabaseClient,
   sku: string | null,
   modelCode: string,
+  msrp: number | null,
 ): Promise<SubmissionPdfServerSpec | null> {
   if (!sku) return null;
   const specRow = await loadProductSpec(supabase, sku);
-  return specRow ? mapServerSpec(specRow, modelCode) : null;
+  return specRow ? mapServerSpec(specRow, modelCode, msrp) : null;
 }

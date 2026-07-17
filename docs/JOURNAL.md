@@ -4,6 +4,31 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-07-17 — Fix: PDFs/comparison showed pre-July prices (stale `product_specs.msrp`)
+
+### Work done
+
+- **Bug:** a System Estimate PDF for a submission made 2026-07-17 quoted VX5-V700-480 at **$54,512/unit** when the July MSRP (effective 2026-07-02) is **$75,995** — ~28% low, $42,966 under on the 2-unit deal. The Price Book, XLSX, calculator recommendation, and Pipedrive all showed correct July prices; only the generated documents were stale.
+- **Root cause:** `product_specs` carries its own `msrp` column (seeded from `data/server-specs.json` via `update-comparison-data.ts`), which `push-prices.ts` never updates — it writes only `products`. Four read sites resolved price from that stale column instead of the `current_products` view (ADR 0076's single source of truth).
+- **Fix — repointed all four reads at `current_products.msrp`:**
+  - System Estimate PDF: `render.ts` `mapServerSpec`/`buildServerSpec` now take price as a param sourced from the `current_products` lookup; calculator `actions.ts` passes `recommendation.winner.unitMsrp`. Removed the now-unused `msrp` from the `product_specs` select.
+  - Project Quote: `snapshot.ts` `mapServerSpec` takes price from the `current_products` join in `assemble.ts`; removed `msrp` from `PRODUCT_SPEC_COLUMNS`.
+  - Comparison PDF / on-screen: `comparison/data.ts` overlays `current_products.msrp` onto each `ProductSpec`.
+  - Comparison Pipedrive deal: `comparison/actions.ts` reads `current_products` instead of `product_specs`.
+- Diagnosis (read-only Supabase queries) confirmed 31 July rows (1 new SKU + 30 changes) resolve correctly through the view; the bug was purely the wrong-column reads.
+
+### Detours & fixes
+
+- **Not a caching issue.** Ruled out: price pages use `cookies()` (dynamic), the PDF route sends `Cache-Control: private, no-store`, and submissions store only SKU + units (no price snapshot) — the wrong price was resolved live every render.
+- **Secondary finding (not fixed here):** 5 SKUs never got a 2026-07-02 row; 4 are EOL/inactive (intended) but **VX5-NIC-SFP28** is active and still resolves to its May price ($670). Flagged for confirmation of whether it belonged in the July push.
+- **`product_specs.msrp` left in the DB** as an unused stale column (dropping it is a migration + seed change); flagged in ADR 0086 for a future window.
+
+### Decisions captured
+
+- [`0086-single-price-source-current-products.md`](./decisions/0086-single-price-source-current-products.md)
+
+---
+
 ## 2026-07-07 — Fix duplicate nav link and admin table overflow
 
 ### Work done

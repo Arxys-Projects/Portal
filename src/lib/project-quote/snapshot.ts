@@ -142,6 +142,7 @@ export type SizingProductRow = {
   product_name: string;
   max_cameras: number | null;
   max_storage_tb: number | null;
+  msrp: number | null;
 } | null;
 export type SizingProductSpecRow = {
   model_name: string | null;
@@ -156,7 +157,6 @@ export type SizingProductSpecRow = {
   os_edition: string | null;
   hdd_count: number | null;
   raid_level_display: string | null;
-  msrp: number | null;
 } | null;
 
 type RawGroupsPayload = {
@@ -232,10 +232,15 @@ function buildCameraSchedule(payload: unknown): ProjectQuoteCameraRow[] {
 // Pure mapping from a product_specs row to the frozen server spec. Mirrors
 // src/lib/pdf/render.ts mapServerSpec (kept local for the same reason as
 // usableCapacityTb). modelCode is the product group (for example "V800").
+// Price (`msrp`) is passed in from the current_products join, NOT read off the
+// product_specs spec: product_specs.msrp is a stale reference-table copy the
+// price pipeline never updates; current_products is the single price source
+// (ADR 0086).
 function mapServerSpec(
   spec: NonNullable<SizingProductSpecRow>,
   sku: string,
   modelCode: string,
+  msrp: number | null,
 ): ProjectQuoteServerSpec {
   const isFamilyCoded = modelCode.startsWith("V") || modelCode.startsWith("S");
   return {
@@ -249,7 +254,7 @@ function mapServerSpec(
     ramSpec: spec.ram_spec,
     osEdition: spec.os_edition,
     warranty: "5yr NBD, Advanced Replacement",
-    msrp: spec.msrp,
+    msrp,
     usablePerUnitTb: usableCapacityTb(spec.storage_raw_tb, spec.hdd_count, spec.raid_level_display),
   };
 }
@@ -299,7 +304,8 @@ export function buildSizingFromSubmission(input: {
     ? units * product.max_storage_tb
     : Number(submission.storage_tb);
 
-  const serverSpec = productSpec && sku ? mapServerSpec(productSpec, sku, modelCode) : null;
+  const serverSpec =
+    productSpec && sku ? mapServerSpec(productSpec, sku, modelCode, product?.msrp ?? null) : null;
 
   return {
     projectName: submission.project_name,

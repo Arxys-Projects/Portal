@@ -51,16 +51,19 @@ export async function requestComparisonQuote(
   const companyName = partner.company_name as string;
   const contactName = partner.contact_name as string;
 
+  // Price from current_products (versioned source of truth), NOT
+  // product_specs.msrp — that reference-table copy is never updated by the
+  // price pipeline (push-prices.ts). See ADR 0086.
   const { data: catalogProduct } = await supabase
-    .from("product_specs")
+    .from("current_products")
     .select("msrp")
-    .eq("id", input.arxysModelId)
+    .eq("sku", input.arxysModelId)
     .maybeSingle();
 
-  if (!catalogProduct) {
+  if (!catalogProduct || catalogProduct.msrp == null) {
     return { status: "error", error: "Arxys model not found in catalog." };
   }
-  const catalogMsrp = catalogProduct.msrp as number;
+  const catalogMsrp = Number(catalogProduct.msrp);
 
   let dealId: number;
   try {

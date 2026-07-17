@@ -15,18 +15,30 @@ export type ComparisonData = {
 export async function getComparisonData(): Promise<ComparisonData> {
   const supabase = await createSupabaseServerClient();
 
-  const [{ data: specs }, { data: comps }] = await Promise.all([
+  const [{ data: specs }, { data: comps }, { data: prices }] = await Promise.all([
     supabase.from("product_specs").select("*").order("id"),
     supabase
       .from("competitor_products")
       .select("*")
       .order("vendor")
       .order("storage_raw_tb"),
+    supabase.from("current_products").select("sku, msrp"),
   ]);
+
+  // Price comes from current_products (the versioned, effective-dated source of
+  // truth), NOT product_specs.msrp — that column is a stale reference-table copy
+  // the price pipeline (push-prices.ts) never updates. See ADR 0086.
+  const msrpBySku = new Map<string, number>(
+    (prices ?? [])
+      .filter((p) => p.msrp != null)
+      .map((p) => [p.sku as string, Number(p.msrp)]),
+  );
 
   const productSpecs: Record<string, ProductSpec> = {};
   for (const s of specs ?? []) {
-    productSpecs[s.id as string] = s as unknown as ProductSpec;
+    const id = s.id as string;
+    const spec = s as unknown as ProductSpec;
+    productSpecs[id] = { ...spec, msrp: msrpBySku.get(id) ?? spec.msrp };
   }
 
   const competitorsByVendor: Record<string, VendorGroup> = {};
