@@ -195,16 +195,13 @@ export default async function DashboardPage() {
       <SectionLabel>Win a job</SectionLabel>
       <Link
         href="/comparison"
-        className="group relative mt-3 flex items-start gap-4 rounded-[14px] border border-line border-l-[3px] border-l-arxys-gold bg-[linear-gradient(90deg,#fdf8ec,#ffffff)] px-5 py-5 transition-[transform,border-color,box-shadow] duration-150 hover:-translate-y-0.5 hover:border-arxys-navy hover:border-l-arxys-gold hover:shadow-[0_12px_28px_-14px_rgba(15,42,83,0.32)]"
+        className="group relative mt-3 flex items-center gap-4 rounded-[14px] border border-line border-l-[3px] border-l-arxys-gold bg-[linear-gradient(90deg,#fdf8ec,#ffffff)] px-5 py-5 transition-[transform,border-color,box-shadow] duration-150 hover:-translate-y-0.5 hover:border-arxys-navy hover:border-l-arxys-gold hover:shadow-[0_12px_28px_-14px_rgba(15,42,83,0.32)]"
       >
         <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[11px] bg-[#f5e9c9] text-arxys-gold-text">
           <ComparisonIcon />
         </span>
         <span className="min-w-0 flex-1 pr-7">
-          <span className="text-[11px] font-extrabold uppercase tracking-[0.1em] text-arxys-gold-text">
-            Your strongest convince
-          </span>
-          <span className="mt-1 block text-lg font-bold text-ink">
+          <span className="block text-lg font-bold text-ink">
             VMS Server Comparison
           </span>
           <span className="mt-1 block text-[13.5px] leading-relaxed text-ink-soft">

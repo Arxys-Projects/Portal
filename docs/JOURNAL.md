@@ -4,6 +4,16 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-07-20 — Removed leftover AI-facing label on dashboard "Win a job" card
+
+### Work done
+
+- Removed the "Your strongest convince" eyebrow label from the "Win a job" comparison card in [`src/app/(app)/dashboard/page.tsx`](../src/app/(app)/dashboard/page.tsx) — it was internal design-brief language ("convince the hesitant" from ADR 0085) that leaked into shipped copy instead of being replaced with user-facing text.
+- Promoted "VMS Server Comparison" to the top line of the card and switched the row to `items-center` so the icon stays vertically centered against the now-shorter two-line text block.
+- Verified with `npx tsc --noEmit` (clean); did not verify visually in the browser preview since `(app)/*` routes redirect to `/login` without a session (see [`project_arxys_portal_auth_gate_preview.md`](../../../../.claude/projects/-Users-andynewbom/memory/project_arxys_portal_auth_gate_preview.md)).
+
+---
+
 ## 2026-07-20 — Snapshot-test drift fix + test-file typecheck cleanup
 
 ### Work done
