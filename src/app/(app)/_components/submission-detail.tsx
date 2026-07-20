@@ -127,12 +127,14 @@ export function SubmissionDetail({
   mode,
   canRevise,
   generateQuoteButton,
+  projectQuotePanel,
 }: {
   submission: SubmissionDetailRow;
   partner?: SubmissionPartnerSummary;
   mode: "admin" | "partner";
   canRevise?: boolean;
   generateQuoteButton?: ReactNode;
+  projectQuotePanel?: ReactNode;
 }) {
   const groups = extractGroups(submission.groups_payload);
   // Phase 2 Step 3+4: a UUID-shaped recommended_product_id signals a
@@ -191,7 +193,7 @@ export function SubmissionDetail({
             className={buttonClasses(generateQuoteButton ? "secondary" : "primary")}
             download
           >
-            Download PDF
+            Download Calculator Submission PDF
           </a>
           {mode === "partner" || canRevise ? (
             <Link
@@ -218,6 +220,8 @@ export function SubmissionDetail({
           ) : null}
         </div>
       </header>
+
+      {projectQuotePanel}
 
       <section>
         <h2 className="text-base font-bold text-ink">Calculator inputs</h2>

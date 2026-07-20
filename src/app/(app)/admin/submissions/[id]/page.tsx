@@ -136,13 +136,15 @@ export default async function AdminSubmissionDetailPage({
             />
           ) : undefined
         }
+        projectQuotePanel={
+          isInternal ? (
+            <ProjectQuotePanel
+              current={currentQuote}
+              downloadHref={`/api/admin/submissions/${id}/project-quote/pdf`}
+            />
+          ) : undefined
+        }
       />
-      {isInternal ? (
-        <ProjectQuotePanel
-          current={currentQuote}
-          downloadHref={`/api/admin/submissions/${id}/project-quote/pdf`}
-        />
-      ) : null}
     </div>
   );
 }
