@@ -136,8 +136,8 @@ export default async function AdminOverviewPage() {
           <NavCard
             href="/api/admin/forecast/xlsx"
             icon={<SpreadsheetIcon />}
-            title="Export Forecast"
-            subtitle="Download the full weighted-forecast pipeline as an Excel workbook."
+            title="Export Pipeline"
+            subtitle="Download the full pipeline as an Excel workbook."
             variant="download"
           />
         ) : null}

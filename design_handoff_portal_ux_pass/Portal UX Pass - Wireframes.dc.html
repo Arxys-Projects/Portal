@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#e8eaed;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:#2b3038;-webkit-font-smoothing:antialiased}
+.turn{padding:46px 60px;border-bottom:1px solid #d3d7dd}
+.shd{display:flex;gap:14px;align-items:flex-start;margin:0 0 28px;max-width:1200px}
+.bid{font:700 15px ui-monospace,Menlo,monospace;background:#2b3038;color:#fff;border-radius:8px;padding:7px 13px;text-decoration:none;flex:none;line-height:1}
+.stt{font-size:23px;font-weight:800;letter-spacing:-.01em;line-height:1.15}
+.ssub{font-size:14px;color:#6b727c;margin-top:6px;max-width:860px;line-height:1.55}
+.row{display:flex;gap:28px;align-items:flex-start;flex-wrap:wrap}
+.notes{width:266px;flex:none;display:flex;flex-direction:column;gap:15px;padding-top:6px}
+.note{font-family:Caveat,cursive;font-size:19px;line-height:1.24;color:#33506e}
+.note b{font-weight:700}
+.note.warn{color:#b0392e}.note.good{color:#1c6e47}.note.au{color:#9a6600}
+.nsep{height:1px;background:#d3d7dd}
+.frame{background:#fff;border:1px solid #cfd3d9;border-radius:12px;box-shadow:0 2px 12px rgba(30,40,60,.06);overflow:hidden;flex:none}
+.hdr{display:flex;align-items:center;gap:20px;padding:11px 18px;border-bottom:1px solid #e4e7ec;background:#fbfcfd}
+.logo{font-weight:800;letter-spacing:.10em;color:#9aa1aa;font-size:12px}
+.nav{display:flex;gap:15px;font-size:12px;color:#9aa1aa;flex-wrap:wrap}
+.nav .on{color:#2b3038;font-weight:700}
+.nav .onb{color:#2b3038;font-weight:700;border-bottom:2px solid #2f3742;padding-bottom:9px;margin-bottom:-11px}
+.hdr .rt{margin-left:auto;display:flex;align-items:center;gap:12px;font-size:12px;color:#9aa1aa}
+.av{width:24px;height:24px;border-radius:50%;background:#c8cdd4}
+.body{padding:22px 26px;background:#eef0f2}
+.crumb{font-size:12px;color:#7c838d;margin:0 0 14px}
+.ph1{font-size:20px;font-weight:800;letter-spacing:-.01em}
+.psub{font-size:13px;color:#727982;margin-top:4px;line-height:1.5;max-width:640px}
+.bar{background:#d8dce1;border-radius:4px;height:11px}
+.bar.t{height:8px;background:#e2e5ea}
+.bar.d{background:#c4c9d1}
+.grid{display:grid;gap:12px}
+.tile{background:#fff;border:1px solid #d5d9df;border-top:3px solid #9aa2ad;border-radius:9px;padding:12px 14px}
+.tlab{font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:#8b929b;font-weight:800}
+.tval{margin-top:8px;height:16px;border-radius:4px;background:#c4c9d1;width:70%}
+.card{position:relative;background:#fff;border:1px solid #cfd3d9;border-radius:12px;padding:16px}
+.arrow{position:absolute;top:13px;right:14px;color:#a2a9b2;font-size:14px}
+.ico{width:34px;height:34px;border-radius:9px;background:#e0e4e9;flex:none}
+.ctit{font-size:13.5px;font-weight:700;color:#2b3038}
+.cbar{height:9px;border-radius:4px;background:#e2e5ea;margin-top:7px}
+.btn{display:inline-flex;align-items:center;gap:6px;border:1px solid #b6bcc4;border-radius:8px;padding:7px 14px;font-size:12px;color:#5c636d;background:#fff;white-space:nowrap}
+.btn.p{background:#2f3742;color:#fff;border-color:#2f3742;font-weight:600}
+.btn.au{background:#f6e6c2;color:#8a5e00;border-color:#e6cf9a;font-weight:600}
+.seclbl{font-size:11px;font-weight:800;letter-spacing:.13em;text-transform:uppercase;color:#8b929b;margin:0}
+.fl{font-size:9.5px;letter-spacing:.05em;text-transform:uppercase;color:#8b929b;font-weight:800;display:block;margin-bottom:5px}
+.inp{height:34px;border:1px solid #c4c9d0;border-radius:8px;background:#fff;display:flex;align-items:center;gap:6px;padding:0 11px;font-size:12px;color:#9aa1ab}
+.cv{margin-left:auto;color:#aeb4bc;font-size:10px}
+.cb{width:15px;height:15px;border:1.5px solid #b6bcc4;border-radius:4px;display:inline-block;vertical-align:-2px;margin-right:8px}
+.chip{border:1px solid #cad0d7;border-radius:999px;padding:4px 11px;font-size:11.5px;color:#5b626c;background:#fff;white-space:nowrap}
+.chip.ro{background:#eef1f4;color:#6b727c;border-color:#dde2e8}
+.tag{display:inline-block;border-radius:6px;padding:2px 8px;font-size:10.5px;font-weight:800;letter-spacing:.02em;vertical-align:middle}
+.tag.p{background:#fdecec;color:#c0392b;border:1px solid #f2c9c4}
+.tag.f{background:#e7f4ec;color:#1f7a4d;border:1px solid #b6ddc6}
+.tag.au{background:#fbf1dd;color:#9a6600;border:1px solid #ecd6a6}
+.tag.u{background:#eef1f4;color:#6b727c;border:1px solid #dde2e8}
+.jobnote{margin-top:24px;max-width:1200px;font-size:13px;color:#48505a;background:#f4f6f8;border:1px solid #dde1e6;border-left:3px solid #2f3742;border-radius:8px;padding:13px 17px;line-height:1.6}
+.jobnote b{color:#2b3038}
+.lock{font-size:11px}
+.wtbl{width:100%;border-collapse:collapse;font-size:11.5px}
+.wtbl th{background:#f1f3f6;text-align:left;padding:7px 10px;font-size:9.5px;letter-spacing:.05em;text-transform:uppercase;color:#8b929b;font-weight:800;border-bottom:1px solid #dfe3e8}
+.wtbl td{padding:8px 10px;border-bottom:1px solid #eceef1;color:#5c636d}
+.panel{background:#fff;border:1px solid #cfd3d9;border-radius:12px;padding:18px 20px}
+.pill-row{display:flex;gap:8px;flex-wrap:wrap}
+.mini{font-size:12px;color:#5c636d;line-height:1.5}
+.kbadge{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;color:#3b424c}
+.dot{width:8px;height:8px;border-radius:50%;background:#c0392b;flex:none}
+</style>
+</helmet>
+<section class="turn" id="cover">
+  <div class="shd">
+    <a class="bid" href="#cover">◧</a>
+    <div>
+      <div class="stt">Arxys Partner Portal — UI / UX pass · Wireframes for review</div>
+      <div class="ssub">Low-fidelity structure for the three changed surfaces — <b>A</b> Quick Project Calculation &amp; Quote, <b>B</b> Dashboard regroup by job, <b>C</b> Compare split — plus <b>D</b>, the all-pages consistency &amp; improvement findings. Sign off on structure here; full-fidelity screens in the shipped ADR-0075 system (navy actions, gold accent) come next. Grey is deliberate: these catch structure problems before pixels.</div>
+    </div>
+  </div>
+  <div class="row" style="gap:20px">
+    <div class="panel" style="width:560px">
+      <div class="seclbl" style="margin-bottom:12px">Reading these wireframes</div>
+      <div style="display:flex;flex-direction:column;gap:11px">
+        <div class="kbadge"><span class="bar d" style="width:44px;height:12px"></span> grey bar = text / label placeholder</div>
+        <div class="kbadge"><span class="btn p" style="padding:4px 12px">Primary action</span> <span style="color:#8b929b">= the one primary control on the surface</span></div>
+        <div class="kbadge"><span style="font-family:Caveat,cursive;font-size:19px;color:#33506e">handwritten</span> = my annotation, not on-screen copy</div>
+        <div class="kbadge"><span class="tag p">PROBLEM</span> <span class="tag f">FIX</span> <span class="tag u">UNCHANGED</span> <span class="tag au">GOLD ACCENT</span></div>
+      </div>
+    </div>
+    <div class="panel" style="width:540px">
+      <div class="seclbl" style="margin-bottom:12px">Hard rails held throughout</div>
+      <div class="mini" style="display:flex;flex-direction:column;gap:8px">
+        <div>· "Validated," never "certified."</div>
+        <div>· No partner / discount pricing in portal UI — list price only; discounts stay in the generated PDF.</div>
+        <div>· Avigilon / Milestone / Genetec VMS validation-sheet buttons move from Quick Compare to VMS Server Comparison (confirmed) — not restyled.</div>
+        <div>· Copy shown is placeholder — persuasive bodies arrive separately. Logic, engine, Pipedrive, PDFs untouched.</div>
+      </div>
+    </div>
+  </div>
+</section>
+<section class="turn" id="secA">
+  <div class="shd">
+    <a class="bid" href="#secA">A</a>
+    <div>
+      <div class="stt">Quick Project Calculation &amp; Quote <span style="font-weight:600;color:#8b929b;font-size:16px">· new page</span></div>
+      <div class="ssub">A fast-path calculator for quoting when full camera specs aren't in hand. Same recommendation engine, same saved quote, same output document as the full calculator — from six inputs instead of a per-camera-group build. Everything else is fixed to the Arxys VSR standard and shown read-only.</div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="frame" style="width:880px">
+      <div class="hdr">
+        <span class="logo">ARXYS</span>
+        <div class="nav"><span>Dashboard</span><span>Calculator</span><span>Pipeline</span><span>Compare</span><span>Products &amp; Prices</span><span>Support</span></div>
+        <div class="rt"><span>Portal guide</span><span class="av"></span></div>
+      </div>
+      <div class="body">
+        <div class="crumb">← Back to dashboard</div>
+        <div class="ph1">Quick Project Calculation &amp; Quote</div>
+        <div class="psub">Don't have full camera specs yet? Get a saved quote from a handful of inputs — sized on the Arxys VSR standard.</div>
+
+        <div class="grid" style="grid-template-columns:repeat(3,1fr);margin-top:18px">
+          <div class="tile"><div class="tlab">Est. bandwidth</div><div class="tval"></div></div>
+          <div class="tile"><div class="tlab">Est. storage</div><div class="tval"></div></div>
+          <div class="tile"><div class="tlab">Recommended</div><div class="tval" style="width:88%"></div></div>
+        </div>
+
+        <div class="card" style="margin-top:16px">
+          <div class="seclbl" style="margin-bottom:14px">Project</div>
+          <div class="grid" style="grid-template-columns:1fr 1fr">
+            <div><span class="fl">Company</span><div class="inp">— Select partner —<span class="cv">▾</span></div></div>
+            <div><span class="fl">Partner user</span><div class="inp">— Select —<span class="cv">▾</span></div></div>
+          </div>
+          <div style="font-size:11.5px;color:#5f7fb0;margin-top:8px">+ Company not onboarded? Add a new name</div>
+          <div style="margin-top:14px"><span class="fl">Project name</span><div class="inp">e.g. Main Campus</div></div>
+          <div class="grid" style="grid-template-columns:1.2fr 1fr 1fr;margin-top:14px">
+            <div><span class="fl">Which VMS?</span><div class="inp">— Select —<span class="cv">▾</span></div></div>
+            <div><span class="fl">Camera streams</span><div class="inp">e.g. 120</div></div>
+            <div><span class="fl">Retention (days)</span><div class="inp">30</div></div>
+          </div>
+          <div style="margin-top:16px"><span class="fl">Add-ons</span>
+            <div style="display:flex;gap:22px;font-size:12.5px;color:#4b525c"><span><span class="cb"></span>Failover Recorder</span><span><span class="cb"></span>Management Server</span></div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:14px;background:#f6f7f9">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+            <span class="seclbl" style="margin:0">Fixed assumptions — Arxys VSR standard</span>
+            <span class="tag u"><span class="lock">🔒</span> read-only</span>
+          </div>
+          <div class="pill-row">
+            <span class="chip ro">4MP</span><span class="chip ro">15 FPS</span><span class="chip ro">H.265</span><span class="chip ro">Medium detail, low motion</span><span class="chip ro">Record on motion · 75%</span><span class="chip ro">24 h / day</span><span class="chip ro">1 stream / camera</span><span class="chip ro">+20% storage overhead</span>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:14px;display:flex;align-items:center;gap:20px">
+          <div style="flex:1">
+            <div class="seclbl" style="margin-bottom:10px">Recommended configuration</div>
+            <div style="display:flex;gap:26px;align-items:flex-end">
+              <div><div class="tlab">Model</div><div class="bar d" style="width:120px;height:16px;margin-top:6px"></div></div>
+              <div><div class="tlab">Units</div><div class="bar d" style="width:34px;height:16px;margin-top:6px"></div></div>
+              <div><div class="tlab">Total list price</div><div class="bar d" style="width:96px;height:16px;margin-top:6px"></div></div>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:9px;align-items:flex-end">
+            <span class="btn p">Save &amp; request quote</span>
+            <span style="font-size:11.5px;color:#5f7fb0">Need per-camera detail? Open the full Calculator →</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="notes">
+      <div class="note au"><b>~6 inputs</b> vs the full calculator's per-camera-group build — the whole point.</div>
+      <div class="nsep"></div>
+      <div class="note">Partner block first: a partner sees their own company/user prefilled; an internal user picks the partner (on-behalf), same as the full tool.</div>
+      <div class="nsep"></div>
+      <div class="note"><b>Assumptions visible but locked</b> — the user sees the basis for the number without being able to edit it. One compact read-only strip.</div>
+      <div class="nsep"></div>
+      <div class="note good">Same engine → same recommendation, same <b>Save &amp; request quote</b>, same PDF. It's a shortcut, not a different answer.</div>
+      <div class="nsep"></div>
+      <div class="note">Single focused column — reads as its own tool, not a full calculator with fields hidden.</div>
+    </div>
+  </div>
+  <div class="jobnote"><b>Job it serves:</b> the Box Mover and fast internal quoting — a saved quote in a fraction of the fields. <b>Meets acceptance:</b> six inputs vs the full per-group build; the VSR assumptions are shown but not editable; a single-card layout that reads as a distinct, focused tool rather than a stripped clone of the big calculator.</div>
+</section>
+
+<section class="turn" id="secB">
+  <div class="shd">
+    <a class="bid" href="#secB">B</a>
+    <div>
+      <div class="stt">Dashboard regroup by job</div>
+      <div class="ssub">Today the dashboard files tools by an internal taxonomy — <b>Tools</b> vs <b>Reference</b> — which buries the two deal-winning tools under "Reference," and points two separate cards at the same full calculator. Regroup by what the partner is trying to do: <b>Size a job · Win a job · Look it up · Track my work.</b></div>
+    </div>
+  </div>
+
+  <div class="row" style="align-items:flex-start">
+    <div style="flex:none;width:330px">
+      <div class="seclbl" style="margin-bottom:12px">Before</div>
+      <div class="frame" style="width:330px">
+        <div class="body" style="padding:16px 18px;background:#eef0f2">
+          <div class="grid" style="grid-template-columns:repeat(4,1fr);gap:7px">
+            <div class="tile" style="padding:8px"><div class="tval" style="margin:0;width:90%"></div></div>
+            <div class="tile" style="padding:8px"><div class="tval" style="margin:0;width:90%"></div></div>
+            <div class="tile" style="padding:8px"><div class="tval" style="margin:0;width:90%"></div></div>
+            <div class="tile" style="padding:8px"><div class="tval" style="margin:0;width:90%"></div></div>
+          </div>
+          <div style="height:74px;border-radius:10px;background:linear-gradient(135deg,#c7ccd3,#aeb4bd);margin-top:10px"></div>
+          <div style="margin-top:14px"><span class="seclbl">Tools</span></div>
+          <div class="grid" style="grid-template-columns:1fr 1fr;gap:8px;margin-top:7px">
+            <div class="card" style="padding:10px"><div class="ico" style="width:22px;height:22px"></div><div class="ctit" style="font-size:11px;margin-top:6px">Calculator</div></div>
+            <div class="card" style="padding:10px"><div class="ico" style="width:22px;height:22px"></div><div class="ctit" style="font-size:11px;margin-top:6px">My Pipeline</div></div>
+          </div>
+          <div style="margin-top:12px;position:relative"><span class="seclbl">Reference</span> <span class="tag p" style="position:absolute;right:0;top:-2px">buries the win tools</span></div>
+          <div class="grid" style="grid-template-columns:1fr 1fr;gap:8px;margin-top:7px">
+            <div class="card" style="padding:10px"><div class="ctit" style="font-size:11px">Price Book</div></div>
+            <div class="card" style="padding:10px;border-color:#e7bcb6"><div class="ctit" style="font-size:11px">VMS Server Comparison</div></div>
+            <div class="card" style="padding:10px;border-color:#e7bcb6"><div class="ctit" style="font-size:11px">VideoX Quick Compare</div></div>
+            <div class="card" style="padding:10px"><div class="ctit" style="font-size:11px">VideoX Price List ↧</div></div>
+          </div>
+          <div style="margin-top:12px"><span class="seclbl">Your work</span></div>
+          <div class="grid" style="grid-template-columns:1.4fr 1fr;gap:8px;margin-top:7px">
+            <div class="card" style="padding:10px"><div class="ctit" style="font-size:11px">Register a Deal</div></div>
+            <div class="card" style="padding:10px"><div class="ctit" style="font-size:11px">Support</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="note warn" style="margin-top:12px"><b>Two entries → one tool.</b> The hero and the Tools "Calculator" card both open the full calculator.</div>
+      <div class="note warn" style="margin-top:8px">VMS Server Comparison &amp; Quick Compare — the persuasion tools — sit under passive "Reference."</div>
+    </div>
+
+    <div style="flex:1;min-width:640px">
+      <div class="seclbl" style="margin-bottom:12px">After — grouped by job</div>
+      <div class="frame" style="width:100%;max-width:760px">
+        <div class="hdr">
+          <span class="logo">ARXYS</span>
+          <div class="nav"><span class="onb">Dashboard</span><span>Calculator</span><span>Pipeline</span><span>Compare</span><span>Products &amp; Prices</span><span>Support</span></div>
+          <div class="rt"><span class="av"></span></div>
+        </div>
+        <div class="body">
+          <div class="ph1">Welcome back</div>
+          <div class="psub">Your pipeline and tools.</div>
+          <div class="grid" style="grid-template-columns:repeat(4,1fr);margin-top:14px">
+            <div class="tile"><div class="tlab">Open pipeline</div><div class="tval"></div></div>
+            <div class="tile"><div class="tlab">Weighted forecast</div><div class="tval"></div></div>
+            <div class="tile"><div class="tlab">Sent</div><div class="tval" style="width:34%"></div></div>
+            <div class="tile"><div class="tlab">Drafts</div><div class="tval" style="width:34%"></div></div>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:8px;margin-top:20px"><span class="seclbl" style="margin:0">Size a job</span></div>
+          <div class="grid" style="grid-template-columns:1.5fr 1fr;margin-top:9px">
+            <div style="border-radius:11px;background:linear-gradient(140deg,#3a4658,#232c3a);padding:16px;color:#fff">
+              <div style="font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.6);font-weight:800">Start here</div>
+              <div style="font-size:16px;font-weight:800;margin-top:8px">Storage &amp; Bandwidth Calculator</div>
+              <div class="cbar" style="background:rgba(255,255,255,.22);width:80%"></div>
+              <div class="cbar" style="background:rgba(255,255,255,.22);width:60%"></div>
+              <span class="btn" style="margin-top:12px;background:#fff;border-color:#fff;color:#2b3038">New estimate →</span>
+            </div>
+            <div class="card">
+              <div class="arrow">↗</div><div class="ico"></div>
+              <div class="ctit" style="margin-top:10px">Quick Project Calculation &amp; Quote</div>
+              <div class="cbar" style="width:90%"></div><div class="cbar" style="width:70%"></div>
+            </div>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:8px;margin-top:20px"><span class="seclbl" style="margin:0">Win a job</span> <span class="tag au">first-class</span></div>
+          <div class="card" style="margin-top:9px;border-color:#e6cf9a;background:linear-gradient(90deg,#fdf8ec,#ffffff)">
+            <div class="arrow" style="color:#b08a2e">↗</div>
+            <div style="display:flex;gap:14px;align-items:flex-start">
+              <div class="ico" style="background:#f0e2bf"></div>
+              <div style="flex:1;padding-right:30px">
+                <div class="ctit" style="font-size:15px">VMS Server Comparison</div>
+                <div class="cbar" style="width:70%"></div>
+                <div class="mini" style="margin-top:6px;color:#9a7b34">Should you switch? Arxys VideoX vs a competitor appliance — spec for spec, price for price.</div>
+              </div>
+            </div>
+          </div>
+
+          <div style="margin-top:20px"><span class="seclbl">Look it up</span></div>
+          <div class="grid" style="grid-template-columns:1fr 1fr 1fr;margin-top:9px">
+            <div class="card"><div class="arrow">↗</div><div class="ico"></div><div class="ctit" style="margin-top:9px">Price Book</div><div class="cbar" style="width:80%"></div></div>
+            <div class="card"><div class="arrow">↗</div><div class="ico"></div><div class="ctit" style="margin-top:9px">VideoX Quick Compare</div><div class="cbar" style="width:80%"></div></div>
+            <div class="card"><div class="arrow">↧</div><div class="ico"></div><div class="ctit" style="margin-top:9px">VideoX Price List</div><div class="cbar" style="width:70%"></div></div>
+          </div>
+
+          <div style="margin-top:20px"><span class="seclbl">Track my work</span></div>
+          <div class="card" style="margin-top:9px"><div class="arrow">↗</div><div style="display:flex;gap:12px;align-items:center"><div class="ico"></div><div><div class="ctit">My Pipeline</div><div class="cbar" style="width:220px"></div></div></div></div>
+
+          <div class="grid" style="grid-template-columns:1.4fr 1fr;margin-top:16px">
+            <div class="card" style="border-style:dashed"><div class="ctit" style="color:#8b929b">Register a Deal</div></div>
+            <div class="card" style="border-style:dashed;padding-right:34px"><div class="arrow">↗</div><div class="ctit" style="color:#8b929b">Support</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="notes">
+      <div class="note good"><b>Four job groups</b> replace Tools / Reference — where to size, win, look up, track.</div>
+      <div class="nsep"></div>
+      <div class="note au"><b>Quick Calc</b> takes the slot the redundant "Calculator" card held. The hero stays the full calculator.</div>
+      <div class="nsep"></div>
+      <div class="note good">VMS Server Comparison promoted out of "Reference" into its own <b>Win a job</b> band — the strongest convince surface, treated like one.</div>
+      <div class="nsep"></div>
+      <div class="note">Metric strip, hero + "pick up where you left off," Register a Deal / Support / Admin all <b>kept</b> — only the grouping changes.</div>
+    </div>
+  </div>
+  <div class="jobnote"><b>Job it serves:</b> orient any partner in one glance. <b>Meets acceptance:</b> the two most persuasive tools are no longer filed as passive reference; the double full-calculator entry is gone (that card now opens Quick Calc); and the four job labels tell a partner at a glance where to size, where to win, where to look things up, and where their work lives.</div>
+</section>
+<section class="turn" id="secC">
+  <div class="shd">
+    <a class="bid" href="#secC">C</a>
+    <div>
+      <div class="stt">Compare split</div>
+      <div class="ssub">One nav item — <b>Compare</b> — currently covers two tools with different jobs, and the persuasion tool (VMS Server Comparison) is only reachable from a dashboard card. Separate them into two clearly-labeled, separately-reachable homes, with nav / card / page-header labels that finally match.</div>
+    </div>
+  </div>
+
+  <div class="row" style="margin-bottom:6px">
+    <div style="flex:none">
+      <div class="seclbl" style="margin-bottom:12px">Nav — one slot, two homes</div>
+      <div class="frame" style="width:620px">
+        <div class="hdr" style="padding-bottom:0">
+          <span class="logo">ARXYS</span>
+          <div class="nav" style="align-items:flex-end"><span>Dashboard</span><span>Calculator</span><span>Pipeline</span><span class="onb">Compare ▾</span><span>Products &amp; Prices</span><span>Support</span></div>
+        </div>
+        <div style="padding:0 18px 16px;background:#fbfcfd;position:relative;height:96px">
+          <div style="position:absolute;left:196px;top:0;width:232px;background:#fff;border:1px solid #d5d9df;border-radius:9px;box-shadow:0 8px 22px rgba(30,40,60,.12);overflow:hidden">
+            <div style="padding:10px 13px;border-bottom:1px solid #eceef1"><div class="ctit" style="font-size:12.5px">VMS Server Comparison</div><div style="font-size:10.5px;color:#8b929b;margin-top:2px">Arxys vs a competitor — should I switch</div></div>
+            <div style="padding:10px 13px"><div class="ctit" style="font-size:12.5px">VideoX Quick Compare</div><div style="font-size:10.5px;color:#8b929b;margin-top:2px">Model vs model — which VideoX</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="note" style="margin-top:12px">A <b>dropdown</b> keeps one top-level slot — the header already fought crowding (ADR 0070) — while giving each tool its own labeled entry.</div>
+      <div class="note au" style="margin-top:8px">Alternative: two top-level slots if you'd rather. Flagged for your call.</div>
+    </div>
+
+    <div class="notes" style="width:250px">
+      <div class="note good"><b>Names line up:</b> nav = card = page header, everywhere.</div>
+      <div class="nsep"></div>
+      <div class="note warn">Today the page header reads "VideoX <b>Model</b> Quick Compare" and the other tool's header is just "Server Comparison" — both drift from their cards.</div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div style="flex:none">
+      <div class="seclbl" style="margin-bottom:12px">VMS Server Comparison <span class="tag au">win a job · persuasion</span></div>
+      <div class="frame" style="width:540px">
+        <div class="body">
+          <div class="crumb">← Back to dashboard</div>
+          <div class="ph1">VMS Server Comparison</div>
+          <div class="psub">Should you switch? Put your current appliance quote next to Arxys VideoX.</div>
+          <div class="card" style="margin-top:12px;background:linear-gradient(90deg,#fdf8ec,#fff);border-color:#e6cf9a">
+            <div style="font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#9a7b34">Why partners switch</div>
+            <div style="display:flex;gap:10px;margin-top:10px">
+              <div style="flex:1"><div class="bar d" style="width:60%;height:14px"></div><div class="cbar" style="width:90%"></div></div>
+              <div style="flex:1"><div class="bar d" style="width:60%;height:14px"></div><div class="cbar" style="width:90%"></div></div>
+              <div style="flex:1"><div class="bar d" style="width:60%;height:14px"></div><div class="cbar" style="width:90%"></div></div>
+            </div>
+          </div>
+          <div class="grid" style="grid-template-columns:1fr 1fr;margin-top:12px">
+            <div><span class="fl">1 · Vendor</span><div class="inp">— Select vendor —<span class="cv">▾</span></div></div>
+            <div><span class="fl">2 · Server model</span><div class="inp">— Select model —<span class="cv">▾</span></div></div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:12px;align-items:center;flex-wrap:wrap">
+            <span class="fl" style="margin:0">VMS validation sheets</span>
+            <span class="chip">Avigilon ↓</span><span class="chip">Milestone ↓</span><span class="chip">Genetec ↓</span>
+            <span class="tag au">moved here from Quick Compare</span>
+          </div>
+          <div class="card" style="margin-top:12px;padding:0;overflow:hidden">
+            <table class="wtbl"><thead><tr><th>Specification</th><th>Competitor</th><th>Arxys VideoX</th><th>Advantage</th></tr></thead>
+            <tbody>
+              <tr><td>Max camera streams</td><td>—</td><td>—</td><td style="color:#1f7a4d">＋ better</td></tr>
+              <tr><td>CPU / cache</td><td>—</td><td>—</td><td style="color:#1f7a4d">＋ better</td></tr>
+              <tr><td>Warranty</td><td>—</td><td>—</td><td>Arxys advantage</td></tr>
+            </tbody></table>
+          </div>
+          <div class="card" style="margin-top:12px">
+            <div class="seclbl" style="margin-bottom:10px">Pricing comparison</div>
+            <div style="display:flex;justify-content:space-between;font-size:12px;color:#5c636d"><span>Competitor price (your quote)</span><span class="inp" style="width:120px;height:28px">$ enter</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:12px;color:#5c636d;margin-top:8px"><span>Arxys VideoX MSRP</span><span class="bar d" style="width:80px;height:13px"></span></div>
+            <div style="display:flex;justify-content:space-between;font-size:12px;font-weight:700;color:#1f7a4d;margin-top:8px"><span>You save per server</span><span class="bar" style="width:80px;height:13px;background:#bfe0cc"></span></div>
+            <div style="margin-top:10px;font-size:10.5px;color:#8b929b">Servers in deployment ▸ ▸ ▸ &nbsp;<span class="tag u">deployment multiplier</span></div>
+          </div>
+          <div style="display:flex;gap:10px;margin-top:14px">
+            <span class="btn">Download comparison PDF</span>
+            <span class="btn p">Request quote</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="flex:none">
+      <div class="seclbl" style="margin-bottom:12px">VideoX Quick Compare <span class="tag u">look it up · utility</span></div>
+      <div class="frame" style="width:540px">
+        <div class="body">
+          <div class="crumb">← Back to dashboard</div>
+          <div class="ph1">VideoX Quick Compare</div>
+          <div class="psub">Every VideoX V5 NVR model side by side — which model fits this job.</div>
+          <div class="card" style="margin-top:12px;display:flex;align-items:center;gap:14px">
+            <div style="flex:1"><span class="fl">Minimum camera streams needed</span><div class="inp">e.g. 150</div></div>
+            <div class="mini" style="align-self:flex-end;color:#8b929b">Tick models to compare just those columns</div>
+          </div>
+          <div class="card" style="margin-top:12px;padding:0;overflow:hidden">
+            <table class="wtbl"><thead><tr><th>Specification</th><th>☐ V400</th><th>☐ V500</th><th>☐ V600</th><th>☐ V700</th></tr></thead>
+            <tbody>
+              <tr><td>Max camera streams</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+              <tr><td>Rack units</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+              <tr><td>Drive bays</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+              <tr style="background:#f7f8fa"><td colspan="5" style="font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:#9aa1aa;font-weight:800">System</td></tr>
+              <tr><td>CPU</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+              <tr><td>RAM</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+            </tbody></table>
+          </div>
+          <div class="mini" style="margin-top:10px;color:#9aa1aa">Footnote / validation-sheet row</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="notes">
+      <div class="note au"><b>Persuasion up top:</b> a "why switch" band and a header aimed at a partner who hasn't committed — the first-class "win a job" treatment from B.</div>
+      <div class="nsep"></div>
+      <div class="note">Existing flow &amp; engine unchanged — vendor → model → your price → advantage → multiplier → PDF / quote.</div>
+      <div class="nsep"></div>
+      <div class="note good">Quick Compare stays a lean utility, now separately reachable. The <b>VMS validation-sheet downloads move to VMS Server Comparison</b> — they belong with the switch decision, not the model picker.</div>
+      <div class="nsep"></div>
+      <div class="note">Both headers restyled to the one portal page-header pattern in <a class="bid" href="#secD" style="padding:1px 6px;font-size:11px">D</a>.</div>
+    </div>
+  </div>
+  <div class="jobnote"><b>Job it serves:</b> a utility ("which VideoX") and a persuasion tool ("should I switch") that were sharing one nav item now each have a home. <b>Meets acceptance:</b> the convince surface is no longer buried inside a utility; each is separately reachable; nav, card, and page-header labels all read the same; and the VMS validation-sheet downloads move to VMS Server Comparison, where the switch decision is made.</div>
+</section>
+<section class="turn" id="secD">
+  <div class="shd">
+    <a class="bid" href="#secD">D</a>
+    <div>
+      <div class="stt">All-pages UX / UI improvement &amp; consistency pass</div>
+      <div class="ssub">The findings below span every page — dashboard, both calculators, My Pipeline, submission detail (partner + internal), price book landing + detail, both compare tools, and the three admin screens. Each is a review-ready note; nothing here silently redesigns a working page. Three buckets: <b>naming</b>, <b>component &amp; spacing</b>, <b>responsive</b>.</div>
+    </div>
+  </div>
+
+  <div class="row" style="gap:22px;align-items:stretch">
+    <div class="panel" style="width:600px">
+      <div class="seclbl" style="margin-bottom:14px">1 · Naming — one label per thing</div>
+      <table class="wtbl">
+        <thead><tr><th style="width:52%">Drifts today</th><th>Canonical</th></tr></thead>
+        <tbody>
+          <tr><td>Nav "Compare" · card "VMS Server Comparison" · page "Server Comparison"</td><td><b>VMS Server Comparison</b> everywhere</td></tr>
+          <tr><td>Card "VideoX Quick Compare" · page "VideoX <b>Model</b> Quick Compare"</td><td><b>VideoX Quick Compare</b> everywhere</td></tr>
+          <tr><td>Card "VideoX V5 Price Book" · hero "VIDEOX V5 Products &amp; Prices" drift from the nav</td><td>Keep <b>Products &amp; Prices</b> in nav + card; hero matches</td></tr>
+          <tr><td>Dashboard card "Calculator" vs hero "Storage &amp; Bandwidth Calculator" (same tool)</td><td>Hero = full <b>Calculator</b>; card = <b>Quick Calc</b> (see B)</td></tr>
+        </tbody>
+      </table>
+      <div class="note good" style="margin-top:12px"><b>Decided:</b> keep "Products &amp; Prices" — clear and accurate. Card + hero align to it.</div>
+    </div>
+
+    <div class="panel" style="flex:1;min-width:440px">
+      <div class="seclbl" style="margin-bottom:14px">2 · Component &amp; spacing — align to the shared ui/ set</div>
+      <div style="display:flex;flex-direction:column;gap:11px">
+        <div class="mini"><span class="tag p">FRAGMENTED</span> &nbsp;Calculator, VMS Server Comparison &amp; VideoX Quick Compare each ship bespoke scoped CSS (their own buttons, selects, tables, headings) instead of the shared <b>Button / Select / Table / Card / MetricTile / StatusBadge</b>.</div>
+        <div class="nsep"></div>
+        <div class="mini"><span class="tag p">HEADERS</span> &nbsp;Three page-header patterns: left "← Back" + ink H1 (Pipeline, Calculator) · centred gold title (Quick Compare) · full-bleed gradient hero (Price Book). <span class="tag f">→ one</span> pattern: back-link + ink H1 + subtitle.</div>
+        <div class="nsep"></div>
+        <div class="mini"><span class="tag p">TILES</span> &nbsp;Metric tiles differ: white "stat" tile w/ navy top-rule (dashboard, admin) vs navy-tint soft tile (Partner Pipeline) vs bespoke bordered totals (Calculator). <span class="tag f">→ one</span> MetricTile.</div>
+        <div class="nsep"></div>
+        <div class="mini"><span class="tag p">TABLES</span> &nbsp;Shared Table chrome (admin, submission detail) vs hand-rolled rows (My Pipeline) vs scoped tables (both compare tools). <span class="tag f">→ one</span> Table.</div>
+        <div class="nsep"></div>
+        <div class="mini"><span class="tag p">COLOR</span> &nbsp;Calculator per-group summary prints purple / green / orange numerals — off the ADR-0075 palette. <span class="tag f">→</span> navy figures; <span class="tag au">gold</span> only as the sparing accent (stars, dots, eyebrows).</div>
+        <div class="nsep"></div>
+        <div class="mini"><span class="tag p">BUTTONS</span> &nbsp;Bespoke <span style="font-family:ui-monospace,monospace;font-size:10.5px">ac-btn-pdf / ac-btn-quote</span> &amp; vxc pills vs the primary / secondary / outline scale. <span class="tag f">→</span> Button variants.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row" style="gap:22px;margin-top:22px;align-items:stretch">
+    <div class="panel" style="width:600px">
+      <div class="seclbl" style="margin-bottom:14px">3 · Responsive — integrators work on job walks</div>
+      <table class="wtbl">
+        <thead><tr><th>Surface</th><th>Phone</th></tr></thead>
+        <tbody>
+          <tr><td>Dashboard · <b>Quick Calc</b> · Price Book landing · Portal guide</td><td><span class="tag f">works — cards / few fields stack</span></td></tr>
+          <tr><td>My Pipeline · submission detail · VMS Server Comparison intro + CTA</td><td><span class="tag au">reflow rows → cards; tables scroll</span></td></tr>
+          <tr><td>Full Calculator (per-group inline fields)</td><td><span class="tag p">call out — not phone work</span></td></tr>
+          <tr><td>Dense spec matrices: VideoX Quick Compare · per-group breakdown · admin Partners &amp; Partner Pipeline</td><td><span class="tag p">sticky 1st col + scroll; don't force</span></td></tr>
+        </tbody>
+      </table>
+      <div class="note" style="margin-top:12px">Where a surface genuinely can't shrink, steer the phone user to <b>Quick Calc</b> and a read-only summary rather than cramming the full tool.</div>
+    </div>
+
+    <div class="panel" style="flex:1;min-width:440px">
+      <div class="seclbl" style="margin-bottom:14px">Corrected patterns — the one-each set (ADR 0075)</div>
+      <div style="display:flex;flex-wrap:wrap;gap:14px">
+        <div style="flex:1;min-width:150px">
+          <div class="fl">Buttons</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap"><span class="btn p">Primary</span><span class="btn">Secondary</span><span class="btn au">Amber</span></div>
+        </div>
+        <div style="flex:1;min-width:150px">
+          <div class="fl">Metric tile</div>
+          <div class="tile" style="padding:9px 12px"><div class="tlab">Label</div><div class="tval" style="width:60%;margin-top:6px"></div></div>
+        </div>
+        <div style="width:100%;height:1px;background:#e4e7ec"></div>
+        <div style="flex:1;min-width:180px">
+          <div class="fl">Page header</div>
+          <div style="font-size:11px;color:#7c838d">← Back</div>
+          <div class="ph1" style="font-size:15px">Page Title</div>
+          <div class="cbar" style="width:70%"></div>
+        </div>
+        <div style="flex:1;min-width:180px">
+          <div class="fl">Status badge</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap"><span class="chip" style="font-size:10.5px">● Open</span><span class="chip" style="font-size:10.5px">● Won</span><span class="chip" style="font-size:10.5px">● Lost</span></div>
+        </div>
+        <div style="width:100%;height:1px;background:#e4e7ec"></div>
+        <div style="width:100%">
+          <div class="fl">Table</div>
+          <table class="wtbl" style="border:1px solid #e4e7ec;border-radius:8px;overflow:hidden"><thead><tr><th>Col</th><th>Col</th><th>Col</th></tr></thead><tbody><tr><td>—</td><td>—</td><td>—</td></tr><tr><td>—</td><td>—</td><td>—</td></tr></tbody></table>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="jobnote"><b>Deliverable D:</b> the findings above are the short list of proposed improvements and inconsistencies, each review-ready. On sign-off they become the corrected patterns applied across pages — extending the existing ADR-0075 tokens, never a new visual language. Weak-page improvements (buried primary actions, three page-header styles, hand-rolled tables) are proposed here for your review, not silently applied.</div>
+</section></x-dc>
+</body>
+</html>

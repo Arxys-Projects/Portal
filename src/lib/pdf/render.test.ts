@@ -1,7 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { createElement } from "react";
-import { renderToBuffer } from "@react-pdf/renderer";
+import { createElement, type ReactElement } from "react";
+import { type DocumentProps, renderToBuffer } from "@react-pdf/renderer";
 import { SubmissionPdf, SCHEDULE_COLUMNS } from "./SubmissionPdf";
 import type { SubmissionPdfInput } from "./types";
 import { resolveSubmissionPartner } from "./partner-resolution";
@@ -12,6 +12,13 @@ import { resolveSubmissionPartner } from "./partner-resolution";
 // for the production code path. A break in the JSX shape still surfaces here
 // because renderToBuffer will throw at runtime if the SubmissionPdf tree is
 // structurally invalid.
+
+// Mirror render.ts: createElement types the element by the component's own
+// props, so cast through unknown to the DocumentProps signature renderToBuffer
+// expects.
+function toDocumentElement(data: SubmissionPdfInput): ReactElement<DocumentProps> {
+  return createElement(SubmissionPdf, { data }) as unknown as ReactElement<DocumentProps>;
+}
 
 function fixture(): SubmissionPdfInput {
   return {
@@ -88,7 +95,7 @@ function fixture(): SubmissionPdfInput {
 
 describe("SubmissionPdf renders via @react-pdf/renderer", () => {
   it("produces a non-empty Buffer with the %PDF- magic header", async () => {
-    const buf = await renderToBuffer(createElement(SubmissionPdf, { data: fixture() }));
+    const buf = await renderToBuffer(toDocumentElement(fixture()));
     assert.ok(buf instanceof Uint8Array, "render must return a Buffer / Uint8Array");
     assert.ok(buf.length > 1000, `PDF buffer suspiciously small: ${buf.length} bytes`);
     const header = buf.subarray(0, 5).toString("utf8");
@@ -97,7 +104,7 @@ describe("SubmissionPdf renders via @react-pdf/renderer", () => {
 
   it("renders without a resolved server spec (legacy submission, null specs)", async () => {
     const legacy: SubmissionPdfInput = { ...fixture(), serverSpec: null };
-    const buf = await renderToBuffer(createElement(SubmissionPdf, { data: legacy }));
+    const buf = await renderToBuffer(toDocumentElement(legacy));
     assert.ok(buf.length > 1000, `PDF buffer suspiciously small: ${buf.length} bytes`);
     assert.equal(buf.subarray(0, 5).toString("utf8"), "%PDF-");
   });
@@ -135,7 +142,7 @@ describe("SubmissionPdf renders via @react-pdf/renderer", () => {
     // tree renders: storage is the binding dimension and stays under 100%.
     const util = (1764.3 / (640 * 4)) * 100;
     assert.ok(util > 0 && util <= 83, `expected ≤83% utilization, got ${util}%`);
-    const buf = await renderToBuffer(createElement(SubmissionPdf, { data: failingDeal }));
+    const buf = await renderToBuffer(toDocumentElement(failingDeal));
     assert.ok(buf.length > 1000, `PDF buffer suspiciously small: ${buf.length} bytes`);
     assert.equal(buf.subarray(0, 5).toString("utf8"), "%PDF-");
   });

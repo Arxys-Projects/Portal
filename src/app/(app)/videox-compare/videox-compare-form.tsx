@@ -1,9 +1,14 @@
 "use client";
 
+// VideoX Quick Compare — the model-vs-model selection utility (ADR 0084 —
+// Compare split). The page header lives in page.tsx (standard back-link + ink
+// H1 pattern); the VMS vendor pills + validation banner moved to the VMS
+// Server Comparison page (ADR 0085). The dense spec matrix keeps its scoped
+// stylesheet for the sticky-first-column / striping / tooltip machinery.
+
 import { useMemo, useState } from "react";
 import type { QuickCompareModel, QuickCompareSpec, QuickCompareSection } from "@/lib/videox-compare/types";
-import { VMS_OPTIONS } from "@/lib/videox-compare/vms";
-import type { VmsId } from "@/lib/videox-compare/vms";
+import { Button } from "@/app/(app)/_components/ui";
 
 type Props = {
   models: QuickCompareModel[];
@@ -25,8 +30,6 @@ export function VideoxCompareForm({ models, specs, sections, footnote }: Props) 
   const [selected, setSelected] = useState<Set<string>>(new Set());
   // "Minimum cameras needed" quick filter (raw input string).
   const [minCameras, setMinCameras] = useState<string>("");
-  // Active VMS selection for the validation sheet banner. Null = none selected.
-  const [selectedVms, setSelectedVms] = useState<VmsId | null>(null);
 
   const compareMode = selected.size >= 2;
   const visibleModels = compareMode
@@ -73,109 +76,67 @@ export function VideoxCompareForm({ models, specs, sections, footnote }: Props) 
 
   return (
     <div id="arxys-vxc-root">
-      {/* Header */}
-      <div className="vxc-hdr">
-        <div className="vxc-t">VideoX Model Quick Compare</div>
-        <p className="vxc-st">
-          Compare every VideoX V5 NVR model side by side. Specs, features, and capabilities at a glance.
-        </p>
-      </div>
-
       {/* Controls */}
-      <div className="vxc-controls">
-        <div className="vxc-filter">
-          <label htmlFor="vxc-min-cameras" className="vxc-fl">
+      <div className="mt-4.5 flex flex-wrap items-end justify-between gap-4 rounded-[14px] border border-line bg-surface px-4.5 py-4">
+        <div className="flex flex-col items-start gap-1.5">
+          <label
+            htmlFor="vxc-min-cameras"
+            className="text-[11px] font-extrabold uppercase tracking-[0.05em] text-[#8b929b]"
+          >
             Minimum camera streams needed
           </label>
-          <input
-            id="vxc-min-cameras"
-            type="number"
-            min={0}
-            step={1}
-            inputMode="numeric"
-            placeholder="e.g. 150"
-            value={minCameras}
-            onChange={(e) => setMinCameras(e.target.value)}
-            className="vxc-min-input"
-          />
-          {minCamerasNum !== null && (
-            <button
-              type="button"
-              className="vxc-clear"
-              onClick={() => setMinCameras("")}
-            >
-              Clear
-            </button>
-          )}
+          <div className="flex items-center gap-2.5">
+            <input
+              id="vxc-min-cameras"
+              type="number"
+              min={0}
+              step={1}
+              inputMode="numeric"
+              placeholder="e.g. 150"
+              value={minCameras}
+              onChange={(e) => setMinCameras(e.target.value)}
+              className="h-10 w-36 rounded-lg border border-[#b9c4d5] px-3 text-sm text-ink outline-none transition-colors focus:border-arxys-navy"
+            />
+            {minCamerasNum !== null && (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setMinCameras("")}
+              >
+                Clear
+              </Button>
+            )}
+          </div>
         </div>
 
-        <div className="vxc-compare-ctl">
+        <div className="flex flex-wrap items-center gap-3.5 pb-1">
           {compareMode ? (
-            <span className="vxc-compare-state">
+            <span className="text-[13px] font-semibold text-arxys-navy">
               Comparing {selected.size} models
             </span>
           ) : selected.size === 1 ? (
-            <span className="vxc-compare-hint">
+            <span className="text-[13px] text-ink-soft">
               Select one more model to compare
             </span>
           ) : (
-            <span className="vxc-compare-hint">
+            <span className="text-[13px] text-ink-soft">
               Tick models to compare just those columns
             </span>
           )}
           {selected.size > 0 && (
-            <button
-              type="button"
-              className="vxc-reset"
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={() => setSelected(new Set())}
             >
               Show all models
-            </button>
+            </Button>
           )}
         </div>
       </div>
 
-      {/* VMS toggle row */}
-      <div className="vxc-vms-toggle" role="group" aria-label="VMS selection">
-        {VMS_OPTIONS.map((vms) => (
-          <button
-            key={vms.id}
-            type="button"
-            className={selectedVms === vms.id ? "vxc-vms-pill vxc-vms-pill--active" : "vxc-vms-pill"}
-            onClick={() => setSelectedVms(selectedVms === vms.id ? null : vms.id)}
-            aria-pressed={selectedVms === vms.id}
-          >
-            {vms.name}
-          </button>
-        ))}
-      </div>
-
-      {/* VMS validation sheet banner */}
-      {selectedVms !== null && (() => {
-        const vms = VMS_OPTIONS.find((v) => v.id === selectedVms)!;
-        return (
-          <div className="vxc-vms-banner" role="region" aria-label="VMS validation information">
-            <span className="vxc-vms-banner-text">
-              VideoX V5 is validated for {vms.name} {vms.vmsProduct}
-            </span>
-            {vms.sheetUrl ? (
-              <a
-                className="vxc-vms-sheet-link"
-                href={vms.sheetUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Download {vms.name} Validation Sheet ↗
-              </a>
-            ) : (
-              <span className="vxc-vms-sheet-pending">Validation sheet coming soon</span>
-            )}
-          </div>
-        );
-      })()}
-
       {/* Table */}
-      <div className="vxc-tw">
+      <div className="vxc-tw mt-4">
         <table className="vxc-tbl">
           <thead>
             <tr>

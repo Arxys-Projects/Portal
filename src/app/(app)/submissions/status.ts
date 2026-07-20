@@ -12,15 +12,15 @@ export const SUBMISSION_STATUSES = ["open", "won", "lost"] as const;
 export type SubmissionStatus = (typeof SUBMISSION_STATUSES)[number];
 
 // `badge` = soft-tint pill classes; `dot` = the solid status colour used by the
-// pipeline status <select> dot (ADR 0075 palette). Only presentation fields —
-// the enum, labels, and helpers below stay the single source of truth.
-// TODO(0081-ui): the Design pass finalizes the treatment (Won highlighted,
-// Lost de-emphasized/greyed). These are functional placeholders.
+// pipeline status <select> dot. Colours per the 2026-07-16 design handoff
+// (portal UX pass): Won reads as the highlight, Lost as the de-emphasized grey-red.
+// Only presentation fields — the enum, labels, and helpers below stay the
+// single source of truth.
 export const STATUS_META: Record<
   SubmissionStatus,
   { label: string; badge: string; dot: string }
 > = {
-  open: { label: "Open", badge: "bg-[#eef2f8] text-[#2c4a7c] border-[#cdd9ec]", dot: "#3a5c9a" },
+  open: { label: "Open", badge: "bg-[#eaf1fc] text-[#1f4fa8] border-[#c3d8f4]", dot: "#2b62c9" },
   won: { label: "Won", badge: "bg-[#e7f4ec] text-[#136340] border-[#b6ddc6]", dot: "#177a4f" },
   lost: { label: "Lost", badge: "bg-[#fbeceb] text-[#a12c20] border-[#f0c6c1]", dot: "#c0392b" },
 };

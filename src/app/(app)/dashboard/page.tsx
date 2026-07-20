@@ -78,6 +78,8 @@ export default async function DashboardPage() {
     ? groupIntoDeals(ownSubmissions, partnersForGrouping)
     : [];
   const { openPipeline } = computePipelineTotals(deals);
+  const openProjects = deals.filter((d) => d.status === "open").length;
+  const wonProjects = deals.filter((d) => d.status === "won").length;
 
   const recent = ownSubmissions.slice(0, 3);
   const firstName = partner?.contact_name?.trim().split(/\s+/)[0] ?? null;
@@ -93,11 +95,8 @@ export default async function DashboardPage() {
         your pipeline and tools.
       </p>
 
-      {/* Metric strip — each tile links into the pipeline. */}
-      {/* TODO(0081-ui): ADR 0081 retired Weighted Forecast and the Sent/Drafts
-          statuses. Their tile values are stubbed to "—" here; the Design pass
-          removes/reworks these tiles (only Open pipeline remains meaningful). */}
-      <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+      {/* Metric strip — three-state model (ADR 0081); each tile links into the pipeline. */}
+      <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
         <Link href="/submissions" className="block">
           <MetricTile
             variant="stat"
@@ -109,31 +108,24 @@ export default async function DashboardPage() {
         <Link href="/submissions" className="block">
           <MetricTile
             variant="stat"
-            label="Weighted forecast"
-            value="—"
+            label="Open projects"
+            value={String(openProjects)}
             className="h-full transition-colors hover:border-arxys-navy"
           />
         </Link>
-        <Link href="/submissions" className="block">
+        <Link href="/submissions?status=won" className="block">
           <MetricTile
             variant="stat"
-            label="Sent"
-            value="—"
-            className="h-full transition-colors hover:border-arxys-navy"
-          />
-        </Link>
-        <Link href="/submissions" className="block">
-          <MetricTile
-            variant="stat"
-            label="Drafts"
-            value="—"
+            label="Won projects"
+            value={String(wonProjects)}
             className="h-full transition-colors hover:border-arxys-navy"
           />
         </Link>
       </div>
 
-      {/* Calculator hero + pick up where you left off */}
-      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-[1.15fr_1fr]">
+      {/* ── Size a job ── */}
+      <SectionLabel>Size a job</SectionLabel>
+      <div className="mt-3 grid grid-cols-1 gap-4 lg:grid-cols-[1.15fr_1fr]">
         <div className="rounded-[14px] bg-[linear-gradient(140deg,#1a3f7c,#0d2247)] p-7 text-white">
           <span className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.12em] text-white/70">
             <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/15 text-white">
@@ -145,8 +137,8 @@ export default async function DashboardPage() {
             Storage &amp; Bandwidth Calculator
           </h2>
           <p className="mt-2 max-w-md text-sm leading-relaxed text-white/85">
-            Size a job in minutes — cameras, retention, recording mode. H.265
-            savings and Arxys pricing calculated automatically.
+            Size a job in full detail — cameras, retention, recording mode.
+            H.265 savings and Arxys pricing calculated automatically.
           </p>
           <Link
             href="/calculator"
@@ -172,10 +164,8 @@ export default async function DashboardPage() {
                     {s.project_name?.trim() || "Untitled quote"}
                   </p>
                   <p className="mt-0.5 text-xs text-ink-soft">
-                    {s.status
-                      ? STATUS_META[s.status as SubmissionStatus]?.label ?? "No status"
-                      : "No status"}{" "}
-                    · {fmtEditedDate(s.created_at)}
+                    {STATUS_META[s.status as SubmissionStatus]?.label ?? "Open"} ·{" "}
+                    {fmtEditedDate(s.created_at)}
                   </p>
                 </Link>
               ))}
@@ -191,58 +181,93 @@ export default async function DashboardPage() {
           </Link>
         </div>
       </div>
-
-      {/* ── Tools ── */}
-      <SectionLabel>Tools</SectionLabel>
-      <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="mt-4">
         <NavCard
-          href="/calculator"
+          href="/quick-calc"
           icon={<CalculatorIcon />}
-          title="Calculator"
-          subtitle="Estimate bandwidth and storage for a new deployment."
-        />
-        <NavCard
-          href="/submissions"
-          icon={<PipelineIcon />}
-          title="My Pipeline"
-          subtitle="Browse your past calculator submissions and reports."
+          title="Quick Project Calculation & Quote"
+          subtitle="No full camera specs yet? A saved quote from six inputs, sized on the Arxys VSR standard."
+          fullWidth
         />
       </div>
 
-      {/* ── Reference ── */}
-      <SectionLabel>Reference</SectionLabel>
+      {/* ── Win a job ── */}
+      <SectionLabel>Win a job</SectionLabel>
+      <Link
+        href="/comparison"
+        className="group relative mt-3 flex items-start gap-4 rounded-[14px] border border-line border-l-[3px] border-l-arxys-gold bg-[linear-gradient(90deg,#fdf8ec,#ffffff)] px-5 py-5 transition-[transform,border-color,box-shadow] duration-150 hover:-translate-y-0.5 hover:border-arxys-navy hover:border-l-arxys-gold hover:shadow-[0_12px_28px_-14px_rgba(15,42,83,0.32)]"
+      >
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[11px] bg-[#f5e9c9] text-arxys-gold-text">
+          <ComparisonIcon />
+        </span>
+        <span className="min-w-0 flex-1 pr-7">
+          <span className="text-[11px] font-extrabold uppercase tracking-[0.1em] text-arxys-gold-text">
+            Your strongest convince
+          </span>
+          <span className="mt-1 block text-lg font-bold text-ink">
+            VMS Server Comparison
+          </span>
+          <span className="mt-1 block text-[13.5px] leading-relaxed text-ink-soft">
+            Should you switch? Put Arxys VideoX next to your current appliance
+            quote — spec for spec, price for price.
+          </span>
+        </span>
+        <span className="absolute right-4 top-4 text-arxys-navy opacity-60">
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <line x1="7" y1="17" x2="17" y2="7" />
+            <polyline points="7 7 17 7 17 17" />
+          </svg>
+        </span>
+      </Link>
+
+      {/* ── Look it up ── */}
+      <SectionLabel>Look it up</SectionLabel>
       <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <NavCard
           href="/price-book"
           icon={<PriceBookIcon />}
-          title="VideoX V5 Price Book"
-          subtitle="Browse families, specs, and current MSRPs."
-        />
-        <NavCard
-          href="/comparison"
-          icon={<ComparisonIcon />}
-          title="VMS Server Comparison"
-          subtitle="See how Arxys VideoX stacks up against Milestone, Avigilon, and Genetec — spec for spec, price for price."
+          title="Products & Prices"
+          subtitle="VideoX V5 families, specs, and current MSRPs."
         />
         <NavCard
           href="/videox-compare"
           icon={<QuickCompareIcon />}
           title="VideoX Quick Compare"
-          subtitle="Compare every VideoX V5 NVR model side by side."
+          subtitle="Every VideoX V5 NVR model side by side."
         />
         <NavCard
           href="/api/price-book/xlsx"
           icon={<SpreadsheetIcon />}
           title="VideoX Price List"
-          subtitle="Download the current VideoX MSRP price book as Excel (XLSX)."
+          subtitle="Download the current MSRP price book (XLSX)."
           variant="download"
         />
       </div>
 
-      {/* ── Your work ── */}
-      <SectionLabel>Your work</SectionLabel>
-      <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <Card className="sm:col-span-2">
+      {/* ── Track my work ── */}
+      <SectionLabel>Track my work</SectionLabel>
+      <div className="mt-3">
+        <NavCard
+          href="/submissions"
+          icon={<PipelineIcon />}
+          title="My Pipeline"
+          subtitle="Your saved quotes, grouped by project — status, list price, and revisions."
+          fullWidth
+        />
+      </div>
+
+      {/* ── Register a Deal + Support ── */}
+      <div className="mt-7 grid grid-cols-1 gap-4 lg:grid-cols-[1.4fr_1fr]">
+        <Card>
           <div className="flex items-start gap-3">
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-arxys-navy-soft text-arxys-navy">
               <DealIcon />
@@ -269,7 +294,7 @@ export default async function DashboardPage() {
       </div>
 
       {isAdmin ? (
-        <div className="mt-8">
+        <div className="mt-7">
           <NavCard
             href="/admin"
             icon={<AdminIcon />}

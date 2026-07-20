@@ -39,13 +39,11 @@
   --color-danger: #c0392b;            /* destructive / Lost */
   --color-danger-deep: #9f2b22;
   --color-danger-soft: #fbeceb;
-  /* Submission status accents — ADR 0075 (mirror STATUS_META dots) */
-  --color-status-sent: #2b62c9;
+  /* Submission status accents — ADR 0081 three-state model, colours per the
+   * 2026-07-16 design handoff (mirror STATUS_META dots) */
+  --color-status-open: #2b62c9;
   --color-status-won: #177a4f;
   --color-status-lost: #c0392b;
-  --color-status-hold: #d98a1e;
-  --color-status-draft: #8a93a0;
-  --color-status-none: #b7bfc9;
 }
 
 body {

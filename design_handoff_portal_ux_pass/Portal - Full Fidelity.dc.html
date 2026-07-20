@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+--navy:#14346b;--navy-deep:#0d244a;--navy-soft:#eef2f8;
+--gold:#fbb040;--gold-hover:#eaa52c;--goldtext:#c17f10;--ongold:#1a1205;
+--page:#e7eaee;--surface:#ffffff;--panel:#f4f6fa;
+--line:#d7dce3;--line2:#cdd5e0;--linesoft:#eceef2;
+--ink:#111826;--inks:#4a5568;--sec:#e7edf7;--sech:#dbe4f2;--danger:#c0392b;
+--font:'Geist',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+--mono:'Geist Mono',ui-monospace,Menlo,monospace;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--page);color:var(--ink);font-family:var(--font);-webkit-font-smoothing:antialiased}
+a{color:var(--navy);text-decoration:none}
+a:hover{color:var(--navy-deep)}
+select{font-family:var(--font)}
+</style>
+</helmet>
+<header style="width:100%;border-bottom:1px solid var(--line);background:var(--surface)">
+  <div style="margin:0 auto;max-width:1320px;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:0 24px">
+    <div style="display:flex;align-items:center;gap:28px">
+      <a onClick="{{ onDash }}" style="display:flex;align-items:center;gap:10px;padding:13px 0;cursor:pointer">
+        <img src="arxys-logo.png" alt="Arxys" style="height:22px;width:auto">
+        <span style="font-size:13px;font-weight:500;color:#5c6472"><span style="margin-right:8px;color:#c7ced8">|</span>Partner Portal</span>
+      </a>
+      <nav style="display:flex;align-items:center;gap:24px">
+        <div style="display:flex;align-items:center;border-bottom:{{ navDashBorder }};padding:19px 0">
+          <a onClick="{{ onDash }}" style="font-size:13.5px;font-weight:{{ navDashWeight }};color:{{ navDashColor }};cursor:pointer">Dashboard</a>
+        </div>
+        <div style="display:flex;align-items:center;border-bottom:2px solid transparent;padding:19px 0"><span style="font-size:13.5px;font-weight:500;color:#3a4351;cursor:pointer" style-hover="color:var(--navy)">Calculator</span></div>
+        <div style="display:flex;align-items:center;border-bottom:{{ navPipeBorder }};padding:19px 0"><span onClick="{{ onPipeline }}" style="font-size:13.5px;font-weight:{{ navPipeWeight }};color:{{ navPipeColor }};cursor:pointer">Pipeline</span></div>
+        <div style="position:relative;display:flex;align-items:center;border-bottom:{{ navCmpBorder }};padding:19px 0">
+          <span onClick="{{ toggleCmp }}" style="font-size:13.5px;font-weight:{{ navCmpWeight }};color:{{ navCmpColor }};cursor:pointer;user-select:none">Compare ▾</span>
+          <sc-if value="{{ cmpOpen }}">
+            <div style="position:absolute;left:-8px;top:60px;width:250px;background:var(--surface);border:1px solid var(--line2);border-radius:10px;box-shadow:0 12px 28px rgba(15,42,83,.16);overflow:hidden;z-index:40">
+              <a onClick="{{ onVms }}" style="display:block;padding:11px 14px;border-bottom:1px solid var(--linesoft);cursor:pointer" style-hover="background:var(--navy-soft)">
+                <span style="display:block;font-size:13px;font-weight:700;color:var(--ink)">VMS Server Comparison</span>
+                <span style="display:block;font-size:11px;color:var(--inks);margin-top:2px">Arxys vs a competitor — should I switch</span>
+              </a>
+              <a onClick="{{ onVideox }}" style="display:block;padding:11px 14px;cursor:pointer" style-hover="background:var(--navy-soft)">
+                <span style="display:block;font-size:13px;font-weight:700;color:var(--ink)">VideoX Quick Compare</span>
+                <span style="display:block;font-size:11px;color:var(--inks);margin-top:2px">Model vs model — which VideoX</span>
+              </a>
+            </div>
+          </sc-if>
+        </div>
+        <div style="display:flex;align-items:center;border-bottom:{{ navPnPBorder }};padding:19px 0"><span onClick="{{ onPrice }}" style="font-size:13.5px;font-weight:{{ navPnPWeight }};color:{{ navPnPColor }};cursor:pointer">Products &amp; Prices</span></div>
+        <div style="display:flex;align-items:center;border-bottom:2px solid transparent;padding:19px 0"><span style="font-size:13.5px;font-weight:500;color:#3a4351;cursor:pointer" style-hover="color:var(--navy)">Support</span></div>
+      </nav>
+    </div>
+    <div style="display:flex;align-items:center;gap:16px">
+      <span style="display:inline-flex;align-items:center;gap:6px;font-size:13.5px;color:#3a4351;cursor:pointer">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        Portal guide
+      </span>
+      <span onClick="{{ onAdmin }}" style="font-size:13.5px;font-weight:{{ navAdminWeight }};color:{{ navAdminColor }};cursor:pointer">Admin</span>
+      <div style="display:flex;align-items:center;gap:10px;border-left:1px solid #e2e6ea;padding-left:16px">
+        <span style="display:flex;height:32px;width:32px;align-items:center;justify-content:center;border-radius:50%;background:var(--navy);font-size:12px;font-weight:600;color:#fff">AN</span>
+        <span style="font-size:13.5px;font-weight:600;color:#26303f">Andy Newbom</span>
+        <button style="margin-left:4px;border:1px solid var(--line);border-radius:8px;padding:6px 12px;font-size:13px;font-weight:500;color:var(--inks);background:transparent;cursor:pointer" style-hover="border-color:var(--navy);color:var(--navy)">Sign out</button>
+      </div>
+    </div>
+  </div>
+</header>
+<main style="margin:0 auto;max-width:1200px;padding:32px 24px">
+
+<sc-if value="{{ isDash }}" hint-placeholder-val="{{ true }}">
+<div style="margin:0 auto;max-width:1152px">
+  <h1 style="font-size:30px;font-weight:800;letter-spacing:-.02em;color:var(--ink);margin:0">Welcome back, Andy</h1>
+  <p style="margin:5px 0 0;font-size:14px;color:var(--inks)">Arxys · Arxys — here's your pipeline and tools.</p>
+
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:24px">
+    <div style="border-radius:10px;border:1px solid var(--line);border-top:3px solid var(--navy);background:var(--surface);padding:14px 16px;cursor:pointer" style-hover="border-color:var(--navy)"><div style="font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#3f4b5b">Open pipeline</div><div style="margin-top:6px;font-size:24px;font-weight:800;color:var(--navy);font-variant-numeric:tabular-nums">$622,937.00</div></div>
+    <div style="border-radius:10px;border:1px solid var(--line);border-top:3px solid var(--navy);background:var(--surface);padding:14px 16px;cursor:pointer" style-hover="border-color:var(--navy)"><div style="font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#3f4b5b">Open projects</div><div style="margin-top:6px;font-size:24px;font-weight:800;color:var(--navy);font-variant-numeric:tabular-nums">8</div></div>
+    <div style="border-radius:10px;border:1px solid var(--line);border-top:3px solid var(--navy);background:var(--surface);padding:14px 16px;cursor:pointer" style-hover="border-color:var(--navy)"><div style="font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#3f4b5b">Won projects</div><div style="margin-top:6px;font-size:24px;font-weight:800;color:var(--navy);font-variant-numeric:tabular-nums">41</div></div>
+  </div>
+
+  <p style="font-size:12.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#222c3a;margin:28px 0 12px">Size a job</p>
+  <div style="display:grid;grid-template-columns:1.3fr 1fr;gap:16px">
+    <div style="border-radius:14px;background:linear-gradient(140deg,#1a3f7c,#0d2247);padding:28px;color:#fff">
+      <span style="display:inline-flex;align-items:center;gap:8px;font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.7)">
+        <span style="display:flex;height:28px;width:28px;align-items:center;justify-content:center;border-radius:8px;background:rgba(255,255,255,.15)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="12" y2="14"/></svg></span>
+        Start here
+      </span>
+      <h2 style="margin:14px 0 0;font-size:24px;font-weight:700;letter-spacing:-.01em">Storage &amp; Bandwidth Calculator</h2>
+      <p style="margin:9px 0 0;max-width:28rem;font-size:14px;line-height:1.6;color:rgba(255,255,255,.85)">Size a job in full detail — cameras, retention, recording mode. H.265 savings and Arxys pricing calculated automatically.</p>
+      <span style="display:inline-flex;align-items:center;gap:8px;margin-top:20px;border-radius:8px;background:#fff;padding:10px 16px;font-size:14px;font-weight:600;color:var(--navy);cursor:pointer" style-hover="background:var(--navy-soft)">New estimate →</span>
+    </div>
+    <div>
+      <p style="font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#222c3a;margin:0">Pick up where you left off</p>
+      <div style="margin-top:8px;display:flex;flex-direction:column;gap:10px">
+        <a style="display:block;border-radius:14px;border:1px solid var(--line);background:var(--surface);padding:12px 16px;cursor:pointer" style-hover="border-color:var(--navy);box-shadow:0 10px 24px -12px rgba(15,42,83,.30)"><p style="margin:0;font-size:14px;font-weight:600;color:var(--ink)">La Jolla MOB Building</p><p style="margin:2px 0 0;font-size:12px;color:var(--inks)">Open · today</p></a>
+        <a style="display:block;border-radius:14px;border:1px solid var(--line);background:var(--surface);padding:12px 16px;cursor:pointer" style-hover="border-color:var(--navy);box-shadow:0 10px 24px -12px rgba(15,42,83,.30)"><p style="margin:0;font-size:14px;font-weight:600;color:var(--ink)">Shelter Rock Library</p><p style="margin:2px 0 0;font-size:12px;color:var(--inks)">Open · today</p></a>
+        <a style="display:block;border-radius:14px;border:1px solid var(--line);background:var(--surface);padding:12px 16px;cursor:pointer" style-hover="border-color:var(--navy);box-shadow:0 10px 24px -12px rgba(15,42,83,.30)"><p style="margin:0;font-size:14px;font-weight:600;color:var(--ink)">Sussex Ballot Box - Archive and Failover</p><p style="margin:2px 0 0;font-size:12px;color:var(--inks)">Open · 1 day ago</p></a>
+      </div>
+      <a style="margin-top:12px;display:inline-block;font-size:14px;font-weight:600;color:var(--navy);cursor:pointer">View all saved quotes →</a>
+    </div>
+  </div>
+  <a onClick="{{ onQuick }}" style="position:relative;display:flex;align-items:center;gap:16px;margin-top:16px;border-radius:14px;border:1px solid var(--line);background:var(--surface);padding:16px 22px;cursor:pointer" style-hover="border-color:var(--navy);background:color-mix(in srgb,var(--navy-soft) 60%,#fff);box-shadow:0 10px 24px -12px rgba(15,42,83,.30)">
+    <span style="display:flex;height:40px;width:40px;flex:none;align-items:center;justify-content:center;border-radius:10px;background:var(--navy-soft);color:var(--navy)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="12" y2="14"/></svg></span>
+    <span style="min-width:0;flex:1"><span style="display:block;font-size:16px;font-weight:700;color:var(--ink)">Quick Project Calculation &amp; Quote</span><span style="display:block;margin-top:2px;font-size:13px;color:var(--inks)">No full camera specs yet? A saved quote from six inputs, sized on the Arxys VSR standard.</span></span>
+    <span style="color:var(--navy);opacity:.6"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg></span>
+  </a>
+
+  <p style="font-size:12.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#222c3a;margin:30px 0 12px">Win a job</p>
+  <a onClick="{{ onVms }}" style="position:relative;display:flex;align-items:flex-start;gap:16px;border-radius:14px;border:1px solid var(--line);border-left:3px solid var(--gold);background:linear-gradient(90deg,#fdf8ec,#ffffff);padding:20px 22px;cursor:pointer" style-hover="border-color:var(--navy);box-shadow:0 12px 28px -14px rgba(15,42,83,.32)">
+    <span style="display:flex;height:44px;width:44px;flex:none;align-items:center;justify-content:center;border-radius:11px;background:#f5e9c9;color:var(--goldtext)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="18" rx="1"/><rect x="14" y="3" width="7" height="18" rx="1"/></svg></span>
+    <span style="min-width:0;flex:1;padding-right:28px">
+      <span style="font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--goldtext)">Your strongest convince</span>
+      <span style="display:block;margin-top:4px;font-size:18px;font-weight:700;color:var(--ink)">VMS Server Comparison</span>
+      <span style="display:block;margin-top:4px;font-size:13.5px;color:var(--inks)">Should you switch? Put Arxys VideoX next to your current appliance quote — spec for spec, price for price.</span>
+    </span>
+    <span style="position:absolute;right:16px;top:18px;color:var(--navy);opacity:.6"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg></span>
+  </a>
+
+  <p style="font-size:12.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#222c3a;margin:30px 0 12px">Look it up</p>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px">
+    <a onClick="{{ onPrice }}" style="position:relative;display:block;border-radius:14px;border:1px solid var(--line);background:var(--surface);padding:20px;cursor:pointer" style-hover="border-color:var(--navy);background:color-mix(in srgb,var(--navy-soft) 60%,#fff);box-shadow:0 10px 24px -12px rgba(15,42,83,.30)"><span style="display:flex;height:40px;width:40px;align-items:center;justify-content:center;border-radius:10px;background:var(--navy-soft);color:var(--navy);margin-bottom:12px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span><span style="position:absolute;right:16px;top:16px;color:var(--navy);opacity:.6"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg></span><span style="display:block;font-size:15px;font-weight:700;color:var(--ink)">Products &amp; Prices</span><span style="display:block;margin-top:4px;font-size:13px;color:var(--inks)">VideoX V5 families, specs, and current MSRPs.</span></a>
+    <a onClick="{{ onVideox }}" style="position:relative;display:block;border-radius:14px;border:1px solid var(--line);background:var(--surface);padding:20px;cursor:pointer" style-hover="border-color:var(--navy);background:color-mix(in srgb,var(--navy-soft) 60%,#fff);box-shadow:0 10px 24px -12px rgba(15,42,83,.30)"><span style="display:flex;height:40px;width:40px;align-items:center;justify-content:center;border-radius:10px;background:var(--navy-soft);color:var(--navy);margin-bottom:12px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><polyline points="17 2 12 7 7 2"/></svg></span><span style="position:absolute;right:16px;top:16px;color:var(--navy);opacity:.6"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg></span><span style="display:block;font-size:15px;font-weight:700;color:var(--ink)">VideoX Quick Compare</span><span style="display:block;margin-top:4px;font-size:13px;color:var(--inks)">Every VideoX V5 NVR model side by side.</span></a>
+    <a style="position:relative;display:block;border-radius:14px;border:1px solid var(--line);background:var(--surface);padding:20px;cursor:pointer" style-hover="border-color:var(--navy);background:color-mix(in srgb,var(--navy-soft) 60%,#fff);box-shadow:0 10px 24px -12px rgba(15,42,83,.30)"><span style="display:flex;height:40px;width:40px;align-items:center;justify-content:center;border-radius:10px;background:var(--navy-soft);color:var(--navy);margin-bottom:12px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></svg></span><span style="position:absolute;right:16px;top:16px;color:var(--navy);opacity:.6"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></span><span style="display:block;font-size:15px;font-weight:700;color:var(--ink)">VideoX Price List</span><span style="display:block;margin-top:4px;font-size:13px;color:var(--inks)">Download the current MSRP price book (XLSX).</span></a>
+  </div>
+
+  <p style="font-size:12.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#222c3a;margin:30px 0 12px">Track my work</p>
+  <a onClick="{{ onPipeline }}" style="position:relative;display:flex;align-items:center;gap:16px;border-radius:14px;border:1px solid var(--line);background:var(--surface);padding:16px 22px;cursor:pointer" style-hover="border-color:var(--navy);background:color-mix(in srgb,var(--navy-soft) 60%,#fff);box-shadow:0 10px 24px -12px rgba(15,42,83,.30)">
+    <span style="display:flex;height:40px;width:40px;flex:none;align-items:center;justify-content:center;border-radius:10px;background:var(--navy-soft);color:var(--navy)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></span>
+    <span style="flex:1"><span style="display:block;font-size:15px;font-weight:700;color:var(--ink)">My Pipeline</span><span style="display:block;margin-top:2px;font-size:13px;color:var(--inks)">Your saved quotes, grouped by project — status, list price, and revisions.</span></span>
+    <span style="color:var(--navy);opacity:.6"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg></span>
+  </a>
+
+  <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:16px;margin-top:26px">
+    <div style="border-radius:14px;border:1px solid var(--line);background:var(--surface);padding:20px">
+      <div style="display:flex;align-items:flex-start;gap:12px">
+        <span style="display:flex;height:40px;width:40px;flex:none;align-items:center;justify-content:center;border-radius:10px;background:var(--navy-soft);color:var(--navy)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41 13.42 20.58a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg></span>
+        <div><h2 style="margin:0;font-size:15px;font-weight:700;color:var(--ink)">Register a Deal</h2><p style="margin:4px 0 0;font-size:13px;color:var(--inks)">Lock in partner protection on a specific opportunity. Andy will follow up.</p></div>
+      </div>
+      <div style="margin-top:16px;display:flex;gap:10px">
+        <input placeholder="Project or opportunity name" style="flex:1;height:40px;border:1px solid #b9c4d5;border-radius:8px;padding:0 12px;font-size:14px;color:var(--ink)">
+        <button style="background:var(--navy);color:#fff;border:1px solid transparent;border-radius:8px;padding:0 18px;font-size:14px;font-weight:600;cursor:pointer" style-hover="background:var(--navy-deep)">Register a Deal</button>
+      </div>
+    </div>
+    <a style="position:relative;display:block;border-radius:14px;border:1px solid var(--line);background:var(--surface);padding:20px;cursor:pointer" style-hover="border-color:var(--navy);background:color-mix(in srgb,var(--navy-soft) 60%,#fff);box-shadow:0 10px 24px -12px rgba(15,42,83,.30)"><span style="display:flex;height:40px;width:40px;align-items:center;justify-content:center;border-radius:10px;background:var(--navy-soft);color:var(--navy);margin-bottom:12px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span><span style="position:absolute;right:16px;top:16px;color:var(--navy);opacity:.6"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg></span><span style="display:block;font-size:15px;font-weight:700;color:var(--ink)">Support</span><span style="display:block;margin-top:4px;font-size:13px;color:var(--inks)">Documentation and tickets with the Arxys support team.</span></a>
+  </div>
+
+  <a onClick="{{ onAdmin }}" style="position:relative;display:flex;align-items:center;gap:16px;margin-top:26px;border-radius:14px;border:1px solid var(--line);background:var(--surface);padding:16px 24px;cursor:pointer" style-hover="border-color:var(--navy);background:color-mix(in srgb,var(--navy-soft) 60%,#fff);box-shadow:0 10px 24px -12px rgba(15,42,83,.30)">
+    <span style="display:flex;height:40px;width:40px;flex:none;align-items:center;justify-content:center;border-radius:10px;background:var(--navy-soft);color:var(--navy)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
+    <span style="flex:1"><span style="display:block;font-size:16px;font-weight:700;color:var(--ink)">Admin</span><span style="display:block;margin-top:2px;font-size:13px;color:var(--inks)">Manage partners and review all submissions.</span></span>
+    <span style="color:var(--navy);opacity:.6"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg></span>
+  </a>
+
+  <div style="margin-top:36px;padding-top:18px;border-top:1px solid var(--line);font-size:12px;color:var(--inks);line-height:1.6">
+    <p style="margin:0">Prices and specs subject to change without notice. All Arxys VideoX products are NDAA compliant. Windows Server IoT EULA and Microsoft conditions apply.</p>
+    <p style="margin:6px 0 0">© Arxys 2026 · VideoX© · DataX© · AnalyticX© &nbsp;·&nbsp; <a>www.arxys.com</a> · <a>About Arxys</a> · <a>Support &amp; Resources</a> · <a>Contact Sales for Custom Configurations</a></p>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isQuick }}">
+<div style="margin:0 auto;max-width:760px">
+  <a onClick="{{ onDash }}" style="font-size:14px;font-weight:500;color:var(--navy);cursor:pointer">← Back to dashboard</a>
+  <h1 style="margin:14px 0 0;font-size:24px;font-weight:800;letter-spacing:-.01em;color:var(--ink)">Quick Project Calculation &amp; Quote</h1>
+  <p style="margin:5px 0 0;font-size:14px;color:var(--inks);line-height:1.5">Don't have full camera specs yet? Get a saved quote from a handful of inputs — sized on the Arxys VSR standard, with the same output document as the full Calculator.</p>
+
+  <div style="margin-top:20px;border-radius:14px;border:1px solid var(--line);background:var(--surface);padding:22px">
+    <p style="margin:0 0 14px;font-size:12.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#222c3a">Project</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div>
+        <label style="display:block;margin-bottom:6px;font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#8b929b">Company</label>
+        <div style="position:relative"><select style="appearance:none;-webkit-appearance:none;width:100%;border:1px solid #b9c4d5;border-radius:8px;background:#fff;color:var(--ink);font-size:14px;padding:10px 36px 10px 12px;cursor:pointer"><option>Galaxy Integrated Technologies, LLC</option><option>Intelli-tec</option><option>JCT Solutions</option></select><svg style="position:absolute;right:12px;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--navy)" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+      </div>
+      <div>
+        <label style="display:block;margin-bottom:6px;font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#8b929b">Partner user</label>
+        <div style="position:relative"><select style="appearance:none;-webkit-appearance:none;width:100%;border:1px solid #b9c4d5;border-radius:8px;background:#fff;color:var(--ink);font-size:14px;padding:10px 36px 10px 12px;cursor:pointer"><option>Scott Feingold</option><option>— Select —</option></select><svg style="position:absolute;right:12px;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--navy)" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+      </div>
+    </div>
+    <a style="display:inline-block;margin-top:9px;font-size:12.5px;font-weight:500;color:var(--navy);cursor:pointer">+ Company not onboarded? Add a new name</a>
+    <div style="margin-top:16px">
+      <label style="display:block;margin-bottom:6px;font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#8b929b">Project name</label>
+      <input value="Main Campus" style="width:100%;height:42px;border:1px solid #b9c4d5;border-radius:8px;padding:0 12px;font-size:14px;color:var(--ink)">
+    </div>
+    <div style="display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:16px;margin-top:16px">
+      <div>
+        <label style="display:block;margin-bottom:6px;font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#8b929b">Which VMS?</label>
+        <div style="position:relative"><select style="appearance:none;-webkit-appearance:none;width:100%;border:1px solid #b9c4d5;border-radius:8px;background:#fff;color:var(--ink);font-size:14px;padding:10px 36px 10px 12px;cursor:pointer"><option>Milestone XProtect</option><option>Genetec Security Center</option><option>Avigilon</option><option>ExacqVision</option><option>Hanwha WAVE</option></select><svg style="position:absolute;right:12px;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--navy)" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+      </div>
+      <div>
+        <label style="display:block;margin-bottom:6px;font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#8b929b">Camera streams</label>
+        <input value="120" style="width:100%;height:42px;border:1px solid #b9c4d5;border-radius:8px;padding:0 12px;font-size:14px;color:var(--ink)">
+      </div>
+      <div>
+        <label style="display:block;margin-bottom:6px;font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#8b929b">Retention (days)</label>
+        <input value="90" style="width:100%;height:42px;border:1px solid #b9c4d5;border-radius:8px;padding:0 12px;font-size:14px;color:var(--ink)">
+      </div>
+    </div>
+    <div style="margin-top:18px">
+      <label style="display:block;margin-bottom:8px;font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#8b929b">Add-ons</label>
+      <div style="display:flex;gap:24px;font-size:14px;color:var(--ink)">
+        <label style="display:inline-flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" checked style="width:16px;height:16px;accent-color:#14346b">Failover Recorder</label>
+        <label style="display:inline-flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" style="width:16px;height:16px;accent-color:#14346b">Management Server</label>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top:14px;border-radius:14px;border:1px solid var(--line);background:var(--panel);padding:18px 20px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+      <span style="font-size:12.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#222c3a">Fixed assumptions — Arxys VSR standard</span>
+      <span style="display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);background:#fff;border-radius:999px;padding:2px 9px;font-size:11px;font-weight:600;color:var(--inks)">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+        read-only
+      </span>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px">
+      <span style="border:1px solid #dde2e8;background:#fff;border-radius:999px;padding:5px 12px;font-size:12.5px;color:var(--inks)">4MP (2560×1440)</span>
+      <span style="border:1px solid #dde2e8;background:#fff;border-radius:999px;padding:5px 12px;font-size:12.5px;color:var(--inks)">15 FPS</span>
+      <span style="border:1px solid #dde2e8;background:#fff;border-radius:999px;padding:5px 12px;font-size:12.5px;color:var(--inks)">H.265 (HEVC)</span>
+      <span style="border:1px solid #dde2e8;background:#fff;border-radius:999px;padding:5px 12px;font-size:12.5px;color:var(--inks)">Medium detail, low motion</span>
+      <span style="border:1px solid #dde2e8;background:#fff;border-radius:999px;padding:5px 12px;font-size:12.5px;color:var(--inks)">Record on motion · 75%</span>
+      <span style="border:1px solid #dde2e8;background:#fff;border-radius:999px;padding:5px 12px;font-size:12.5px;color:var(--inks)">24 h / day</span>
+      <span style="border:1px solid #dde2e8;background:#fff;border-radius:999px;padding:5px 12px;font-size:12.5px;color:var(--inks)">1 stream / camera</span>
+      <span style="border:1px solid #dde2e8;background:#fff;border-radius:999px;padding:5px 12px;font-size:12.5px;color:var(--inks)">+20% storage overhead</span>
+    </div>
+    <p style="margin:12px 0 0;font-size:12px;color:var(--inks)">These drive the sizing and print on the System Estimate so the basis is visible — they can't be edited here. Need to change them? Use the full Calculator.</p>
+  </div>
+
+  <div style="margin-top:14px;border-radius:14px;border:1px solid var(--line);border-top:3px solid var(--navy);background:var(--surface);padding:20px 22px;display:flex;align-items:center;gap:24px;flex-wrap:wrap">
+    <div style="flex:1;min-width:280px">
+      <p style="margin:0 0 8px;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#3f4b5b">Recommended configuration</p>
+      <div style="font-size:22px;font-weight:800;color:var(--navy)">1 × VideoX V600</div>
+      <p style="margin:4px 0 0;font-size:13px;color:var(--inks)">V5 Video &amp; Analytics Server · 3U 16-bay · 320 TB raw · sized for 120 streams on the VSR standard</p>
+      <p style="margin:10px 0 0;font-size:13px;color:var(--ink)"><span style="font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#3f4b5b">Total list price</span> &nbsp;<span style="font-size:18px;font-weight:800;color:var(--ink);font-variant-numeric:tabular-nums">$56,461.00</span></p>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px;align-items:flex-end">
+      <button style="background:var(--navy);color:#fff;border:1px solid transparent;border-radius:8px;padding:11px 20px;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap" style-hover="background:var(--navy-deep)">Save &amp; request quote</button>
+      <a style="font-size:12.5px;font-weight:500;color:var(--navy);cursor:pointer">Need per-camera detail? Open the full Calculator →</a>
+    </div>
+  </div>
+</div>
+</sc-if>
+<sc-if value="{{ isVms }}">
+<div style="margin:0 auto;max-width:940px">
+  <a onClick="{{ onDash }}" style="font-size:14px;font-weight:500;color:var(--navy);cursor:pointer">← Back to dashboard</a>
+  <h1 style="margin:14px 0 0;font-size:26px;font-weight:800;letter-spacing:-.01em;color:var(--ink)">VMS Server Comparison</h1>
+  <p style="margin:6px 0 0;font-size:14.5px;color:var(--inks);line-height:1.55;max-width:640px">See how a purpose-built Arxys VideoX server compares to your current VMS-branded appliance — spec for spec, price for price.</p>
+
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:20px">
+    <div style="border-radius:12px;border:1px solid var(--line);border-left:3px solid var(--gold);background:linear-gradient(90deg,#fdf8ec,#fff);padding:15px 16px">
+      <div style="display:flex;align-items:center;gap:8px;color:var(--goldtext)"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg><span style="font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase">Lead time</span></div>
+      <p style="margin:8px 0 0;font-size:13px;color:var(--ink);line-height:1.5">Arxys typically delivers in 3–4 weeks. VMS-branded servers currently quoting 4–16 weeks.</p>
+    </div>
+    <div style="border-radius:12px;border:1px solid var(--line);border-left:3px solid var(--gold);background:linear-gradient(90deg,#fdf8ec,#fff);padding:15px 16px">
+      <div style="display:flex;align-items:center;gap:8px;color:var(--goldtext)"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg><span style="font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase">Supply secured</span></div>
+      <p style="margin:8px 0 0;font-size:13px;color:var(--ink);line-height:1.5">Toshiba Enterprise HDD allocation (16TB, 20TB, 24TB) secured into 2027 — reducing supply-chain delays.</p>
+    </div>
+    <div style="border-radius:12px;border:1px solid var(--line);border-left:3px solid var(--gold);background:linear-gradient(90deg,#fdf8ec,#fff);padding:15px 16px">
+      <div style="display:flex;align-items:center;gap:8px;color:var(--goldtext)"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.3h6c0-1 .4-1.8 1-2.3A7 7 0 0 0 12 2z"/></svg><span style="font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase">No commitment</span></div>
+      <p style="margin:8px 0 0;font-size:13px;color:var(--ink);line-height:1.5">Many integrators start with Arxys as a second source where price or lead time is critical. Run one project and compare.</p>
+    </div>
+  </div>
+
+  <div style="margin-top:18px;border-radius:14px;border:1px solid var(--line);background:var(--surface);padding:20px 22px">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div>
+        <label style="display:block;margin-bottom:6px;font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#8b929b"><span style="display:inline-flex;height:16px;width:16px;align-items:center;justify-content:center;border-radius:50%;background:var(--navy);color:#fff;font-size:10px;margin-right:6px">1</span>Select your VMS platform</label>
+        <div style="position:relative"><select style="appearance:none;-webkit-appearance:none;width:100%;border:1px solid #b9c4d5;border-radius:8px;background:#fff;color:var(--ink);font-size:14px;padding:10px 36px 10px 12px;cursor:pointer"><option>— Select vendor —</option><option>Avigilon</option><option>Milestone</option><option>Genetec</option></select><svg style="position:absolute;right:12px;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--navy)" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+      </div>
+      <div>
+        <label style="display:block;margin-bottom:6px;font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#8b929b"><span style="display:inline-flex;height:16px;width:16px;align-items:center;justify-content:center;border-radius:50%;background:var(--navy);color:#fff;font-size:10px;margin-right:6px">2</span>Select the model you've been quoted</label>
+        <div style="position:relative"><select style="appearance:none;-webkit-appearance:none;width:100%;border:1px solid #b9c4d5;border-radius:8px;background:#fff;color:var(--ink);font-size:14px;padding:10px 36px 10px 12px;cursor:pointer"><option>— Select model —</option></select><svg style="position:absolute;right:12px;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--navy)" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+      </div>
+    </div>
+    <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--linesoft);display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <span style="font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#8b929b">VMS validation sheets</span>
+      <a href="https://www.arxys.com/wp-content/uploads/Arxys-VMS-Verified-sheet-Avigilon.pdf" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:7px;border:1px solid #b9c4d5;border-radius:8px;background:#fff;padding:7px 13px;font-size:13px;font-weight:600;color:var(--navy);cursor:pointer" style-hover="background:var(--navy-soft);border-color:var(--navy)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Avigilon</a>
+      <a href="https://www.arxys.com/wp-content/uploads/Arxys-VMS-Verified-sheet-Milestone.pdf" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:7px;border:1px solid #b9c4d5;border-radius:8px;background:#fff;padding:7px 13px;font-size:13px;font-weight:600;color:var(--navy);cursor:pointer" style-hover="background:var(--navy-soft);border-color:var(--navy)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Milestone</a>
+      <a href="https://www.arxys.com/wp-content/uploads/Arxys-VMS-Verified-sheet-Genetec.pdf" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:7px;border:1px solid #b9c4d5;border-radius:8px;background:#fff;padding:7px 13px;font-size:13px;font-weight:600;color:var(--navy);cursor:pointer" style-hover="background:var(--navy-soft);border-color:var(--navy)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Genetec</a>
+    </div>
+  </div>
+
+  <div style="margin-top:18px;overflow:hidden;border-radius:14px;border:1px solid var(--line)">
+    <table style="width:100%;border-collapse:collapse;font-size:13.5px">
+      <thead><tr style="background:var(--panel)">
+        <th style="text-align:left;padding:11px 14px;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#3f4b5b;border-bottom:1px solid var(--line)">Specification</th>
+        <th style="text-align:left;padding:11px 14px;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#3f4b5b;border-bottom:1px solid var(--line)">Your quoted server</th>
+        <th style="text-align:left;padding:11px 14px;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--navy);border-bottom:1px solid var(--line);background:var(--navy-soft)">Arxys VideoX</th>
+        <th style="text-align:left;padding:11px 14px;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#3f4b5b;border-bottom:1px solid var(--line)">Advantage</th>
+      </tr></thead>
+      <tbody style="color:var(--ink)">
+        <tr><td style="padding:10px 14px;border-bottom:1px solid var(--linesoft)">Server Model</td><td style="padding:10px 14px;border-bottom:1px solid var(--linesoft);color:var(--inks)">— your quoted model —</td><td style="padding:10px 14px;border-bottom:1px solid var(--linesoft);background:var(--navy-soft);font-weight:600">VideoX V600</td><td style="padding:10px 14px;border-bottom:1px solid var(--linesoft);color:var(--inks)">—</td></tr>
+        <tr><td style="padding:10px 14px;border-bottom:1px solid var(--linesoft)">Maximum Cameras</td><td style="padding:10px 14px;border-bottom:1px solid var(--linesoft);color:var(--inks)">—</td><td style="padding:10px 14px;border-bottom:1px solid var(--linesoft);background:var(--navy-soft)">275</td><td style="padding:10px 14px;border-bottom:1px solid var(--linesoft);color:var(--inks)">—</td></tr>
+        <tr><td style="padding:10px 14px;border-bottom:1px solid var(--linesoft)">Processor</td><td style="padding:10px 14px;border-bottom:1px solid var(--linesoft);color:var(--inks)">—</td><td style="padding:10px 14px;border-bottom:1px solid var(--linesoft);background:var(--navy-soft)">AMD EPYC 9005 3.3GHz 16/32 Core</td><td style="padding:10px 14px;border-bottom:1px solid var(--linesoft);color:var(--inks)">—</td></tr>
+        <tr><td style="padding:10px 14px;border-bottom:1px solid var(--linesoft)">Memory (GB)</td><td style="padding:10px 14px;border-bottom:1px solid var(--linesoft);color:var(--inks)">—</td><td style="padding:10px 14px;border-bottom:1px solid var(--linesoft);background:var(--navy-soft)">32</td><td style="padding:10px 14px;border-bottom:1px solid var(--linesoft);color:var(--inks)">—</td></tr>
+        <tr><td style="padding:10px 14px;border-bottom:1px solid var(--linesoft)">Raw Storage (TB)</td><td style="padding:10px 14px;border-bottom:1px solid var(--linesoft);color:var(--inks)">—</td><td style="padding:10px 14px;border-bottom:1px solid var(--linesoft);background:var(--navy-soft)">320</td><td style="padding:10px 14px;border-bottom:1px solid var(--linesoft);color:var(--inks)">—</td></tr>
+        <tr><td style="padding:10px 14px;border-bottom:1px solid var(--linesoft)">Warranty</td><td style="padding:10px 14px;border-bottom:1px solid var(--linesoft);color:var(--inks)">—</td><td style="padding:10px 14px;border-bottom:1px solid var(--linesoft);background:var(--navy-soft)">5yr NBD, Advanced Replacement</td><td style="padding:10px 14px;border-bottom:1px solid var(--linesoft)"><span style="display:inline-block;border:1px solid #b6ddc6;background:#e7f4ec;color:#136340;border-radius:999px;padding:2px 9px;font-size:11px;font-weight:700">Arxys advantage</span></td></tr>
+        <tr><td style="padding:10px 14px;border-bottom:1px solid var(--linesoft)">VMS Support</td><td style="padding:10px 14px;border-bottom:1px solid var(--linesoft);color:var(--inks)">—</td><td style="padding:10px 14px;border-bottom:1px solid var(--linesoft);background:var(--navy-soft)">Milestone · Avigilon · Genetec · Hanwha · Exacq · NXWitness</td><td style="padding:10px 14px;border-bottom:1px solid var(--linesoft)"><span style="display:inline-block;border:1px solid #b6ddc6;background:#e7f4ec;color:#136340;border-radius:999px;padding:2px 9px;font-size:11px;font-weight:700">Arxys advantage</span></td></tr>
+        <tr><td style="padding:10px 14px">Dell / HP Server Used</td><td style="padding:10px 14px;color:var(--inks)">— your quoted platform —</td><td style="padding:10px 14px;background:var(--navy-soft);color:var(--inks)">—</td><td style="padding:10px 14px;color:var(--inks)">—</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p style="margin:9px 2px 0;font-size:12px;color:var(--inks)">Select your vendor and quoted model to populate the competitor column and compute each spec advantage.</p>
+
+  <div style="margin-top:18px;border-radius:14px;border:1px solid var(--line);background:var(--surface);padding:20px 22px">
+    <p style="margin:0 0 14px;font-size:12.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#222c3a">Pricing comparison</p>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;padding:8px 0"><span style="font-size:14px;color:var(--inks)">Your competitor quote (per server)</span><div style="display:inline-flex;align-items:center;border:1px solid #b9c4d5;border-radius:8px;overflow:hidden"><span style="padding:0 10px;color:var(--inks);font-size:14px;background:var(--panel);align-self:stretch;display:flex;align-items:center;border-right:1px solid #b9c4d5">$</span><input placeholder="Enter quoted price" style="border:0;padding:9px 12px;font-size:14px;color:var(--ink);width:180px;outline:none"></div></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;padding:8px 0;border-top:1px solid var(--linesoft)"><span style="font-size:14px;color:var(--inks)">Arxys VideoX MSRP</span><span style="font-size:16px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums">$56,461</span></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;padding:8px 0;border-top:1px solid var(--linesoft)"><span style="font-size:14px;font-weight:600;color:#136340">You save per server</span><span style="font-size:14px;color:var(--inks)">enter your quote to calculate →</span></div>
+    <p style="margin:12px 0 0;font-size:12px;color:var(--inks);line-height:1.55">The Arxys MSRP shown is our published retail price — likely already lower than your discounted VMS-branded server price. Request your Security Partner discount to see how much more you save.</p>
+    <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--linesoft)">
+      <p style="margin:0 0 8px;font-size:13px;font-weight:600;color:var(--ink)">What does this look like across a full deployment?</p>
+      <div style="display:flex;align-items:center;gap:14px"><span style="font-size:12px;color:var(--inks)">Servers in deployment</span><input type="range" min="1" max="25" value="8" style="flex:1;accent-color:#14346b"><span style="font-size:14px;font-weight:700;color:var(--navy);min-width:24px;text-align:right">8</span></div>
+    </div>
+  </div>
+
+  <div style="margin-top:18px;border-radius:14px;background:linear-gradient(140deg,#1a3f7c,#0d2247);padding:24px;color:#fff;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap">
+    <div><h2 style="margin:0;font-size:18px;font-weight:700">Want a formal quote with your partner pricing?</h2><p style="margin:6px 0 0;font-size:14px;color:rgba(255,255,255,.85)">We'll match this exact configuration and send you a quote within 24 hours.</p></div>
+    <div style="display:flex;gap:12px">
+      <button style="border:1px solid rgba(255,255,255,.55);background:transparent;color:#fff;border-radius:8px;padding:11px 18px;font-size:14px;font-weight:600;cursor:pointer" style-hover="background:rgba(255,255,255,.12)">Download This Comparison (PDF)</button>
+      <button style="background:var(--gold);color:var(--ongold);border:1px solid transparent;border-radius:8px;padding:11px 18px;font-size:14px;font-weight:700;cursor:pointer" style-hover="background:var(--gold-hover)">Get My Partner Quote</button>
+    </div>
+  </div>
+</div>
+</sc-if>
+<sc-if value="{{ isVideox }}">
+<div style="margin:0 auto;max-width:1200px">
+  <a onClick="{{ onDash }}" style="font-size:14px;font-weight:500;color:var(--navy);cursor:pointer">← Back to dashboard</a>
+  <h1 style="margin:14px 0 0;font-size:26px;font-weight:800;letter-spacing:-.01em;color:var(--ink)">VideoX Quick Compare</h1>
+  <p style="margin:6px 0 0;font-size:14.5px;color:var(--inks);line-height:1.55;max-width:640px">Every VideoX V5 NVR model side by side — specs, features, and capabilities at a glance. Tick two or more models to compare just those columns.</p>
+
+  <div style="margin-top:18px;border-radius:14px;border:1px solid var(--line);background:var(--surface);padding:16px 18px;display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap">
+    <div style="max-width:280px">
+      <label style="display:block;margin-bottom:6px;font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#8b929b">Minimum camera streams needed</label>
+      <input placeholder="e.g. 150" style="width:100%;height:40px;border:1px solid #b9c4d5;border-radius:8px;padding:0 12px;font-size:14px;color:var(--ink)">
+    </div>
+    <div style="display:flex;align-items:center;gap:14px;padding-bottom:6px">
+      <sc-if value="{{ vxCompareMode }}"><span style="font-size:13px;font-weight:600;color:var(--navy)">Comparing {{ vxSelectedCount }} models</span></sc-if>
+      <sc-if value="{{ vxOne }}"><span style="font-size:13px;color:var(--inks)">Select one more model to compare</span></sc-if>
+      <sc-if value="{{ vxNone }}"><span style="font-size:13px;color:var(--inks)">Tick models to compare just those columns</span></sc-if>
+      <sc-if value="{{ vxHasSel }}"><button onClick="{{ onShowAll }}" style="border:1px solid #b9c4d5;background:var(--sec);color:var(--navy);border-radius:8px;padding:7px 13px;font-size:13px;font-weight:600;cursor:pointer" style-hover="background:var(--sech)">Show all models</button></sc-if>
+    </div>
+  </div>
+
+  <div style="margin-top:16px;overflow-x:auto;border-radius:14px;border:1px solid var(--line)">
+    <table style="width:100%;border-collapse:collapse;font-size:13px">
+      <thead><tr style="background:var(--panel)">
+        <th style="text-align:left;padding:12px 14px;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#3f4b5b;border-bottom:1px solid var(--line);min-width:230px">Specification</th>
+        <sc-for list="{{ vxHead }}" as="h">
+          <th style="padding:12px 14px;border-bottom:1px solid var(--line);text-align:center">
+            <label style="display:inline-flex;align-items:center;gap:7px;cursor:pointer">
+              <input type="checkbox" checked="{{ h.checked }}" onChange="{{ h.onToggle }}" style="width:15px;height:15px;accent-color:#14346b">
+              <span style="font-size:14px;font-weight:700;color:var(--goldtext)">{{ h.family }}</span>
+            </label>
+          </th>
+        </sc-for>
+      </tr></thead>
+      <sc-for list="{{ vxSections }}" as="sec">
+        <tbody>
+          <tr><th colspan="{{ sec.colspan }}" style="text-align:left;padding:8px 14px;background:#e9eef6;font-size:10.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--navy)">{{ sec.label }}</th></tr>
+          <sc-for list="{{ sec.rows }}" as="row">
+            <tr style="{{ row.rowStyle }}">
+              <th style="text-align:left;padding:10px 14px;font-weight:600;color:var(--ink);border-bottom:1px solid var(--linesoft);{{ row.labelStyle }}">{{ row.label }}</th>
+              <sc-for list="{{ row.cells }}" as="c"><td style="text-align:center;padding:10px 14px;border-bottom:1px solid var(--linesoft);color:var(--inks);font-family:var(--mono);font-size:12px">{{ c.v }}</td></sc-for>
+            </tr>
+          </sc-for>
+        </tbody>
+      </sc-for>
+    </table>
+  </div>
+  <p style="margin:12px 2px 0;font-size:12px;color:var(--inks);line-height:1.5">Primary camera counts based on: 4MP resolution, 15FPS, h.265, Record on motion with VMD, and is valid for Milestone, Avigilon, Genetec VMS. Other VMS performance will vary. Content and specs subject to change without notice.</p>
+</div>
+</sc-if>
+
+<sc-if value="{{ isPipe }}">
+<div style="margin:0 auto;max-width:1152px">
+  <a onClick="{{ onDash }}" style="font-size:14px;font-weight:500;color:var(--navy);cursor:pointer">← Back to dashboard</a>
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-top:14px">
+    <div><h1 style="margin:0;font-size:24px;font-weight:800;color:var(--ink)">My Pipeline</h1><p style="margin:5px 0 0;font-size:14px;color:var(--inks)">Your saved quotes, grouped by project. 12 shown.</p></div>
+    <button style="background:var(--navy);color:#fff;border:1px solid transparent;border-radius:8px;padding:10px 18px;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap" style-hover="background:var(--navy-deep)">New calculation</button>
+  </div>
+  <div style="margin-top:16px;display:flex;flex-wrap:wrap;gap:8px">
+    <span style="border-radius:999px;border:1px solid var(--navy);background:var(--navy);color:#fff;padding:4px 14px;font-size:12px;font-weight:600;cursor:pointer">All</span>
+    <span style="border-radius:999px;border:1px solid #b9c4d5;background:#fff;color:var(--inks);padding:4px 14px;font-size:12px;font-weight:600;cursor:pointer" style-hover="border-color:var(--navy);color:var(--navy)">Open</span>
+    <span style="border-radius:999px;border:1px solid #b9c4d5;background:#fff;color:var(--inks);padding:4px 14px;font-size:12px;font-weight:600;cursor:pointer" style-hover="border-color:var(--navy);color:var(--navy)">Won</span>
+    <span style="border-radius:999px;border:1px solid #b9c4d5;background:#fff;color:var(--inks);padding:4px 14px;font-size:12px;font-weight:600;cursor:pointer" style-hover="border-color:var(--navy);color:var(--navy)">Lost</span>
+    <span style="border-radius:999px;border:1px solid #b9c4d5;background:#fff;color:var(--inks);padding:4px 14px;font-size:12px;font-weight:600;cursor:pointer" style-hover="border-color:var(--navy);color:var(--navy)">No Status</span>
+  </div>
+  <div style="margin-top:12px;border-radius:8px;border:1px solid var(--line);border-left:3px solid var(--navy);background:var(--surface);padding:10px 16px;font-size:14px;color:var(--inks)"><span style="font-weight:600;color:var(--ink)">Open Pipeline:</span> $622,937.00</div>
+
+  <div style="margin-top:24px;display:flex;flex-direction:column;gap:20px">
+
+    <section style="overflow:hidden;border-radius:14px;border:1px solid var(--line);background:var(--surface)">
+      <header style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;border-bottom:1px solid var(--line);padding:12px 16px">
+        <h2 style="margin:0;font-size:16px;font-weight:700;color:var(--ink)">Site A</h2>
+        <span style="border:1px solid #dfe3ea;background:#eef1f6;color:#3a4656;border-radius:999px;padding:3px 10px;font-size:11.5px;font-weight:600">On behalf of Galaxy Integrated Technologies, LLC</span>
+      </header>
+      <div style="overflow-x:auto"><table style="width:100%;font-size:13.5px;border-collapse:collapse">
+        <thead><tr style="border-bottom:1px solid var(--line);background:var(--panel);text-align:left;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#3f4b5b"><th style="width:40px;padding:10px 16px"></th><th style="padding:10px 16px">Date</th><th style="padding:10px 16px">Recommendation</th><th style="padding:10px 16px;text-align:right">List price</th><th style="padding:10px 16px">Status</th><th style="padding:10px 16px;text-align:right">Actions</th></tr></thead>
+        <tbody><tr style="border-bottom:1px solid var(--linesoft)">
+          <td style="padding:10px 16px"><svg width="18" height="18" viewBox="0 0 24 24" fill="#14346b" stroke="#14346b" stroke-width="2" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></td>
+          <td style="padding:10px 16px;color:var(--inks)">2026-07-07</td>
+          <td style="padding:10px 16px;color:var(--ink)">2 × <span style="font-weight:600;color:var(--navy)">V700</span></td>
+          <td style="padding:10px 16px;text-align:right;color:var(--ink);font-variant-numeric:tabular-nums">$151,990.00</td>
+          <td style="padding:10px 16px"><div style="display:flex;align-items:center;gap:8px"><span style="height:8px;width:8px;border-radius:50%;background:#2b62c9"></span><div style="position:relative;width:126px"><select style="appearance:none;-webkit-appearance:none;width:100%;border:1px solid #b9c4d5;border-radius:8px;background:#fff;color:var(--ink);font-size:12px;padding:6px 26px 6px 10px;cursor:pointer"><option>Open</option><option>No status</option><option>Won</option><option>Lost</option></select><svg style="position:absolute;right:8px;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--navy)" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div></div></td>
+          <td style="padding:10px 16px"><div style="display:flex;align-items:center;justify-content:flex-end;gap:8px"><span onClick="{{ onSubmission }}" style="background:var(--navy);color:#fff;border-radius:8px;padding:6px 12px;font-size:13px;font-weight:600;cursor:pointer">View</span><span style="background:var(--sec);color:var(--navy);border:1px solid var(--line);border-radius:8px;padding:6px 12px;font-size:13px;font-weight:600;cursor:pointer">Revise</span><span style="background:var(--sec);color:var(--navy);border:1px solid var(--line);border-radius:8px;padding:6px 12px;font-size:13px;font-weight:600;cursor:pointer">PDF</span><button style="height:32px;width:32px;border:1px solid var(--line);border-radius:8px;background:transparent;color:var(--inks);cursor:pointer;display:inline-flex;align-items:center;justify-content:center" style-hover="border-color:var(--danger);color:var(--danger)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button></div></td>
+        </tr></tbody>
+      </table></div>
+    </section>
+
+    <section style="overflow:hidden;border-radius:14px;border:1px solid var(--line);background:var(--surface)">
+      <header style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;border-bottom:1px solid var(--line);padding:12px 16px">
+        <h2 style="margin:0;font-size:16px;font-weight:700;color:var(--ink)">Meadowview Hospital Camera Addition</h2>
+      </header>
+      <div style="overflow-x:auto"><table style="width:100%;font-size:13.5px;border-collapse:collapse">
+        <thead><tr style="border-bottom:1px solid var(--line);background:var(--panel);text-align:left;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#3f4b5b"><th style="width:40px;padding:10px 16px"></th><th style="padding:10px 16px">Date</th><th style="padding:10px 16px">Recommendation</th><th style="padding:10px 16px;text-align:right">List price</th><th style="padding:10px 16px">Status</th><th style="padding:10px 16px;text-align:right">Actions</th></tr></thead>
+        <tbody><tr style="border-bottom:1px solid var(--linesoft)">
+          <td style="padding:10px 16px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#c8cfda" stroke-width="2" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></td>
+          <td style="padding:10px 16px;color:var(--inks)">2026-07-09</td>
+          <td style="padding:10px 16px;color:var(--ink)">1 × <span style="font-weight:600;color:var(--navy)">V600</span></td>
+          <td style="padding:10px 16px;text-align:right;color:var(--ink);font-variant-numeric:tabular-nums">$56,461.00</td>
+          <td style="padding:10px 16px"><div style="display:flex;align-items:center;gap:8px"><span style="height:8px;width:8px;border-radius:50%;background:#177a4f"></span><div style="position:relative;width:126px"><select style="appearance:none;-webkit-appearance:none;width:100%;border:1px solid #b9c4d5;border-radius:8px;background:#fff;color:var(--ink);font-size:12px;padding:6px 26px 6px 10px;cursor:pointer"><option>Won</option><option>No status</option><option>Open</option><option>Lost</option></select><svg style="position:absolute;right:8px;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--navy)" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div></div></td>
+          <td style="padding:10px 16px"><div style="display:flex;align-items:center;justify-content:flex-end;gap:8px"><span onClick="{{ onSubmission }}" style="background:var(--navy);color:#fff;border-radius:8px;padding:6px 12px;font-size:13px;font-weight:600;cursor:pointer">View</span><span style="background:var(--sec);color:var(--navy);border:1px solid var(--line);border-radius:8px;padding:6px 12px;font-size:13px;font-weight:600;cursor:pointer">Revise</span><span style="background:var(--sec);color:var(--navy);border:1px solid var(--line);border-radius:8px;padding:6px 12px;font-size:13px;font-weight:600;cursor:pointer">PDF</span><button style="height:32px;width:32px;border:1px solid var(--line);border-radius:8px;background:transparent;color:var(--inks);cursor:pointer;display:inline-flex;align-items:center;justify-content:center" style-hover="border-color:var(--danger);color:var(--danger)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button></div></td>
+        </tr></tbody>
+      </table></div>
+    </section>
+
+    <section style="overflow:hidden;border-radius:14px;border:1px solid var(--line);background:var(--surface)">
+      <header style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;border-bottom:1px solid var(--line);padding:12px 16px">
+        <h2 style="margin:0;font-size:16px;font-weight:700;color:var(--ink)">Foothills</h2>
+        <span style="border:1px solid #dfe3ea;background:#eef1f6;color:#3a4656;border-radius:999px;padding:3px 10px;font-size:11.5px;font-weight:600">On behalf of TRL</span>
+      </header>
+      <div style="overflow-x:auto"><table style="width:100%;font-size:13.5px;border-collapse:collapse">
+        <thead><tr style="border-bottom:1px solid var(--line);background:var(--panel);text-align:left;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#3f4b5b"><th style="width:40px;padding:10px 16px"></th><th style="padding:10px 16px">Date</th><th style="padding:10px 16px">Recommendation</th><th style="padding:10px 16px;text-align:right">List price</th><th style="padding:10px 16px">Status</th><th style="padding:10px 16px;text-align:right">Actions</th></tr></thead>
+        <tbody><tr style="border-bottom:1px solid var(--linesoft)">
+          <td style="padding:10px 16px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#c8cfda" stroke-width="2" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></td>
+          <td style="padding:10px 16px;color:var(--inks)">2026-07-13</td>
+          <td style="padding:10px 16px;color:var(--ink)">1 × <span style="font-weight:600;color:var(--navy)">V100</span></td>
+          <td style="padding:10px 16px;text-align:right;color:var(--ink);font-variant-numeric:tabular-nums">$10,347.00</td>
+          <td style="padding:10px 16px"><div style="display:flex;align-items:center;gap:8px"><span style="height:8px;width:8px;border-radius:50%;background:#c0392b"></span><div style="position:relative;width:126px"><select style="appearance:none;-webkit-appearance:none;width:100%;border:1px solid #b9c4d5;border-radius:8px;background:#fff;color:var(--ink);font-size:12px;padding:6px 26px 6px 10px;cursor:pointer"><option>Lost</option><option>No status</option><option>Open</option><option>Won</option></select><svg style="position:absolute;right:8px;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--navy)" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div></div></td>
+          <td style="padding:10px 16px"><div style="display:flex;align-items:center;justify-content:flex-end;gap:8px"><span onClick="{{ onSubmission }}" style="background:var(--navy);color:#fff;border-radius:8px;padding:6px 12px;font-size:13px;font-weight:600;cursor:pointer">View</span><span style="background:var(--sec);color:var(--navy);border:1px solid var(--line);border-radius:8px;padding:6px 12px;font-size:13px;font-weight:600;cursor:pointer">Revise</span><span style="background:var(--sec);color:var(--navy);border:1px solid var(--line);border-radius:8px;padding:6px 12px;font-size:13px;font-weight:600;cursor:pointer">PDF</span><button style="height:32px;width:32px;border:1px solid var(--line);border-radius:8px;background:transparent;color:var(--inks);cursor:pointer;display:inline-flex;align-items:center;justify-content:center" style-hover="border-color:var(--danger);color:var(--danger)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button></div></td>
+        </tr></tbody>
+      </table></div>
+    </section>
+
+  </div>
+</div>
+</sc-if>
+<sc-if value="{{ isSub }}">
+<div style="margin:0 auto;max-width:960px">
+  <a onClick="{{ onPipeline }}" style="font-size:14px;font-weight:500;color:var(--navy);cursor:pointer">← Back to submission history</a>
+  <h1 style="margin:12px 0 0;font-size:26px;font-weight:800;color:var(--ink)">Site B</h1>
+  <p style="margin:5px 0 0;font-size:13px;color:var(--inks)">Submitted 2026-07-07 21:35:37 · ID <span style="font-family:var(--mono);font-size:12px">993fa83d-c621-4553-8375-daf129e64132</span></p>
+  <div style="display:flex;gap:12px;margin-top:16px">
+    <button style="background:var(--navy);color:#fff;border:1px solid transparent;border-radius:8px;padding:10px 18px;font-size:14px;font-weight:600;cursor:pointer" style-hover="background:var(--navy-deep)">Download PDF</button>
+    <button style="background:var(--sec);color:var(--navy);border:1px solid var(--line);border-radius:8px;padding:10px 18px;font-size:14px;font-weight:600;cursor:pointer" style-hover="background:var(--sech)">Edit / revise quote</button>
+  </div>
+
+  <h2 style="margin:28px 0 12px;font-size:16px;font-weight:700;color:var(--ink)">Calculator inputs</h2>
+  <div style="overflow:hidden;border-radius:12px;border:1px solid var(--line)">
+    <table style="width:100%;border-collapse:collapse;font-size:14px">
+      <tbody>
+        <tr><td style="width:220px;padding:12px 16px;background:var(--panel);border-bottom:1px solid var(--linesoft);font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#3f4b5b">VMS</td><td style="padding:12px 16px;border-bottom:1px solid var(--linesoft);color:var(--ink)">ExacqVision</td></tr>
+        <tr><td style="padding:12px 16px;background:var(--panel);border-bottom:1px solid var(--linesoft);font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#3f4b5b">Retention (days)</td><td style="padding:12px 16px;border-bottom:1px solid var(--linesoft);color:var(--ink)">90</td></tr>
+        <tr><td style="padding:12px 16px;background:var(--panel);border-bottom:1px solid var(--linesoft);font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#3f4b5b">Primary resolution</td><td style="padding:12px 16px;border-bottom:1px solid var(--linesoft);color:var(--ink)">3MP (2048×1536)</td></tr>
+        <tr><td style="padding:12px 16px;background:var(--panel);border-bottom:1px solid var(--linesoft);font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#3f4b5b">Primary codec / complexity</td><td style="padding:12px 16px;border-bottom:1px solid var(--linesoft);color:var(--ink)">h265 · Low detail, low motion</td></tr>
+        <tr><td style="padding:12px 16px;background:var(--panel);font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#3f4b5b">Totals</td><td style="padding:12px 16px;color:var(--ink)">156 cameras · 181.57 Mbit/s · 211.78 TB</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2 style="margin:28px 0 12px;font-size:16px;font-weight:700;color:var(--ink)">Per-group breakdown</h2>
+  <div style="overflow-x:auto;border-radius:12px;border:1px solid var(--line)">
+    <table style="width:100%;border-collapse:collapse;font-size:13px">
+      <thead><tr style="background:var(--panel);text-align:left;font-size:10.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#3f4b5b"><th style="padding:10px 14px">Group</th><th style="padding:10px 14px;text-align:right">Cameras</th><th style="padding:10px 14px">Resolution</th><th style="padding:10px 14px">Codec</th><th style="padding:10px 14px">Complexity</th><th style="padding:10px 14px;text-align:right">FPS</th><th style="padding:10px 14px;text-align:right">Rec hrs</th><th style="padding:10px 14px;text-align:right">Motion %</th><th style="padding:10px 14px;text-align:right">Mbit/s</th><th style="padding:10px 14px;text-align:right">GB</th></tr></thead>
+      <tbody><tr style="color:var(--ink)"><td style="padding:11px 14px">Camera Group 1</td><td style="padding:11px 14px;text-align:right;font-variant-numeric:tabular-nums">156</td><td style="padding:11px 14px">3MP (2048×1536)</td><td style="padding:11px 14px">h265</td><td style="padding:11px 14px">Low detail, low motion</td><td style="padding:11px 14px;text-align:right;font-variant-numeric:tabular-nums">10</td><td style="padding:11px 14px;text-align:right;font-variant-numeric:tabular-nums">24</td><td style="padding:11px 14px;text-align:right;font-variant-numeric:tabular-nums">100</td><td style="padding:11px 14px;text-align:right;font-variant-numeric:tabular-nums">181.57</td><td style="padding:11px 14px;text-align:right;font-variant-numeric:tabular-nums">211,784.90</td></tr></tbody>
+    </table>
+  </div>
+
+  <h2 style="margin:28px 0 12px;font-size:16px;font-weight:700;color:var(--ink)">Recommendation</h2>
+  <div style="overflow:hidden;border-radius:12px;border:1px solid var(--line)">
+    <table style="width:100%;border-collapse:collapse;font-size:14px">
+      <tbody>
+        <tr><td style="width:220px;padding:12px 16px;background:var(--panel);border-bottom:1px solid var(--linesoft);font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#3f4b5b">Recommended</td><td style="padding:12px 16px;border-bottom:1px solid var(--linesoft);color:var(--ink)">1 × VideoX V600 320TB 3U 16Bay Rack - Net usable 280TB - V5 Video &amp; Analytics Server - 5yr Warranty (VX5-V600-320)</td></tr>
+        <tr><td style="padding:12px 16px;background:var(--panel);border-bottom:1px solid var(--linesoft);font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#3f4b5b">Product family</td><td style="padding:12px 16px;border-bottom:1px solid var(--linesoft);color:var(--ink)">V600</td></tr>
+        <tr><td style="padding:12px 16px;background:var(--panel);font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#3f4b5b">Total list price</td><td style="padding:12px 16px;color:var(--ink);font-weight:700;font-variant-numeric:tabular-nums">$56,461.00</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isPrice }}">
+<div style="margin:0 auto;max-width:1040px">
+  <div style="border-radius:14px;background:linear-gradient(135deg,#173a72,#0d2247);color:#fff;padding:24px 28px;display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap">
+    <div style="flex:1;min-width:320px">
+      <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap"><span style="color:var(--gold);font-weight:600;font-size:32px;text-transform:uppercase;letter-spacing:.01em">VIDEOX V5</span><h1 style="margin:0;font-size:32px;font-weight:600">Products &amp; Prices</h1></div>
+      <p style="margin:10px 0 0;font-size:13.5px;line-height:1.6;color:rgba(255,255,255,.9);max-width:36rem">Purpose-built IP video servers for demanding VMS workloads. Run H.265 at line speed, double camera counts per server, and protect 30% more margin than Dell-branded quotes.</p>
+      <div style="margin-top:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span style="font-size:13px;font-weight:700;letter-spacing:.02em">Effective: 07/02/2026</span><span style="color:rgba(255,255,255,.5)">·</span><a onClick="{{ onDash }}" style="font-size:12px;color:rgba(255,255,255,.75);text-decoration:underline;cursor:pointer">Go to Dashboard to download a price list →</a></div>
+    </div>
+    <div style="display:flex;gap:14px">
+      <div style="width:110px;height:88px;border-radius:8px;background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;text-align:center;font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.7);padding:6px">Windows Server 2022 / 2025</div>
+      <div style="width:88px;height:88px;border-radius:8px;background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;text-align:center;font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.7);padding:6px">5-Year Warranty</div>
+    </div>
+  </div>
+
+  <div style="margin-top:24px;display:grid;grid-template-columns:38% 62%;border-radius:12px;border:1px solid var(--line);overflow:hidden">
+    <section style="background:#14346b;color:#fff;padding:20px">
+      <span style="display:inline-block;border:1px solid var(--gold);border-radius:4px;padding:3px 8px;font-size:11px;font-weight:700;color:var(--gold);letter-spacing:.12em;text-transform:uppercase">H.265 HEVC</span>
+      <h2 style="margin:12px 0 0;font-size:22px;font-weight:600;line-height:1.25">VideoX V5 Drives H.265 Performance</h2>
+      <p style="margin:8px 0 0;font-size:13px;line-height:1.6;color:rgba(255,255,255,.85)">V5's AMD Zen5 architecture delivers 2.3x more H.265 streams per server, eliminating the performance penalty that forces most NVRs to fall back to H.264.</p>
+      <span style="display:inline-flex;margin-top:16px;background:var(--gold);color:var(--ongold);border-radius:6px;padding:9px 18px;font-size:13px;font-weight:600;cursor:pointer" style-hover="background:var(--gold-hover)">Learn More →</span>
+    </section>
+    <div style="background:#fff;padding:20px">
+      <p style="margin:0 0 12px;font-size:13px;color:var(--ink)"><span style="font-weight:700">Enterprise Grade:</span> Arxys VideoX servers come standard with:</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 28px;font-size:13px;color:var(--ink)">
+        <div style="display:flex;gap:8px"><span style="margin-top:6px;width:7px;height:7px;border-radius:50%;background:var(--gold);flex:none"></span>Microsoft Windows Server 2022 or 2025</div>
+        <div style="display:flex;gap:8px"><span style="margin-top:6px;width:7px;height:7px;border-radius:50%;background:var(--gold);flex:none"></span>Hot-swap and redundant power and cooling</div>
+        <div style="display:flex;gap:8px"><span style="margin-top:6px;width:7px;height:7px;border-radius:50%;background:var(--gold);flex:none"></span>Dedicated secure remote management</div>
+        <div style="display:flex;gap:8px"><span style="margin-top:6px;width:7px;height:7px;border-radius:50%;background:var(--gold);flex:none"></span>Rack slide rails, and lockable drive access</div>
+        <div style="display:flex;gap:8px"><span style="margin-top:6px;width:7px;height:7px;border-radius:50%;background:var(--gold);flex:none"></span>Hot-swap, enterprise-class HDDs and SSDs</div>
+        <div style="display:flex;gap:8px"><span style="margin-top:6px;width:7px;height:7px;border-radius:50%;background:var(--gold);flex:none"></span>Multi-VMS Validated: Milestone, Avigilon, Genetec, NXWitness, Hanwha, Exacq</div>
+        <div style="display:flex;gap:8px"><span style="margin-top:6px;width:7px;height:7px;border-radius:50%;background:var(--gold);flex:none"></span>Resilient Hardware RAID with cachevault protection</div>
+        <div style="display:flex;gap:8px"><span style="margin-top:6px;width:7px;height:7px;border-radius:50%;background:var(--gold);flex:none"></span>NDAA Compliant · American Made</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top:32px">
+    <h2 style="margin:0 0 14px;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--inks)">NVR, Management &amp; Access Control <span style="font-weight:400;text-transform:none;letter-spacing:0">· 5-year warranty</span></h2>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:18px">
+      <a style="display:block;border-radius:10px;border:1px solid var(--line);background:#fff;overflow:hidden;cursor:pointer" style-hover="border-color:var(--navy)"><div style="aspect-ratio:4/3;background:repeating-linear-gradient(45deg,#f6f7f9,#f6f7f9 9px,#eef1f4 9px,#eef1f4 18px);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;color:#9aa1aa">1U · 2 bay</div><div style="padding:14px;border-top:1px solid var(--linesoft)"><p style="margin:0;font-size:11px;font-weight:700;color:var(--goldtext);text-transform:uppercase;letter-spacing:.03em">V100 · 1U Value</p><h3 style="margin:4px 0 0;font-size:14.5px;font-weight:600;color:var(--navy)">V100 — 1U 2Bay Value Server</h3><p style="margin:4px 0 0;font-size:12px;color:var(--inks);line-height:1.4">Ideal for smaller sites or satellite locations with lower camera counts.</p><div style="margin-top:12px;display:flex;align-items:baseline;justify-content:space-between"><span style="font-size:12px;color:var(--inks)">From</span><span style="font-size:18px;font-weight:600;color:var(--navy)">$10,347</span></div></div></a>
+      <a onClick="{{ onProduct }}" style="display:block;border-radius:10px;border:1px solid var(--line);background:#fff;overflow:hidden;cursor:pointer" style-hover="border-color:var(--navy)"><div style="aspect-ratio:4/3;background:repeating-linear-gradient(45deg,#f6f7f9,#f6f7f9 9px,#eef1f4 9px,#eef1f4 18px);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;color:#9aa1aa">1U · 4 bay</div><div style="padding:14px;border-top:1px solid var(--linesoft)"><p style="margin:0;font-size:11px;font-weight:700;color:var(--goldtext);text-transform:uppercase;letter-spacing:.03em">V250 · Management</p><h3 style="margin:4px 0 0;font-size:14.5px;font-weight:600;color:var(--navy)">V250 — Management / Directory Server</h3><p style="margin:4px 0 0;font-size:12px;color:var(--inks);line-height:1.4">Management / Directory servers for larger deployments.</p><div style="margin-top:12px;display:flex;align-items:baseline;justify-content:space-between"><span style="font-size:12px;color:var(--inks)">From</span><span style="font-size:18px;font-weight:600;color:var(--navy)">$14,020</span></div></div></a>
+      <a style="display:block;border-radius:10px;border:1px solid var(--line);background:#fff;overflow:hidden;cursor:pointer" style-hover="border-color:var(--navy)"><div style="aspect-ratio:4/3;background:repeating-linear-gradient(45deg,#f6f7f9,#f6f7f9 9px,#eef1f4 9px,#eef1f4 18px);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;color:#9aa1aa">1U · ACM</div><div style="padding:14px;border-top:1px solid var(--linesoft)"><p style="margin:0;font-size:11px;font-weight:700;color:var(--goldtext);text-transform:uppercase;letter-spacing:.03em">V260 · 1U ACM</p><h3 style="margin:4px 0 0;font-size:14.5px;font-weight:600;color:var(--navy)">V260 — ACM Access Control Server</h3><p style="margin:4px 0 0;font-size:12px;color:var(--inks);line-height:1.4">Built for multi-tenant buildings and campus facilities.</p><div style="margin-top:12px;display:flex;align-items:baseline;justify-content:space-between"><span style="font-size:12px;color:var(--inks)">From</span><span style="font-size:18px;font-weight:600;color:var(--navy)">$15,060</span></div></div></a>
+      <a style="display:block;border-radius:10px;border:1px solid var(--line);background:#fff;overflow:hidden;cursor:pointer" style-hover="border-color:var(--navy)"><div style="aspect-ratio:4/3;background:repeating-linear-gradient(45deg,#f6f7f9,#f6f7f9 9px,#eef1f4 9px,#eef1f4 18px);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;color:#9aa1aa">1U · 4 bay</div><div style="padding:14px;border-top:1px solid var(--linesoft)"><p style="margin:0;font-size:11px;font-weight:700;color:var(--goldtext);text-transform:uppercase;letter-spacing:.03em">V200 · 1U NVR</p><h3 style="margin:4px 0 0;font-size:14.5px;font-weight:600;color:var(--navy)">V200 — 1U 4Bay Video Server</h3><p style="margin:4px 0 0;font-size:12px;color:var(--inks);line-height:1.4">Perfect for small to mid-sized deployments.</p><div style="margin-top:12px;display:flex;align-items:baseline;justify-content:space-between"><span style="font-size:12px;color:var(--inks)">From</span><span style="font-size:18px;font-weight:600;color:var(--navy)">$20,470</span></div></div></a>
+    </div>
+  </div>
+
+  <div style="margin-top:28px">
+    <h2 style="margin:0 0 14px;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--inks)">NVR Servers &amp; Analytics <span style="font-weight:400;text-transform:none;letter-spacing:0">· 5-year warranty</span></h2>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:18px">
+      <a style="display:block;border-radius:10px;border:1px solid var(--line);background:#fff;overflow:hidden;cursor:pointer" style-hover="border-color:var(--navy)"><div style="aspect-ratio:4/3;background:repeating-linear-gradient(45deg,#f6f7f9,#f6f7f9 9px,#eef1f4 9px,#eef1f4 18px);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;color:#9aa1aa">2U · video</div><div style="padding:14px;border-top:1px solid var(--linesoft)"><p style="margin:0;font-size:11px;font-weight:700;color:var(--goldtext);text-transform:uppercase;letter-spacing:.03em">V400 · 2U Video</p><h3 style="margin:4px 0 0;font-size:14.5px;font-weight:600;color:var(--navy)">V400 — 2U 8Bay Video Server</h3><p style="margin:4px 0 0;font-size:12px;color:var(--inks);line-height:1.4">Strong security and reliable performance for medium to large deployments.</p><div style="margin-top:12px;display:flex;align-items:baseline;justify-content:space-between"><span style="font-size:12px;color:var(--inks)">From</span><span style="font-size:18px;font-weight:600;color:var(--navy)">$31,034</span></div></div></a>
+      <a style="display:block;border-radius:10px;border:1px solid var(--line);background:#fff;overflow:hidden;cursor:pointer" style-hover="border-color:var(--navy)"><div style="aspect-ratio:4/3;background:repeating-linear-gradient(45deg,#f6f7f9,#f6f7f9 9px,#eef1f4 9px,#eef1f4 18px);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;color:#9aa1aa">2U · video</div><div style="padding:14px;border-top:1px solid var(--linesoft)"><p style="margin:0;font-size:11px;font-weight:700;color:var(--goldtext);text-transform:uppercase;letter-spacing:.03em">V500 · 2U Video</p><h3 style="margin:4px 0 0;font-size:14.5px;font-weight:600;color:var(--navy)">V500 — 2U 12Bay Video Server</h3><p style="margin:4px 0 0;font-size:12px;color:var(--inks);line-height:1.4">Tailored for mid to large-sized deployments with growing needs.</p><div style="margin-top:12px;display:flex;align-items:baseline;justify-content:space-between"><span style="font-size:12px;color:var(--inks)">From</span><span style="font-size:18px;font-weight:600;color:var(--navy)">$42,577</span></div></div></a>
+      <a style="display:block;border-radius:10px;border:1px solid var(--line);background:#fff;overflow:hidden;cursor:pointer" style-hover="border-color:var(--navy)"><div style="aspect-ratio:4/3;background:repeating-linear-gradient(45deg,#f6f7f9,#f6f7f9 9px,#eef1f4 9px,#eef1f4 18px);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;color:#9aa1aa">3U · video</div><div style="padding:14px;border-top:1px solid var(--linesoft)"><p style="margin:0;font-size:11px;font-weight:700;color:var(--goldtext);text-transform:uppercase;letter-spacing:.03em">V600 · 3U Video</p><h3 style="margin:4px 0 0;font-size:14.5px;font-weight:600;color:var(--navy)">V600 — 3U 16Bay Video Server</h3><p style="margin:4px 0 0;font-size:12px;color:var(--inks);line-height:1.4">Mid to large-sized deployments with growing camera counts.</p><div style="margin-top:12px;display:flex;align-items:baseline;justify-content:space-between"><span style="font-size:12px;color:var(--inks)">From</span><span style="font-size:18px;font-weight:600;color:var(--navy)">$50,118</span></div></div></a>
+    </div>
+  </div>
+
+  <div style="margin-top:28px">
+    <h2 style="margin:0 0 14px;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--inks)">High-Density Video &amp; Analytics <span style="font-weight:400;text-transform:none;letter-spacing:0">· 5-year warranty</span></h2>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:18px">
+      <a style="display:block;border-radius:10px;border:1px solid var(--line);background:#fff;overflow:hidden;cursor:pointer" style-hover="border-color:var(--navy)"><div style="aspect-ratio:4/3;background:repeating-linear-gradient(45deg,#f6f7f9,#f6f7f9 9px,#eef1f4 9px,#eef1f4 18px);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;color:#9aa1aa">4U · video</div><div style="padding:14px;border-top:1px solid var(--linesoft)"><p style="margin:0;font-size:11px;font-weight:700;color:var(--goldtext);text-transform:uppercase;letter-spacing:.03em">V700 · 4U Video</p><h3 style="margin:4px 0 0;font-size:14.5px;font-weight:600;color:var(--navy)">V700 — 4U 24Bay Video Server</h3><p style="margin:4px 0 0;font-size:12px;color:var(--inks);line-height:1.4">Built for large-scale deployments with advanced video analytics.</p><div style="margin-top:12px;display:flex;align-items:baseline;justify-content:space-between"><span style="font-size:12px;color:var(--inks)">From</span><span style="font-size:18px;font-weight:600;color:var(--navy)">$66,481</span></div></div></a>
+      <a style="display:block;border-radius:10px;border:1px solid var(--line);background:#fff;overflow:hidden;cursor:pointer" style-hover="border-color:var(--navy)"><div style="aspect-ratio:4/3;background:repeating-linear-gradient(45deg,#f6f7f9,#f6f7f9 9px,#eef1f4 9px,#eef1f4 18px);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;color:#9aa1aa">4U · video</div><div style="padding:14px;border-top:1px solid var(--linesoft)"><p style="margin:0;font-size:11px;font-weight:700;color:var(--goldtext);text-transform:uppercase;letter-spacing:.03em">V800 · 4U Video</p><h3 style="margin:4px 0 0;font-size:14.5px;font-weight:600;color:var(--navy)">V800 — 4U 36Bay Video Server</h3><p style="margin:4px 0 0;font-size:12px;color:var(--inks);line-height:1.4">Designed for campus-wide deployments with centralized recording.</p><div style="margin-top:12px;display:flex;align-items:baseline;justify-content:space-between"><span style="font-size:12px;color:var(--inks)">From</span><span style="font-size:18px;font-weight:600;color:var(--navy)">$88,126</span></div></div></a>
+      <div></div><div></div>
+    </div>
+  </div>
+
+  <div style="margin-top:28px">
+    <h2 style="margin:0 0 14px;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--inks)">Security Workstations — for video surveillance client viewing <span style="font-weight:400;text-transform:none;letter-spacing:0">· 3-year warranty</span></h2>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:18px">
+      <a style="display:block;border-radius:10px;border:1px solid var(--line);background:#fff;overflow:hidden;cursor:pointer" style-hover="border-color:var(--navy)"><div style="aspect-ratio:4/3;background:repeating-linear-gradient(45deg,#f6f7f9,#f6f7f9 9px,#eef1f4 9px,#eef1f4 18px);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;color:#9aa1aa">Tower · workstation</div><div style="padding:14px;border-top:1px solid var(--linesoft)"><p style="margin:0;font-size:11px;font-weight:700;color:var(--goldtext);text-transform:uppercase;letter-spacing:.03em">SW · Workstations</p><h3 style="margin:4px 0 0;font-size:14.5px;font-weight:600;color:var(--navy)">Security Workstations</h3><p style="margin:4px 0 0;font-size:12px;color:var(--inks);line-height:1.4">Powerhouse security workstations engineered for high-performance client viewing.</p><div style="margin-top:12px;display:flex;align-items:baseline;justify-content:space-between"><span style="font-size:12px;color:var(--inks)">From</span><span style="font-size:18px;font-weight:600;color:var(--navy)">$6,426</span></div></div></a>
+      <div></div><div></div><div></div>
+    </div>
+  </div>
+</div>
+</sc-if>
+<sc-if value="{{ isProd }}">
+<div style="margin:0 auto;max-width:1040px">
+  <div style="font-size:13px;color:var(--inks)"><a onClick="{{ onPrice }}" style="color:var(--navy);cursor:pointer">← Price Book</a> &nbsp;/&nbsp; V250</div>
+  <div style="margin-top:16px;display:grid;grid-template-columns:1fr 1.1fr;gap:28px;align-items:start">
+    <div style="border-radius:14px;background:#fff;border:1px solid var(--line);aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:12px;color:#9aa1aa;background-image:repeating-linear-gradient(45deg,#f6f7f9,#f6f7f9 10px,#eef1f4 10px,#eef1f4 20px)">V250 · 1U product shot</div>
+    <div>
+      <p style="margin:0;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--goldtext)">VideoX V5 · 1U 4-Bay Management Server</p>
+      <h1 style="margin:6px 0 0;font-size:40px;font-weight:700;color:var(--navy);line-height:1">V250</h1>
+      <p style="margin:12px 0 0;font-size:15px;color:var(--inks);line-height:1.5">Management / Directory servers for larger deployments with greater management and uptime considerations.</p>
+      <div style="margin-top:16px;border-radius:10px;background:#fff;border:1px solid var(--line);border-left:3px solid var(--gold);padding:14px 16px"><p style="margin:0;font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#3f4b5b">Great for</p><p style="margin:6px 0 0;font-size:13px;color:var(--ink);line-height:1.5">Management/Directory servers for larger deployments with greater management and uptime considerations. Excellent balance of performance and value to right-size your projects.</p></div>
+      <div style="margin-top:16px;display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+        <div style="border-radius:10px;background:var(--navy-soft);border:1px solid var(--linesoft);padding:12px 14px;text-align:center"><div style="font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#3f4b5b">Throughput</div><div style="margin-top:4px;font-size:22px;font-weight:800;color:var(--navy)">1,000</div><div style="font-size:11px;color:var(--inks)">Mbps</div></div>
+        <div style="border-radius:10px;background:var(--navy-soft);border:1px solid var(--linesoft);padding:12px 14px;text-align:center"><div style="font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#3f4b5b">DB SSDs</div><div style="margin-top:4px;font-size:22px;font-weight:800;color:var(--navy)">2x</div><div style="font-size:11px;color:var(--inks)">Hot Swap</div></div>
+        <div style="border-radius:10px;background:var(--navy-soft);border:1px solid var(--linesoft);padding:12px 14px;text-align:center"><div style="font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#3f4b5b">Warranty</div><div style="margin-top:4px;font-size:22px;font-weight:800;color:var(--navy)">5 Years</div><div style="font-size:11px;color:var(--inks)">NBD Parts</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top:20px;border-radius:10px;background:var(--navy-soft);border:1px solid var(--linesoft);padding:12px 18px;display:flex;gap:24px;flex-wrap:wrap;font-size:13px;color:var(--ink)">
+    <span style="display:flex;align-items:center;gap:8px"><span style="width:7px;height:7px;border-radius:50%;background:var(--gold)"></span><b>Multi-VMS Validated:</b> Milestone, Avigilon, Genetec, NXWitness, Hanwha, Exacq, Axxonsoft</span>
+    <span style="display:flex;align-items:center;gap:8px"><span style="width:7px;height:7px;border-radius:50%;background:var(--gold)"></span>NDAA Compliant</span>
+    <span style="display:flex;align-items:center;gap:8px"><span style="width:7px;height:7px;border-radius:50%;background:var(--gold)"></span>American Made</span>
+  </div>
+
+  <div style="margin-top:24px;display:grid;grid-template-columns:1fr 1fr;gap:28px">
+    <div>
+      <p style="margin:0 0 10px;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--inks);border-bottom:1px solid var(--line);padding-bottom:8px">Key Features</p>
+      <ul style="list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:9px;font-size:13.5px;color:var(--ink)">
+        <li style="display:flex;gap:9px"><span style="color:var(--gold)">★</span>Windows Server 2022/2025 IoT Workgroup</li>
+        <li style="display:flex;gap:9px"><span style="color:var(--gold)">★</span>Enterprise SSD's — RAID Mirrored</li>
+        <li style="display:flex;gap:9px"><span style="color:var(--gold)">★</span>1,000 Mbps max possible throughput</li>
+        <li style="display:flex;gap:9px"><span style="color:var(--gold)">★</span>1U Rack mount w/ rails</li>
+        <li style="display:flex;gap:9px"><span style="color:var(--gold)">★</span>2x Mirrored Enterprise DB SSDs — Hot Swap</li>
+      </ul>
+    </div>
+    <div>
+      <p style="margin:0 0 10px;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--inks);border-bottom:1px solid var(--line);padding-bottom:8px">Technical Specs</p>
+      <ul style="list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:9px;font-size:13.5px;color:var(--ink)">
+        <li style="display:flex;gap:9px"><span style="color:var(--gold)">★</span>AMD EPYC 4005 4.0GHz 8/16 or 12/24 Core CPU</li>
+        <li style="display:flex;gap:9px"><span style="color:var(--gold)">★</span>16–32GB DDR5 DRAM</li>
+        <li style="display:flex;gap:9px"><span style="color:var(--gold)">★</span>2x Mirrored Enterprise OS SSD — Hot Swap</li>
+        <li style="display:flex;gap:9px"><span style="color:var(--gold)">★</span>2x 10Gb &amp; 2x 1Gb Ethernet Ports</li>
+        <li style="display:flex;gap:9px"><span style="color:var(--gold)">★</span>1x Dedicated Remote Management</li>
+        <li style="display:flex;gap:9px"><span style="color:var(--gold)">★</span>2x Hot-swap, Redundant Power Supply</li>
+      </ul>
+    </div>
+  </div>
+
+  <p style="margin:28px 0 10px;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--inks)">V250 Configurations</p>
+  <div style="overflow:hidden;border-radius:12px;border:1px solid var(--line)">
+    <table style="width:100%;border-collapse:collapse;font-size:13.5px">
+      <thead><tr style="background:var(--navy);color:#fff;text-align:left"><th style="padding:11px 16px;font-weight:600">SKU</th><th style="padding:11px 16px;font-weight:600">Product</th><th style="padding:11px 16px;font-weight:600">SSD Storage</th><th style="padding:11px 16px;font-weight:600;text-align:right">MSRP</th></tr></thead>
+      <tbody style="color:var(--ink)">
+        <tr style="border-bottom:1px solid var(--linesoft)"><td style="padding:11px 16px;font-family:var(--mono);font-size:12px">VX5-V250-MGM</td><td style="padding:11px 16px">VideoX V5 V250 Management/Directory Base Server - 5yr Warranty</td><td style="padding:11px 16px">2x DB &amp; 2x OS</td><td style="padding:11px 16px;text-align:right;font-weight:700;font-variant-numeric:tabular-nums">$14,020</td></tr>
+        <tr><td style="padding:11px 16px;font-family:var(--mono);font-size:12px">VX5-V255-MGM</td><td style="padding:11px 16px">VideoX V5 V255 Management/Directory Performance Server - 5yr Warranty</td><td style="padding:11px 16px">2x DB &amp; 2x OS</td><td style="padding:11px 16px;text-align:right;font-weight:700;font-variant-numeric:tabular-nums">$15,734</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div style="margin-top:20px"><button style="display:inline-flex;align-items:center;gap:8px;background:#fff;color:var(--navy);border:1px solid #b9c4d5;border-radius:8px;padding:10px 16px;font-size:14px;font-weight:600;cursor:pointer" style-hover="background:var(--navy-soft);border-color:var(--navy)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Download Datasheet</button></div>
+  <div style="margin-top:20px;border-radius:10px;border:1px solid var(--line);background:var(--panel);padding:14px 16px;font-size:12px;color:var(--inks);line-height:1.6"><b style="color:var(--ink)">VSR (Video Stream Rate):</b> 4MP @ 15fps, record on motion, with VMD &amp; metadata capture, 75% motion activity, 30-day retention, h.264.20 &amp; h.265.20 CODEC. ~3-5 Mb video file.</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isAdmin }}">
+<div style="display:flex;gap:32px;align-items:flex-start">
+  <aside style="width:180px;flex:none;padding-top:4px">
+    <p style="margin:0 0 8px;font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#8b929b">Admin</p>
+    <div style="display:flex;flex-direction:column;gap:2px">
+      <span style="border-radius:8px;background:var(--navy);color:#fff;padding:9px 12px;font-size:13.5px;font-weight:600;cursor:pointer">Overview</span>
+      <span style="border-radius:8px;padding:9px 12px;font-size:13.5px;color:var(--inks);cursor:pointer" style-hover="background:var(--navy-soft);color:var(--navy)">Partners</span>
+      <span style="border-radius:8px;padding:9px 12px;font-size:13.5px;color:var(--inks);cursor:pointer" style-hover="background:var(--navy-soft);color:var(--navy)">Requests</span>
+      <span style="border-radius:8px;padding:9px 12px;font-size:13.5px;color:var(--inks);cursor:pointer" style-hover="background:var(--navy-soft);color:var(--navy)">Partner Pipeline</span>
+    </div>
+    <p style="margin:20px 0 8px;font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#8b929b">Back to</p>
+    <span onClick="{{ onDash }}" style="display:block;border-radius:8px;padding:9px 12px;font-size:13.5px;color:var(--inks);cursor:pointer" style-hover="background:var(--navy-soft);color:var(--navy)">Dashboard</span>
+  </aside>
+  <div style="flex:1;min-width:0">
+    <h1 style="margin:0;font-size:24px;font-weight:800;color:var(--ink)">Admin overview</h1>
+    <p style="margin:8px 0 0;font-size:14px;color:var(--inks)">Partner roster and pipeline across all partners.</p>
+    <div style="margin-top:22px;display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
+      <a style="position:relative;display:block;border-radius:14px;border:1px solid var(--line);background:var(--surface);padding:18px;cursor:pointer" style-hover="border-color:var(--navy);background:color-mix(in srgb,var(--navy-soft) 60%,#fff)"><span style="display:flex;height:40px;width:40px;align-items:center;justify-content:center;border-radius:10px;background:var(--navy-soft);color:var(--navy);margin-bottom:12px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="6" height="18" rx="1"/><rect x="9" y="7" width="6" height="14" rx="1"/><rect x="16" y="11" width="6" height="10" rx="1"/></svg></span><span style="position:absolute;right:16px;top:16px;color:var(--navy);opacity:.6"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg></span><span style="display:block;font-size:15px;font-weight:700;color:var(--ink)">Partner Pipeline</span><span style="display:block;margin-top:4px;font-size:13px;color:var(--inks)">Review all partner submissions, grouped by partner or as a flat list.</span></a>
+      <a style="position:relative;display:block;border-radius:14px;border:1px solid var(--line);background:var(--surface);padding:18px;cursor:pointer" style-hover="border-color:var(--navy);background:color-mix(in srgb,var(--navy-soft) 60%,#fff)"><span style="display:flex;height:40px;width:40px;align-items:center;justify-content:center;border-radius:10px;background:var(--navy-soft);color:var(--navy);margin-bottom:12px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7" r="3"/><circle cx="17" cy="7" r="3"/><path d="M1 21c0-4 3.6-7 8-7"/><path d="M15 14c4.4 0 8 3 8 7"/></svg></span><span style="position:absolute;right:16px;top:16px;color:var(--navy);opacity:.6"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg></span><span style="display:block;font-size:15px;font-weight:700;color:var(--ink)">Partners</span><span style="display:block;margin-top:4px;font-size:13px;color:var(--inks)">View the roster, invite new partners, and manage account status.</span></a>
+      <a style="position:relative;display:block;border-radius:14px;border:1px solid var(--line);background:var(--surface);padding:18px;cursor:pointer" style-hover="border-color:var(--navy);background:color-mix(in srgb,var(--navy-soft) 60%,#fff)"><span style="display:flex;height:40px;width:40px;align-items:center;justify-content:center;border-radius:10px;background:var(--navy-soft);color:var(--navy);margin-bottom:12px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg></span><span style="position:absolute;right:16px;top:16px;color:var(--navy);opacity:.6"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></span><span style="display:block;font-size:15px;font-weight:700;color:var(--ink)">Export Pipeline</span><span style="display:block;margin-top:4px;font-size:13px;color:var(--inks)">Download the full partner pipeline as an Excel workbook.</span></a>
+    </div>
+    <div style="margin-top:22px;display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
+      <div style="border-radius:14px;border:1px solid var(--line);border-top:3px solid var(--navy);background:var(--surface);padding:18px"><p style="margin:0;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#3f4b5b">Partners</p><p style="margin:6px 0 0;font-size:30px;font-weight:800;color:var(--navy)">66</p><p style="margin:2px 0 0;font-size:12px;color:var(--inks)">44 active · 20 invited · 2 suspended</p><a style="margin-top:10px;display:inline-block;font-size:13px;color:var(--navy);cursor:pointer">Manage partners →</a></div>
+      <div style="border-radius:14px;border:1px solid var(--line);border-top:3px solid var(--navy);background:var(--surface);padding:18px"><p style="margin:0;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#3f4b5b">Partner Pipeline (all time)</p><p style="margin:6px 0 0;font-size:30px;font-weight:800;color:var(--navy)">63</p><a style="margin-top:10px;display:inline-block;font-size:13px;color:var(--navy);cursor:pointer">Browse pipeline →</a></div>
+      <div style="border-radius:14px;border:1px solid var(--line);border-top:3px solid var(--navy);background:var(--surface);padding:18px"><p style="margin:0;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#3f4b5b">Last 30 days</p><p style="margin:6px 0 0;font-size:30px;font-weight:800;color:var(--navy)">51</p><p style="margin:2px 0 0;font-size:12px;color:var(--inks)">submissions</p></div>
+    </div>
+    <h2 style="margin:26px 0 12px;font-size:16px;font-weight:700;color:var(--ink)">Recent submissions</h2>
+    <div style="overflow-x:auto;border-radius:14px;border:1px solid var(--line);background:var(--surface)">
+      <table style="width:100%;border-collapse:collapse;font-size:13.5px">
+        <thead><tr style="background:var(--panel);text-align:left;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#3f4b5b;border-bottom:1px solid var(--line)"><th style="padding:10px 16px">Date</th><th style="padding:10px 16px">Partner</th><th style="padding:10px 16px">Project</th><th style="padding:10px 16px;text-align:right">Cameras</th><th style="padding:10px 16px"></th></tr></thead>
+        <tbody style="color:var(--ink)">
+          <tr style="border-bottom:1px solid var(--linesoft)"><td style="padding:10px 16px;color:var(--inks)">2026-07-16</td><td style="padding:10px 16px">Arxys</td><td style="padding:10px 16px">Smithfield Park</td><td style="padding:10px 16px;text-align:right;font-variant-numeric:tabular-nums">114</td><td style="padding:10px 16px;text-align:right"><a onClick="{{ onSubmission }}" style="color:var(--navy);cursor:pointer">View</a></td></tr>
+          <tr style="border-bottom:1px solid var(--linesoft)"><td style="padding:10px 16px;color:var(--inks)">2026-07-15</td><td style="padding:10px 16px">Arxys</td><td style="padding:10px 16px">La Jolla MOB Building</td><td style="padding:10px 16px;text-align:right;font-variant-numeric:tabular-nums">72</td><td style="padding:10px 16px;text-align:right"><a onClick="{{ onSubmission }}" style="color:var(--navy);cursor:pointer">View</a></td></tr>
+          <tr style="border-bottom:1px solid var(--linesoft)"><td style="padding:10px 16px;color:var(--inks)">2026-07-15</td><td style="padding:10px 16px">Arxys</td><td style="padding:10px 16px">Shelter Rock Library</td><td style="padding:10px 16px;text-align:right;font-variant-numeric:tabular-nums">25</td><td style="padding:10px 16px;text-align:right"><a onClick="{{ onSubmission }}" style="color:var(--navy);cursor:pointer">View</a></td></tr>
+          <tr style="border-bottom:1px solid var(--linesoft)"><td style="padding:10px 16px;color:var(--inks)">2026-07-14</td><td style="padding:10px 16px">JCT Solutions</td><td style="padding:10px 16px">Sussex Ballot Box - Archive and Failover</td><td style="padding:10px 16px;text-align:right;font-variant-numeric:tabular-nums">28</td><td style="padding:10px 16px;text-align:right"><a onClick="{{ onSubmission }}" style="color:var(--navy);cursor:pointer">View</a></td></tr>
+          <tr style="border-bottom:1px solid var(--linesoft)"><td style="padding:10px 16px;color:var(--inks)">2026-07-13</td><td style="padding:10px 16px">TRL</td><td style="padding:10px 16px">Foothills</td><td style="padding:10px 16px;text-align:right;font-variant-numeric:tabular-nums">5</td><td style="padding:10px 16px;text-align:right"><a onClick="{{ onSubmission }}" style="color:var(--navy);cursor:pointer">View</a></td></tr>
+          <tr><td style="padding:10px 16px;color:var(--inks)">2026-07-09</td><td style="padding:10px 16px">Arxys</td><td style="padding:10px 16px">Meadowview Hospital Camera Addition</td><td style="padding:10px 16px;text-align:right;font-variant-numeric:tabular-nums">13</td><td style="padding:10px 16px;text-align:right"><a onClick="{{ onSubmission }}" style="color:var(--navy);cursor:pointer">View</a></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+</sc-if>
+</main>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { screen: 'dashboard', cmp: false, sel: {} };
+  go(s){ return () => this.setState({ screen: s, cmp: false }); }
+  toggle(f){ this.setState(st => ({ sel: { ...st.sel, [f]: !st.sel[f] } })); }
+  renderVals(){
+    const s = this.state.screen;
+    const SEC = [
+      ['Overview', [['maxCameras','Max Camera Streams (H.265/H.264)'],['maxBandwidthMbps','Max Bandwidth (Mbit/s)'],['rackUnits','Rack Units'],['driveBays','Drive Bays'],['warranty','Warranty']]],
+      ['System', [['cpuModelFull','CPU'],['coresThreads','Cores / Threads'],['cpuTurboGhz','Max All-Core Turbo'],['cpuCache','CPU Cache'],['memBandwidth','Per-Socket Memory Bandwidth'],['ramSpec','RAM'],['osEdition','Operating System'],['avx512','Native 512 AVX Datapath'],['workloadAffinity','Workload Affinity'],['chipletArch','Chiplet Micro-Architecture'],['infinityGuard','AMD Infinity Guard'],['hotswapPower','Hot-swap Redundant Power']]],
+      ['Storage', [['hddCount','Quantity of HDDs'],['hddMtbf','HDD MTBF (Hours)']]],
+    ];
+    const M = [
+      {family:'V100',maxCameras:'25',maxBandwidthMbps:'500',rackUnits:'1U',driveBays:'2',warranty:'5yr NBD, Advanced Replacement',cpuModelFull:'AMD EPYC 4005 4.0GHz 6/12 Core',coresThreads:'6C/12T',cpuTurboGhz:'5.4 GHz',cpuCache:'32MB',memBandwidth:'89.6 GB/s',ramSpec:'16GB ECC DDR5',osEdition:'Windows Server 2022 or 2025 WKGP LTSC',avx512:'Yes',workloadAffinity:'No',chipletArch:'Yes',infinityGuard:'Yes',hotswapPower:'No',hddCount:'2',hddMtbf:'2.5 Million'},
+      {family:'V200',maxCameras:'100',maxBandwidthMbps:'1,000',rackUnits:'1U',driveBays:'4',warranty:'5yr NBD, Advanced Replacement',cpuModelFull:'AMD EPYC 4005 4.0GHz 6/12 Core',coresThreads:'6C/12T',cpuTurboGhz:'5.4 GHz',cpuCache:'32MB',memBandwidth:'89.6 GB/s',ramSpec:'16GB ECC DDR5',osEdition:'Windows Server 2022 or 2025 WKGP LTSC',avx512:'Yes',workloadAffinity:'No',chipletArch:'Yes',infinityGuard:'Yes',hotswapPower:'Yes',hddCount:'4',hddMtbf:'2.5 Million'},
+      {family:'V400',maxCameras:'200',maxBandwidthMbps:'2,000',rackUnits:'2U',driveBays:'8',warranty:'5yr NBD, Advanced Replacement',cpuModelFull:'AMD EPYC 9005 3.3GHz 16/32 Core',coresThreads:'16C/32T',cpuTurboGhz:'3.3 GHz',cpuCache:'64MB',memBandwidth:'614 GB/s',ramSpec:'16GB ECC DDR5',osEdition:'Windows Server 2022 or 2025 LTSC',avx512:'Yes',workloadAffinity:'Yes',chipletArch:'Yes',infinityGuard:'Yes',hotswapPower:'Yes',hddCount:'8',hddMtbf:'2.5 Million'},
+      {family:'V500',maxCameras:'275',maxBandwidthMbps:'3,000',rackUnits:'2U',driveBays:'12',warranty:'5yr NBD, Advanced Replacement',cpuModelFull:'AMD EPYC 9005 3.3GHz 16/32 Core',coresThreads:'16C/32T',cpuTurboGhz:'3.3 GHz',cpuCache:'64MB',memBandwidth:'614 GB/s',ramSpec:'32GB ECC DDR5',osEdition:'Windows Server 2022 or 2025 LTSC',avx512:'Yes',workloadAffinity:'Yes',chipletArch:'Yes',infinityGuard:'Yes',hotswapPower:'Yes',hddCount:'12',hddMtbf:'2.5 Million'},
+      {family:'V600',maxCameras:'275',maxBandwidthMbps:'3,000',rackUnits:'3U',driveBays:'16',warranty:'5yr NBD, Advanced Replacement',cpuModelFull:'AMD EPYC 9005 3.3GHz 16/32 Core',coresThreads:'16C/32T',cpuTurboGhz:'3.3 GHz',cpuCache:'64MB',memBandwidth:'614 GB/s',ramSpec:'32GB ECC DDR5',osEdition:'Windows Server 2022 or 2025 LTSC',avx512:'Yes',workloadAffinity:'Yes',chipletArch:'Yes',infinityGuard:'Yes',hotswapPower:'Yes',hddCount:'16',hddMtbf:'2.5 Million'},
+      {family:'V700',maxCameras:'325',maxBandwidthMbps:'4,000',rackUnits:'4U',driveBays:'24',warranty:'5yr NBD, Advanced Replacement',cpuModelFull:'AMD EPYC 9005 4.3GHz 16/32 Core',coresThreads:'16C/32T',cpuTurboGhz:'4.25 GHz',cpuCache:'64MB',memBandwidth:'614 GB/s',ramSpec:'32GB ECC DDR5',osEdition:'Windows Server 2022 or 2025 LTSC',avx512:'Yes',workloadAffinity:'Yes',chipletArch:'Yes',infinityGuard:'Yes',hotswapPower:'Yes',hddCount:'24',hddMtbf:'2.5 Million'},
+      {family:'V800',maxCameras:'325',maxBandwidthMbps:'4,000',rackUnits:'4U',driveBays:'36',warranty:'5yr NBD, Advanced Replacement',cpuModelFull:'AMD EPYC 9005 4.3GHz 16/32 Core',coresThreads:'16C/32T',cpuTurboGhz:'4.25 GHz',cpuCache:'64MB',memBandwidth:'614 GB/s',ramSpec:'32GB ECC DDR5',osEdition:'Windows Server 2022 or 2025 LTSC',avx512:'Yes',workloadAffinity:'Yes',chipletArch:'Yes',infinityGuard:'Yes',hotswapPower:'Yes',hddCount:'36',hddMtbf:'2.5 Million'},
+    ];
+    const sel = this.state.sel;
+    const checked = M.filter(m => sel[m.family]);
+    const compareMode = checked.length >= 2;
+    const visible = compareMode ? checked : M;
+    const colCount = visible.length + 1;
+    const head = visible.map(m => ({ family: m.family, checked: !!sel[m.family], onToggle: () => this.toggle(m.family) }));
+    const sections = SEC.map(([label, rows]) => ({
+      label, colspan: colCount,
+      rows: rows.map(([k, rl]) => {
+        const cells = visible.map(m => ({ v: m[k] }));
+        const isDiff = compareMode && new Set(cells.map(c => c.v)).size > 1;
+        return { label: rl, cells, rowStyle: isDiff ? 'background:#fbf4e4' : '', labelStyle: isDiff ? 'box-shadow:inset 3px 0 0 #fbb040' : '' };
+      }),
+    }));
+    const navDashActive = s === 'dashboard';
+    const navCmpActive = s === 'vms' || s === 'videox';
+    return {
+      onDash: this.go('dashboard'), onQuick: this.go('quick'), onVms: this.go('vms'), onVideox: this.go('videox'), onPipeline: this.go('pipeline'), onSubmission: this.go('submission'), onPrice: this.go('price'), onProduct: this.go('product'), onAdmin: this.go('admin'),
+      toggleCmp: () => this.setState(st => ({ cmp: !st.cmp })), cmpOpen: this.state.cmp,
+      isDash: navDashActive, isQuick: s === 'quick', isVms: s === 'vms', isVideox: s === 'videox', isPipe: s === 'pipeline', isSub: s === 'submission', isPrice: s === 'price', isProd: s === 'product', isAdmin: s === 'admin',
+      navDashBorder: navDashActive ? '2px solid var(--navy)' : '2px solid transparent',
+      navDashColor: navDashActive ? 'var(--navy)' : '#3a4351',
+      navDashWeight: navDashActive ? '600' : '500',
+      navPipeBorder: s === 'pipeline' ? '2px solid var(--navy)' : '2px solid transparent',
+      navPipeColor: s === 'pipeline' ? 'var(--navy)' : '#3a4351',
+      navPipeWeight: s === 'pipeline' ? '600' : '500',
+      navPnPBorder: (s === 'price' || s === 'product') ? '2px solid var(--navy)' : '2px solid transparent',
+      navPnPColor: (s === 'price' || s === 'product') ? 'var(--navy)' : '#3a4351',
+      navPnPWeight: (s === 'price' || s === 'product') ? '600' : '500',
+      navAdminColor: s === 'admin' ? 'var(--navy)' : '#3a4351',
+      navAdminWeight: s === 'admin' ? '600' : '500',
+      navCmpBorder: navCmpActive ? '2px solid var(--navy)' : '2px solid transparent',
+      navCmpColor: navCmpActive ? 'var(--navy)' : '#3a4351',
+      navCmpWeight: navCmpActive ? '600' : '500',
+      vxHead: head, vxSections: sections, vxColCount: colCount, vxCompareMode: compareMode,
+      vxSelectedCount: checked.length, onShowAll: () => this.setState({ sel: {} }),
+      vxOne: checked.length === 1, vxNone: checked.length === 0, vxHasSel: checked.length > 0,
+    };
+  }
+}
+</script>
+</body>
+</html>

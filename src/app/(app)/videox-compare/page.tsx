@@ -8,12 +8,21 @@ export default async function VideoxComparePage() {
   const models = await getQuickCompareModels();
 
   return (
-    <div>
-      <div className="mb-4 flex items-center justify-between">
-        <Link href="/dashboard" className="text-sm font-medium text-arxys-navy hover:underline">
-          ← Back to dashboard
-        </Link>
-      </div>
+    <div className="mx-auto max-w-[1200px]">
+      <Link
+        href="/dashboard"
+        className="text-sm font-medium text-arxys-navy hover:underline"
+      >
+        ← Back to dashboard
+      </Link>
+      <h1 className="mt-3.5 text-[26px] font-extrabold tracking-tight text-ink">
+        VideoX Quick Compare
+      </h1>
+      <p className="mt-1.5 max-w-2xl text-[14.5px] leading-relaxed text-ink-soft">
+        Every VideoX V5 NVR model side by side — specs, features, and
+        capabilities at a glance. Tick two or more models to compare just those
+        columns.
+      </p>
       <VideoxCompareForm
         models={models}
         specs={QUICK_COMPARE_SPECS}

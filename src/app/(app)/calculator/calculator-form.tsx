@@ -1034,7 +1034,7 @@ export function CalculatorForm({
                   Bitrate:
                   <Tooltip text="How much data one camera in this group produces every second. Resolution, FPS, and how busy the scene is all push it up or down." side="r" />
                 </span>
-                <span className="ax-civ" style={{ color: "var(--pu)" }}>
+                <span className="ax-civ" style={{ color: "var(--ac)" }}>
                   {computed.bitrateMbps >= 1
                     ? `${formatNumber(computed.bitrateMbps)} Mbit/s`
                     : `${Math.round(computed.bitrateMbps * 1000)} Kbit/s`}
@@ -1045,7 +1045,7 @@ export function CalculatorForm({
                   Bandwidth:
                   <Tooltip text="Network speed this whole group needs at once (one camera's bitrate × the number of cameras)." side="r" />
                 </span>
-                <span className="ax-civ" style={{ color: "var(--cy)" }}>
+                <span className="ax-civ" style={{ color: "var(--ac)" }}>
                   {formatBandwidthMbps(computed.bandwidthMbps)}
                 </span>
               </div>
@@ -1054,7 +1054,7 @@ export function CalculatorForm({
                   Storage:
                   <Tooltip text="Drive space this group needs to hold its footage for the full retention period, with the 20% VMS overhead added." side="r" />
                 </span>
-                <span className="ax-civ" style={{ color: "var(--gn)" }}>
+                <span className="ax-civ" style={{ color: "var(--ac)" }}>
                   {formatStorageGb(computed.storageGb)}
                 </span>
               </div>
@@ -1063,7 +1063,7 @@ export function CalculatorForm({
                   Daily:
                   <Tooltip text="How much footage this group records each day. Multiply by your retention days to get total storage." side="r" />
                 </span>
-                <span className="ax-civ" style={{ color: "var(--am)" }}>
+                <span className="ax-civ" style={{ color: "var(--ac)" }}>
                   {formatStorageGb(computed.storageGb / Math.max(retentionDays, 1))}/day
                 </span>
               </div>
@@ -1102,13 +1102,13 @@ export function CalculatorForm({
                 <td>{CODECS[group.codecIdx].label}</td>
                 <td className="m">{group.fps}</td>
                 <td className="m">{Math.round((group.recordingPercent / 100) * 24)} hrs</td>
-                <td className="m" style={{ color: "var(--cy)" }}>
+                <td className="m" style={{ color: "var(--ac)" }}>
                   {formatBandwidthMbps(computed.bandwidthMbps)}
                 </td>
-                <td className="m" style={{ color: "var(--gn)" }}>
+                <td className="m" style={{ color: "var(--ac)" }}>
                   {formatStorageGb(computed.storageGb)}
                 </td>
-                <td className="m" style={{ color: "var(--am)" }}>
+                <td className="m" style={{ color: "var(--ac)" }}>
                   {formatStorageGb(computed.storageGb / Math.max(retentionDays, 1))}
                 </td>
               </tr>
@@ -1119,13 +1119,13 @@ export function CalculatorForm({
               <td>Total</td>
               <td className="m">{totals.cameras}</td>
               <td colSpan={4}></td>
-              <td className="m" style={{ color: "var(--cy)" }}>
+              <td className="m" style={{ color: "var(--ac)" }}>
                 {formatBandwidthMbps(totals.bandwidthMbps)}
               </td>
-              <td className="m" style={{ color: "var(--gn)" }}>
+              <td className="m" style={{ color: "var(--ac)" }}>
                 {formatStorageGb(totals.storageGb)}
               </td>
-              <td className="m" style={{ color: "var(--am)" }}>
+              <td className="m" style={{ color: "var(--ac)" }}>
                 {formatStorageGb(totals.dailyGb)}
               </td>
             </tr>

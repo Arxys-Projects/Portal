@@ -254,17 +254,20 @@ describe("buildSizingFromSubmission", () => {
 
 describe("isShowcaseProductGroup", () => {
   it("accepts all V-series server groups that have a price-book family", () => {
-    for (const g of ["V100", "V150", "V200", "V250", "V255", "V260", "V270", "V400", "V500", "V600", "V700", "V800"]) {
+    for (const g of ["V100", "V150", "V200", "V250", "V255", "V260", "V265", "V400", "V500", "V600", "V700", "V800"]) {
       assert.equal(isShowcaseProductGroup(g), true, g);
     }
   });
   it("accepts all SW workstation groups", () => {
-    for (const g of ["SW10", "SW20", "SW25", "SW30", "SW35"]) {
+    for (const g of ["SW10", "SW20"]) {
       assert.equal(isShowcaseProductGroup(g), true, g);
     }
   });
   it("rejects add-on and accessory groups that have no price-book family", () => {
-    for (const g of ["NIC", "RAM", "GPU", "WTY", "SFP", "", null, undefined]) {
+    // V270 and SW25/SW30/SW35 were EOL'd from the price book (V270 renamed to
+    // V265; SW25-35 dropped), so legacy submissions carrying those groups are
+    // no longer showcased on newly generated quotes. Frozen snapshots keep them.
+    for (const g of ["NIC", "RAM", "GPU", "WTY", "SFP", "V270", "SW25", "SW30", "SW35", "", null, undefined]) {
       assert.equal(isShowcaseProductGroup(g), false, String(g));
     }
   });

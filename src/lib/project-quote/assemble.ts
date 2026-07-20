@@ -258,3 +258,20 @@ export async function loadCurrentProjectQuote(
     .maybeSingle<CurrentProjectQuoteRow>();
   return data ?? null;
 }
+
+// Load one specific Project Quote revision for a submission (ADR 0083 — the
+// partner-facing download lists revisions, each rendered from its own frozen
+// snapshot). RLS scopes visibility exactly like loadCurrentProjectQuote.
+export async function loadProjectQuoteVersion(
+  submissionId: string,
+  version: number,
+  supabase: SupabaseClient,
+): Promise<CurrentProjectQuoteRow | null> {
+  const { data } = await supabase
+    .from("project_quotes")
+    .select("id, version, snapshot, terms_version, generated_at, validity_days, generated_by, created_at")
+    .eq("submission_id", submissionId)
+    .eq("version", version)
+    .maybeSingle<CurrentProjectQuoteRow>();
+  return data ?? null;
+}

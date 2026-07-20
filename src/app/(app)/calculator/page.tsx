@@ -117,14 +117,20 @@ export default async function CalculatorPage({
 
   return (
     <div>
-      <div className="mb-4 flex items-center justify-between">
-        <Link
-          href="/dashboard"
-          className="text-sm font-medium text-arxys-navy hover:underline"
-        >
-          ← Back to dashboard
-        </Link>
-      </div>
+      <Link
+        href="/dashboard"
+        className="text-sm font-medium text-arxys-navy hover:underline"
+      >
+        ← Back to dashboard
+      </Link>
+      <h1 className="mt-3.5 text-[26px] font-extrabold tracking-tight text-ink">
+        Storage &amp; Bandwidth Calculator
+      </h1>
+      <p className="mb-4 mt-1.5 max-w-2xl text-[14.5px] leading-relaxed text-ink-soft">
+        Size a job in full detail — camera groups, retention, recording mode.
+        Bandwidth, storage, and the recommended Arxys configuration update as
+        you type.
+      </p>
       <CalculatorForm
         previousProjectNames={previousProjectNames}
         initialState={initialState}

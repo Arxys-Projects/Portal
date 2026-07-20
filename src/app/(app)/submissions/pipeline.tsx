@@ -45,6 +45,9 @@ export type PipelineGroup = {
   preparedByArxys?: boolean;
   preparedByRep?: string | null;
   rows: PipelineRow[];
+  // ADR 0083 — the viewer's own Project Quote revisions for this project
+  // (newest version first). Empty until the partner-SELECT policy is applied.
+  quotes?: { submissionId: string; version: number; createdAt: string }[];
 };
 
 const FILTERS: { value: StatusFilter; label: string }[] = [
@@ -129,6 +132,110 @@ export function Pipeline({
 
   const total = groups.reduce((acc, g) => acc + g.rows.length, 0);
 
+  // Shared between the desktop table cells and the <sm card layout.
+  function renderStatusControl(row: PipelineRow) {
+    return (
+      <div className="flex items-center gap-2">
+        <span
+          aria-hidden="true"
+          className="h-2 w-2 shrink-0 rounded-full"
+          style={{ background: STATUS_META[row.status].dot }}
+        />
+        <div className="w-36">
+          <Select
+            aria-label="Submission status"
+            disabled={isPending}
+            value={row.status}
+            onChange={(e) =>
+              perform(row.id, () =>
+                updateSubmissionStatus(row.id, e.target.value as SubmissionStatus),
+              )
+            }
+            className="py-1.5 pr-8 text-xs"
+          >
+            {SUBMISSION_STATUSES.map((s) => (
+              <option key={s} value={s}>
+                {STATUS_META[s].label}
+              </option>
+            ))}
+          </Select>
+        </div>
+      </div>
+    );
+  }
+
+  function renderActions(row: PipelineRow) {
+    const deletable = isDeletable(row.status);
+    return (
+      <div className="flex items-center justify-end gap-2">
+        <Link href={`/submissions/${row.id}`} className={buttonClasses("primary", "sm")}>
+          View
+        </Link>
+        <Link
+          href={`/calculator?revise=${row.id}`}
+          className={buttonClasses("secondary", "sm")}
+        >
+          Revise
+        </Link>
+        <a
+          href={`/api/submissions/${row.id}/pdf`}
+          download
+          className={buttonClasses("secondary", "sm")}
+        >
+          PDF
+        </a>
+        {confirmDeleteId === row.id ? (
+          <span className="flex items-center gap-2">
+            <Button
+              variant="destructive"
+              size="sm"
+              disabled={isPending}
+              onClick={() => perform(row.id, () => deleteSubmission(row.id))}
+            >
+              Confirm
+            </Button>
+            <button
+              type="button"
+              disabled={isPending}
+              onClick={() => setConfirmDeleteId(null)}
+              className="text-xs font-medium text-ink-soft hover:text-ink disabled:cursor-not-allowed"
+            >
+              Cancel
+            </button>
+          </span>
+        ) : (
+          <IconButton
+            tone="danger"
+            label={deletable ? "Delete (open only)" : "Delete unavailable once won or lost"}
+            disabled={isPending || !deletable}
+            onClick={() => {
+              setError(null);
+              setConfirmDeleteId(row.id);
+            }}
+            className="h-8 w-8"
+          >
+            <TrashIcon />
+          </IconButton>
+        )}
+      </div>
+    );
+  }
+
+  function renderStar(row: PipelineRow) {
+    return (
+      <button
+        type="button"
+        aria-label={row.isPreferred ? "Unmark preferred" : "Mark preferred"}
+        title={row.isPreferred ? "Preferred quote" : "Mark as preferred"}
+        disabled={isPending}
+        onClick={() => perform(row.id, () => togglePreferred(row.id))}
+        className="text-[#c8cfda] transition-colors hover:text-arxys-navy disabled:cursor-not-allowed"
+      >
+        <StarIcon filled={row.isPreferred} />
+      </button>
+    );
+  }
+
   return (
     <div>
       <div className="mb-4">
@@ -173,8 +280,7 @@ export function Pipeline({
         })}
       </div>
 
-      {/* TODO(0081-ui): ADR 0081 retired Weighted Forecast; the Design pass
-          finalizes this summary (a Won total could sit alongside Open). */}
+      {/* Summary bar — Open Pipeline only, straight sum (ADR 0081). */}
       {openPipeline !== undefined ? (
         <div className="mt-3 rounded-lg border border-line border-l-[3px] border-l-arxys-navy bg-surface px-4 py-2.5 text-sm text-ink-soft">
           <span className="font-semibold text-ink">Open Pipeline:</span>{" "}
@@ -224,7 +330,94 @@ export function Pipeline({
                   </StatusBadge>
                 ) : null}
               </header>
-              <div className="overflow-x-auto">
+
+              {/* Project Quote documents (ADR 0083) — the partner's own quote
+                  revisions, downloadable. Pricing lives only inside the PDF. */}
+              {group.quotes && group.quotes.length > 0 ? (
+                <div className="flex flex-wrap items-center gap-2.5 border-b border-line-soft bg-panel px-4 py-2.5">
+                  <span className="text-[11px] font-extrabold uppercase tracking-[0.05em] text-[#3f4b5b]">
+                    Project quotes
+                  </span>
+                  {group.quotes.map((q) => (
+                    <a
+                      key={`${q.submissionId}-v${q.version}`}
+                      href={`/api/submissions/${q.submissionId}/project-quote/pdf?version=${q.version}`}
+                      download
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-[#b9c4d5] bg-surface px-2.5 py-1 text-xs font-semibold text-arxys-navy transition-colors hover:border-arxys-navy hover:bg-arxys-navy-soft"
+                    >
+                      <svg
+                        width="12"
+                        height="12"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="7 10 12 15 17 10" />
+                        <line x1="12" y1="15" x2="12" y2="3" />
+                      </svg>
+                      Quote v{q.version} · {formatDate(q.createdAt)}
+                    </a>
+                  ))}
+                </div>
+              ) : null}
+              {/* <sm: card layout (rows reflow to cards on phone) */}
+              <div className="divide-y divide-line-soft sm:hidden">
+                {group.rows.map((row) => {
+                  const rowBusy = isPending && busyId === row.id;
+                  const rowTone =
+                    row.status === "won"
+                      ? "bg-[#f2f9f5]"
+                      : row.status === "lost"
+                        ? "opacity-60"
+                        : undefined;
+                  return (
+                    <div
+                      key={row.id}
+                      className={
+                        ["px-4 py-3", rowTone, rowBusy ? "opacity-50" : undefined]
+                          .filter(Boolean)
+                          .join(" ")
+                      }
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2.5">
+                          {renderStar(row)}
+                          <span className="text-xs text-ink-soft">
+                            {formatDate(row.createdAt)}
+                          </span>
+                        </div>
+                        {renderStatusControl(row)}
+                      </div>
+                      <div className="mt-2 flex items-center justify-between gap-3 text-sm">
+                        <span className="text-ink">
+                          {row.recommendedUnits} ×{" "}
+                          {row.productGroup && row.familySlug ? (
+                            <Link
+                              href={`/price-book/${row.familySlug}`}
+                              className="font-semibold text-arxys-navy hover:underline"
+                            >
+                              {row.productGroup}
+                            </Link>
+                          ) : (
+                            (row.productGroup ?? "")
+                          )}
+                        </span>
+                        <span className="tabular-nums font-semibold text-ink">
+                          {formatPrice(row.totalListPriceUsd)}
+                        </span>
+                      </div>
+                      <div className="mt-2.5">{renderActions(row)}</div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* ≥sm: table layout */}
+              <div className="hidden overflow-x-auto sm:block">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-line bg-panel text-left text-[11px] font-bold uppercase tracking-[0.06em] text-[#3f4b5b]">
@@ -239,22 +432,24 @@ export function Pipeline({
                   <tbody className="divide-y divide-line-soft">
                     {group.rows.map((row) => {
                       const rowBusy = isPending && busyId === row.id;
-                      const deletable = isDeletable(row.status);
+                      // Won rows get a soft highlight, Lost rows recede (0081 UI pass).
+                      const rowTone =
+                        row.status === "won"
+                          ? "bg-[#f2f9f5]"
+                          : row.status === "lost"
+                            ? "opacity-60"
+                            : undefined;
                       return (
-                        <tr key={row.id} className={rowBusy ? "opacity-50" : undefined}>
+                        <tr
+                          key={row.id}
+                          className={
+                            [rowTone, rowBusy ? "opacity-50" : undefined]
+                              .filter(Boolean)
+                              .join(" ") || undefined
+                          }
+                        >
                           {/* Preferred star */}
-                          <td className="px-4 py-2.5">
-                            <button
-                              type="button"
-                              aria-label={row.isPreferred ? "Unmark preferred" : "Mark preferred"}
-                              title={row.isPreferred ? "Preferred quote" : "Mark as preferred"}
-                              disabled={isPending}
-                              onClick={() => perform(row.id, () => togglePreferred(row.id))}
-                              className="text-[#c8cfda] transition-colors hover:text-arxys-navy disabled:cursor-not-allowed"
-                            >
-                              <StarIcon filled={row.isPreferred} />
-                            </button>
-                          </td>
+                          <td className="px-4 py-2.5">{renderStar(row)}</td>
 
                           {/* Date */}
                           <td className="px-4 py-2.5 text-ink-soft">{formatDate(row.createdAt)}</td>
@@ -280,97 +475,10 @@ export function Pipeline({
                           </td>
 
                           {/* Status selector — colored dot + native select */}
-                          <td className="px-4 py-2.5">
-                            <div className="flex items-center gap-2">
-                              <span
-                                aria-hidden="true"
-                                className="h-2 w-2 shrink-0 rounded-full"
-                                style={{ background: STATUS_META[row.status].dot }}
-                              />
-                              <div className="w-36">
-                              <Select
-                                aria-label="Submission status"
-                                disabled={isPending}
-                                value={row.status}
-                                onChange={(e) =>
-                                  perform(row.id, () =>
-                                    updateSubmissionStatus(
-                                      row.id,
-                                      e.target.value as SubmissionStatus,
-                                    ),
-                                  )
-                                }
-                                className="py-1.5 pr-8 text-xs"
-                              >
-                                {SUBMISSION_STATUSES.map((s) => (
-                                  <option key={s} value={s}>
-                                    {STATUS_META[s].label}
-                                  </option>
-                                ))}
-                              </Select>
-                              </div>
-                            </div>
-                          </td>
+                          <td className="px-4 py-2.5">{renderStatusControl(row)}</td>
 
                           {/* Actions: View · Revise · PDF · Delete (consistent icon) */}
-                          <td className="px-4 py-2.5">
-                            <div className="flex items-center justify-end gap-2">
-                              <Link
-                                href={`/submissions/${row.id}`}
-                                className={buttonClasses("primary", "sm")}
-                              >
-                                View
-                              </Link>
-                              <Link
-                                href={`/calculator?revise=${row.id}`}
-                                className={buttonClasses("secondary", "sm")}
-                              >
-                                Revise
-                              </Link>
-                              <a
-                                href={`/api/submissions/${row.id}/pdf`}
-                                download
-                                className={buttonClasses("secondary", "sm")}
-                              >
-                                PDF
-                              </a>
-                              {confirmDeleteId === row.id ? (
-                                <span className="flex items-center gap-2">
-                                  <Button
-                                    variant="destructive"
-                                    size="sm"
-                                    disabled={isPending}
-                                    onClick={() =>
-                                      perform(row.id, () => deleteSubmission(row.id))
-                                    }
-                                  >
-                                    Confirm
-                                  </Button>
-                                  <button
-                                    type="button"
-                                    disabled={isPending}
-                                    onClick={() => setConfirmDeleteId(null)}
-                                    className="text-xs font-medium text-ink-soft hover:text-ink disabled:cursor-not-allowed"
-                                  >
-                                    Cancel
-                                  </button>
-                                </span>
-                              ) : (
-                                <IconButton
-                                  tone="danger"
-                                  label={deletable ? "Delete (draft only)" : "Delete unavailable once sent"}
-                                  disabled={isPending || !deletable}
-                                  onClick={() => {
-                                    setError(null);
-                                    setConfirmDeleteId(row.id);
-                                  }}
-                                  className="h-8 w-8"
-                                >
-                                  <TrashIcon />
-                                </IconButton>
-                              )}
-                            </div>
-                          </td>
+                          <td className="px-4 py-2.5">{renderActions(row)}</td>
                         </tr>
                       );
                     })}

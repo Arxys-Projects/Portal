@@ -29,6 +29,16 @@ const pdfBodySchema = z.object({
   priceDeltaUsd: z.number().nullable(),
   deploymentSavingsUsd: z.number().nullable(),
   footerText: z.string().max(1000),
+  // Market-reality callouts (ADR 0085) — mirrors the on-screen banners.
+  callouts: z
+    .array(
+      z.object({
+        label: z.string().min(1).max(40),
+        text: z.string().min(1).max(400),
+      }),
+    )
+    .max(5)
+    .optional(),
 });
 
 export async function POST(request: Request) {

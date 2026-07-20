@@ -966,6 +966,108 @@ async function run() {
       await admin.from("project_quotes").delete().eq("submission_id", quoteSubmissionId);
     }
 
+    // --- ADR 0083: project_quotes owner-SELECT (partner visibility) ---------
+    // Gated behind RUN_0083_TESTS=1 because these tests assert the WIDENED
+    // policy (20260720000001_project_quotes_partner_select.sql) and fail on
+    // the pre-0083 internal-only policy. Run after Andy applies the migration:
+    //   RUN_0083_TESTS=1 npx tsx scripts/test-rls.ts
+    // The cross-partner negative (20b) is the ADR's required ship gate.
+    if (process.env.RUN_0083_TESTS === "1") {
+      // Owner path: submission created BY partner A; quote generated internally.
+      const ownSubmissionId = await seedSubmission(a.id, "open");
+      // On-behalf path: submission created by the internal rep FOR partner A.
+      const oboSubmissionId = await seedSubmission(internalPersona.id, "open");
+      await admin
+        .from("submissions")
+        .update({ on_behalf_of_partner_id: a.id })
+        .eq("id", oboSubmissionId);
+
+      const mkQuote = (submissionId: string) => ({
+        submission_id: submissionId,
+        pipedrive_deal_id: 4823,
+        snapshot: { snapshotVersion: 1, marker: "rls-0083-test" },
+        terms_version: "v-rls-test",
+        validity_days: 7,
+        version: 1,
+        generated_by: internalPersona.id,
+      });
+      const { error: seed83Err } = await admin
+        .from("project_quotes")
+        .insert([mkQuote(ownSubmissionId), mkQuote(oboSubmissionId)]);
+      if (seed83Err) {
+        record("20: seed 0083 project_quotes rows (service-role)", false, seed83Err.message);
+      }
+
+      // Test 20a: the owning partner CAN SELECT their own quote.
+      {
+        const { data, error } = await a.client
+          .from("project_quotes")
+          .select("id, version")
+          .eq("submission_id", ownSubmissionId);
+        record(
+          "20a: owning partner can SELECT own project_quote (ADR 0083)",
+          !error && (data?.length ?? 0) === 1,
+          error ? `error: ${error.message}` : `count=${data?.length}`,
+        );
+      }
+
+      // Test 20b: CROSS-PARTNER NEGATIVE — partner B cannot read A's quote.
+      // Re-read via admin to prove the row exists and the zero-count is RLS,
+      // not a missing row.
+      {
+        const { data, error } = await b.client
+          .from("project_quotes")
+          .select("id")
+          .eq("submission_id", ownSubmissionId);
+        const { count } = await admin
+          .from("project_quotes")
+          .select("id", { count: "exact", head: true })
+          .eq("submission_id", ownSubmissionId);
+        record(
+          "20b: partner B cannot SELECT partner A's project_quote (cross-partner negative)",
+          !error && (data?.length ?? 0) === 0 && count === 1,
+          error ? `error: ${error.message}` : `count=${data?.length} rowExists=${count === 1}`,
+        );
+      }
+
+      // Test 20c: the on-behalf TARGET can SELECT the quote on a submission an
+      // internal rep filed for them (ownership via on_behalf_of_partner_id).
+      {
+        const { data, error } = await a.client
+          .from("project_quotes")
+          .select("id")
+          .eq("submission_id", oboSubmissionId);
+        record(
+          "20c: on-behalf target can SELECT their project_quote (ADR 0083)",
+          !error && (data?.length ?? 0) === 1,
+          error ? `error: ${error.message}` : `count=${data?.length}`,
+        );
+      }
+
+      // Test 20d: ownership grants READ only — the owning partner still cannot
+      // INSERT a quote (generation stays internal-only, ADR 0083 unchanged).
+      {
+        const { error } = await a.client
+          .from("project_quotes")
+          .insert({ ...mkQuote(ownSubmissionId), version: 91, generated_by: a.id });
+        record(
+          "20d: owning partner still cannot INSERT project_quotes (read-only widening)",
+          Boolean(error),
+          error ? `blocked: ${error.message}` : "INSERT unexpectedly succeeded",
+        );
+      }
+
+      // Cleanup: quotes before submissions (on delete restrict). The
+      // internal-persona submission isn't covered by a.id teardown, so delete
+      // it explicitly.
+      await admin.from("project_quotes").delete().in("submission_id", [ownSubmissionId, oboSubmissionId]);
+      await admin.from("submissions").delete().eq("id", oboSubmissionId);
+    } else {
+      console.log(
+        "  (skipping ADR 0083 owner-SELECT tests — set RUN_0083_TESTS=1 after applying 20260720000001)",
+      );
+    }
+
     // --- ADR 0077: access_requests anonymous-intake policies ----------------
     // anon holds NO grant (write is service_role-only via the requestAccess
     // action). authenticated SELECT/UPDATE is granted but RLS narrows both to

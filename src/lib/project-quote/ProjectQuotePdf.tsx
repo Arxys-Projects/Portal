@@ -1175,6 +1175,15 @@ export function ProjectQuotePdf({ data }: { data: ProjectQuotePdfInput }) {
           <Text style={styles.tableNote}>All amounts in {currency}. Partner pricing as quoted.</Text>
         ) : null}
 
+        {/* PO price lock (ADR 0085) — worded on Arxys's ACCEPTANCE of the PO,
+            not the buyer issuing it. Complements (does not amend) the frozen
+            T&C text: pre-PO validity/subject-to-change language is about a
+            different moment than the post-acceptance lock. */}
+        <Text style={styles.tableNote}>
+          Once Arxys accepts your purchase order, the quoted price is locked for
+          that order.
+        </Text>
+
         {/* Terms / Shipping / FOB — static, pushed to the bottom of the page
             above the fixed footer (marginTop:auto on fobBlock). */}
         <View style={styles.fobBlock}>

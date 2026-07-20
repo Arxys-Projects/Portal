@@ -38,7 +38,10 @@ describe("generatePriceBookXlsx", () => {
       new Date("2026-05-22T15:30:00Z"),
     );
     const wb = new ExcelJS.Workbook();
-    await wb.xlsx.load(buf);
+    // exceljs's index.d.ts shadows Node's Buffer with its own global
+    // `interface Buffer extends ArrayBuffer`, so load() rejects a real Node
+    // Buffer at the type level; at runtime it accepts one fine.
+    await wb.xlsx.load(buf as unknown as ArrayBuffer);
     const ws = wb.getWorksheet("Price List")!;
 
     assert.equal(ws.getCell("A1").value, "Arxys VideoX Price List");

@@ -4,9 +4,62 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
-## 2026-07-20 — Add Vercel Web Analytics
+## 2026-07-20 — Snapshot-test drift fix + test-file typecheck cleanup
 
-- Added `<Analytics />` from `@vercel/analytics/next` to the root layout (`src/app/layout.tsx`) to enable Web Analytics, which is already turned on for the Vercel project.
+### Work done
+
+- **Diagnosed the two failing `isShowcaseProductGroup` tests** in `src/lib/project-quote/snapshot.test.ts` ("accepts all V-series server groups…" and "accepts all SW workstation groups"). Root cause is data drift, not a predicate regression: the price-book change `d13e8d1` (2026-07-02, "V270→V265 ACM rename + drop SW25/30/35 (EOL)") postdates the test expectations (`28f5374`, 2026-06-16), and the hardcoded group lists were never realigned. The predicate itself is a pure delegate to `productGroupToFamilySlug`, and the catalog change was deliberate — so the test data was what needed fixing.
+- Realigned the expectations to the current catalog: the V-series accept list carries **V265** (V270 removed); the SW list is **SW10/SW20**. V270 and SW25/30/35 moved into the reject test with a comment pinning the EOL behaviour: legacy submissions carrying those groups are no longer showcased on *newly generated* quotes, while frozen snapshots keep whatever they banked. Updated the stale doc comment on `isShowcaseProductGroup` in `snapshot.ts` to match. (`render.test.ts`'s SW35 showcase fixture and `xlsx.test.ts`'s SW30 row were left alone — they feed frozen-snapshot/parser paths that legitimately accept arbitrary groups.)
+- **Cleared the pre-existing `tsc --noEmit` errors** in the three test files:
+  - `pdf/render.test.ts` and `project-quote/render.test.ts` now use a local `toDocumentElement` helper mirroring the production cast in `render.ts` (`as unknown as ReactElement<DocumentProps>`) — react-pdf's `renderToBuffer` wants `ReactElement<DocumentProps>` but `createElement` types the element by the component's own props.
+  - `project-quote/render.test.ts`'s `render` helper now returns `Promise<Buffer>` (what `renderToBuffer` actually returns) instead of `Promise<Uint8Array>`, which had made every `buf.subarray(…).toString("utf8")` call an error.
+  - `price-book/xlsx.test.ts` casts around exceljs 4.4.0's typing wart: its `index.d.ts` opens with `declare interface Buffer extends ArrayBuffer {}`, shadowing Node's Buffer in the `load()` signature, so a real Node Buffer is rejected at the type level while working fine at runtime.
+- Verified: `npm test` 233/233 pass; `npx tsc --noEmit` clean.
+
+### Detours & fixes
+
+- **Journal correction**: the "Portal UX pass" entry below originally stated the two snapshot failures were "fixed in-tree during the session" — they were not (the test file was unmodified and the failures reproduced on the tree). The claim below has been corrected; the actual fix is this entry.
+
+---
+
+## 2026-07-20 — Portal UX pass implemented (ADRs 0082/0084/0085 + 0081-ui; 0083 built to review gate)
+
+### Work done
+
+Implemented the 2026-07-16 design handoff (`design_handoff_portal_ux_pass/`) in one pass — workstreams A–D plus the 0085 in-portal pieces and the 0083 build. `npm run build` green; 231/233 unit tests passed at the time (two pre-existing `snapshot.test.ts` failures, unrelated to this pass — fixed in the follow-up session, see the entry above).
+
+- **B + 0081-ui — dashboard regroup by job** (`dashboard/page.tsx`): metric strip reduced to three live tiles (Open pipeline $, Open projects, Won projects — the em-dash Weighted Forecast/Sent/Drafts tiles removed); sections regrouped as *Size a job* (hero + recents + a full-width Quick Calc card repurposing the old Calculator card), *Win a job* (VMS Server Comparison elevated: gold left accent, gold "Your strongest convince" eyebrow), *Look it up* (Products & Prices / VideoX Quick Compare / VideoX Price List), *Track my work* (My Pipeline). Admin: "Export Forecast" card → "Export Pipeline", weighted-forecast wording removed from the grouped view (Won column replaces the stub) and the subtitle. Status colours updated to the handoff values (`status.ts`, `globals.css` — stale sent/hold/draft/none tokens dropped); Won rows get a soft green highlight, Lost rows recede; stale "draft/sent" delete-tooltip wording fixed. All `TODO(0081-ui)` markers cleared. The handoff's "No Status" pill/option references were stale (it predates the 0081 migration by a day) — resolved in 0081's favour: three states only.
+- **C — Compare split** (`portal-header.tsx`): the single Compare nav item became a **Compare ▾** dropdown (VMS Server Comparison / VideoX Quick Compare, each with a one-line job subtitle; outside-click/Escape/route-change close; both listed flat in the mobile menu). The comparison page was rebuilt on the shared `ui/` set — standard back-link + ink H1 header, the three market-reality callouts repositioned to the top as a "why partners switch" band, step-1/step-2 selects in one card with the **VMS validation sheets** download row (moved here from Quick Compare, which lost its vendor pills + banner), spec table with navy-highlighted Arxys column, pricing card with the deployment slider, and a navy-gradient CTA band (gold "Get My Partner Quote"). `comparison.css` (`ac-*`) deleted. Quick Compare was retitled "VideoX Quick Compare" with the standard header.
+- **A — Quick Calc** (`/quick-calc`, ADR 0082): single-column page — internal users get the company/partner-user/add-new-name on-behalf block, partners see their own company read-only; project name, VMS, camera streams, retention, two add-on checkboxes; a read-only "Fixed assumptions — Arxys VSR standard" pill strip; and a live **Recommended configuration** card (debounced server-side preview via a new `quickCalcPreview` action) with Save & request quote. Saving calls the full calculator's `submitCalculation` with one fixed group — same submission, Pipedrive deal, and System Estimate PDF; nothing forks. The fixed group encodes the VSR standard as `recordingMode: "motion" + recordingPercent: 100 + motionPercent: 75` (sending "constant" would pin motion to 100% server-side). Constants live in `lib/calculator/quick-calc.ts`; the candidate-pool query was extracted to `lib/recommend/candidates.ts` and is shared by submit + preview so both size against the same SKU set.
+- **D — consistency pass**: one page-header pattern across calculator/comparison/quick-compare/quick-calc; calculator per-group numerals recoloured purple/cyan/green/amber → navy; calculator page got its missing H1; naming canon applied (nav = card = header; "Products & Prices" stays); help modal rewritten to match actual tool behaviour + a Quick Calc section added; My Pipeline rows reflow to cards below `sm` (shared status/action renderers, table unchanged at ≥sm).
+- **0085 — comparison PDF + price lock + support content**: the downloadable comparison PDF now carries the three market-reality callouts (template `callouts` band + route schema + form pass-through) so the leave-behind keeps the argument the screen shows. A "Price locked on PO acceptance" badge sits in the Products & Prices hero and a matching line in the Project Quote PDF's commercial page — both worded on **Arxys's acceptance** of the PO (the frozen T&C's pre-PO "subject to change" language is a different moment and was not touched). A Support & warranty strip (5-yr advanced-replacement / NBD advanced parts with self-repair / 8–5 Pacific, no 24/7 tier) renders on the comparison results. **Badge + support copy flagged for Andy's wording review.**
+- **0083 — built to the review gate, NOT applied**: migration `20260720000001_project_quotes_partner_select.sql` widens the `project_quotes` SELECT policy to the owning partner (creator or on-behalf target, via an EXISTS on `submissions`; INSERT stays internal-only, table stays immutable) with rollback `supabase/rollback/project-quotes-partner-select-rollback.sql`. New partner-facing route `/api/submissions/[id]/project-quote/pdf` (optional `?version=`, double-gated: handler ownership check + RLS) and a "Project quotes" download row in My Pipeline groups (renders empty until the policy applies). RLS tests 20a–20d added behind `RUN_0083_TESTS=1` (owner-positive, **cross-partner negative**, on-behalf-positive, insert-still-blocked).
+
+### Detours & fixes
+
+- **Design handoff staleness on "No Status"**: the handoff (2026-07-16) predates the 0081 migration (2026-07-17) and still showed a "No Status" filter/option. Followed the live three-state model; the handoff itself defers the enum to code.
+- **Full CSS migration scoped by surface economics** instead of wholesale (ADR 0088): comparison migrated fully, Quick Compare kept a slimmed table-machinery sheet, the calculator kept its reference-port sheet with the two named fixes applied.
+- **Pre-existing failures surfaced**: 2 `snapshot.test.ts` failures failed on the untouched tree (stale family expectations), and react-pdf `DocumentProps`/Buffer typing errors in `pdf/render.test.ts`, `project-quote/render.test.ts`, and `price-book/xlsx.test.ts` made `tsc --noEmit` complain (tests ran fine under tsx). Both were parked here and fixed in the follow-up session (entry above).
+- **Docs filing fix**: ADRs 0081–0085/0087 had been created in `docs/` root; moved into `docs/decisions/` and the 2026-07-17 journal link repaired.
+
+### Decisions captured
+
+- [`0082`](./decisions/0082-quick-project-calculation-and-quote.md) → Accepted (implemented); [`0084`](./decisions/0084-portal-ia-regroup-and-compare-split.md) → Accepted (implemented); [`0085`](./decisions/0085-convince-the-hesitant-surfacing.md) → Accepted (portal/PDF pieces done, copy under review, packet still Phase 2; co-brand-the-estimate addendum line added); [`0083`](./decisions/0083-partner-visibility-of-own-project-quotes.md) → still Proposed, built to the review gate.
+- [`0088-scoped-css-retention-for-dense-tools.md`](./decisions/0088-scoped-css-retention-for-dense-tools.md) (new)
+
+---
+
+## 2026-07-20 — Vercel Web Analytics live + A&E spec documents planned (ADR 0087)
+
+### Work done
+
+- **Vercel Web Analytics enabled** on the portal. Analytics turned on in the Vercel dashboard, `@vercel/analytics` installed, `<Analytics />` added to the root layout (`src/app/layout.tsx`), deployed. First page-view baseline for partner adoption measurement; anonymous page-level data only (no per-partner attribution). A Supabase `portal_events` table for per-partner feature tracking was identified as the follow-on when identity-level answers are needed; not scoped yet.
+- **Strategic gap-analysis session** (Claude chat) ranked net-new and planned items together under a partner-adoption lens. Net-new items surfaced and held for scoping: price-staleness flag on saved projects, partner notification emails (price-change / deal-registration / quote-ready), lead-time column in the Price Book, clone-project action, per-SKU lifecycle status column, datasheet links per model, deal-registration status loop. A second pass on integrator-expectation gaps surfaced partner-specific pricing, warranty/serial lookup, VMS license line on estimates (useful, parked), and co-branding (already covered by the 0085 packet direction; noted that extending co-brand to the System Estimate PDF should be one line in that ADR rather than a separate effort).
+- **A&E spec documents adopted into the plan** as the highest-leverage new item: downloadable CSI-format Division 28 specification language per product family, surfaced as a Reference card. Content-first project; portal side is links and a card. Full scope, gating, and section coverage to be settled in a dedicated planning session with the arxys-company and branding skills loaded. Prework list captured in the ADR (format reference from past bids incl. the WCJ RFQ, family-scope call, gating lean, source-of-truth inventory).
+
+### Decisions captured
+
+- [`0087-ae-spec-documents-division-28.md`](./decisions/0087-ae-spec-documents-division-28.md) (Proposed)
 
 ---
 
@@ -28,7 +81,7 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ### Decisions captured
 
-- [`0081-pipeline-status-model-reduction.md`](./0081-pipeline-status-model-reduction.md) (Accepted)
+- [`0081-pipeline-status-model-reduction.md`](./decisions/0081-pipeline-status-model-reduction.md) (Accepted)
 
 ---
 

@@ -26,12 +26,23 @@ const SECTIONS = [
     ],
   },
   {
-    id: "comparison",
-    label: "Server Comparison",
+    id: "quickcalc",
+    label: "Quick Calc",
     bullets: [
-      "Select an Arxys VideoX model and one or two competitor appliances to compare spec-for-spec.",
-      "Columns show CPU, RAM, storage, camera capacity, and MSRP side by side.",
-      "Use this to build a competitive justification for a deal — VideoX typically wins on cameras-per-dollar.",
+      "Quick Project Calculation & Quote sizes a job from six inputs when full camera specs aren't in hand.",
+      "Everything else is pinned to the Arxys VSR standard, shown read-only so the basis is visible.",
+      "It saves the same submission, creates the same Pipedrive deal, and prints the same System Estimate PDF as the full Calculator.",
+      "Need per-camera detail (mixed resolutions, recording modes)? Use the full Calculator instead.",
+    ],
+  },
+  {
+    id: "comparison",
+    label: "VMS Server Comparison",
+    bullets: [
+      "Pick your VMS platform, then the competitor model you've been quoted — the matched Arxys VideoX appears spec-for-spec alongside it.",
+      "Enter your competitor quote to see the per-server delta against Arxys MSRP, and slide the deployment count to scale it.",
+      "The VMS validation sheets (Avigilon, Milestone, Genetec) download from this page.",
+      "Download the comparison as a PDF leave-behind, or request a formal partner quote.",
       "Competitor data is sourced from published spec sheets; pricing reflects current MSRP.",
     ],
   },
@@ -39,15 +50,15 @@ const SECTIONS = [
     id: "quickcompare",
     label: "VideoX Quick Compare",
     bullets: [
-      "Compare every VideoX V5 NVR model side by side across all spec categories.",
-      "Use the tab bar to switch between Overview, System, Storage, and Networking sections.",
-      "Highlight a column by clicking a model name to focus on that unit.",
+      "Compare every VideoX V5 NVR model side by side across Overview, System, Storage, and Networking specs.",
+      "Tick two or more model checkboxes to collapse the table to just those columns — rows where they differ are highlighted.",
+      "Enter a minimum camera-stream count to flag models below your requirement.",
       "Good for answering 'what's the difference between a V400 and a V500?' on a sales call.",
     ],
   },
   {
     id: "pricebook",
-    label: "Price Book",
+    label: "Products & Prices",
     bullets: [
       "Browse VideoX families (V100 through V800) with specs and current MSRPs.",
       "Each family page lists all storage tier SKUs and their list prices.",

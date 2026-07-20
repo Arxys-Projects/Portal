@@ -172,6 +172,26 @@ export default async function PartnerSubmissionsPage({
     };
   }
 
+  // ADR 0083 — the partner's own Project Quote revisions, surfaced under the
+  // relevant project as downloadable documents. RLS-scoped: until the
+  // 20260720000001 policy is applied, this reads empty for partners and the
+  // section simply doesn't render. Only metadata is read here — pricing
+  // appears exclusively inside the rendered PDF.
+  type QuoteMeta = { submission_id: string; version: number; created_at: string };
+  const quotesBySubmission = new Map<string, QuoteMeta[]>();
+  if (rows.length > 0) {
+    const { data: quoteRows } = await supabase
+      .from("project_quotes")
+      .select("submission_id, version, created_at")
+      .in("submission_id", rows.map((r) => r.id))
+      .order("version", { ascending: false });
+    for (const q of (quoteRows ?? []) as QuoteMeta[]) {
+      const list = quotesBySubmission.get(q.submission_id) ?? [];
+      list.push(q);
+      quotesBySubmission.set(q.submission_id, list);
+    }
+  }
+
   // Group by project name (case-insensitive). Empty/null project → ungrouped.
   // Rows arrive newest-first, so each group's rows preserve that order.
   const grouped = new Map<
@@ -182,6 +202,7 @@ export default async function PartnerSubmissionsPage({
       preparedByArxys: boolean;
       preparedByRep: string | null;
       rows: PipelineRow[];
+      quotes: { submissionId: string; version: number; createdAt: string }[];
     }
   >();
   for (const r of rows) {
@@ -194,10 +215,18 @@ export default async function PartnerSubmissionsPage({
         preparedByArxys: false,
         preparedByRep: null,
         rows: [],
+        quotes: [],
       });
     }
     const g = grouped.get(key)!;
     g.rows.push(toPipelineRow(r));
+    for (const q of quotesBySubmission.get(r.id) ?? []) {
+      g.quotes.push({
+        submissionId: q.submission_id,
+        version: q.version,
+        createdAt: q.created_at,
+      });
+    }
     if (!g.onBehalfCompanyName) g.onBehalfCompanyName = onBehalfCompany(r);
     if (isIncomingOnBehalf(r)) {
       g.preparedByArxys = true;
@@ -216,6 +245,7 @@ export default async function PartnerSubmissionsPage({
       preparedByArxys: g.preparedByArxys,
       preparedByRep: g.preparedByRep,
       rows: g.rows,
+      quotes: g.quotes,
     }))
     .sort((a, b) => {
       const aUng = a.projectName === null;

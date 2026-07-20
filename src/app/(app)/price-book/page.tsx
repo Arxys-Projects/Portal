@@ -98,6 +98,26 @@ export default async function PriceBookIndexPage() {
                   <span className="text-white/60">·</span>
                 </>
               )}
+              {/* PO price lock (ADR 0085) — worded on Arxys's ACCEPTANCE of the
+                  PO, not the buyer issuing it. */}
+              <span
+                className="inline-flex items-center gap-1.5 rounded-full border border-white/35 bg-white/10 px-2.5 py-0.5 text-xs font-semibold text-white"
+                title="Once Arxys accepts your purchase order, the quoted price is locked for that order."
+              >
+                <svg
+                  width="11"
+                  height="11"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.4"
+                >
+                  <rect x="5" y="11" width="14" height="10" rx="2" />
+                  <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+                </svg>
+                Price locked on PO acceptance
+              </span>
+              <span className="text-white/60">·</span>
               <Link
                 href="/dashboard"
                 className="text-xs text-white/70 hover:text-white underline"

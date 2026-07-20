@@ -37,6 +37,9 @@ export type ComparisonPdfInput = {
   priceDeltaUsd: number | null;
   deploymentSavingsUsd: number | null;
   footerText: string;
+  // Market-reality callouts (lead time / supply / second source) — ADR 0085:
+  // the leave-behind carries the same argument the on-screen tool shows.
+  callouts?: Array<{ label: string; text: string }>;
 };
 
 // ---------------------------------------------------------------------------
@@ -198,6 +201,31 @@ const styles = StyleSheet.create({
     color: STORAGE_GREEN,
   },
 
+  // Market-reality callouts (ADR 0085)
+  calloutBand: {
+    marginTop: 20,
+  },
+  calloutBox: {
+    borderLeftWidth: 3,
+    borderLeftColor: ARXYS_GOLD,
+    backgroundColor: BG_LIGHT,
+    padding: 10,
+    marginBottom: 6,
+  },
+  calloutLabel: {
+    fontSize: 8,
+    fontFamily: "Helvetica-Bold",
+    textTransform: "uppercase",
+    letterSpacing: 1,
+    color: TEXT_MUTED,
+    marginBottom: 3,
+  },
+  calloutText: {
+    fontSize: 9.5,
+    color: TEXT_SLATE,
+    lineHeight: 1.45,
+  },
+
   // Footer
   footer: {
     position: "absolute",
@@ -317,6 +345,19 @@ function ComparisonPdf({ data }: { data: ComparisonPdfInput }) {
                   <Text style={styles.savingsVal}>{fmtUsd(data.deploymentSavingsUsd)}</Text>
                 </View>
               )}
+          </View>
+        )}
+
+        {/* Market-reality callouts — same content as the on-screen banners
+            (ADR 0085: the leave-behind keeps the best of the argument). */}
+        {data.callouts && data.callouts.length > 0 && (
+          <View style={styles.calloutBand} wrap={false}>
+            {data.callouts.map((c) => (
+              <View key={c.label} style={styles.calloutBox}>
+                <Text style={styles.calloutLabel}>{c.label}</Text>
+                <Text style={styles.calloutText}>{c.text}</Text>
+              </View>
+            ))}
           </View>
         )}
 

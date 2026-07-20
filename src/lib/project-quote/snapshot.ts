@@ -58,10 +58,10 @@ export function resolveHeroImagePath(productGroup: string | null | undefined): s
 
 // Showcase eligibility: any product group that resolves to a price-book family
 // (productGroupToFamilySlug returns non-null). That covers all V-series servers
-// (V100, V150, V200, V250, V255, V260, V270, V400-V800) and all SW workstations
-// (SW10-SW35). Add-on cards, NICs, transceivers, and warranty SKUs have no
-// price-book family and return null. [MKT] custom lines are excluded upstream
-// by the priceType check in buildShowcase.
+// (V100, V150, V200, V250, V255, V260, V265, V400-V800) and the SW workstations
+// (SW10, SW20). Add-on cards, NICs, transceivers, warranty SKUs, and EOL'd
+// groups (V270, SW25-SW35) have no price-book family and return null. [MKT]
+// custom lines are excluded upstream by the priceType check in buildShowcase.
 export function isShowcaseProductGroup(productGroup: string | null | undefined): boolean {
   if (!productGroup) return false;
   return productGroupToFamilySlug(productGroup) !== null;

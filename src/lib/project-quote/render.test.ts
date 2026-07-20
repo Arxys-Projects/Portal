@@ -1,7 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { createElement } from "react";
-import { Page, renderToBuffer } from "@react-pdf/renderer";
+import { createElement, type ReactElement } from "react";
+import { type DocumentProps, Page, renderToBuffer } from "@react-pdf/renderer";
 import {
   ProjectQuotePdf,
   buildCameraColumns,
@@ -238,10 +238,15 @@ function countPages(snapshot: ProjectQuoteSnapshot): number {
   ).length;
 }
 
-async function render(snapshot: ProjectQuoteSnapshot): Promise<Uint8Array> {
-  return renderToBuffer(
-    createElement(ProjectQuotePdf, { data: makeInput(snapshot) }),
-  );
+// Mirror render.ts: createElement types the element by the component's own
+// props, so cast through unknown to the DocumentProps signature renderToBuffer
+// expects.
+function toDocumentElement(input: ProjectQuotePdfInput): ReactElement<DocumentProps> {
+  return createElement(ProjectQuotePdf, { data: input }) as unknown as ReactElement<DocumentProps>;
+}
+
+async function render(snapshot: ProjectQuoteSnapshot): Promise<Buffer> {
+  return renderToBuffer(toDocumentElement(makeInput(snapshot)));
 }
 
 // ---------------------------------------------------------------------------
@@ -408,7 +413,7 @@ describe("ProjectQuotePdf products showcase (page 2)", () => {
     // renders rather than throwing on the missing image.
     const input = makeInput(snap);
     assert.deepEqual(input.showcaseHeroDataUris, [null]);
-    const buf = await renderToBuffer(createElement(ProjectQuotePdf, { data: input }));
+    const buf = await renderToBuffer(toDocumentElement(input));
     assert.ok(buf.length > 1000, `PDF buffer suspiciously small: ${buf.length} bytes`);
     assert.equal(buf.subarray(0, 5).toString("utf8"), "%PDF-");
   });

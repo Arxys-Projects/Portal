@@ -501,7 +501,7 @@ function PageHeader({
           </h1>
           <p className="mt-1 text-sm text-ink-soft">
             {isPartnerGrouped
-              ? "Grouped by partner. Weighted forecast."
+              ? "Grouped by partner. Open pipeline and won totals."
               : `All submissions, flat list. ${total} total.`}
           </p>
         </div>

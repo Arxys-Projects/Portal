@@ -43,9 +43,11 @@ function formatDate(value: string | null | undefined): string {
 function PartnerCard({
   group,
   openPipeline,
+  wonTotal,
 }: {
   group: PartnerGroup;
   openPipeline: number;
+  wonTotal: number;
 }) {
   const [expanded, setExpanded] = useState(false);
 
@@ -70,11 +72,11 @@ function PartnerCard({
               {formatPrice(openPipeline)}
             </p>
           </div>
-          {/* TODO(0081-ui): Weighted Forecast retired (ADR 0081); value stubbed.
-              The Design pass removes/reworks this column. */}
           <div>
-            <p className="text-xs text-ink-soft">Weighted forecast</p>
-            <p className="text-sm font-semibold tabular-nums text-ink-soft">—</p>
+            <p className="text-xs text-ink-soft">Won</p>
+            <p className="text-sm font-semibold tabular-nums text-ink">
+              {formatPrice(wonTotal)}
+            </p>
           </div>
           <svg
             width="18"
@@ -195,12 +197,10 @@ export function PartnerGroupView({
 }) {
   return (
     <div className="mt-6 space-y-4">
-      {/* Summary tiles. TODO(0081-ui): Weighted Forecast retired (ADR 0081) —
-          value stubbed to "—"; the Design pass removes/reworks the tile. */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      {/* Summary tiles — three-state model (ADR 0081), no weighting. */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <MetricTile label="Active partners" value={String(totalActivePartners)} />
         <MetricTile label="Open pipeline" value={formatPrice(totalOpenPipeline)} />
-        <MetricTile label="Weighted forecast" value="—" />
         <MetricTile
           label="By status"
           value={
@@ -221,7 +221,8 @@ export function PartnerGroupView({
           <PartnerCard
             key={group.partner_id}
             group={group}
-            openPipeline={groupOpenPipeline(group.deals)}
+            openPipeline={groupTotal(group.deals, "open")}
+            wonTotal={groupTotal(group.deals, "won")}
           />
         ))}
       </div>
@@ -234,13 +235,15 @@ export function PartnerGroupView({
   );
 }
 
-// Straight sum of Open-deal list prices for one partner (ADR 0081; no weighting).
-function groupOpenPipeline(
+// Straight sum of deal list prices at one status for one partner (ADR 0081;
+// no weighting).
+function groupTotal(
   deals: (Deal & { submissions: SubmissionMini[] })[],
+  status: "open" | "won",
 ): number {
-  let openPipeline = 0;
+  let total = 0;
   for (const deal of deals) {
-    if (deal.status === "open") openPipeline += deal.total_list_price_usd ?? 0;
+    if (deal.status === status) total += deal.total_list_price_usd ?? 0;
   }
-  return openPipeline;
+  return total;
 }
