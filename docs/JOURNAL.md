@@ -4,6 +4,12 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-07-20 — Add Vercel Web Analytics
+
+- Added `<Analytics />` from `@vercel/analytics/next` to the root layout (`src/app/layout.tsx`) to enable Web Analytics, which is already turned on for the Vercel project.
+
+---
+
 ## 2026-07-17 — Pipeline status model reduction (ADR 0081, backend + migration)
 
 ### Work done
