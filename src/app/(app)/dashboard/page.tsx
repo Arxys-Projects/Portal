@@ -22,6 +22,7 @@ import {
 } from "./icons";
 import { groupIntoDeals, computePipelineTotals, type SubmissionRow } from "@/lib/pipeline/forecast";
 import { STATUS_META, type SubmissionStatus } from "@/app/(app)/submissions/status";
+import { partnerLogoPublicUrl } from "@/lib/storage/partner-logo";
 
 export default async function DashboardPage() {
   const supabase = await createSupabaseServerClient();
@@ -32,11 +33,26 @@ export default async function DashboardPage() {
   const { data: partner } = user
     ? await supabase
         .from("partners")
-        .select("id, role, company_name, contact_name")
+        .select("id, role, company_name, contact_name, is_internal")
         .eq("id", user.id)
         .maybeSingle()
     : { data: null };
   const isAdmin = partner?.role === "admin";
+
+  // ADR 0089 — the partner's own logo next to the greeting, on the partner
+  // dashboard only (not internal/admin views). Read best-effort in a separate
+  // query so the dashboard still loads before migration A is applied: a missing
+  // logo_path column degrades to no logo rather than erroring.
+  const isPartnerViewer = Boolean(partner) && !isAdmin && !partner?.is_internal;
+  let dashboardLogoUrl: string | null = null;
+  if (user && isPartnerViewer) {
+    const { data: logoRow } = await supabase
+      .from("partners")
+      .select("logo_path")
+      .eq("id", user.id)
+      .maybeSingle<{ logo_path: string | null }>();
+    dashboardLogoUrl = partnerLogoPublicUrl(supabase, logoRow?.logo_path ?? null);
+  }
 
   // Partner funnel — RLS-scoped to the current user's own submissions.
   const { data: ownSubs } = user
@@ -87,9 +103,20 @@ export default async function DashboardPage() {
   return (
     <div className="mx-auto max-w-6xl">
       {/* Greeting */}
-      <h1 className="text-3xl font-extrabold tracking-tight text-ink">
-        Welcome back{firstName ? `, ${firstName}` : ""}
-      </h1>
+      <div className="flex items-center gap-3">
+        {dashboardLogoUrl ? (
+          // Public bucket URL; next/image would need remotePatterns config.
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={dashboardLogoUrl}
+            alt={partner?.company_name ? `${partner.company_name} logo` : "Partner logo"}
+            className="h-10 max-w-[140px] object-contain"
+          />
+        ) : null}
+        <h1 className="text-3xl font-extrabold tracking-tight text-ink">
+          Welcome back{firstName ? `, ${firstName}` : ""}
+        </h1>
+      </div>
       <p className="mt-1 text-sm text-ink-soft">
         Arxys{partner?.company_name ? ` · ${partner.company_name}` : ""} — here&apos;s
         your pipeline and tools.

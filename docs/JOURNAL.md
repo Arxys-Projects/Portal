@@ -4,6 +4,30 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-07-21 — Customer Proposal document + partner logo system (ADR 0089)
+
+### Work done
+
+Implemented ADR 0089 in one pass. `npm run build` green; `npx tsc --noEmit` clean; `npm test` 245/245. Two migrations written, neither applied (stop-and-flag; Andy applies) — see [`docs/apply-notes/0089-customer-proposal-and-logo.md`](./apply-notes/0089-customer-proposal-and-logo.md).
+
+- **Task 0 (MSRP source of truth) = STORED.** The commercial-page MSRP-each renders from `snapshot.commercial.lineItems[].unitPrice` (Pipedrive `item_price`, frozen at generation), not a live `current_products` lookup. `current_products.msrp` is read at generation only for the page-2 showcase and the primary-server spec block, never for the commercial PRICE EACH. So **Task 4 (freeze MSRP) needed no migration and no snapshot change** — both documents already reproduce the originally-quoted number; a unit test pins the equality.
+- **Assembler-level discount strip (the leak boundary).** New pure module [`src/lib/project-quote/customer-proposal.ts`](../src/lib/project-quote/customer-proposal.ts) maps the frozen `DealQuote` to a `CustomerProposalCommercial` view that carries only `{ productCode, productName, priceEach (=MSRP), quantity, productTotal (=MSRP×qty), orderNr, isInfoOnly, currency }` + a recomputed MSRP grand total. Discount %, partner-each, partner line total, `lineAmount`, the deal `productTotal`, `additionalDiscounts`, and the raw deal title are physically absent — the renderer variant is typed to receive only this view, so it *cannot* reach a partner/discount value (ADR 0089 §2).
+- **Variant renderer.** [`ProjectQuotePdf.tsx`](../src/lib/project-quote/ProjectQuotePdf.tsx) became a discriminated union on `variant`. Customer Proposal differences: badge → CUSTOMER PROPOSAL; page-1 System-capacity bars (and their forward-reference note) removed; page-2 spec blocks + Quoted-solution bars kept; commercial columns `CODE · PRODUCT · PRICE EACH · QTY · PRODUCT TOTAL` with the DEAL cell dropped and the grand total recomputed; footnote reduced to "All amounts in USD." with the PO price-lock line dropped; page-4 Terms removed. Filename/metadata use "Arxys Customer Proposal …" (company name kept — decision 2026-07-20: do not gate who the document is for). Project Quote output is byte-for-byte unchanged.
+- **Partner logo system.** Migration A adds `partners.logo_path`; migration B creates the `partner-logos` Storage bucket (public-read, admin-write) — the project's first Supabase Storage use. Admin-only upload on `/admin/partners` (auto-submits on file pick; PNG/JPG + 2 MB validated; service-role upload; replace-on-reupload) via [`src/lib/storage/partner-logo.ts`](../src/lib/storage/partner-logo.ts). The logo renders in a fixed-width **center** header slot on both documents (blank = no layout shift), resolved LIVE at download time from the submission's owning partner (`on_behalf_of_partner_id ?? partner_id`), injected into both PDF routes and the Step-6 Pipedrive-delivery path (decision 2026-07-20: brand the attached Project Quote too). Dashboard shows the partner's own logo next to "Welcome back" — partner-side only.
+- **Access.** Customer Proposal rides on the existing 0083 route as `?variant=customer-proposal` (no second route, same double-gate, same `project_quotes` row/policy — no new RLS surface). My Pipeline now shows two buttons per revision: Project Quote + Customer Proposal, degrading to nothing until a snapshot exists.
+- **Tests.** New [`customer-proposal.test.ts`](../src/lib/project-quote/customer-proposal.test.ts): the required **build-failing leak guard** (object-graph strip proof + rendered-text scan with a Project-Quote canary + metadata-title scan), grand-total recompute, column set, content deltas, page count (3 vs 4), MSRP freeze. Extended `scripts/test-rls.ts` 20e–20g (behind `RUN_0083_TESTS=1`) to reaffirm the Customer Proposal reads the same row under the same policy.
+
+### Detours & fixes
+
+- **Rendered PDF text is not greppable** (react-pdf subsets font glyphs, as `render.test.ts` already noted). A first attempt to scan the emitted PDF bytes — even after inflating the FlateDecode content streams — failed its own Project-Quote canary (the scan could not see the partner values that *are* rendered there), which correctly refused to let the leak guard pass vacuously. Fix: scan the **React element tree** the component returns instead (expanding function sub-components, since react-pdf primitives carry a string `type` and our components a function `type`). That tree holds the actual display strings before glyph subsetting, so it is the faithful "what renders" surface, needs no new dependency, and keeps the canary meaningful.
+- **Graceful pre-migration degradation.** `logo_path` does not exist until migration A is applied, and selecting a missing column hard-errors (unlike 0083's RLS, which returns empty). The admin partners page and the dashboard therefore read `logo_path` in a *separate best-effort query* whose error is swallowed, so both pages keep working in the window between merge and apply (logos simply do not show yet) rather than 500-ing.
+
+### Decisions captured
+
+- [`0089-customer-proposal-and-partner-logo-system.md`](./decisions/0089-customer-proposal-and-partner-logo-system.md) (implementation notes appended: Task 0 outcome, the live-logo deviation from ADR 0060 determinism, the leak-guard mechanism).
+
+---
+
 ## 2026-07-20 — Removed leftover AI-facing label on dashboard "Win a job" card
 
 ### Work done

@@ -213,8 +213,14 @@ function makeSnapshot(overrides: Partial<ProjectQuoteSnapshot> = {}): ProjectQuo
 
 function makeInput(snapshot: ProjectQuoteSnapshot): ProjectQuotePdfInput {
   return {
-    snapshot,
+    variant: "project-quote",
+    commercial: snapshot.commercial,
+    sizing: snapshot.sizing,
+    showcase: snapshot.showcase ?? [],
+    terms: snapshot.terms,
+    generation: snapshot.generation,
     logoDataUri: null,
+    partnerLogoDataUri: null,
     showcaseHeroDataUris: (snapshot.showcase ?? []).map(() => null),
   };
 }

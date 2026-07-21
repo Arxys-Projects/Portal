@@ -6,6 +6,7 @@ import {
   resendInvite,
   setPartnerInternal,
   suspendPartner,
+  uploadPartnerLogo,
   type SimpleActionState,
 } from "./actions";
 
@@ -57,6 +58,50 @@ function ActionButton({
         <span className="max-w-[16rem] text-right text-xs text-red-600">
           {state.error}
         </span>
+      ) : null}
+    </form>
+  );
+}
+
+// ADR 0089 — admin-only logo upload for a partner. Picking a file auto-submits
+// the form (requestSubmit), so upload happens on selection; the current logo
+// (when set) shows as a small thumbnail. Accepts PNG/JPG only; the server
+// action re-validates type and size.
+export function LogoUpload({ id, logoUrl }: { id: string; logoUrl: string | null }) {
+  const [state, formAction, pending] = useActionState<SimpleActionState, FormData>(
+    uploadPartnerLogo,
+    INITIAL,
+  );
+  return (
+    <form action={formAction} className="inline-flex flex-col items-start gap-1">
+      <input type="hidden" name="id" value={id} />
+      <div className="inline-flex items-center gap-2">
+        {logoUrl ? (
+          // Public bucket URL; next/image would need remotePatterns config for
+          // the Storage host, so a plain img is simpler here.
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={logoUrl}
+            alt="Partner logo"
+            className="h-6 max-w-[72px] rounded border border-line bg-white object-contain"
+          />
+        ) : (
+          <span className="text-xs text-ink-soft">None</span>
+        )}
+        <label className="cursor-pointer rounded border border-neutral-300 px-2 py-1 text-xs font-medium text-neutral-700 hover:bg-neutral-100">
+          {pending ? "…" : logoUrl ? "Replace" : "Upload"}
+          <input
+            type="file"
+            name="logo"
+            accept="image/png,image/jpeg"
+            disabled={pending}
+            className="hidden"
+            onChange={(e) => e.currentTarget.form?.requestSubmit()}
+          />
+        </label>
+      </div>
+      {state.status === "error" ? (
+        <span className="max-w-[12rem] text-xs text-red-600">{state.error}</span>
       ) : null}
     </form>
   );

@@ -2,9 +2,10 @@ import Link from "next/link";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireAdminOrInternal } from "@/lib/auth/require-admin-or-internal";
-import { EditableName, InternalToggle, PartnerRowActions } from "./partner-row-actions";
+import { EditableName, InternalToggle, LogoUpload, PartnerRowActions } from "./partner-row-actions";
 import { updatePartnerCompanyName, updatePartnerContactName } from "./actions";
 import { buttonClasses } from "@/app/(app)/_components/ui";
+import { partnerLogoPublicUrl } from "@/lib/storage/partner-logo";
 
 function formatDate(value: string | null | undefined): string {
   if (!value) return "—";
@@ -76,6 +77,19 @@ export default async function AdminPartnersPage() {
   };
   const partners = (rows ?? []) as Row[];
 
+  // ADR 0089 — logo paths, read best-effort in a SEPARATE query so this page
+  // still loads before migration A (20260721000001) is applied: if the
+  // logo_path column does not exist yet, the query errors and we degrade to no
+  // logos (the "renders empty until applied" pattern, mirroring ADR 0083),
+  // rather than failing the whole partners table.
+  const logoPathById = new Map<string, string | null>();
+  {
+    const { data: logoRows } = await supabase.from("partners").select("id, logo_path");
+    for (const r of (logoRows ?? []) as { id: string; logo_path: string | null }[]) {
+      logoPathById.set(r.id, r.logo_path);
+    }
+  }
+
   return (
     <div>
       <div className="flex items-center justify-between">
@@ -105,6 +119,7 @@ export default async function AdminPartnersPage() {
                 <th className="px-4 py-2">Role</th>
                 <th className="px-4 py-2">Status</th>
                 <th className="px-4 py-2">Internal</th>
+                <th className="px-4 py-2">Logo</th>
                 <th className="px-4 py-2">Created</th>
                 <th className="px-4 py-2 text-right">Actions</th>
               </tr>
@@ -149,6 +164,18 @@ export default async function AdminPartnersPage() {
                     ) : (
                       <span className="text-xs text-ink-soft">
                         {p.is_internal ? "Internal ✓" : "—"}
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
+                    {isAdmin ? (
+                      <LogoUpload
+                        id={p.id}
+                        logoUrl={partnerLogoPublicUrl(supabase, logoPathById.get(p.id) ?? null)}
+                      />
+                    ) : (
+                      <span className="text-xs text-ink-soft">
+                        {logoPathById.get(p.id) ? "Set" : "—"}
                       </span>
                     )}
                   </td>

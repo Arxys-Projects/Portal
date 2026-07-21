@@ -1057,6 +1057,57 @@ async function run() {
         );
       }
 
+      // --- ADR 0089: Customer Proposal rides on the SAME policy ---------------
+      // The Customer Proposal (?variant=customer-proposal) reads the SAME
+      // project_quotes row through the SAME widened SELECT policy as the Project
+      // Quote — it introduces NO new RLS surface (the variant only changes how
+      // the row is rendered, not which row is read). These tests reaffirm that
+      // the row a partner can (and cannot) reach is identical for both documents,
+      // using the exact `.select("snapshot")` shape both PDF routes issue.
+
+      // Test 20e: owning partner reaches the row the Customer Proposal renders
+      // from (same-row access as the Project Quote's 20a).
+      {
+        const { data, error } = await a.client
+          .from("project_quotes")
+          .select("snapshot")
+          .eq("submission_id", ownSubmissionId);
+        record(
+          "20e: owning partner can read the row the Customer Proposal renders (ADR 0089, same policy)",
+          !error && (data?.length ?? 0) === 1,
+          error ? `error: ${error.message}` : `count=${data?.length}`,
+        );
+      }
+
+      // Test 20f: CROSS-PARTNER NEGATIVE for the Customer Proposal — partner B
+      // still cannot read A's row, so B cannot render either document (mirrors
+      // 20b; the required ship gate applies to both documents).
+      {
+        const { data, error } = await b.client
+          .from("project_quotes")
+          .select("snapshot")
+          .eq("submission_id", ownSubmissionId);
+        record(
+          "20f: partner B cannot read partner A's row via the Customer Proposal path (cross-partner negative)",
+          !error && (data?.length ?? 0) === 0,
+          error ? `error: ${error.message}` : `count=${data?.length}`,
+        );
+      }
+
+      // Test 20g: on-behalf TARGET reaches the row for the Customer Proposal too
+      // (mirrors 20c — ownership via on_behalf_of_partner_id covers both docs).
+      {
+        const { data, error } = await a.client
+          .from("project_quotes")
+          .select("snapshot")
+          .eq("submission_id", oboSubmissionId);
+        record(
+          "20g: on-behalf target can read their row via the Customer Proposal path (ADR 0089)",
+          !error && (data?.length ?? 0) === 1,
+          error ? `error: ${error.message}` : `count=${data?.length}`,
+        );
+      }
+
       // Cleanup: quotes before submissions (on delete restrict). The
       // internal-persona submission isn't covered by a.id teardown, so delete
       // it explicitly.

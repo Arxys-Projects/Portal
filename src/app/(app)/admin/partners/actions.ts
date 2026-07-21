@@ -7,6 +7,7 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireAdminOrInternal } from "@/lib/auth/require-admin-or-internal";
 import { dbError } from "@/lib/errors/safe-message";
+import { uploadPartnerLogo as uploadLogoToStorage } from "@/lib/storage/partner-logo";
 
 const inviteSchema = z.object({
   email: z.email().max(254),
@@ -327,6 +328,40 @@ async function updatePartnerNameField(
 
   revalidatePath("/admin/partners");
   return { status: "ok", message: `${label} updated.` };
+}
+
+// ADR 0089 — attach a logo to a partner. Admin-only (write access is admin-only,
+// per the ADR). The file is validated (PNG/JPG, size) and uploaded to the
+// partner-logos bucket via the service-role client (which bypasses RLS; the
+// storage.objects policies are defense-in-depth). One logo per partner:
+// re-upload replaces in place. The resolved object path is written to logo_path,
+// from which the documents and the partner's dashboard resolve the logo live.
+export async function uploadPartnerLogo(
+  _prev: SimpleActionState | null,
+  formData: FormData,
+): Promise<SimpleActionState> {
+  const gate = await requireAdmin();
+  if (!gate.ok) return { status: "error", error: gate.error };
+  const targetId = String(formData.get("id") ?? "");
+  if (!targetId) return { status: "error", error: "Missing partner id." };
+
+  const file = formData.get("logo");
+  if (!(file instanceof File)) {
+    return { status: "error", error: "Choose a PNG or JPG logo file to upload." };
+  }
+
+  const admin = createSupabaseAdminClient();
+  const uploaded = await uploadLogoToStorage(admin, targetId, file);
+  if (!uploaded.ok) return { status: "error", error: uploaded.error };
+
+  const { error } = await admin
+    .from("partners")
+    .update({ logo_path: uploaded.path })
+    .eq("id", targetId);
+  if (error) return { status: "error", error: dbError(error, "attach partner logo") };
+
+  revalidatePath("/admin/partners");
+  return { status: "ok", message: "Logo uploaded." };
 }
 
 export async function updatePartnerCompanyName(

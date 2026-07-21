@@ -17,24 +17,47 @@ import {
   TRACK_GRAY,
 } from "../pdf/colors";
 import { usableCapacityTb } from "@/lib/capacity-utils";
-import type { QuoteLineItem } from "@/lib/pipedrive/quote";
+import type { DealQuote, QuoteLineItem } from "@/lib/pipedrive/quote";
 
 import type {
   ProjectQuoteCameraRow,
+  ProjectQuoteGeneration,
   ProjectQuoteShowcaseItem,
   ProjectQuoteShowcaseSpecHighlights,
-  ProjectQuoteSnapshot,
+  ProjectQuoteSizing,
+  ProjectQuoteTerms,
 } from "./types";
+import type { CustomerProposalCommercial } from "./customer-proposal";
 
-export type ProjectQuotePdfInput = {
-  snapshot: ProjectQuoteSnapshot;
+// Fields shared by both document variants. The snapshot's sizing / showcase /
+// terms / generation are passed through as-is (they carry no partner/discount
+// pricing); the sensitive commercial half is variant-specific below.
+type SharedPdfData = {
+  sizing: ProjectQuoteSizing;
+  showcase: ProjectQuoteShowcaseItem[];
+  terms: ProjectQuoteTerms;
+  generation: ProjectQuoteGeneration;
   logoDataUri: string | null;
-  // Indexed parallel to snapshot.showcase; loaded from each item.heroImagePath.
+  // Partner logo (center header), resolved live at download time; null renders
+  // a blank, non-shifting slot.
+  partnerLogoDataUri: string | null;
+  // Indexed parallel to `showcase`; loaded from each item.heroImagePath.
   showcaseHeroDataUris: (string | null)[];
 };
 
-// Sort ascending by orderNr; nulls sort last. Exported for test assertions.
-export function sortLineItemsByOrderNr(items: QuoteLineItem[]): QuoteLineItem[] {
+// Discriminated on `variant`. The Customer Proposal branch carries a
+// CustomerProposalCommercial — the discount/partner-stripped view assembled in
+// customer-proposal.ts — so the renderer is structurally incapable of touching
+// a partner/discount value (ADR 0089 §2). The Project Quote branch carries the
+// full DealQuote and renders partner economics as before.
+export type ProjectQuotePdfInput =
+  | (SharedPdfData & { variant: "project-quote"; commercial: DealQuote })
+  | (SharedPdfData & { variant: "customer-proposal"; commercial: CustomerProposalCommercial });
+
+// Sort ascending by orderNr; nulls sort last. Generic over any line carrying an
+// orderNr, so it sorts both the raw Pipedrive lines (Project Quote) and the
+// stripped customer-proposal lines. Exported for test assertions.
+export function sortLineItemsByOrderNr<T extends { orderNr: number | null }>(items: T[]): T[] {
   return [...items].sort((a, b) => {
     if (a.orderNr == null && b.orderNr == null) return 0;
     if (a.orderNr == null) return 1;
@@ -282,6 +305,24 @@ export const COMMERCIAL_COLUMNS: CommercialColumn[] = [
   { header: "Partner total", width: COM_PARTNER_TOTAL, align: "right" },
 ];
 
+// Customer Proposal table (ADR 0089 §3): CODE · PRODUCT · PRICE EACH · QTY ·
+// PRODUCT TOTAL. No DISC / PARTNER columns. PRICE EACH is the same MSRP value
+// (unitPrice) relabeled; PRODUCT TOTAL is MSRP each × qty. PRODUCT flexes to
+// absorb the slack (fixed widths sum to 54%).
+const CP_CODE = "12%";
+const CP_PRICE = "16%";
+const CP_QTY = "8%";
+const CP_TOTAL = "18%";
+// PRODUCT fills the remaining 46% via flex: 1 on the cell.
+
+export const CUSTOMER_PROPOSAL_COLUMNS: CommercialColumn[] = [
+  { header: "Code", width: CP_CODE },
+  { header: "Product", width: null },
+  { header: "Price each", width: CP_PRICE, align: "right" },
+  { header: "Qty", width: CP_QTY, align: "right" },
+  { header: "Product total", width: CP_TOTAL, align: "right" },
+];
+
 // Camera schedule — two layouts, chosen per snapshot (see
 // cameraScheduleHasVendorOrModel). Both sum to 100% at US-Letter portrait
 // width. The numeric columns (FPS, Bw, Storage) are right-aligned; every text
@@ -331,6 +372,13 @@ const styles = StyleSheet.create({
   // Header
   header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" },
   logo: { width: 120 },
+  // Center header slot for the partner logo. Fixed width so the Arxys lock-up
+  // (left) and the badge/ref/date stack (right) hold their positions whether a
+  // logo is present or the slot is blank (ADR 0089 §5: no layout shift).
+  headerCenter: { width: 160, alignItems: "center", justifyContent: "flex-start", paddingTop: 2 },
+  // Contained in a fixed box so a tall/square logo cannot inflate the header;
+  // a transparent PNG sits on the page background.
+  partnerLogo: { width: 150, height: 42, objectFit: "contain" },
   logoFallback: { fontSize: 22, fontFamily: "Helvetica-Bold", color: ARXYS_GOLD, letterSpacing: 3 },
   tagline: { fontSize: 8, color: TEXT_MUTED, marginTop: 3 },
   headerRight: { alignItems: "flex-end" },
@@ -594,11 +642,15 @@ export const QUOTE_FOB_BLOCK = [
 
 function PageHeader({
   logoDataUri,
+  partnerLogoDataUri,
+  badge,
   identifier,
   generatedDateStr,
   disclaimer,
 }: {
   logoDataUri: string | null;
+  partnerLogoDataUri: string | null;
+  badge: string;
   identifier: string;
   generatedDateStr: string;
   disclaimer: string;
@@ -618,8 +670,17 @@ function PageHeader({
             Purpose-built video surveillance infrastructure
           </Text>
         </View>
+        {/* Center: partner logo, or a blank fixed-width slot that reserves the
+            same space so the left/right elements never shift. */}
+        <View style={styles.headerCenter}>
+          {partnerLogoDataUri ? (
+            // @react-pdf/renderer Image has no alt concept (not an HTML img).
+            // eslint-disable-next-line jsx-a11y/alt-text
+            <Image style={styles.partnerLogo} src={partnerLogoDataUri} />
+          ) : null}
+        </View>
         <View style={styles.headerRight}>
-          <Text style={styles.quotePill}>PROJECT QUOTE</Text>
+          <Text style={styles.quotePill}>{badge}</Text>
           <Text style={styles.headerMeta}>{identifier}</Text>
           <Text style={styles.headerMeta}>{generatedDateStr}</Text>
         </View>
@@ -668,7 +729,9 @@ function PageFooter({
 // Exported for unit testing.
 export function sumQuotedCapacity(
   showcase: ProjectQuoteShowcaseItem[],
-  lineItems: QuoteLineItem[],
+  // Only productCode + quantity are read, so this accepts either the raw
+  // Pipedrive lines or the stripped customer-proposal lines.
+  lineItems: ReadonlyArray<{ productCode: string | null; quantity: number | null }>,
 ): {
   usableStorageTb: number;
   bandwidthMbps: number;
@@ -736,14 +799,236 @@ function CapacityBar({
 }
 
 // ---------------------------------------------------------------------------
+// Commercial page bodies (page 3) — one per variant
+// ---------------------------------------------------------------------------
+
+// Project Quote commercial body. Renders partner economics from the raw frozen
+// DealQuote: MSRP each + discount %, partner each/total (DERIVED at render),
+// and the verbatim deal grand total. Unchanged from the pre-0089 layout.
+function ProjectCommercialBody({
+  commercial,
+  generation,
+}: {
+  commercial: DealQuote;
+  generation: ProjectQuoteGeneration;
+}) {
+  // Sorted by orderNr ascending (to match the rep's Pipedrive display order).
+  // The binding rule mandates verbatim rendering; no price is recomputed here.
+  const sortedLines = sortLineItemsByOrderNr(commercial.lineItems);
+  const { currency } = commercial;
+  return (
+    <>
+      {/* Deal / customer info */}
+      <View style={styles.commInfoBlock}>
+        {commercial.organization ? (
+          <View style={styles.commInfoCol}>
+            <Text style={styles.commInfoLabel}>Customer</Text>
+            <Text style={styles.commInfoValue}>{commercial.organization.name ?? "—"}</Text>
+          </View>
+        ) : null}
+        {commercial.person ? (
+          <View style={styles.commInfoCol}>
+            <Text style={styles.commInfoLabel}>Contact</Text>
+            <Text style={styles.commInfoValue}>{commercial.person.name ?? "—"}</Text>
+          </View>
+        ) : null}
+        <View style={styles.commInfoCol}>
+          <Text style={styles.commInfoLabel}>Deal</Text>
+          <Text style={styles.commInfoValue}>{commercial.dealTitle ?? generation.identifier}</Text>
+        </View>
+      </View>
+
+      {/* Line-item table */}
+      <Text style={styles.sectionTitle}>Quote line items</Text>
+      <View>
+        <View style={styles.commHeaderRow}>
+          {COMMERCIAL_COLUMNS.map((col) => (
+            <Text
+              key={col.header}
+              style={[
+                styles.commTh,
+                col.width == null ? { flex: 1 } : { width: col.width },
+                col.align === "right" ? { textAlign: "right" } : {},
+              ]}
+            >
+              {col.header}
+            </Text>
+          ))}
+        </View>
+
+        {/* CODE · PRODUCT · MSRP EACH · DISC % · PARTNER EACH · QTY · PARTNER
+            TOTAL. MSRP/disc are raw; partner-each and partner-total are DERIVED
+            at render (derivePartnerEach / derivePartnerTotal) — never read from
+            the snapshot. Info-only lines blank the four money cells but keep the
+            quantity. */}
+        {sortedLines.map((line, i) => (
+          <View key={i} style={styles.commTr} wrap={false}>
+            <Text style={[styles.commTdMuted, { width: COM_CODE }]}>{line.productCode ?? "—"}</Text>
+            <Text style={[styles.commTd, { flex: 1 }]}>{line.productName ?? "—"}</Text>
+            {line.isInfoOnly ? (
+              <>
+                <Text style={[styles.commTd, { width: COM_MSRP }]} />
+                <Text style={[styles.commTd, { width: COM_DISC }]} />
+                <Text style={[styles.commTd, { width: COM_PARTNER_EACH }]} />
+                <Text style={[styles.commTdRight, { width: COM_QTY }]}>{line.quantity ?? "—"}</Text>
+                <Text style={[styles.commTd, { width: COM_PARTNER_TOTAL }]} />
+              </>
+            ) : (
+              <>
+                <Text style={[styles.commTdRight, { width: COM_MSRP }]}>{fmtMoney(line.unitPrice, currency)}</Text>
+                <Text style={[styles.commTdRight, { width: COM_DISC }]}>{fmtDiscountPct(line)}</Text>
+                <Text style={[styles.commTdRight, { width: COM_PARTNER_EACH }]}>{fmtMoney(derivePartnerEach(line), currency)}</Text>
+                <Text style={[styles.commTdRight, { width: COM_QTY }]}>{line.quantity ?? "—"}</Text>
+                <Text style={[styles.commTdRight, { width: COM_PARTNER_TOTAL }]}>{fmtMoney(derivePartnerTotal(line), currency)}</Text>
+              </>
+            )}
+          </View>
+        ))}
+
+        {/* productTotal rendered verbatim — never re-summed from lines */}
+        <View style={styles.commTotalRow}>
+          <Text style={styles.commTotalLabel}>
+            {commercial.additionalDiscounts != null
+              ? "Subtotal (before additional discounts)"
+              : "Total"}
+          </Text>
+          <Text style={styles.commTotalValue}>{fmtMoney(commercial.productTotal, currency)}</Text>
+        </View>
+
+        {commercial.additionalDiscounts != null ? (
+          <View style={{ flexDirection: "row", marginTop: 4 }}>
+            <Text style={{ flex: 1, fontSize: 8, color: TEXT_MUTED, paddingHorizontal: 5 }}>
+              Additional discounts
+            </Text>
+            <Text
+              style={{
+                width: COM_PARTNER_TOTAL,
+                fontSize: 8,
+                color: TEXT_MUTED,
+                textAlign: "right",
+                paddingHorizontal: 5,
+              }}
+            >
+              {fmtMoney(commercial.additionalDiscounts, currency)}
+            </Text>
+          </View>
+        ) : null}
+      </View>
+
+      {currency ? (
+        <Text style={styles.tableNote}>All amounts in {currency}. Partner pricing as quoted.</Text>
+      ) : null}
+
+      {/* PO price lock (ADR 0085) — worded on Arxys's ACCEPTANCE of the PO, not
+          the buyer issuing it. Dropped from the Customer Proposal (ADR 0089). */}
+      <Text style={styles.tableNote}>
+        Once Arxys accepts your purchase order, the quoted price is locked for
+        that order.
+      </Text>
+    </>
+  );
+}
+
+// Customer Proposal commercial body (ADR 0089 §3). Renders ONLY the customer-
+// safe view: CODE · PRODUCT · PRICE EACH · QTY · PRODUCT TOTAL, a recomputed
+// MSRP grand total, and the "All amounts in USD." footnote. No DEAL cell, no
+// DISC/PARTNER columns, no PO price-lock line. It cannot leak a partner/discount
+// value — the strip happened at the assembler (customer-proposal.ts) and this
+// body is typed to receive only CustomerProposalCommercial.
+function CustomerProposalCommercialBody({
+  commercial,
+}: {
+  commercial: CustomerProposalCommercial;
+}) {
+  const sortedLines = sortLineItemsByOrderNr(commercial.lineItems);
+  const { currency } = commercial;
+  const showInfoBlock = Boolean(commercial.organization || commercial.person);
+  return (
+    <>
+      {/* Customer / contact info — DEAL cell removed for the customer document */}
+      {showInfoBlock ? (
+        <View style={styles.commInfoBlock}>
+          {commercial.organization ? (
+            <View style={styles.commInfoCol}>
+              <Text style={styles.commInfoLabel}>Customer</Text>
+              <Text style={styles.commInfoValue}>{commercial.organization.name ?? "—"}</Text>
+            </View>
+          ) : null}
+          {commercial.person ? (
+            <View style={styles.commInfoCol}>
+              <Text style={styles.commInfoLabel}>Contact</Text>
+              <Text style={styles.commInfoValue}>{commercial.person.name ?? "—"}</Text>
+            </View>
+          ) : null}
+        </View>
+      ) : null}
+
+      <Text style={styles.sectionTitle}>Quote line items</Text>
+      <View>
+        <View style={styles.commHeaderRow}>
+          {CUSTOMER_PROPOSAL_COLUMNS.map((col) => (
+            <Text
+              key={col.header}
+              style={[
+                styles.commTh,
+                col.width == null ? { flex: 1 } : { width: col.width },
+                col.align === "right" ? { textAlign: "right" } : {},
+              ]}
+            >
+              {col.header}
+            </Text>
+          ))}
+        </View>
+
+        {sortedLines.map((line, i) => (
+          <View key={i} style={styles.commTr} wrap={false}>
+            <Text style={[styles.commTdMuted, { width: CP_CODE }]}>{line.productCode ?? "—"}</Text>
+            <Text style={[styles.commTd, { flex: 1 }]}>{line.productName ?? "—"}</Text>
+            {line.isInfoOnly ? (
+              <>
+                <Text style={[styles.commTd, { width: CP_PRICE }]} />
+                <Text style={[styles.commTdRight, { width: CP_QTY }]}>{line.quantity ?? "—"}</Text>
+                <Text style={[styles.commTd, { width: CP_TOTAL }]} />
+              </>
+            ) : (
+              <>
+                <Text style={[styles.commTdRight, { width: CP_PRICE }]}>{fmtMoney(line.priceEach, currency)}</Text>
+                <Text style={[styles.commTdRight, { width: CP_QTY }]}>{line.quantity ?? "—"}</Text>
+                <Text style={[styles.commTdRight, { width: CP_TOTAL }]}>{fmtMoney(line.productTotal, currency)}</Text>
+              </>
+            )}
+          </View>
+        ))}
+
+        {/* Grand total = recomputed sum of MSRP line totals (customer-proposal.ts),
+            never the inherited partner/deal total. */}
+        <View style={styles.commTotalRow}>
+          <Text style={styles.commTotalLabel}>Total</Text>
+          <Text style={[styles.commTotalValue, { width: CP_TOTAL }]}>
+            {fmtMoney(commercial.grandTotal, currency)}
+          </Text>
+        </View>
+      </View>
+
+      <Text style={styles.tableNote}>All amounts in USD.</Text>
+    </>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Main component
 // ---------------------------------------------------------------------------
 
 export function ProjectQuotePdf({ data }: { data: ProjectQuotePdfInput }) {
-  const { snapshot, logoDataUri, showcaseHeroDataUris } = data;
-  const { commercial, sizing, terms, generation } = snapshot;
-  // Guard: rows frozen between ADR 0065 and 0066 have no `showcase` field.
-  const showcase = snapshot.showcase ?? [];
+  const { sizing, showcase, terms, generation, logoDataUri, partnerLogoDataUri, showcaseHeroDataUris } =
+    data;
+  const isCustomer = data.variant === "customer-proposal";
+  const badge = isCustomer ? "CUSTOMER PROPOSAL" : "PROJECT QUOTE";
+  // PDF metadata title — scrubbed of any partner/discount reference. The
+  // identifier is dealId-V#-date, which carries no pricing.
+  const docTitle = isCustomer
+    ? `Arxys Customer Proposal ${generation.identifier}`
+    : `Arxys Project Quote ${generation.identifier}`;
 
   const generatedDateStr = fmtDate(generation.generatedAt);
   const expiryDateStr = fmtExpiryDate(generation.generatedAt, generation.validityDays);
@@ -790,19 +1075,14 @@ export function ProjectQuotePdf({ data }: { data: ProjectQuotePdfInput }) {
   const camStoreWidth = showVendorModel ? CAMB_STORE : CAMA_STORE;
   const camTotalsLabelWidth = showVendorModel ? CAMB_TOTALS_LABEL : CAMA_TOTALS_LABEL;
 
-  // ── Page 3: Commercial ────────────────────────────────────────────────────
-
-  // Sorted by orderNr ascending (to match the rep's Pipedrive display order).
-  // The binding rule mandates verbatim rendering; no price is recomputed here.
-  const sortedLines = sortLineItemsByOrderNr(commercial.lineItems);
-  const { currency } = commercial;
-
   return (
-    <Document title={`Arxys Project Quote ${generation.identifier}`}>
+    <Document title={docTitle}>
       {/* ── Page 1: Sizing ─────────────────────────────────────────────── */}
       <Page size="LETTER" style={styles.page}>
         <PageHeader
           logoDataUri={logoDataUri}
+          partnerLogoDataUri={partnerLogoDataUri}
+          badge={badge}
           identifier={generation.identifier}
           generatedDateStr={generatedDateStr}
           disclaimer={headerDisclaimer}
@@ -899,42 +1179,51 @@ export function ProjectQuotePdf({ data }: { data: ProjectQuotePdfInput }) {
           modeling; actual results depend on camera models, scene conditions, and VMS
           configuration. All figures assume even camera distribution across recording servers.
         </Text>
-        <Text style={styles.tableNote}>
-          Figures below reflect the camera requirements from the original calculator
-          submission, not the equipment quoted in this document. See the quoted solution on
-          page 2 for actual delivered capacity.
-        </Text>
+        {/* System capacity (page 1) — the ORIGINAL calculator requirement vs the
+            recommended server. Removed from the Customer Proposal (ADR 0089 §3):
+            it reflects the calculator submission the end customer did not make.
+            The note below it, which points at these bars, goes with them. */}
+        {!isCustomer ? (
+          <>
+            <Text style={styles.tableNote}>
+              Figures below reflect the camera requirements from the original calculator
+              submission, not the equipment quoted in this document. See the quoted solution on
+              page 2 for actual delivered capacity.
+            </Text>
 
-        {/* System capacity */}
-        <View wrap={false}>
-          <Text style={styles.sectionTitle}>System capacity</Text>
-          <CapacityBar
-            label="Total storage"
-            fillPct={storagePct}
-            color={ARXYS_NAVY}
-            value={
-              availableStorageTb
-                ? `${fmtTb(sizing.storageTb)} of ${fmtTb(availableStorageTb)} usable`
-                : `${fmtTb(sizing.storageTb)} required`
-            }
-          />
-          <CapacityBar
-            label="Bandwidth"
-            fillPct={bandwidthPct}
-            color={ARXYS_NAVY}
-            value={
-              availableBandwidthMbps
-                ? `${fmtMbps(sizing.bandwidthMbps)} of ${fmtMbps(availableBandwidthMbps)}`
-                : `${fmtMbps(sizing.bandwidthMbps)} required`
-            }
-          />
-        </View>
+            <View wrap={false}>
+              <Text style={styles.sectionTitle}>System capacity</Text>
+              <CapacityBar
+                label="Total storage"
+                fillPct={storagePct}
+                color={ARXYS_NAVY}
+                value={
+                  availableStorageTb
+                    ? `${fmtTb(sizing.storageTb)} of ${fmtTb(availableStorageTb)} usable`
+                    : `${fmtTb(sizing.storageTb)} required`
+                }
+              />
+              <CapacityBar
+                label="Bandwidth"
+                fillPct={bandwidthPct}
+                color={ARXYS_NAVY}
+                value={
+                  availableBandwidthMbps
+                    ? `${fmtMbps(sizing.bandwidthMbps)} of ${fmtMbps(availableBandwidthMbps)}`
+                    : `${fmtMbps(sizing.bandwidthMbps)} required`
+                }
+              />
+            </View>
+          </>
+        ) : null}
       </Page>
 
       {/* ── Page 2: Products showcase ───────────────────────────────────── */}
       <Page size="LETTER" style={styles.page}>
         <PageHeader
           logoDataUri={logoDataUri}
+          partnerLogoDataUri={partnerLogoDataUri}
+          badge={badge}
           identifier={generation.identifier}
           generatedDateStr={generatedDateStr}
           disclaimer={headerDisclaimer}
@@ -1000,7 +1289,7 @@ export function ProjectQuotePdf({ data }: { data: ProjectQuotePdfInput }) {
             equipment to measure; same bar pattern as page 1's System capacity. */}
         {showcase.length > 0
           ? (() => {
-              const quoted = sumQuotedCapacity(showcase, commercial.lineItems);
+              const quoted = sumQuotedCapacity(showcase, data.commercial.lineItems);
               const storagePct =
                 quoted.usableStorageTb > 0
                   ? (sizing.storageTb / quoted.usableStorageTb) * 100
@@ -1046,143 +1335,23 @@ export function ProjectQuotePdf({ data }: { data: ProjectQuotePdfInput }) {
       <Page size="LETTER" style={styles.page}>
         <PageHeader
           logoDataUri={logoDataUri}
+          partnerLogoDataUri={partnerLogoDataUri}
+          badge={badge}
           identifier={generation.identifier}
           generatedDateStr={generatedDateStr}
           disclaimer={headerDisclaimer}
         />
         <PageFooter identifier={generation.identifier} validityLine={validityLine} />
 
-        {/* Deal / customer info */}
-        <View style={styles.commInfoBlock}>
-          {commercial.organization ? (
-            <View style={styles.commInfoCol}>
-              <Text style={styles.commInfoLabel}>Customer</Text>
-              <Text style={styles.commInfoValue}>
-                {commercial.organization.name ?? "—"}
-              </Text>
-            </View>
-          ) : null}
-          {commercial.person ? (
-            <View style={styles.commInfoCol}>
-              <Text style={styles.commInfoLabel}>Contact</Text>
-              <Text style={styles.commInfoValue}>
-                {commercial.person.name ?? "—"}
-              </Text>
-            </View>
-          ) : null}
-          <View style={styles.commInfoCol}>
-            <Text style={styles.commInfoLabel}>Deal</Text>
-            <Text style={styles.commInfoValue}>
-              {commercial.dealTitle ?? generation.identifier}
-            </Text>
-          </View>
-        </View>
-
-        {/* Line-item table */}
-        <Text style={styles.sectionTitle}>Quote line items</Text>
-        <View>
-          <View style={styles.commHeaderRow}>
-            {COMMERCIAL_COLUMNS.map((col) => (
-              <Text
-                key={col.header}
-                style={[
-                  styles.commTh,
-                  col.width == null ? { flex: 1 } : { width: col.width },
-                  col.align === "right" ? { textAlign: "right" } : {},
-                ]}
-              >
-                {col.header}
-              </Text>
-            ))}
-          </View>
-
-          {/* CODE · PRODUCT · MSRP EACH · DISC % · PARTNER EACH · QTY · PARTNER
-              TOTAL. MSRP/disc are raw; partner-each and partner-total are
-              DERIVED at render (derivePartnerEach / derivePartnerTotal) — never
-              read from the snapshot. Info-only lines blank the four money cells
-              but keep the quantity. */}
-          {sortedLines.map((line, i) => (
-            <View key={i} style={styles.commTr} wrap={false}>
-              <Text style={[styles.commTdMuted, { width: COM_CODE }]}>
-                {line.productCode ?? "—"}
-              </Text>
-              <Text style={[styles.commTd, { flex: 1 }]}>{line.productName ?? "—"}</Text>
-              {line.isInfoOnly ? (
-                <>
-                  <Text style={[styles.commTd, { width: COM_MSRP }]} />
-                  <Text style={[styles.commTd, { width: COM_DISC }]} />
-                  <Text style={[styles.commTd, { width: COM_PARTNER_EACH }]} />
-                  <Text style={[styles.commTdRight, { width: COM_QTY }]}>
-                    {line.quantity ?? "—"}
-                  </Text>
-                  <Text style={[styles.commTd, { width: COM_PARTNER_TOTAL }]} />
-                </>
-              ) : (
-                <>
-                  <Text style={[styles.commTdRight, { width: COM_MSRP }]}>
-                    {fmtMoney(line.unitPrice, currency)}
-                  </Text>
-                  <Text style={[styles.commTdRight, { width: COM_DISC }]}>
-                    {fmtDiscountPct(line)}
-                  </Text>
-                  <Text style={[styles.commTdRight, { width: COM_PARTNER_EACH }]}>
-                    {fmtMoney(derivePartnerEach(line), currency)}
-                  </Text>
-                  <Text style={[styles.commTdRight, { width: COM_QTY }]}>
-                    {line.quantity ?? "—"}
-                  </Text>
-                  <Text style={[styles.commTdRight, { width: COM_PARTNER_TOTAL }]}>
-                    {fmtMoney(derivePartnerTotal(line), currency)}
-                  </Text>
-                </>
-              )}
-            </View>
-          ))}
-
-          {/* productTotal rendered verbatim — never re-summed from lines */}
-          <View style={styles.commTotalRow}>
-            <Text style={styles.commTotalLabel}>
-              {commercial.additionalDiscounts != null
-                ? "Subtotal (before additional discounts)"
-                : "Total"}
-            </Text>
-            <Text style={styles.commTotalValue}>
-              {fmtMoney(commercial.productTotal, currency)}
-            </Text>
-          </View>
-
-          {commercial.additionalDiscounts != null ? (
-            <View style={{ flexDirection: "row", marginTop: 4 }}>
-              <Text style={{ flex: 1, fontSize: 8, color: TEXT_MUTED, paddingHorizontal: 5 }}>
-                Additional discounts
-              </Text>
-              <Text
-                style={{
-                  width: COM_PARTNER_TOTAL,
-                  fontSize: 8,
-                  color: TEXT_MUTED,
-                  textAlign: "right",
-                  paddingHorizontal: 5,
-                }}
-              >
-                {fmtMoney(commercial.additionalDiscounts, currency)}
-              </Text>
-            </View>
-          ) : null}
-        </View>
-
-        {currency ? (
-          <Text style={styles.tableNote}>All amounts in {currency}. Partner pricing as quoted.</Text>
-        ) : null}
-
-        {/* PO price lock (ADR 0085) — worded on Arxys's ACCEPTANCE of the PO,
-            not the buyer issuing it. Complements (does not amend) the frozen
-            T&C text: pre-PO validity/subject-to-change language is about a
-            different moment than the post-acceptance lock. */}
-        <Text style={styles.tableNote}>
-          Once Arxys accepts your purchase order, the quoted price is locked for
-          that order.
-        </Text>
+        {/* Commercial content differs by variant. The Customer Proposal body is
+            typed to receive only the stripped view (customer-proposal.ts), so it
+            cannot reach a partner/discount value; the Project Quote body renders
+            the full partner economics as before. */}
+        {data.variant === "customer-proposal" ? (
+          <CustomerProposalCommercialBody commercial={data.commercial} />
+        ) : (
+          <ProjectCommercialBody commercial={data.commercial} generation={generation} />
+        )}
 
         {/* Terms / Shipping / FOB — static, pushed to the bottom of the page
             above the fixed footer (marginTop:auto on fobBlock). */}
@@ -1197,9 +1366,13 @@ export function ProjectQuotePdf({ data }: { data: ProjectQuotePdfInput }) {
       </Page>
 
       {/* ── Page 4: Terms ───────────────────────────────────────────────── */}
+      {/* Removed entirely from the Customer Proposal (ADR 0089 §3). */}
+      {!isCustomer ? (
       <Page size="LETTER" style={styles.page}>
         <PageHeader
           logoDataUri={logoDataUri}
+          partnerLogoDataUri={partnerLogoDataUri}
+          badge={badge}
           identifier={generation.identifier}
           generatedDateStr={generatedDateStr}
           disclaimer={headerDisclaimer}
@@ -1242,6 +1415,7 @@ export function ProjectQuotePdf({ data }: { data: ProjectQuotePdfInput }) {
           </Text>
         ))}
       </Page>
+      ) : null}
     </Document>
   );
 }

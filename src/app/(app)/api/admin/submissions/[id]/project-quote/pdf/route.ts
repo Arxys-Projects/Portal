@@ -5,6 +5,7 @@ import {
   projectQuotePdfFilename,
   renderProjectQuotePdfBuffer,
 } from "@/lib/project-quote/render";
+import { resolveSubmissionOwnerLogoDataUri } from "@/lib/storage/partner-logo";
 
 // @react-pdf/renderer needs the Node runtime (node:zlib and friends), same as
 // the System Estimate PDF route.
@@ -41,7 +42,11 @@ export async function GET(
   const current = await loadCurrentProjectQuote(id, supabase);
   if (!current) return new NextResponse("Not found", { status: 404 });
 
-  const buffer = await renderProjectQuotePdfBuffer(current.snapshot);
+  // Partner logo (center header), resolved live from the submission's owning
+  // partner (ADR 0089 §5); null renders a blank slot.
+  const partnerLogoDataUri = await resolveSubmissionOwnerLogoDataUri(supabase, id);
+
+  const buffer = await renderProjectQuotePdfBuffer(current.snapshot, { partnerLogoDataUri });
   const filename = projectQuotePdfFilename(current.snapshot);
 
   return new NextResponse(new Uint8Array(buffer), {

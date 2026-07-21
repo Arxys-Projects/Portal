@@ -13,6 +13,7 @@ import {
   type GenerateProjectQuoteResult,
 } from "@/lib/project-quote/generate";
 import { pipedriveClient } from "@/lib/pipedrive/client";
+import { resolveSubmissionOwnerLogoDataUri } from "@/lib/storage/partner-logo";
 
 // ===========================================================================
 // Generate Project Quote — internal-only server action (Phase 10 Step 6).
@@ -54,10 +55,16 @@ export async function generateProjectQuote(
     caller?.status === "active" && (caller.is_internal === true || caller.role === "admin");
   if (!allowed) return { ok: false, error: NOT_INTERNAL };
 
+  // ADR 0089 (decision 2026-07-20): brand the Pipedrive-attached Project Quote
+  // with the owning partner's logo too. Resolved once here (live, not frozen);
+  // null degrades to a blank header slot, so a partner with no logo is
+  // unaffected. Non-fatal by construction — a null just means no logo.
+  const partnerLogoDataUri = await resolveSubmissionOwnerLogoDataUri(supabase, submissionId);
+
   const result = await generateProjectQuoteCore(submissionId, {
     supabase,
     assemble: (sid) => assembleProjectQuoteSnapshot(sid, supabase),
-    render: (snapshot) => renderProjectQuotePdfBuffer(snapshot),
+    render: (snapshot) => renderProjectQuotePdfBuffer(snapshot, { partnerLogoDataUri }),
     filename: (snapshot) => projectQuotePdfFilename(snapshot),
     deliver: (dealId, filename, buffer) => pipedriveClient.addDealFile(dealId, filename, buffer),
     updateDealTitle: (dealId, newTitle) =>

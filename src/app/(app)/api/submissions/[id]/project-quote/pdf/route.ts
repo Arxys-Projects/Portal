@@ -5,9 +5,11 @@ import {
   loadProjectQuoteVersion,
 } from "@/lib/project-quote/assemble";
 import {
-  projectQuotePdfFilename,
+  projectQuoteVariantFilename,
   renderProjectQuotePdfBuffer,
+  type ProjectQuoteVariant,
 } from "@/lib/project-quote/render";
+import { loadPartnerLogoDataUriById } from "@/lib/storage/partner-logo";
 
 // @react-pdf/renderer needs the Node runtime (node:zlib and friends), same as
 // the System Estimate PDF route.
@@ -71,6 +73,20 @@ export async function GET(
   // Optional specific revision; default = derived current (max version).
   const url = new URL(request.url);
   const versionParam = url.searchParams.get("version");
+  // ADR 0089 — same route serves both documents via ?variant=. Default is the
+  // Project Quote (partner pricing); "customer-proposal" renders the stripped
+  // end-customer version. Same row, same RLS — no new access surface.
+  const variantParam = url.searchParams.get("variant");
+  if (
+    variantParam !== null &&
+    variantParam !== "project-quote" &&
+    variantParam !== "customer-proposal"
+  ) {
+    return new NextResponse("Invalid variant", { status: 400 });
+  }
+  const variant: ProjectQuoteVariant =
+    variantParam === "customer-proposal" ? "customer-proposal" : "project-quote";
+
   let quote;
   if (versionParam !== null) {
     const version = Number.parseInt(versionParam, 10);
@@ -83,8 +99,14 @@ export async function GET(
   }
   if (!quote) return new NextResponse("Not found", { status: 404 });
 
-  const buffer = await renderProjectQuotePdfBuffer(quote.snapshot);
-  const filename = projectQuotePdfFilename(quote.snapshot);
+  // Partner logo (center header), resolved LIVE from the OWNING partner — the
+  // on-behalf target when set, else the creator (ADR 0089 §5). Not frozen in
+  // the snapshot; a missing logo renders a blank, non-shifting slot.
+  const ownerId = submission.on_behalf_of_partner_id ?? submission.partner_id;
+  const partnerLogoDataUri = await loadPartnerLogoDataUriById(supabase, ownerId);
+
+  const buffer = await renderProjectQuotePdfBuffer(quote.snapshot, { variant, partnerLogoDataUri });
+  const filename = projectQuoteVariantFilename(quote.snapshot, variant);
 
   return new NextResponse(new Uint8Array(buffer), {
     status: 200,
