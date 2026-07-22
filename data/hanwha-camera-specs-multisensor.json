@@ -226,5 +226,53 @@
     "currently_shipping": true,
     "source_url": "https://hanwhavisionamerica.com/product/pnm-c32084rqz/",
     "as_of_date": "2026-06-23"
+  },
+  {
+    "vendor": "Hanwha",
+    "model": "PNM-9022V",
+    "model_aliases": ["9022V", "PNM 9022V", "PNM9022V", "Wisenet PNM-9022V", "PNM-9022V 8MP panoramic"],
+    "sensor_count": 4,
+    "max_width": 1920,
+    "max_height": 1080,
+    "sensor_detail": {"sensors": 4, "per_sensor": "1920x1080", "per_sensor_mp": 2, "total_mp": 8, "note": "180°/209° multi-directional; 4x 2MP sensors, ~8.3MP stitched panorama"},
+    "currently_shipping": true,
+    "source_url": "https://hanwhavisionamerica.com/product/pnm-9022v/",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Hanwha",
+    "model": "PNM-9020V",
+    "model_aliases": ["9020V", "PNM 9020V", "PNM9020V", "Wisenet PNM-9020V", "PNM-9020V 7.3MP panoramic"],
+    "sensor_count": 1,
+    "max_width": 4096,
+    "max_height": 1800,
+    "sensor_detail": {"imagers": 4, "output": "single stitched 4096x1800 panorama", "total_mp": 7.3, "modeled_as": "1 stream at 4096x1800", "note": "DISCONTINUED. 4-imager 180° panoramic delivered as one fixed 7.3MP stitched stream; modeled as a single 7.3MP sensor for storage"},
+    "currently_shipping": false,
+    "source_url": "https://www.hanwhavision.com/en/products/camera/network/multi-sensor/pnm-9020v/",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Hanwha",
+    "model": "PNM-7002VD",
+    "model_aliases": ["7002VD", "PNM 7002VD", "PNM7002VD", "Wisenet PNM-7002VD", "PNM-7002VD 4MP multidirectional"],
+    "sensor_count": 2,
+    "max_width": 1920,
+    "max_height": 1080,
+    "sensor_detail": {"sensors": 2, "per_sensor": "1920x1080", "per_sensor_mp": 2, "total_mp": 4, "note": "2MP x 2CH multi-directional; same resolution profile as PNM-7082RVD"},
+    "currently_shipping": true,
+    "source_url": "https://www.hanwhavision.com/en/products/camera/network/multi-sensor/pnm-7002vd/",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Hanwha",
+    "model": "PNM-9322VQP",
+    "model_aliases": ["9322VQP", "PNM 9322VQP", "PNM9322VQP", "Wisenet PNM-9322VQP", "PNM-9322VQP multidirectional PTZ combo"],
+    "sensor_count": 5,
+    "max_width": 2592,
+    "max_height": 1944,
+    "sensor_detail": {"sensors": 5, "type": "combo: 4 fixed multidirectional (2-5MP exchangeable modules, 8-20MP total) + 1 PTZ 2MP 32x", "fixed_sensors": {"count": 4, "per_sensor": "2592x1944", "mp": 5}, "ptz_sensor": {"count": 1, "mp": 2}, "sized_per_sensor": "2592x1944", "note": "MIXED resolution. Conservative approximation per ADR 0058/0071: all 5 sensors sized at the highest 5MP fixed head"},
+    "currently_shipping": true,
+    "source_url": "https://www.hanwhavision.com/en/products/camera/network/multi-sensor/PNM-9322VQP/overview/",
+    "as_of_date": "2026-07-22"
   }
 ]

@@ -4,6 +4,34 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-07-22 — Add 10 Hanwha camera models to the calculator seed
+
+### Work done
+
+- Cross-referenced a list of recommended Hanwha models against the live `camera_specs` table; 10 were missing. Added them to the JSON seeds and loaded to Supabase via the gated `scripts/load-camera-specs.ts` (validate → dry-run → CONFIRM upsert on `(vendor, model)`). Hanwha rows 43 → 53. Each spec (resolution / sensor count) verified against Hanwha Vision product pages before seeding, since these values feed the storage/bandwidth math.
+- **Single-sensor** (`data/hanwha-camera-specs.json`): `TNV-8010C`, `TNV-8011C` (5MP corner), `QND-8080R` (5MP indoor dome), `QNF-9010`, `XNF-9010RV` (12MP fisheye, 3008×3008), `QNV-C9083R` (4K dome, sized to match its `XNV-/XNO-C9083R` siblings at 3840×2160).
+- **Multi-sensor** (`data/hanwha-camera-specs-multisensor.json`): `PNM-9022V` (4× 2MP panoramic), `PNM-7002VD` (2× 2MP), `PNM-9322VQP` (multidirectional+PTZ combo — modeled sensor_count=5 sized at the 5MP head, following the `PNM-C19183RVTP`/`PNM-C34404RQPZ` conservative-approximation convention from ADR 0058/0071), `PNM-9020V` (7.3MP stitched panoramic, marked `currently_shipping: false` — discontinued; modeled as one 4096×1800 stream).
+
+### Detours & fixes
+
+- **Two recommended strings were not real/current SKUs.** `PNM-9084VD` does not exist — Hanwha's 9084 line is only QZ/QZ1/RQZ/RQZ1, and `PNM-9084QZ1`/`PNM-9084RQZ1` were already seeded; skipped it. `TID-600R` is a video **intercom**, not a camera, so it does not belong in `camera_specs`; skipped it. Both flagged to Andy rather than seeded.
+- **`PNM-9020V` is discontinued** (per distributor listings) but kept as a reference model via the existing `currently_shipping` flag rather than omitted.
+
+---
+
+## 2026-07-22 — Ship ADR 0089 to production (merge + migrations applied)
+
+### Work done
+
+- Applied the three stop-and-flag migrations to production Supabase via the dashboard SQL editor, in apply-note order: `20260720000001_project_quotes_partner_select.sql` (ADR 0083 gate) → `20260721000001_partners_logo_path.sql` → `20260721000002_partner_logos_bucket.sql` (public-read / admin-write bucket confirmed).
+- Fast-forwarded `main` to `feat/0089-customer-proposal-logo` (`5e37fcb`) and pushed to `origin/main`; Vercel promoted the production build. Quotes + partner-logo feature verified working in production (logo upload → renders in both Project Quote and Customer Proposal headers).
+
+### Detours & fixes
+
+- **"Multiple competing builds / quotes+logos not the latest" in Vercel — root cause: never merged.** The 0089 work was committed and pushed 2026-07-21 to `feat/0089-customer-proposal-logo` and `chore/streamvault-comparison-export` was pushed the same day; both showed as Vercel *preview* deployments (the chore branch being newest by timestamp). Production still tracked `main` @ `6a66f54` (2026-07-20), which predated the feature — so the newer preview builds made it *look* like production had regressed. Git was healthy throughout (no force-push, no lost commits); `main` was a strict ancestor of the feat branch, so the fix was a clean `--ff-only` merge. Resolution: apply migrations → fast-forward `main` → push.
+
+---
+
 ## 2026-07-21 — Customer Proposal document + partner logo system (ADR 0089)
 
 ### Work done

@@ -286,5 +286,77 @@
     "currently_shipping": true,
     "source_url": "https://hanwhavisionamerica.com/product/xno-a8084r/",
     "as_of_date": "2026-06-22"
+  },
+  {
+    "vendor": "Hanwha",
+    "model": "TNV-8010C",
+    "model_aliases": ["TNV8010C", "TNV-8010", "Wisenet TNV-8010C", "TNV-8010C 5MP corner"],
+    "sensor_count": 1,
+    "max_width": 2592,
+    "max_height": 1944,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://hanwhavisionamerica.com/product/tnv-8010c/",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Hanwha",
+    "model": "TNV-8011C",
+    "model_aliases": ["TNV8011C", "TNV-8011", "Wisenet TNV-8011C", "TNV-8011C anti-ligature corner"],
+    "sensor_count": 1,
+    "max_width": 2592,
+    "max_height": 1944,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://hanwhavisionamerica.com/product/tnv-8011c/",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Hanwha",
+    "model": "QND-8080R",
+    "model_aliases": ["QND8080R", "QND-8080", "Wisenet QND-8080R", "QND-8080R 5MP indoor dome"],
+    "sensor_count": 1,
+    "max_width": 2592,
+    "max_height": 1944,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.hanwhavision.com/en/products/camera/network/dome/qnd-8080r/",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Hanwha",
+    "model": "QNF-9010",
+    "model_aliases": ["QNF9010", "Wisenet QNF-9010", "QNF-9010 12MP indoor fisheye"],
+    "sensor_count": 1,
+    "max_width": 3008,
+    "max_height": 3008,
+    "sensor_detail": {"type": "fisheye 360", "native": "3008x3008", "mp": 12},
+    "currently_shipping": true,
+    "source_url": "https://hanwhavisionamerica.com/product/qnf-9010/",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Hanwha",
+    "model": "XNF-9010RV",
+    "model_aliases": ["XNF9010RV", "XNF-9010", "Wisenet XNF-9010RV", "XNF-9010RV 12MP outdoor IR fisheye"],
+    "sensor_count": 1,
+    "max_width": 3008,
+    "max_height": 3008,
+    "sensor_detail": {"type": "fisheye 360 outdoor IR", "native": "3008x3008", "mp": 12},
+    "currently_shipping": true,
+    "source_url": "https://hanwhavisionamerica.com/product/xnf-9010rv/",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Hanwha",
+    "model": "QNV-C9083R",
+    "model_aliases": ["QNVC9083R", "QNV-C9083", "Wisenet QNV-C9083R", "QNV-C9083R 4K AI vandal dome"],
+    "sensor_count": 1,
+    "max_width": 3840,
+    "max_height": 2160,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://hanwhavisionamerica.com/product/qnv-c9083r/",
+    "as_of_date": "2026-07-22"
   }
 ]
