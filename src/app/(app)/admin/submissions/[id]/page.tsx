@@ -15,6 +15,7 @@ import {
   GenerateQuoteTopButton,
   type CurrentQuoteSummary,
 } from "./_components/project-quote-panel";
+import { RelinkPipedriveButton } from "./_components/relink-pipedrive-button";
 
 export default async function AdminSubmissionDetailPage({
   params,
@@ -133,6 +134,11 @@ export default async function AdminSubmissionDetailPage({
         mode="admin"
         lineage={lineage}
         canRevise={isInternal}
+        relinkPipedriveButton={
+          isInternal && !submission.pipedrive_deal_id ? (
+            <RelinkPipedriveButton submissionId={id} />
+          ) : undefined
+        }
         generateQuoteButton={
           isInternal ? (
             <GenerateQuoteTopButton

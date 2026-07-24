@@ -138,6 +138,7 @@ export function SubmissionDetail({
   generateQuoteButton,
   projectQuotePanel,
   lineage,
+  relinkPipedriveButton,
 }: {
   submission: SubmissionDetailRow;
   partner?: SubmissionPartnerSummary;
@@ -146,6 +147,9 @@ export function SubmissionDetail({
   generateQuoteButton?: ReactNode;
   projectQuotePanel?: ReactNode;
   lineage?: SubmissionLineageSummary;
+  // ADR 0093 step 3 — "Retry Pipedrive link" control, supplied by the admin
+  // page when the viewer may act on it. Replaces the bare "no deal linked" text.
+  relinkPipedriveButton?: ReactNode;
 }) {
   const groups = extractGroups(submission.groups_payload);
   // Phase 2 Step 3+4: a UUID-shaped recommended_product_id signals a
@@ -253,11 +257,13 @@ export function SubmissionDetail({
               Open Pipedrive deal #{submission.pipedrive_deal_id} ↗
             </a>
           ) : null}
-          {mode === "admin" && !submission.pipedrive_deal_id ? (
-            <span className="text-xs text-ink-soft">
-              No Pipedrive deal linked to this submission.
-            </span>
-          ) : null}
+          {mode === "admin" && !submission.pipedrive_deal_id
+            ? (relinkPipedriveButton ?? (
+                <span className="text-xs text-ink-soft">
+                  No Pipedrive deal linked to this submission.
+                </span>
+              ))
+            : null}
         </div>
       </header>
 
