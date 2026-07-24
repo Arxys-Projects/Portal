@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   groupIntoDeals,
   computePipelineTotals,
+  supersededIds,
   type SubmissionRow,
   type PartnerRow,
 } from "./forecast";
@@ -145,6 +146,88 @@ describe("groupIntoDeals — on-behalf-of (Phase 7 Step 1)", () => {
     const deals = groupIntoDeals(subs, PARTNERS);
     assert.equal(deals[0].partner_id, "p1");
     assert.equal(deals[0].partner_name, "Acme Corp");
+  });
+});
+
+describe("groupIntoDeals — revision lineage (ADR 0093 step 2)", () => {
+  it("merges a revised submission with its source even when the project name changed", () => {
+    // This is the exact recurring bug: revise edits the project name, so a
+    // pure text match would (and did) leave two separate "Open" deals.
+    const subs = [
+      sub({
+        id: "v1",
+        project_name: "North Bergen SD - Grant Quote",
+        total_list_price_usd: 171532,
+        created_at: "2026-07-24T10:00:00Z",
+      }),
+      sub({
+        id: "v2",
+        project_name: "North Bergen SD - Grant Quote Revised",
+        parent_submission_id: "v1",
+        total_list_price_usd: 225844,
+        created_at: "2026-07-24T11:00:00Z",
+      }),
+    ];
+    const deals = groupIntoDeals(subs, PARTNERS);
+    assert.equal(deals.length, 1);
+    assert.equal(deals[0].all_submission_ids.length, 2);
+    assert.equal(deals[0].representative_id, "v2");
+    assert.equal(deals[0].total_list_price_usd, 225844);
+  });
+
+  it("never lets a superseded (has-a-child) row win representative selection, even if its clock is newer", () => {
+    const subs = [
+      sub({
+        id: "v1",
+        parent_submission_id: null,
+        created_at: "2026-07-24T12:00:00Z", // clock skew: "later" than v2
+        total_list_price_usd: 171532,
+      }),
+      sub({
+        id: "v2",
+        parent_submission_id: "v1",
+        created_at: "2026-07-24T11:00:00Z",
+        total_list_price_usd: 225844,
+      }),
+    ];
+    const deals = groupIntoDeals(subs, PARTNERS);
+    assert.equal(deals.length, 1);
+    assert.equal(deals[0].representative_id, "v2");
+  });
+
+  it("an explicit is_preferred pin still wins over the lineage leaf", () => {
+    const subs = [
+      sub({ id: "v1", is_preferred: true, total_list_price_usd: 171532 }),
+      sub({ id: "v2", parent_submission_id: "v1", total_list_price_usd: 225844 }),
+    ];
+    const deals = groupIntoDeals(subs, PARTNERS);
+    assert.equal(deals[0].representative_id, "v1");
+  });
+
+  it("a parent_submission_id pointing outside the given submission set is ignored, not merged or thrown on", () => {
+    const subs = [
+      sub({ id: "v2", parent_submission_id: "not-in-this-batch" }),
+    ];
+    assert.doesNotThrow(() => groupIntoDeals(subs, PARTNERS));
+    const deals = groupIntoDeals(subs, PARTNERS);
+    assert.equal(deals.length, 1);
+  });
+});
+
+describe("supersededIds (ADR 0093 step 2)", () => {
+  it("marks a row superseded once another row's parent_submission_id points to it", () => {
+    const subs = [
+      sub({ id: "v1" }),
+      sub({ id: "v2", parent_submission_id: "v1" }),
+    ];
+    const ids = supersededIds(subs);
+    assert.equal(ids.has("v1"), true);
+    assert.equal(ids.has("v2"), false);
+  });
+
+  it("returns an empty set when no submission has a parent", () => {
+    const ids = supersededIds([sub({ id: "v1" }), sub({ id: "v2" })]);
+    assert.equal(ids.size, 0);
   });
 });
 

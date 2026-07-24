@@ -4,6 +4,31 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-07-24 — North Bergen SD, 5th recurrence — root-caused to the revise flow itself, shipped ADR 0093 step 2
+
+The user reported the bug rebreaking a 5th time and, critically, corrected the scope: "anytime a project is revised it breaks, on every project" — not just the North Bergen SD on-behalf case this ADR had been chasing. Traced the full `?revise=` flow end to end rather than patching the symptom again.
+
+### Root cause
+
+`submitCalculation` ([`calculator/actions.ts`](../src/app/(app)/calculator/actions.ts)) always `INSERT`s a new `submissions` row — by design, per ADR [0039](./decisions/0039-quote-revision-rehydration.md) ("a revision is a brand-new row, the source is never mutated"). Nothing anywhere ever closes or flags the source row afterward, so every revision — on-behalf or not, one user or many — leaves the old row `status = "open"` forever alongside a new, also-`"open"` row with a freshly recomputed price. ADR 0093's step-1 duplicate warning (shipped in PR #7) cannot catch this: its dup-check explicitly excludes the declared revision source from the "existing open" comparison, so on a plain single-user revise — the only case that recurred — nothing is left to warn about. Every prior "fix" addressed the two-independent-users race this ADR opened with, which is real but was never the actual recurring mechanism.
+
+### Work done
+
+- Shipped ADR 0093 step 2 (previously deferred pending migration approval — approved this session): additive `submissions.parent_submission_id` migration ([`20260724000001_submission_revision_lineage.sql`](../supabase/migrations/20260724000001_submission_revision_lineage.sql)), set on every revise from an RLS-validated source lookup in `submitCalculation`.
+- `groupIntoDeals` ([`lib/pipeline/forecast.ts`](../src/lib/pipeline/forecast.ts)) now merges deal buckets by lineage (union-find over the existing text-match buckets) instead of relying solely on an exact `(partner, project_name)` match, so a revise that also edits the project name still collapses into one deal. Representative selection now prefers the lineage leaf over a superseded row even under clock skew; `is_preferred` still overrides both. New `supersededIds()` helper.
+- Admin Grouped-view drill-down now badges a superseded row instead of showing two equally-"Open" rows; both submission detail pages (`/admin/submissions/[id]`, `/submissions/[id]`) show "Revision of …" / "Superseded by …" lineage links via new `loadSubmissionLineage()`.
+- 264/264 tests pass (6 new), `tsc --noEmit` clean. **Not yet applied to production** (`supabase db push`) or merged — see [ADR 0093](./decisions/0093-submission-duplicate-lineage-and-relink.md)'s "Correction" and "Step 2 status" sections for full detail.
+
+### Detours & fixes
+
+- **The four prior fix attempts targeted a real but incomplete diagnosis.** ADR 0093's original Context section reasoned from a two-different-users race condition, which is a genuine failure mode but not the one that kept recurring — a single user revising once was sufficient every time, and the step-1 warning was structurally blind to exactly that case (it exists to exclude the revision's own source from tripping a false positive, which is correct for its narrower purpose but meant it could never fire on the actual bug). Recorded directly in the ADR rather than only here, since the wrong-scope diagnosis is the more important thing to not repeat.
+
+### Decisions captured
+
+- Updated [0093-submission-duplicate-lineage-and-relink.md](./decisions/0093-submission-duplicate-lineage-and-relink.md) — status Accepted, step 2 implemented, root-cause correction recorded.
+
+---
+
 ## 2026-07-24 — North Bergen SD, 3rd recurrence — opened PR #7 to actually ship the fix
 
 A third orphan row (`7ada9fbb…`, no Pipedrive link, no `project_quotes`) appeared for the same North Bergen SD job after the previous cleanup. Root cause was not a new bug: ADR 0093 step 1 (below) had been committed and pushed to `fix/raid60-net-usable-capacity` but never merged to `main` — 6 commits ahead, no PR — so it had never actually deployed. The fix existing in git history was not the same as the fix being live; every recurrence between commit and merge was expected, not a regression.

@@ -17,6 +17,10 @@ type SubmissionMini = {
   is_preferred: boolean;
   total_list_price_usd: number | null;
   created_at: string;
+  // ADR 0093 step 2 — true when a later revision (parent_submission_id) points
+  // back to this row. Still status="open" in the DB (ADR 0081's lifecycle is
+  // deal-outcome, not revision position), but it is no longer the live copy.
+  superseded: boolean;
 };
 
 export type PartnerGroup = {
@@ -161,7 +165,12 @@ function DealRow({ deal }: { deal: Deal & { submissions: SubmissionMini[] } }) {
                 <tr key={s.id} className="border-t border-line-soft">
                   <td className="py-1.5 text-ink-soft">{formatDate(s.created_at)}</td>
                   <td className="py-1.5">
-                    <StatusBadge variant="status" status={s.status} />
+                    <div className="flex items-center gap-1.5">
+                      <StatusBadge variant="status" status={s.status} />
+                      {s.superseded ? (
+                        <StatusBadge variant="on-behalf">Superseded</StatusBadge>
+                      ) : null}
+                    </div>
                   </td>
                   <td className="py-1.5 text-right tabular-nums text-ink">
                     {formatPrice(s.total_list_price_usd)}

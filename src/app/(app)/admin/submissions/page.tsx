@@ -10,6 +10,7 @@ import {
 import {
   groupIntoDeals,
   computePipelineTotals,
+  supersededIds,
   type SubmissionRow,
 } from "@/lib/pipeline/forecast";
 import {
@@ -107,7 +108,8 @@ export default async function AdminSubmissionsPage({
       .select(
         `id, partner_id, project_name, status, is_preferred,
          total_list_price_usd, pipedrive_deal_id, created_at,
-         on_behalf_of_partner_id, on_behalf_of_company_name`,
+         on_behalf_of_partner_id, on_behalf_of_company_name,
+         parent_submission_id`,
       )
       .order("created_at", { ascending: false });
 
@@ -141,7 +143,12 @@ export default async function AdminSubmissionsPage({
       is_preferred: boolean;
       total_list_price_usd: number | null;
       created_at: string;
+      superseded: boolean;
     };
+    // ADR 0093 step 2 — a row another submission's parent_submission_id points
+    // to has been revised; the drill-down marks it Superseded rather than
+    // showing it as an equally-live Open row next to its replacement.
+    const superseded = supersededIds(submissions);
     const subById = new Map<string, SubMini>();
     for (const s of submissions) {
       subById.set(s.id, {
@@ -151,6 +158,7 @@ export default async function AdminSubmissionsPage({
         is_preferred: s.is_preferred,
         total_list_price_usd: s.total_list_price_usd,
         created_at: s.created_at,
+        superseded: superseded.has(s.id),
       });
     }
 
