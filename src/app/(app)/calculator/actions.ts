@@ -18,8 +18,11 @@ import { sendSubmissionNotification } from "@/lib/email/submission-notification"
 import { buildServerSpec, pdfFilename, renderSubmissionPdfBuffer } from "@/lib/pdf/render";
 import { loadHeroDataUri, loadLogoDataUri } from "@/lib/pdf/assets";
 import type { SubmissionPdfInput } from "@/lib/pdf/types";
-import { createDealFromSubmission, updateDealFromRevision } from "@/lib/pipedrive/deal";
-import { PipedriveError } from "@/lib/pipedrive/client";
+import {
+  createDealFromSubmission,
+  updateDealFromRevision,
+  isDealUneditableError,
+} from "@/lib/pipedrive/deal";
 import { dbError } from "@/lib/errors/safe-message";
 
 const groupSchema = z.object({
@@ -563,6 +566,7 @@ export async function submitCalculation(
       ].join("\n")
     : null;
 
+  let pipedriveWarnings: string[] = [];
   try {
     let dealId: number | undefined;
 
@@ -576,9 +580,16 @@ export async function submitCalculation(
         try {
           ({ dealId } = await updateDealFromRevision(sourceDealId, dealSubmission, recommendation));
         } catch (err) {
-          // The deal was deleted in Pipedrive since the source quote was filed.
-          // Fall back to a fresh deal; re-throw anything else to the outer log.
-          if (err instanceof PipedriveError && err.status === 404) {
+          // The source deal can no longer be edited — either gone (404) or
+          // DELETED in Pipedrive (400 ERR_DEAL_DELETED; soft-deleted deals
+          // never 404). Fall back to a fresh deal rather than re-throwing into
+          // the outer catch, which used to leave the revision with no deal at
+          // all. Anything else is a genuine failure and still propagates.
+          if (isDealUneditableError(err)) {
+            console.warn("pipedrive source deal uneditable — creating a fresh deal", {
+              sourceDealId,
+              submissionId: inserted.id,
+            });
             ({ dealId } = await createDealFromSubmission(dealSubmission, recommendation, dealPartner, onBehalfNote));
           } else {
             throw err;
@@ -588,15 +599,32 @@ export async function submitCalculation(
     }
 
     if (dealId === undefined) {
-      ({ dealId } = await createDealFromSubmission(dealSubmission, recommendation, dealPartner));
+      // onBehalfNote must be passed here too — it credits the internal rep on an
+      // on-behalf deal (ADR 0048). Omitting it silently dropped that attribution
+      // on every fresh on-behalf submission.
+      ({ dealId } = await createDealFromSubmission(
+        dealSubmission,
+        recommendation,
+        dealPartner,
+        onBehalfNote,
+      ));
     }
 
-    await supabase
+    const { error: linkError } = await supabase
       .from("submissions")
       .update({ pipedrive_deal_id: dealId })
       .eq("id", inserted.id);
+    if (linkError) throw linkError;
   } catch (err) {
+    // Pipedrive failure must not fail the submission (ADR 0020) — but it must
+    // not be INVISIBLE either. Leaving pipedrive_deal_id null with no signal is
+    // how revisions silently stopped reaching the CRM; the submitter now gets a
+    // warning through the same channel as the duplicate warning.
     console.error("pipedrive deal sync failed", { submissionId: inserted.id, error: err });
+    pipedriveWarnings = [
+      "This quote was saved, but it could NOT be linked to a Pipedrive deal — " +
+        "sales will not see this revision in the CRM. Ask an admin to re-link it.",
+    ];
   }
 
   return {
@@ -605,7 +633,7 @@ export async function submitCalculation(
     recommendation: {
       winner: recommendation.winner,
       alternatives: recommendation.alternatives,
-      warnings: [...recommendation.warnings, ...duplicateWarnings],
+      warnings: [...recommendation.warnings, ...duplicateWarnings, ...pipedriveWarnings],
       totals,
     },
   };

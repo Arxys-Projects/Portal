@@ -174,11 +174,15 @@ const fixturePartner = {
 
 let createDealFromSubmission: typeof import("./deal").createDealFromSubmission;
 let updateDealFromRevision: typeof import("./deal").updateDealFromRevision;
+let isDealUneditableError: typeof import("./deal").isDealUneditableError;
+let PipedriveErrorClass: typeof import("./client").PipedriveError;
 let resetCache: typeof import("./lookups").__resetLookupCache;
 
 before(async () => {
   installFetchMock();
-  ({ createDealFromSubmission, updateDealFromRevision } = await import("./deal"));
+  ({ createDealFromSubmission, updateDealFromRevision, isDealUneditableError } =
+    await import("./deal"));
+  ({ PipedriveError: PipedriveErrorClass } = await import("./client"));
   ({ __resetLookupCache: resetCache } = await import("./lookups"));
 });
 
@@ -537,5 +541,60 @@ describe("updateDealFromRevision", () => {
       fixtureRecommendation(),
     );
     assert.equal(result.dealId, EXISTING_DEAL_ID);
+  });
+});
+
+// ADR 0093 — the revise-loses-the-deal bug. Pipedrive SOFT-deletes deals, so a
+// deleted deal never 404s; editing it returns 400 with code ERR_DEAL_DELETED.
+// The revision path keyed its create-a-fresh-deal fallback on 404 alone, so
+// this shape re-threw into a swallow-and-log catch and the revision ended up
+// with pipedrive_deal_id = null. Confirmed against a real production log.
+describe("isDealUneditableError (ADR 0093)", () => {
+  it("treats 400 ERR_DEAL_DELETED as uneditable — the real production failure", () => {
+    const err = new PipedriveErrorClass(
+      400,
+      "Entity is deleted. You must first restore it before you can edit",
+      {
+        success: false,
+        error: "Entity is deleted. You must first restore it before you can edit",
+        code: "ERR_DEAL_DELETED",
+      },
+      "Please check developers.pipedrive.com for more information about Pipedrive API.",
+    );
+    assert.equal(isDealUneditableError(err), true);
+  });
+
+  it("still treats 404 as uneditable (the originally-handled case)", () => {
+    assert.equal(
+      isDealUneditableError(new PipedriveErrorClass(404, "not found", { success: false })),
+      true,
+    );
+  });
+
+  it("does NOT swallow an unrelated 400 — a real payload bug must still propagate", () => {
+    const err = new PipedriveErrorClass(400, "value must be a number", {
+      success: false,
+      error: "value must be a number",
+      code: "ERR_VALIDATION",
+    });
+    assert.equal(isDealUneditableError(err), false);
+  });
+
+  it("does NOT treat auth/rate-limit/server failures as uneditable", () => {
+    for (const status of [401, 403, 429, 500, 502]) {
+      assert.equal(
+        isDealUneditableError(new PipedriveErrorClass(status, "boom", { success: false })),
+        false,
+        `status ${status} must propagate, not silently create a duplicate deal`,
+      );
+    }
+  });
+
+  it("ignores non-Pipedrive errors and malformed bodies without throwing", () => {
+    assert.equal(isDealUneditableError(new Error("network down")), false);
+    assert.equal(isDealUneditableError(null), false);
+    assert.equal(isDealUneditableError(undefined), false);
+    assert.equal(isDealUneditableError(new PipedriveErrorClass(400, "x", null)), false);
+    assert.equal(isDealUneditableError(new PipedriveErrorClass(400, "x", "not-an-object")), false);
   });
 });

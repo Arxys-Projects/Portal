@@ -1,4 +1,4 @@
-import { pipedriveClient } from "./client";
+import { pipedriveClient, PipedriveError } from "./client";
 import { upsertOrganization, upsertPerson } from "./contacts";
 import {
   ensureCustomFields,
@@ -316,6 +316,29 @@ export async function createDealFromSubmission(
   }
 
   return { dealId: deal.id };
+}
+
+// Is this error Pipedrive telling us the target deal can no longer be edited,
+// so the only way forward is a fresh deal?
+//
+// Two distinct shapes mean the same thing, and BOTH must be handled:
+//   * 404 — the deal id is unknown (hard-gone, or never existed).
+//   * 400 with code ERR_DEAL_DELETED — the deal was DELETED in Pipedrive.
+//     Pipedrive soft-deletes: a deleted deal still resolves on GET (200, with
+//     deleted: true), so it never 404s, but any edit is rejected with
+//     "Entity is deleted. You must first restore it before you can edit".
+//
+// The 400 case is the common one in practice and was previously unhandled: the
+// revision path re-threw it into a swallow-and-log catch, so revising a quote
+// whose deal had been deleted left the new submission with NO deal at all and
+// no error surfaced. Deleting redundant deals is routine during duplicate
+// cleanup, which made this reproduce on essentially every revise of a
+// previously-cleaned-up project (see ADR 0093).
+export function isDealUneditableError(err: unknown): boolean {
+  if (!(err instanceof PipedriveError)) return false;
+  if (err.status === 404) return true;
+  const code = (err.body as { code?: unknown } | null | undefined)?.code;
+  return code === "ERR_DEAL_DELETED";
 }
 
 // Phase 4 Step 3 — non-destructive revision update.
