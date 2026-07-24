@@ -196,6 +196,37 @@ export async function submitCalculation(
     };
   }
 
+  // ADR 0093 guardrail — an on-behalf submission has no lineage tracking
+  // (ADR 0039: every revision is a brand-new row), so two internal reps can
+  // independently file for the same customer without either seeing the
+  // other's row. Warn (never block) when another `open` submission for the
+  // same on-behalf target already exists and isn't this submit's declared
+  // revision source. Scoped to on-behalf submissions only — a partner's own
+  // normal revision flow legitimately leaves its source row open and must not
+  // trigger this on every revise.
+  let duplicateWarnings: string[] = [];
+  if (onBehalfPartnerId || onBehalfCompanyName) {
+    const sinceIso = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
+    let dupQuery = supabase
+      .from("submissions")
+      .select("id, project_name, created_at")
+      .eq("status", "open")
+      .gte("created_at", sinceIso);
+    dupQuery = onBehalfPartnerId
+      ? dupQuery.eq("on_behalf_of_partner_id", onBehalfPartnerId)
+      : dupQuery.ilike("on_behalf_of_company_name", onBehalfCompanyName!.trim());
+    const { data: existingOpen } = await dupQuery;
+    const others = (existingOpen ?? []).filter((r) => r.id !== input.sourceSubmissionId);
+    if (others.length > 0) {
+      const names = others.map((r) => `"${r.project_name ?? "(untitled)"}"`).join(", ");
+      duplicateWarnings = [
+        `${others.length} other open submission${others.length > 1 ? "s" : ""} already ` +
+          `exist${others.length > 1 ? "" : "s"} for this customer from the last 14 days ` +
+          `(${names}) — check the admin Grouped view before this creates a second Pipedrive deal.`,
+      ];
+    }
+  }
+
   // Server-side recompute. Client totals are never trusted.
   //
   // Constant recording always writes at the full event rate, so motion% is
@@ -560,7 +591,7 @@ export async function submitCalculation(
     recommendation: {
       winner: recommendation.winner,
       alternatives: recommendation.alternatives,
-      warnings: recommendation.warnings,
+      warnings: [...recommendation.warnings, ...duplicateWarnings],
       totals,
     },
   };

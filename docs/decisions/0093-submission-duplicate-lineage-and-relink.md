@@ -1,6 +1,6 @@
 # 0093 — Submission revision lineage, delete-error surfacing, and Pipedrive relink
 
-- **Status**: Proposed
+- **Status**: Proposed (step 1 implemented in working tree 2026-07-24, not yet committed/deployed)
 - **Date**: 2026-07-24
 
 ## Context
@@ -42,3 +42,12 @@ Proposed sequencing (not yet started — this ADR scopes the work, it doesn't sh
 **Negative:** step 2 is a real migration and, per this repo's practice, ships only on migration approval, not silently alongside other work. Step 3 changes existing swallow-and-log behavior for Pipedrive sync, so it needs a regression check that existing revision-update flows (ADR 0040's non-destructive update) aren't disturbed by adding a stored failure state.
 
 **When to revisit:** if another duplicate-submission incident happens before this ships, that's the signal to prioritize step 1 (the no-migration guardrails) immediately rather than waiting to bundle it with the schema change.
+
+## Step 1 status (2026-07-24)
+
+Forced early: two more orphan drafts for the same North Bergen SD job appeared *after* the manual cleanup in the 2026-07-24 JOURNAL entry, confirming the bug was still fully live. Step 1 is implemented in the working tree (not yet committed or deployed):
+
+- `adminDeleteSubmission` ([`src/app/(app)/admin/submissions/actions.ts`](../../src/app/(app)/admin/submissions/actions.ts)) now checks the deleted row count (matching the partner-facing path) and returns "This submission can't be deleted because a quote has been generated from it." on a `23503` FK-restrict instead of the generic message.
+- `submitCalculation` ([`src/app/(app)/calculator/actions.ts`](../../src/app/(app)/calculator/actions.ts)) now warns (non-blocking, surfaced through the existing `recommendation.warnings` array) when another `open` submission already exists for the same on-behalf-of target within the last 14 days and isn't the current submit's declared revision source. Scoped to on-behalf submissions only, so a partner's own normal revision flow (whose source row stays open) never trips it.
+
+258/258 tests pass, `tsc --noEmit` clean. Steps 2 (`parent_submission_id` migration) and 3 (Pipedrive retry/relink action) remain proposed only.

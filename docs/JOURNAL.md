@@ -4,6 +4,22 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-07-24 — North Bergen SD recurrence + ADR 0093 step 1 (delete errors, duplicate warning)
+
+Two more orphan submission rows for the same North Bergen SD job (`14a2e3c2…`, `ac103da7…`) appeared shortly after the cleanup documented below — proof the underlying bug was still fully live, not that the earlier cleanup had failed. Treated as the "revisit" trigger [ADR 0093](./decisions/0093-submission-duplicate-lineage-and-relink.md) itself calls for.
+
+### Work done
+
+- Confirmed both new rows were the same safe-to-delete pattern (no Pipedrive link, no `project_quotes`) and deleted them after re-verifying immediately beforehand.
+- Implemented ADR 0093 step 1 in the working tree (not yet committed or deployed): `adminDeleteSubmission` now checks the deleted row count and returns a specific message on the `project_quotes` FK-restrict (`23503`) instead of a generic error ([`admin/submissions/actions.ts`](../src/app/(app)/admin/submissions/actions.ts)); `submitCalculation` now warns (non-blocking, via the existing `recommendation.warnings` array) when another `open` submission already exists for the same on-behalf-of target within 14 days and isn't the current submit's declared revision source ([`calculator/actions.ts`](../src/app/(app)/calculator/actions.ts)).
+- Verified with `npm test` (258/258 pass) and `tsc --noEmit` (clean). Steps 2 (`parent_submission_id` migration) and 3 (Pipedrive retry/relink) remain proposed only.
+
+### Decisions captured
+
+- Updated [0093-submission-duplicate-lineage-and-relink.md](./decisions/0093-submission-duplicate-lineage-and-relink.md) with a step 1 status section.
+
+---
+
 ## 2026-07-24 — Diagnosed and resolved duplicate North Bergen SD submission cluster
 
 ### Work done
