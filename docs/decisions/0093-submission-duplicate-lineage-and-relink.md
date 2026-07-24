@@ -1,6 +1,6 @@
 # 0093 — Submission revision lineage, delete-error surfacing, and Pipedrive relink
 
-- **Status**: Accepted — steps 1 and 2 shipped and live in production as of 2026-07-24 (step 1 via [PR #7](https://github.com/Arxys-Projects/Portal/pull/7); step 2 via [PR #8](https://github.com/Arxys-Projects/Portal/pull/8), merged directly to `main`)
+- **Status**: Accepted — steps 1 and 2 shipped and live 2026-07-24 (step 1 via [PR #7](https://github.com/Arxys-Projects/Portal/pull/7); step 2 via [PR #8](https://github.com/Arxys-Projects/Portal/pull/8)); step 3 **partially** shipped same day (see "Correction 2" — the silent-swallow half is fixed, the stored flag + retry action are not). **Read "Correction 2" first: neither step 1 nor step 2 was the cause of the symptom this ADR was opened for.**
 - **Date**: 2026-07-24
 
 ## Context
@@ -73,3 +73,30 @@ Implemented in the working tree (not yet committed/deployed):
 - 264/264 tests pass (6 new: lineage merge with a changed project name, superseded-never-wins-on-clock, preferred-still-wins-over-leaf, foreign parent id ignored gracefully, plus `supersededIds`), `tsc --noEmit` clean.
 - Merged directly to `main` via [PR #8](https://github.com/Arxys-Projects/Portal/pull/8) — no feature branch left dangling this time (the user's explicit direction after step 1 hit exactly that gap on its first attempt).
 - **Migration applied to production** the same session, after discovering the pending-migration queue also included 3 already-live, dashboard-applied migrations (`20260720000001`, `20260721000001`, `20260721000002` — each carries a STOP-AND-FLAG "apply via dashboard, not CLI" comment; repaired their tracking via `supabase migration repair --status applied` after independently verifying each was really live) and 2 genuinely-still-pending but *not-yet-approved* datasheet migrations (ADR 0090, paused pending direction), which were deliberately excluded from this push rather than swept in by `db push`'s all-pending-in-one-batch behavior. Confirmed live via `supabase migration list` (Local=Remote) and a read-only REST check of `submissions.parent_submission_id`. Full process note in the JOURNAL entry below — this migration-history desync is a standing risk in this repo (dashboard-applied STOP-AND-FLAG migrations never register in the CLI's tracking table), not specific to this bug.
+
+## Correction 2 (2026-07-24): the actual cause was none of the above — Pipedrive soft-deletes
+
+After steps 1 and 2 were both live, the symptom recurred a 6th time. The cause was finally established from a **production log** rather than from reading source:
+
+```
+PipedriveError: Entity is deleted. You must first restore it before you can edit
+  status: 400,  code: 'ERR_DEAL_DELETED'
+```
+
+**Pipedrive soft-deletes deals.** A deleted deal still returns HTTP 200 on `GET /v1/deals/{id}` (with `deleted: true`), so it never 404s — but any *edit* returns `400 ERR_DEAL_DELETED`. `submitCalculation`'s revision path keyed its create-a-fresh-deal fallback on `err.status === 404` alone, so this shape hit `else { throw err }`, propagated into the outer swallow-and-log `catch`, and left the revision with `pipedrive_deal_id = null` while still reporting success to the user.
+
+The reinforcing loop is the important part: **each duplicate cleanup deleted the redundant Pipedrive deals, which armed the trap for the next revise of that project.** Every previous "fix" was followed by a cleanup, which guaranteed the next recurrence.
+
+What this means for steps 1 and 2: both fixed genuine defects and both stay. Step 2's lineage tracking is confirmed working (submission `dd100b3f`, the first after that deploy, has `parent_submission_id` set correctly). But neither addressed the missing-Pipedrive-link symptom, and the two-"Open"-rows appearance and the missing-deal failure are *different bugs that produced one user complaint*. Diagnosing from source alone conflated them three times running.
+
+### Fixed
+
+- `isDealUneditableError()` ([`lib/pipedrive/deal.ts`](../../src/lib/pipedrive/deal.ts)) treats `404` and `400`/`ERR_DEAL_DELETED` alike. Deliberately narrow — 401/403/429/5xx and unrelated `400` validation errors still propagate, because silently minting a duplicate deal on a transient failure is worse than the bug being fixed.
+- Pipedrive sync failure now warns the submitter via the existing `recommendation.warnings` channel instead of being invisible. This is **half** of step 3; the stored sync-failure flag and the admin "Retry Pipedrive link" action remain unbuilt, and the 10 already-orphaned submissions still need manual relinking.
+- Two adjacent defects fixed in passing: the `pipedrive_deal_id` write-back error was unchecked, and `onBehalfNote` was not passed on the main create path (dropping ADR 0048 rep attribution on every fresh on-behalf submission).
+
+### Consequences
+
+**Negative / still open:** 10 submissions carry `pipedrive_deal_id = null` going back to 2026-06-17, including two Dallas LBJ and NTE VMS revisions at $614,388 and $1,126,378 that never reached the CRM. Step 2 also shipped with **no backfill**, so every pre-existing duplicate pair still displays as two equal "Open" rows permanently.
+
+**When to revisit:** step 3's remaining half (stored failure flag + retry action) is now the highest-value item — without it, every future Pipedrive outage silently orphans submissions again, and the only reason this was caught at all is that a user noticed and complained six times.

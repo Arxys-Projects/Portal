@@ -4,6 +4,39 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-07-24 — The REAL "revising breaks the project" bug: Pipedrive soft-deleted deals (400 ERR_DEAL_DELETED)
+
+The 6th report of the same symptom, and the one that finally produced the actual cause — from a **production log**, not from reading code. ADR 0093 steps 1 and 2 (below) were both real fixes to real defects, but **neither was the thing the user kept seeing.** Worth stating plainly: three consecutive sessions diagnosed this from source alone and were wrong each time. The log line took two minutes to find with `vercel logs` and settled it immediately.
+
+### Root cause
+
+```
+PipedriveError: Entity is deleted. You must first restore it before you can edit
+  status: 400,  code: 'ERR_DEAL_DELETED'
+```
+
+**Pipedrive soft-deletes deals.** A deleted deal still returns HTTP 200 on `GET /v1/deals/{id}` (with `deleted: true`), so it never 404s — but any edit is rejected with `400 ERR_DEAL_DELETED`. [`calculator/actions.ts`](../src/app/(app)/calculator/actions.ts) keyed its create-a-fresh-deal fallback on `err.status === 404` alone, so this shape hit the `else { throw err }` branch, propagated to the outer swallow-and-log `catch`, and left the new submission with `pipedrive_deal_id = null` — **silently**, with the submission otherwise reported as successful.
+
+The loop that made it feel unfixable: **the duplicate cleanups deleted the redundant Pipedrive deals.** Every deletion armed the trap for the next revise of that project. Fixing the duplicates was what guaranteed the next revise would break.
+
+Verified directly: deal 5367 (source of the `test` revise) is `deleted=true, status=deleted`, `GET` → 200; deals 5438 and 5430 are live. So the failure reproduces only against a deleted source deal, exactly as the log shows.
+
+### Work done
+
+- **`isDealUneditableError()`** in [`lib/pipedrive/deal.ts`](../src/lib/pipedrive/deal.ts) treats `404` and `400`/`ERR_DEAL_DELETED` identically — the source deal is unusable, create a fresh one. Deliberately narrow: 401/403/429/5xx and unrelated 400 validation errors still propagate, because silently creating a duplicate deal on a rate-limit or a payload bug would be a worse failure than the one being fixed. Five tests cover the classification including malformed/non-Pipedrive inputs.
+- **Stopped the silent swallow.** A failed Pipedrive sync now returns a warning through the existing `recommendation.warnings` channel ("saved, but could NOT be linked to a Pipedrive deal — sales will not see this revision"). Partial delivery of ADR 0093 step 3 — the stored failure flag and the admin "Retry Pipedrive link" action are still not built.
+- **Two adjacent bugs found while in there:** the `pipedrive_deal_id` write-back error was unchecked (a failed link write looked like success), and `onBehalfNote` was not passed on the main create path — so the pinned note crediting the internal rep (ADR 0048) was dropped on *every* fresh on-behalf submission, only surviving on the 404-fallback path.
+- 269/269 tests pass, `tsc --noEmit` clean. Committed straight to `main` and deployed.
+
+### Detours & fixes
+
+- **Three sessions of source-only diagnosis produced three wrong root causes.** Session 1: two internal users racing (real, but not this). Sessions 2–3: the insert-always-never-supersedes design (also real — that *is* why two "Open" rows appear — but it does not explain a missing Pipedrive link). The symptom "revising breaks the project" was consistent the whole time; each diagnosis explained *part* of the screenshot and got shipped as "the fix." **The available production log was never read until the 6th report.** For anything user-visible and reproducible in prod, `vercel logs portal.arxys.com` before theorising.
+- **Confirmed the ADR 0093 step 2 fix does work** — submission `dd100b3f` (the first created after that deploy) has `parent_submission_id` correctly set. It was not the cause of this report, and the two rows in the user's screenshot both predate that deploy, so they could never have shown it working.
+- **A backfill gap was shipped unflagged in step 2.** `parent_submission_id` is only set going forward; every pre-existing duplicate pair still reads as two equal "Open" rows and always will. That was not stated when step 2 was reported complete, so the user reasonably read "fixed" as "the thing I am looking at will change."
+- **Scope of the damage is much wider than North Bergen:** 10 submissions have `pipedrive_deal_id = null`, dating back to 2026-06-17 — including Dallas LBJ and NTE VMS at $614,388 and $1,126,378. Those revisions never reached the CRM and nobody was told. Relinking them requires creating/associating real Pipedrive deals, so it is left as an explicit decision for the user rather than done automatically.
+
+---
+
 ## 2026-07-24 — North Bergen SD, 5th recurrence — root-caused, shipped, and deployed ADR 0093 step 2 (plus a Supabase migration-history desync discovered along the way)
 
 The user reported the bug rebreaking a 5th time and, critically, corrected the scope: "anytime a project is revised it breaks, on every project" — not just the North Bergen SD on-behalf case this ADR had been chasing. Traced the full `?revise=` flow end to end rather than patching the symptom again.
