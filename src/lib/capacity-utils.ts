@@ -36,6 +36,44 @@ export function usableCapacityTb(
   return (rawTb * (n - parity)) / n;
 }
 
+// The product_specs slice needed to state delivered capacity.
+export type CoveredCapacitySpec = {
+  max_cameras: number | null;
+  storage_raw_tb: number | null;
+  hdd_count: number | null;
+  raid_level_display: string | null;
+};
+
+/**
+ * Delivered capacity for a recommendation of `units` boxes.
+ *
+ * Derived from the product_specs row, NEVER from the current_products inline
+ * max_cameras / max_storage_tb columns. Those are populated for only 6 SKUs (the
+ * original Step 3/4 seed) while the recommender's pool is 18 (ADR 0094), so
+ * reading them rendered "0 cameras covered" and passed the storage requirement
+ * off as delivered capacity on the other 12.
+ *
+ * Storage is net-usable — the same basis the recommendation was sized on and the
+ * same figure `recommend()` reports (ADR 0068) — never the raw nameplate.
+ *
+ * `fallbackStorageTb` (the submission's required storage) applies only when there
+ * is no spec row at all: legacy UUID-keyed submissions predating the SKU-PK
+ * migration. Cameras have no meaningful fallback and report 0.
+ */
+export function coveredCapacity(
+  units: number,
+  spec: CoveredCapacitySpec | null,
+  fallbackStorageTb: number,
+): { coveredCameras: number; coveredStorageTb: number } {
+  const usablePerUnitTb = spec
+    ? usableCapacityTb(spec.storage_raw_tb, spec.hdd_count, spec.raid_level_display)
+    : null;
+  return {
+    coveredCameras: spec?.max_cameras ? units * spec.max_cameras : 0,
+    coveredStorageTb: usablePerUnitTb != null ? units * usablePerUnitTb : fallbackStorageTb,
+  };
+}
+
 // Honest capacity-line note for the System utilization bar. Replaces the old
 // hardcoded "20% headroom built in" string, which lied on over-capacity
 // systems. At or under 100% it states the ACTUAL remaining headroom; above

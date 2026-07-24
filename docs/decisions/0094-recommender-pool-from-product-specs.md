@@ -77,6 +77,23 @@ new calculations shift. The allowlist is a hardcoded constant, so adding a famil
 change and a deploy — accepted deliberately, since the alternative is a new family becoming
 recommendable before anyone has reviewed whether it should be.
 
+**Regression this caused, found and fixed in the same session:** expanding the pool broke the
+covered-capacity lines on the System Estimate PDF, Project Quote, and Customer Proposal.
+`pdf/render.ts` and `project-quote/snapshot.ts` computed them from
+`current_products.max_cameras` / `max_storage_tb` — the same sparse columns this ADR stopped the
+recommender from using. For the 12 newly-poolable SKUs whose values are `NULL`, the fallbacks fired:
+`coveredCameras` rendered **0** and `coveredStorageTb` showed the storage *requirement* as if it were
+delivered capacity. The test suite missed it because those fixtures hand-populate capacity, so a
+passing suite proved less than it appeared to — when a change alters *which* rows reach a path,
+fixture-based tests can't see it.
+
+Fixed by extracting a single `coveredCapacity(units, spec, fallbackStorageTb)` helper in
+`capacity-utils.ts` that both call sites now use, sourcing cameras from `product_specs.max_cameras`
+and storage from `usableCapacityTb()`. Verified against live data: all 18 pool SKUs now report real
+figures; none report 0. This also corrected a pre-existing ADR 0068 miss on the 6 SKUs that appeared
+to work — they were reporting the **raw nameplate**, so a V800-720 claimed 720 TB covered against
+600 TB sized. Documents now match the basis the recommendation was made on.
+
 **Observation surfaced, not addressed:** with the full pool visible and ADR 0092's corrected parity,
 `VX5-V800-576` is strictly dominated — it delivers the same 480 TB usable and the same 325 VSR as
 `VX5-V700-576` for $2,360 more, so it can never win a recommendation. Before the parity fix it

@@ -23,6 +23,32 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-07-24 — Fix: covered-capacity lines broke for 12 of 18 pool SKUs (regression from the pool expansion)
+
+Caught while writing the handoff brief, after `1ec2f95` was already committed. A **customer-facing regression the pool expansion introduced**, plus a pre-existing ADR 0068 miss it was hiding behind. Nothing had deployed, so no partner saw it.
+
+### Root cause
+
+[`pdf/render.ts`](../src/lib/pdf/render.ts) and [`project-quote/snapshot.ts`](../src/lib/project-quote/snapshot.ts) computed the covered-capacity lines from `current_products.max_cameras` / `max_storage_tb` — the same sparse columns ADR 0094 had just stopped the recommender from using, populated for only 6 SKUs. With the pool at 18, the fallbacks fired for the other 12: `coveredCameras` rendered **0** and `coveredStorageTb` showed the storage *requirement* as if it were delivered capacity, on the System Estimate PDF, the Project Quote, and the Customer Proposal. Most of the changed recommendations in ADR 0094's own review diff land on exactly those SKUs.
+
+### Work done
+
+- **Extracted `coveredCapacity(units, spec, fallbackStorageTb)` into [`capacity-utils.ts`](../src/lib/capacity-utils.ts)** rather than patching the same expression twice. Cameras come from `product_specs.max_cameras`, storage from `usableCapacityTb()`. The products row is no longer an argument at either call site, so the bug is now structurally unreachable rather than merely fixed.
+- **Six regression tests** in `capacity-utils.test.ts`: spec-row sourcing with the products row absent entirely, net-usable-not-raw, unit scaling, the legacy no-spec-row fallback, and the two partial-null paths.
+- **Verified against live data** across all 18 pool SKUs: 12 previously reported "0 cameras covered"; after the fix, zero do. 258/258 tests pass, `tsc --noEmit` clean.
+- **Also corrected a pre-existing ADR 0068 miss.** The 6 SKUs that appeared to work were reporting the **raw nameplate** — a V800-720 claimed 720 TB covered against 600 TB sized. All covered-storage figures now match the basis the recommendation was made on: V800-720 720→600, V700-480 480→400, V600-320 320→280, V500-240 240→200, V400-160 160→120, V200-80 80→60.
+
+### Detours & fixes
+
+- **Two wrong calls of mine in one message, both corrected.** I told Andy `products.max_cameras`/`max_storage_tb` were "now unread by the recommender, so they can be dropped — cheap cleanup." Unread by the recommender was true; "cheap cleanup" was not. A grep for remaining readers found these two document paths still using them, which is what surfaced the regression. Dropping those columns would have broken both.
+- **The test suite passed through the entire regression** — before the fix, after the pool expansion, at every point. The PDF and snapshot fixtures hand-populate capacity, so they cannot see a change in *which rows* reach a code path. Recorded in ADR 0094 and the handoff brief: when a change alters row selection rather than logic, a green suite proves much less than it appears to. The remaining `products`-capacity readers in the brief's §2 need live-data tracing, not test runs.
+
+### Decisions captured
+
+None new — this aligns the documents with existing ADR [0068](./decisions/0068-storage-first-sizing-and-vsr-camera-check.md) and is recorded under ADR [0094](./decisions/0094-recommender-pool-from-product-specs.md)'s consequences.
+
+---
+
 ## 2026-07-24 — Recommender candidate pool: 6 SKUs → 18 (first unification slice)
 
 First vertical slice of the spec-unification work, chosen because it is the smallest change that forces the central architecture question — *is `product_specs` canonical for specs?* — on one consumer instead of all seven, while delivering the accuracy goal immediately. The before/after diff below was reviewed and signed off before merge; ADR [0094](./decisions/0094-recommender-pool-from-product-specs.md) is Accepted.

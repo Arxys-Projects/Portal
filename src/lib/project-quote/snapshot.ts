@@ -31,7 +31,7 @@ import {
 
 // Converged into src/lib/capacity-utils.ts (Step 5b). Imported for internal
 // use in mapServerSpec and re-exported so snapshot.test.ts keeps working.
-import { usableCapacityTb } from "@/lib/capacity-utils";
+import { coveredCapacity, usableCapacityTb } from "@/lib/capacity-utils";
 export { usableCapacityTb };
 
 // A UUID-shaped recommended_product_id signals a pre-SKU-PK submission whose
@@ -299,10 +299,13 @@ export function buildSizingFromSubmission(input: {
     (isLegacy ? "(legacy data; product details unavailable)" : "Recommended server");
   const modelCode = product?.product_group ?? (isLegacy ? "(legacy)" : "(unknown)");
 
-  const coveredCameras = product?.max_cameras ? units * product.max_cameras : 0;
-  const coveredStorageTb = product?.max_storage_tb
-    ? units * product.max_storage_tb
-    : Number(submission.storage_tb);
+  // From product_specs, never the current_products inline capacity columns —
+  // see coveredCapacity()'s contract.
+  const { coveredCameras, coveredStorageTb } = coveredCapacity(
+    units,
+    productSpec,
+    Number(submission.storage_tb),
+  );
 
   const serverSpec =
     productSpec && sku ? mapServerSpec(productSpec, sku, modelCode, product?.msrp ?? null) : null;
