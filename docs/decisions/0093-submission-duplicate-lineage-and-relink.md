@@ -1,6 +1,6 @@
 # 0093 — Submission revision lineage, delete-error surfacing, and Pipedrive relink
 
-- **Status**: Accepted — steps 1 and 2 shipped and live 2026-07-24 (step 1 via [PR #7](https://github.com/Arxys-Projects/Portal/pull/7); step 2 via [PR #8](https://github.com/Arxys-Projects/Portal/pull/8)); step 3 **partially** shipped same day (see "Correction 2" — the silent-swallow half is fixed, the stored flag + retry action are not). **Read "Correction 2" first: neither step 1 nor step 2 was the cause of the symptom this ADR was opened for.**
+- **Status**: Accepted — steps 1 and 2 shipped and live 2026-07-24 (step 1 via [PR #7](https://github.com/Arxys-Projects/Portal/pull/7); step 2 via [PR #8](https://github.com/Arxys-Projects/Portal/pull/8)); step 3 shipped same day (see "Correction 2" — silent-swallow fixed **and** the admin retry action built; the stored failure-reason column was deliberately not added). **Read "Correction 2" first: neither step 1 nor step 2 was the cause of the symptom this ADR was opened for.**
 - **Date**: 2026-07-24
 
 ## Context
@@ -92,7 +92,9 @@ What this means for steps 1 and 2: both fixed genuine defects and both stay. Ste
 ### Fixed
 
 - `isDealUneditableError()` ([`lib/pipedrive/deal.ts`](../../src/lib/pipedrive/deal.ts)) treats `404` and `400`/`ERR_DEAL_DELETED` alike. Deliberately narrow — 401/403/429/5xx and unrelated `400` validation errors still propagate, because silently minting a duplicate deal on a transient failure is worse than the bug being fixed.
-- Pipedrive sync failure now warns the submitter via the existing `recommendation.warnings` channel instead of being invisible. This is **half** of step 3; the stored sync-failure flag and the admin "Retry Pipedrive link" action remain unbuilt, and the 10 already-orphaned submissions still need manual relinking.
+- Pipedrive sync failure now warns the submitter via the existing `recommendation.warnings` channel instead of being invisible.
+- **Step 3's recovery half is built**: `adminRelinkPipedriveDeal` ([`admin/submissions/actions.ts`](../../src/app/(app)/admin/submissions/actions.ts)) plus a "Retry Pipedrive link" control that replaces the bare "No Pipedrive deal linked" text on the admin detail page. `buildRelinkInputs` ([`lib/pipedrive/relink.ts`](../../src/lib/pipedrive/relink.ts)) rebuilds the deal payload from the persisted columns, since the live calculator state is gone by then; it refuses rather than guessing on a legacy/unresolvable SKU, an absent list price, or unusable `groups_payload`. Only ever fills a MISSING link — never overwrites a live one — and when the row is a revision whose parent still holds a usable deal it updates that deal in place rather than minting a duplicate. The real Pipedrive error is shown to the operator.
+- **The stored sync-failure column from the original step 3 sketch was deliberately dropped.** `pipedrive_deal_id IS NULL` already identifies every failed row, and the retry action reports the live error at the moment it retries — which is strictly more useful than a stale reason persisted at submit time. Avoiding a second production migration the same day was the tiebreaker.
 - Two adjacent defects fixed in passing: the `pipedrive_deal_id` write-back error was unchecked, and `onBehalfNote` was not passed on the main create path (dropping ADR 0048 rep attribution on every fresh on-behalf submission).
 
 ### Consequences

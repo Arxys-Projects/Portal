@@ -28,6 +28,17 @@ Verified directly: deal 5367 (source of the `test` revise) is `deleted=true, sta
 - **Two adjacent bugs found while in there:** the `pipedrive_deal_id` write-back error was unchecked (a failed link write looked like success), and `onBehalfNote` was not passed on the main create path — so the pinned note crediting the internal rep (ADR 0048) was dropped on *every* fresh on-behalf submission, only surviving on the 404-fallback path.
 - 269/269 tests pass, `tsc --noEmit` clean. Committed straight to `main` and deployed.
 
+### Work done — ADR 0093 step 3 (same session)
+
+- **Built the "Retry Pipedrive link" recovery action** so the 10 orphaned submissions are fixable from the portal instead of by hand in the CRM. `buildRelinkInputs` ([`lib/pipedrive/relink.ts`](../src/lib/pipedrive/relink.ts)) rebuilds the deal payload from persisted columns only — the live calculator state is gone by relink time — and refuses rather than guessing when the SKU is legacy/unresolvable, the list price is absent, or `groups_payload` is unusable (9 tests). `adminRelinkPipedriveDeal` is internal-or-admin, matching `generateProjectQuote` (the other Pipedrive-writing action on that page).
+- **The relink inherits rather than duplicates:** if the row is a revision whose parent still holds a usable deal, it updates that deal in place. This makes the ORDER matter — backfilling lineage *before* relinking means the orphans attach to the existing deal instead of minting a second one. Worth knowing before running either.
+- **Dropped the stored sync-failure column** from step 3's original sketch: `pipedrive_deal_id IS NULL` already identifies every failed row, and the retry action reports the live error at retry time, which beats a stale reason persisted at submit. Also avoided a second production migration in one day.
+- 278/278 tests pass, `tsc --noEmit` clean, `next build` clean, no new lint findings.
+
+### Backfill analysis (read-only — nothing written)
+
+Grouping all 88 submissions by effective partner + project name gives 13 multi-row buckets, but they are **not** uniformly revision chains. The discriminator: a *successful* revise inherits its source's `pipedrive_deal_id` (ADR 0040 updates in place), so **shared deal id = provable revision; distinct sequential deal ids = each row created its own deal.** By that test: 1 bucket is provable (Status Automation, 3 rows all on deal #5415), 7 match the failure signature (later row has no deal, earlier does), and 5 are accidental double-submits minutes apart with their own live deals — chaining those would mark rows "Superseded" in the portal while their deals stay open in Pipedrive, inventing a fresh inconsistency. Dallas LBJ (5 rows, 3 deals, $205k→$1.13M→$614k) is not a simple chain either and needs a human call. Left for review rather than guessed at.
+
 ### Detours & fixes
 
 - **Three sessions of source-only diagnosis produced three wrong root causes.** Session 1: two internal users racing (real, but not this). Sessions 2–3: the insert-always-never-supersedes design (also real — that *is* why two "Open" rows appear — but it does not explain a missing Pipedrive link). The symptom "revising breaks the project" was consistent the whole time; each diagnosis explained *part* of the screenshot and got shipped as "the fix." **The available production log was never read until the 6th report.** For anything user-visible and reproducible in prod, `vercel logs portal.arxys.com` before theorising.
