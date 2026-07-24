@@ -4,6 +4,24 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-07-24 — North Bergen SD, 3rd recurrence — opened PR #7 to actually ship the fix
+
+A third orphan row (`7ada9fbb…`, no Pipedrive link, no `project_quotes`) appeared for the same North Bergen SD job after the previous cleanup. Root cause was not a new bug: ADR 0093 step 1 (below) had been committed and pushed to `fix/raid60-net-usable-capacity` but never merged to `main` — 6 commits ahead, no PR — so it had never actually deployed. The fix existing in git history was not the same as the fix being live; every recurrence between commit and merge was expected, not a regression.
+
+Separately, this session's shared checkout had been switched to `main` by another parallel session in the interim, which briefly looked like the fix had been reverted — it hadn't; the working tree was just on a different branch. Confirms the standing caution that this checkout is shared across parallel sessions and branch/file state can shift between turns.
+
+### Work done
+
+- Deleted the third orphan (`7ada9fbb…`) after confirming no Pipedrive link and no `project_quotes`.
+- Opened [PR #7](https://github.com/Arxys-Projects/Portal/pull/7): `fix/raid60-net-usable-capacity` → `main`, bundling today's RAID 60 parity fix (ADR 0092), recommender pool expansion (ADR 0094), the covered-capacity regression fix, the paused datasheet-schema migrations (ADR 0090, flagged in the PR body as not-yet-approved-for-apply), and this ADR 0093 step 1 fix. Not merged — left for review/merge on GitHub.
+- `gh pr create` initially failed with "must be a collaborator": the active `gh` account (`TorqueCoffee`) only had read access on this repo. Switched to the correct account (`andynewbom-Arxys`, admin) with `gh auth switch` and retried successfully.
+
+### Detours & fixes
+
+- **Confirmed a real defect existing in committed code is not the same claim as a defect being fixed in production.** The gap between "pushed to a feature branch" and "merged + deployed" is exactly where this kept recurring; worth stating outright next time a fix is reported as done.
+
+---
+
 ## 2026-07-24 — North Bergen SD recurrence + ADR 0093 step 1 (delete errors, duplicate warning)
 
 Two more orphan submission rows for the same North Bergen SD job (`14a2e3c2…`, `ac103da7…`) appeared shortly after the cleanup documented below — proof the underlying bug was still fully live, not that the earlier cleanup had failed. Treated as the "revisit" trigger [ADR 0093](./decisions/0093-submission-duplicate-lineage-and-relink.md) itself calls for.

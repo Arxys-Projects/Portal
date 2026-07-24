@@ -51,3 +51,5 @@ Forced early: two more orphan drafts for the same North Bergen SD job appeared *
 - `submitCalculation` ([`src/app/(app)/calculator/actions.ts`](../../src/app/(app)/calculator/actions.ts)) now warns (non-blocking, surfaced through the existing `recommendation.warnings` array) when another `open` submission already exists for the same on-behalf-of target within the last 14 days and isn't the current submit's declared revision source. Scoped to on-behalf submissions only, so a partner's own normal revision flow (whose source row stays open) never trips it.
 
 258/258 tests pass, `tsc --noEmit` clean. Steps 2 (`parent_submission_id` migration) and 3 (Pipedrive retry/relink action) remain proposed only.
+
+A third orphan appeared after step 1 was committed and pushed, because it had not yet merged to `main` — commit-and-push is not deploy. Opened [PR #7](https://github.com/Arxys-Projects/Portal/pull/7) (`fix/raid60-net-usable-capacity` → `main`) to close that gap; awaiting review/merge.
