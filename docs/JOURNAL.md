@@ -23,6 +23,33 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-07-24 — Recommender candidate pool: 6 SKUs → 18 (first unification slice)
+
+First vertical slice of the spec-unification work, chosen because it is the smallest change that forces the central architecture question — *is `product_specs` canonical for specs?* — on one consumer instead of all seven, while delivering the accuracy goal immediately. The before/after diff below was reviewed and signed off before merge; ADR [0094](./decisions/0094-recommender-pool-from-product-specs.md) is Accepted.
+
+### Work done
+
+- **[`candidates.ts`](../src/lib/recommend/candidates.ts) now takes capacity from `product_specs`**, with `current_products` supplying only price, naming, `active` and `price_type` (price stays there per ADR 0086). A SKU joins the pool when it is active, numeric-priced, allowlisted, and has a spec row. The old raw-nameplate fallback is gone — it would overstate usable storage and could under-spec.
+- **`RECOMMENDABLE_PRODUCT_GROUPS` allowlist** (V200/V400/V500/V600/V700/V800) rather than a V100 blocklist, so the management/ACM/workstation spec rows the datasheet project is about to add cannot become recommendable as video recorders on day one.
+- **Extracted `selectCandidates(productRows, specRows)` as a pure function** so pool assembly is unit-testable without a Supabase client — the same split [`cell-value.ts`](../src/lib/price-book/cell-value.ts) uses. Seven new tests in [`candidates.test.ts`](../src/lib/recommend/candidates.test.ts) cover capacity-from-specs, all-three-tiers, the V100 exclusion, non-video exclusion, the skip-when-no-spec-row rule, the ADR 0092 RAID 60 span math, and the empty-pool path.
+- **Verified against live data:** the real `loadCandidateSpecs()` returns exactly 18 SKUs — 3 tiers × 6 families, no V100, all numeric-priced. 252/252 tests pass, `tsc --noEmit` clean.
+
+### Before/after recommendation diff (the review artifact)
+
+32 scenarios, 24–1200 cameras × 14/30/60/90-day retention, same `recommend()` and identical inputs both sides — only the pool differs. **21 changed, all 21 cheaper** ($722 to $48,197); 11 unchanged; an under-spec check confirmed neither pool ever returns a winner whose covered storage falls short of the requirement. Several changes also cut the unit count (300 cam/90 d: 5× V600-320 → 2× V800-864, −$48,197; 1200 cam/60 d: 6× V800-720 → 5× V800-864, −$29,118).
+
+The harness models storage need at 5 Mbit/s per stream, 75% motion, 24 h/day rather than calling the calculator's own bitrate tables (out of scope per the initiative brief), so the absolute TB figures are illustrative — the comparison holds because both sides get identical inputs.
+
+### Observation surfaced, not addressed
+
+`VX5-V800-576` is now **strictly dominated**: same 480 TB usable and same 325 VSR as `VX5-V700-576` for $2,360 more, so it can never win a recommendation. Before ADR 0092's parity fix it computed 512 TB and did win some workloads. Either mispriced, or it exists for expansion headroom the recommender cannot see, or it should be retired — a product decision, flagged in ADR 0094.
+
+### Decisions captured
+
+- [`0094-recommender-pool-from-product-specs.md`](./decisions/0094-recommender-pool-from-product-specs.md) (Accepted — diff reviewed and signed off)
+
+---
+
 ## 2026-07-24 — Product spec single source of truth — Phase 0 audit (read-only)
 
 Scoped and ran the Phase 0 audit for the spec-unification initiative briefed in [`datasheets/single-source-of-truth-seed.md`](../datasheets/single-source-of-truth-seed.md). Read-only: no schema, migration, code, or data changes, no writes to the database. Full findings in [`datasheets/spec-source-audit-phase0.md`](../datasheets/spec-source-audit-phase0.md); the four scope decisions taken before starting are ADR [0091](./decisions/0091-spec-unification-scope-boundary.md). **Direction not set — this stops for review**, and the datasheet project stays paused.
