@@ -191,7 +191,8 @@ describe("composeQuoteIdentifier", () => {
 describe("usableCapacityTb", () => {
   it("applies RAID parity overhead and falls back safely", () => {
     assert.equal(usableCapacityTb(720, 36, "6"), (720 * 34) / 36); // RAID 6 -> 2 parity
-    assert.equal(usableCapacityTb(720, 36, "60"), (720 * 32) / 36); // RAID 60 -> 4 parity
+    // V800: 36 drives = 3 spans of 12 -> 6 parity, not a fixed 4 (ADR 0092)
+    assert.equal(usableCapacityTb(720, 36, "60"), (720 * 30) / 36);
     assert.equal(usableCapacityTb(100, null, null), 100); // unknown drive count -> raw
     assert.equal(usableCapacityTb(null, 12, "5"), null);
   });
