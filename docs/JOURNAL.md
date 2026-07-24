@@ -24,7 +24,7 @@ Verified directly: deal 5367 (source of the `test` revise) is `deleted=true, sta
 ### Work done
 
 - **`isDealUneditableError()`** in [`lib/pipedrive/deal.ts`](../src/lib/pipedrive/deal.ts) treats `404` and `400`/`ERR_DEAL_DELETED` identically — the source deal is unusable, create a fresh one. Deliberately narrow: 401/403/429/5xx and unrelated 400 validation errors still propagate, because silently creating a duplicate deal on a rate-limit or a payload bug would be a worse failure than the one being fixed. Five tests cover the classification including malformed/non-Pipedrive inputs.
-- **Stopped the silent swallow.** A failed Pipedrive sync now returns a warning through the existing `recommendation.warnings` channel ("saved, but could NOT be linked to a Pipedrive deal — sales will not see this revision"). Partial delivery of ADR 0093 step 3 — the stored failure flag and the admin "Retry Pipedrive link" action are still not built.
+- **Stopped the silent swallow.** A failed Pipedrive sync now returns a warning through the existing `recommendation.warnings` channel ("saved, but could NOT be linked to a Pipedrive deal — sales will not see this revision"). First half of ADR 0093 step 3; the recovery action followed in the same session (next subsection).
 - **Two adjacent bugs found while in there:** the `pipedrive_deal_id` write-back error was unchecked (a failed link write looked like success), and `onBehalfNote` was not passed on the main create path — so the pinned note crediting the internal rep (ADR 0048) was dropped on *every* fresh on-behalf submission, only surviving on the 404-fallback path.
 - 269/269 tests pass, `tsc --noEmit` clean. Committed straight to `main` and deployed.
 
