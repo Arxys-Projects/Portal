@@ -55,11 +55,29 @@ export async function adminDeleteSubmission(
   if (!user) return { ok: false, error: SESSION_EXPIRED };
   if (!isAdmin) return { ok: false, error: NOT_ADMIN };
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("submissions")
     .delete()
-    .eq("id", submissionId);
-  if (error) return { ok: false, error: dbError(error, "admin delete submission") };
+    .eq("id", submissionId)
+    .select("id");
+  if (error) {
+    // 23503 = foreign_key_violation. project_quotes.submission_id is `on
+    // delete restrict`, so a submission with a generated quote raises this
+    // instead of deleting — surface the real reason instead of a generic one.
+    if (error.code === "23503") {
+      return {
+        ok: false,
+        error: "This submission can't be deleted because a quote has been generated from it.",
+      };
+    }
+    return { ok: false, error: dbError(error, "admin delete submission") };
+  }
+  if (!data || data.length === 0) {
+    return {
+      ok: false,
+      error: "This submission could not be deleted — it may have already been removed.",
+    };
+  }
 
   revalidatePath("/admin/submissions");
   return { ok: true };

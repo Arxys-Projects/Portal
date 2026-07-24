@@ -142,9 +142,13 @@ export const FAMILIES: Family[] = [
     category: "nvr-mgmt-acm",
     sortOrder: 1,
     skuExtraData: {
-      "VX5-V100-32": { netStorage: "36 TB" },
-      "VX5-V100-40": { netStorage: "40 TB" },
-      "VX5-V100-48": { netStorage: "48 TB" },
+      // The V100 is a 2-bay unit sold RAID 1 or JBOD, so both figures are
+      // published — a single number misstates one of the two configurations.
+      // These stay as overrides (not computed) because usableCapacityTb() takes
+      // one RAID level and cannot express a choice. See ADR 0092.
+      "VX5-V100-32": { netStorage: "16 TB RAID 1 / 32 TB JBOD" },
+      "VX5-V100-40": { netStorage: "20 TB RAID 1 / 40 TB JBOD" },
+      "VX5-V100-48": { netStorage: "24 TB RAID 1 / 48 TB JBOD" },
       "VX5-V150-ACM": { ssdStorage: "2x 480GB" },
     },
   },
@@ -331,7 +335,7 @@ export const FAMILIES: Family[] = [
     skuExtraData: {
       "VX5-V400-128": { netStorage: "96 TB" },
       "VX5-V400-160": { netStorage: "120 TB" },
-      "VX5-V400-192": { netStorage: "132 TB" },
+      "VX5-V400-192": { netStorage: "144 TB" },
     },
   },
 
@@ -479,7 +483,7 @@ export const FAMILIES: Family[] = [
     category: "high-density",
     sortOrder: 8,
     skuExtraData: {
-      "VX5-V700-384": { netStorage: "316 TB" },
+      "VX5-V700-384": { netStorage: "320 TB" },
       "VX5-V700-480": { netStorage: "400 TB" },
       "VX5-V700-576": { netStorage: "480 TB" },
     },

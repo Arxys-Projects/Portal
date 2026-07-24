@@ -11,7 +11,7 @@ import { loadHeroDataUri, loadLogoDataUri } from "./assets";
 import { GB_PER_TB } from "@/lib/recommend/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { usableCapacityTb } from "@/lib/capacity-utils";
+import { coveredCapacity, usableCapacityTb } from "@/lib/capacity-utils";
 import { resolveSubmissionPartner } from "./partner-resolution";
 
 export async function renderSubmissionPdfBuffer(
@@ -139,12 +139,13 @@ export async function loadSubmissionPdfInput(
     productLookup?.product?.product_name ??
     (isLegacy ? "(legacy data — product details unavailable)" : "Recommended server");
   const productDescription = productName;
-  const coveredCameras = productLookup?.product?.max_cameras
-    ? recommendedUnits * productLookup.product.max_cameras
-    : 0;
-  const coveredStorageTb = productLookup?.product?.max_storage_tb
-    ? recommendedUnits * productLookup.product.max_storage_tb
-    : Number(submission.storage_tb);
+  // From product_specs, never the current_products inline capacity columns —
+  // see coveredCapacity()'s contract.
+  const { coveredCameras, coveredStorageTb } = coveredCapacity(
+    recommendedUnits,
+    specRow,
+    Number(submission.storage_tb),
+  );
 
   // groups_payload only has the per-group inputs; totals come straight off
   // the row to stay consistent with what was emailed/saved.

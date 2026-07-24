@@ -4,6 +4,247 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-07-24 — North Bergen SD, 3rd recurrence — opened PR #7 to actually ship the fix
+
+A third orphan row (`7ada9fbb…`, no Pipedrive link, no `project_quotes`) appeared for the same North Bergen SD job after the previous cleanup. Root cause was not a new bug: ADR 0093 step 1 (below) had been committed and pushed to `fix/raid60-net-usable-capacity` but never merged to `main` — 6 commits ahead, no PR — so it had never actually deployed. The fix existing in git history was not the same as the fix being live; every recurrence between commit and merge was expected, not a regression.
+
+Separately, this session's shared checkout had been switched to `main` by another parallel session in the interim, which briefly looked like the fix had been reverted — it hadn't; the working tree was just on a different branch. Confirms the standing caution that this checkout is shared across parallel sessions and branch/file state can shift between turns.
+
+### Work done
+
+- Deleted the third orphan (`7ada9fbb…`) after confirming no Pipedrive link and no `project_quotes`.
+- Opened [PR #7](https://github.com/Arxys-Projects/Portal/pull/7): `fix/raid60-net-usable-capacity` → `main`, bundling today's RAID 60 parity fix (ADR 0092), recommender pool expansion (ADR 0094), the covered-capacity regression fix, the paused datasheet-schema migrations (ADR 0090, flagged in the PR body as not-yet-approved-for-apply), and this ADR 0093 step 1 fix. Not merged — left for review/merge on GitHub.
+- `gh pr create` initially failed with "must be a collaborator": the active `gh` account (`TorqueCoffee`) only had read access on this repo. Switched to the correct account (`andynewbom-Arxys`, admin) with `gh auth switch` and retried successfully.
+
+### Detours & fixes
+
+- **Confirmed a real defect existing in committed code is not the same claim as a defect being fixed in production.** The gap between "pushed to a feature branch" and "merged + deployed" is exactly where this kept recurring; worth stating outright next time a fix is reported as done.
+
+---
+
+## 2026-07-24 — North Bergen SD recurrence + ADR 0093 step 1 (delete errors, duplicate warning)
+
+Two more orphan submission rows for the same North Bergen SD job (`14a2e3c2…`, `ac103da7…`) appeared shortly after the cleanup documented below — proof the underlying bug was still fully live, not that the earlier cleanup had failed. Treated as the "revisit" trigger [ADR 0093](./decisions/0093-submission-duplicate-lineage-and-relink.md) itself calls for.
+
+### Work done
+
+- Confirmed both new rows were the same safe-to-delete pattern (no Pipedrive link, no `project_quotes`) and deleted them after re-verifying immediately beforehand.
+- Implemented ADR 0093 step 1 in the working tree (not yet committed or deployed): `adminDeleteSubmission` now checks the deleted row count and returns a specific message on the `project_quotes` FK-restrict (`23503`) instead of a generic error ([`admin/submissions/actions.ts`](../src/app/(app)/admin/submissions/actions.ts)); `submitCalculation` now warns (non-blocking, via the existing `recommendation.warnings` array) when another `open` submission already exists for the same on-behalf-of target within 14 days and isn't the current submit's declared revision source ([`calculator/actions.ts`](../src/app/(app)/calculator/actions.ts)).
+- Verified with `npm test` (258/258 pass) and `tsc --noEmit` (clean). Steps 2 (`parent_submission_id` migration) and 3 (Pipedrive retry/relink) remain proposed only.
+
+### Decisions captured
+
+- Updated [0093-submission-duplicate-lineage-and-relink.md](./decisions/0093-submission-duplicate-lineage-and-relink.md) with a step 1 status section.
+
+---
+
+## 2026-07-24 — Diagnosed and resolved duplicate North Bergen SD submission cluster
+
+### Work done
+
+- Investigated a user report that four `admin/submissions/[id]` links looked like separate, mixed-up projects for one customer — some missing a Pipedrive connection, some unable to be deleted.
+- Queried production Supabase directly (service-role, read-only) for the four submission rows plus `project_quotes` and `partners`. Confirmed all four represent one real job — the North Bergen SD grant quote submitted on behalf of JCT Solutions (`on_behalf_of_partner_id` 587a2f4f) — created independently by two internal Arxys users (Andy Newbom, Richard Kershaw), each unaware the other had already submitted.
+- Root-caused via code investigation, written up as ADR [0093](./decisions/0093-submission-duplicate-lineage-and-relink.md): ADR 0039's revision-is-a-new-row design has no `parent_submission_id`; a swallowed `try/catch` around the Pipedrive sync call leaves `pipedrive_deal_id` null with no retry path; `adminDeleteSubmission` is missing the zero-row check the partner-facing delete path has; `project_quotes.submission_id on delete restrict` blocks deletion of the two rows with generated quotes, surfaced only as a generic error; and the admin Grouped view's literal `project_name` text-match grouping scatters duplicates across buckets.
+- With user confirmation: deleted the two orphaned draft rows (`694a9bd8…`, `e333c334…`) after re-verifying immediately beforehand that neither had a Pipedrive link or a `project_quotes` row. Confirmed deal 5438 (Richard Kershaw's, 3 revisions) as the correct live Pipedrive deal per the user; marked deal 5436 (Andy Newbom's, V1) lost in Pipedrive with a pinned note pointing to 5438, since it duplicated the same opportunity.
+
+### Detours & fixes
+
+- Deals 5436 and 5438 carried meaningfully different values ($152,886.25 vs $112,562.45) despite being the same job — flagged to the user before acting rather than assuming they'd reconcile automatically; user confirmed 5438 as correct regardless.
+
+### Decisions captured
+
+- [0093-submission-duplicate-lineage-and-relink.md](./decisions/0093-submission-duplicate-lineage-and-relink.md)
+
+---
+
+## 2026-07-24 — Fix: covered-capacity lines broke for 12 of 18 pool SKUs (regression from the pool expansion)
+
+Caught while writing the handoff brief, after `1ec2f95` was already committed. A **customer-facing regression the pool expansion introduced**, plus a pre-existing ADR 0068 miss it was hiding behind. Nothing had deployed, so no partner saw it.
+
+### Root cause
+
+[`pdf/render.ts`](../src/lib/pdf/render.ts) and [`project-quote/snapshot.ts`](../src/lib/project-quote/snapshot.ts) computed the covered-capacity lines from `current_products.max_cameras` / `max_storage_tb` — the same sparse columns ADR 0094 had just stopped the recommender from using, populated for only 6 SKUs. With the pool at 18, the fallbacks fired for the other 12: `coveredCameras` rendered **0** and `coveredStorageTb` showed the storage *requirement* as if it were delivered capacity, on the System Estimate PDF, the Project Quote, and the Customer Proposal. Most of the changed recommendations in ADR 0094's own review diff land on exactly those SKUs.
+
+### Work done
+
+- **Extracted `coveredCapacity(units, spec, fallbackStorageTb)` into [`capacity-utils.ts`](../src/lib/capacity-utils.ts)** rather than patching the same expression twice. Cameras come from `product_specs.max_cameras`, storage from `usableCapacityTb()`. The products row is no longer an argument at either call site, so the bug is now structurally unreachable rather than merely fixed.
+- **Six regression tests** in `capacity-utils.test.ts`: spec-row sourcing with the products row absent entirely, net-usable-not-raw, unit scaling, the legacy no-spec-row fallback, and the two partial-null paths.
+- **Verified against live data** across all 18 pool SKUs: 12 previously reported "0 cameras covered"; after the fix, zero do. 258/258 tests pass, `tsc --noEmit` clean.
+- **Also corrected a pre-existing ADR 0068 miss.** The 6 SKUs that appeared to work were reporting the **raw nameplate** — a V800-720 claimed 720 TB covered against 600 TB sized. All covered-storage figures now match the basis the recommendation was made on: V800-720 720→600, V700-480 480→400, V600-320 320→280, V500-240 240→200, V400-160 160→120, V200-80 80→60.
+
+### Detours & fixes
+
+- **Two wrong calls of mine in one message, both corrected.** I told Andy `products.max_cameras`/`max_storage_tb` were "now unread by the recommender, so they can be dropped — cheap cleanup." Unread by the recommender was true; "cheap cleanup" was not. A grep for remaining readers found these two document paths still using them, which is what surfaced the regression. Dropping those columns would have broken both.
+- **The test suite passed through the entire regression** — before the fix, after the pool expansion, at every point. The PDF and snapshot fixtures hand-populate capacity, so they cannot see a change in *which rows* reach a code path. Recorded in ADR 0094 and the handoff brief: when a change alters row selection rather than logic, a green suite proves much less than it appears to. The remaining `products`-capacity readers in the brief's §2 need live-data tracing, not test runs.
+
+### Decisions captured
+
+None new — this aligns the documents with existing ADR [0068](./decisions/0068-storage-first-sizing-and-vsr-camera-check.md) and is recorded under ADR [0094](./decisions/0094-recommender-pool-from-product-specs.md)'s consequences.
+
+---
+
+## 2026-07-24 — Recommender candidate pool: 6 SKUs → 18 (first unification slice)
+
+First vertical slice of the spec-unification work, chosen because it is the smallest change that forces the central architecture question — *is `product_specs` canonical for specs?* — on one consumer instead of all seven, while delivering the accuracy goal immediately. The before/after diff below was reviewed and signed off before merge; ADR [0094](./decisions/0094-recommender-pool-from-product-specs.md) is Accepted.
+
+### Work done
+
+- **[`candidates.ts`](../src/lib/recommend/candidates.ts) now takes capacity from `product_specs`**, with `current_products` supplying only price, naming, `active` and `price_type` (price stays there per ADR 0086). A SKU joins the pool when it is active, numeric-priced, allowlisted, and has a spec row. The old raw-nameplate fallback is gone — it would overstate usable storage and could under-spec.
+- **`RECOMMENDABLE_PRODUCT_GROUPS` allowlist** (V200/V400/V500/V600/V700/V800) rather than a V100 blocklist, so the management/ACM/workstation spec rows the datasheet project is about to add cannot become recommendable as video recorders on day one.
+- **Extracted `selectCandidates(productRows, specRows)` as a pure function** so pool assembly is unit-testable without a Supabase client — the same split [`cell-value.ts`](../src/lib/price-book/cell-value.ts) uses. Seven new tests in [`candidates.test.ts`](../src/lib/recommend/candidates.test.ts) cover capacity-from-specs, all-three-tiers, the V100 exclusion, non-video exclusion, the skip-when-no-spec-row rule, the ADR 0092 RAID 60 span math, and the empty-pool path.
+- **Verified against live data:** the real `loadCandidateSpecs()` returns exactly 18 SKUs — 3 tiers × 6 families, no V100, all numeric-priced. 252/252 tests pass, `tsc --noEmit` clean.
+
+### Before/after recommendation diff (the review artifact)
+
+32 scenarios, 24–1200 cameras × 14/30/60/90-day retention, same `recommend()` and identical inputs both sides — only the pool differs. **21 changed, all 21 cheaper** ($722 to $48,197); 11 unchanged; an under-spec check confirmed neither pool ever returns a winner whose covered storage falls short of the requirement. Several changes also cut the unit count (300 cam/90 d: 5× V600-320 → 2× V800-864, −$48,197; 1200 cam/60 d: 6× V800-720 → 5× V800-864, −$29,118).
+
+The harness models storage need at 5 Mbit/s per stream, 75% motion, 24 h/day rather than calling the calculator's own bitrate tables (out of scope per the initiative brief), so the absolute TB figures are illustrative — the comparison holds because both sides get identical inputs.
+
+### Observation surfaced, not addressed
+
+`VX5-V800-576` is now **strictly dominated**: same 480 TB usable and same 325 VSR as `VX5-V700-576` for $2,360 more, so it can never win a recommendation. Before ADR 0092's parity fix it computed 512 TB and did win some workloads. Either mispriced, or it exists for expansion headroom the recommender cannot see, or it should be retired — a product decision, flagged in ADR 0094.
+
+### Decisions captured
+
+- [`0094-recommender-pool-from-product-specs.md`](./decisions/0094-recommender-pool-from-product-specs.md) (Accepted — diff reviewed and signed off)
+
+---
+
+## 2026-07-24 — Product spec single source of truth — Phase 0 audit (read-only)
+
+Scoped and ran the Phase 0 audit for the spec-unification initiative briefed in [`datasheets/single-source-of-truth-seed.md`](../datasheets/single-source-of-truth-seed.md). Read-only: no schema, migration, code, or data changes, no writes to the database. Full findings in [`datasheets/spec-source-audit-phase0.md`](../datasheets/spec-source-audit-phase0.md); the four scope decisions taken before starting are ADR [0091](./decisions/0091-spec-unification-scope-boundary.md). **Direction not set — this stops for review**, and the datasheet project stays paused.
+
+### Work done
+
+- **Confirmed scope with the stakeholder before auditing** (ADR 0091): Arxys product specs only (`camera_specs` / `competitor_products` catalogued but excluded); the canonical source must be **admin-form editable**, no deploy and no script run; this repo only; audit stops for review before any architecture work.
+- **Answered the brief's first open question — the Calculator's spec source.** [`candidates.ts`](../src/lib/recommend/candidates.ts) reads `current_products` for capacity/price and `product_specs` for exactly three columns (`storage_raw_tb`, `hdd_count`, `raid_level_display`) to derive net-usable storage per ADR 0068. It is a *computational* consumer of `product_specs`, not a descriptive one.
+- **Found seven live spec-data locations, not four.** The brief's list missed the `products`/`current_products` inline capacity columns, `data/server-specs.json` (the actual upstream of `product_specs`, and shared with `competitor_products`), and [`display-specs.ts`](../src/lib/comparison/display-specs.ts) (a hand-derived copy of the JSON's labels + marketing copy). Plus six hardcoded-copy sites, not one.
+- **Measured every source against the admin-form bar: none qualify.** `product_specs`' real source of truth is a repo JSON applied by a manually-run script, so `families.ts` is the more obvious offender but not the only one. This reframed the initiative from "get data out of a code file" to "no spec source has a live write path."
+- **Built and ran four read-only query scripts against the production DB** (service_role, `SELECT` only). This is the material difference from the datasheet project's own Phase 0, which reasoned from the migration chain and did not query the cloud — three of the findings below are invisible in the migration chain.
+- **Wrote the audit up with a decisions-needed section** rather than resolving anything: the two biggest open items need a product/hardware owner, not a code decision.
+
+### Findings that changed the shape of the problem
+
+- **The Calculator recommends from 6 of 21 rack SKUs; no V100 configuration can ever be recommended.** `current_products.max_cameras`/`max_storage_tb` are populated for exactly the six SKUs of the original Step 3/4 seed and `NULL` for the other 15, because the Master Sheet has no capacity columns and `push-prices.ts` only carries capacity *forward* (`existing?.max_cameras ?? null`), never derives it. `candidates.ts` filters the pool on those columns being non-null. `product_specs` has complete values for all 21. Baked into the tests as expected behaviour ([`algorithm.test.ts:21`](../src/lib/recommend/algorithm.test.ts:21) fixture = those same six SKUs); undocumented as a decision anywhere in `docs/`.
+- **The Price Book shows a different net-usable storage figure than the PDFs and Calculator for 8 of 21 SKUs.** [`cell-value.ts:50`](../src/lib/price-book/cell-value.ts:50) treats `families.ts` `skuExtraData` as authoritative *over* the computed value, so hand-typed strings win on the Price Book while `usableCapacityTb()` wins everywhere else. Not one bug but three causes — resolved same day, see below.
+- **26 of `product_specs`' 43 columns have no write path except authoring a new migration.** They were added and seeded by later migrations that `update-comparison-data.ts` never learned about — it maintains 17. Two of the 26, `hdd_count` and `raid_level_display`, are inputs to the Calculator's storage math, so **the Calculator's sizing depends on values only a database migration can correct.** The strongest single argument in the audit for a real write path.
+- **The stale `vms_certified` originates upstream in the JSON, not just the DB**, so a DB-only fix would be reverted by the next script run. It is also internally inconsistent: `VX5-V100-32` alone lists 2 VMSes where its two siblings list 3. The authoritative 7-VMS list exists only as a hardcoded string in a page component.
+- `data/server-specs.json` carries `ndaa: true` for all 21 models, which no table has a column for and which is dropped on load — while NDAA compliance is hardcoded in four UI locations. The unapplied additive migration's `ndaa_text` is the right home for it.
+- `product_specs.product_sku` ("reserved for future join to `products.sku`") is null in all 21 rows and actively rewritten to `null` by the refresh script every run. Dead column; the join is done in-process instead.
+
+### Resolved same day by stakeholder — and it found a live bug
+
+Andy supplied the authoritative RAID rules within the session: **no hot spares on any model**; V200 is RAID 5; V400/V500/V600 are RAID 6; V700/V800 are RAID 60 built from **12-drive RAID 6 stripes**. Also confirmed the recommender's intent: never under-spec, video surveillance only (access control separately scoped later), V200–V800 is the full intended family set, and a goal of this initiative is a *more accurate and more specific* recommender fed by live specs.
+
+- **`usableCapacityTb()` has a RAID-60 bug, and it makes the Calculator under-spec the V800.** The function hardcodes `parity = 4` for RAID 60 regardless of drive count. Correct only at 24 drives (V700 = 2 spans × 2). The V800 has 36 drives = 3 spans = **6** parity drives. So the code sizes `VX5-V800-720` — which *is* in the live candidate pool — at 640 TB usable when the array delivers 600 TB: a 40 TB / 6.7% overstatement on the flagship box, directly against the stated never-under-spec goal. V700 is unaffected, which is why it stayed hidden. Correct general form: `parity = 2 × (n / 12)`; with 12-drive spans this simplifies to **usable = raw × 5/6** independent of drive count.
+- **Of the 8 storage disagreements: `families.ts` is right and the code is wrong for the 3 V800 rows; the code is right and `families.ts` is wrong (typos) for V400-192 (132→144) and V700-384 (316→320); the 3 V100 rows remain open** pending a RAID-1-vs-JBOD answer (16/20/24 vs 32/40/48 — and the declared 36 TB on a 32 TB raw unit is wrong on any reading).
+- **The 6-SKU pool is half intended.** Excluding V100 is correct and deliberate (and should get an ADR line so nobody "fixes" it). But the pool is six *SKUs*, not six *families* — exactly one capacity tier each. The other 12 V200–V800 tiers are invisible to the recommender because their `current_products` capacity is `NULL`, which is precisely what blocks "more accurate and more specific": with one tier per family it cannot right-size. The complete data already exists in `product_specs`.
+- **Surfaced a definitional gap for the "Net Usable Capacity" ask:** the pipeline is decimal throughout (`GB_PER_TB = 1000`), so the term currently means post-RAID-parity decimal TB, pre-format. Windows reports ~9.1% less in TiB (600 TB → ~545 TiB), which needs an explicit label on documents either way.
+
+### Detours & fixes
+
+- **Attributed the V800 discrepancy to hot spares; wrong cause, right arithmetic.** I spotted that all three V800 rows fit `raw × (n−6)/n` and inferred RAID 60 plus two withheld hot spares. Andy confirmed nothing ever has hot spares — the six drives are parity from three 12-drive RAID 6 spans. Identical numbers, but it generalises differently (parity scales with span count rather than being a constant), which is what makes it a code bug rather than a data question.
+- **Hypothesised that capacity was being silently lost by price re-versioning — it is not.** The append-only price versioning made this the obvious suspect, so I queried the full per-SKU version history: the 2026-07-02 rows preserved the 2026-05-05 values on all six populated SKUs. The nulls have been null since the original seed. Root cause is the seed-plus-carry-forward gap described above, not versioning.
+- **Nearly reported the `families.ts` storage strings as merely latent.** ADR 0069 is titled "true net usable," which implied the Price Book computes the figure — so the hand-typed `skuExtraData` values looked like dead overrides. Reading `cellValue` showed the override is checked *first* and documented as authoritative, making all 8 disagreements live and user-visible. Verified the page wires `skuExtraData` through before writing it up.
+- **Checked whether the refresh script's upsert clobbers the 26 migration-only columns — it does not.** `.upsert(rows, { onConflict: "id" })` sends an 18-field payload and PostgREST's `ON CONFLICT DO UPDATE` sets only payload columns; confirmed against live data (0 nulls across all 26 columns × 21 rows post-run). Noting it because a naive fix to that script could easily break it.
+- Scratchpad ESM friction: top-level `await` needed `.mts`, and ESM resolves `node_modules` from the script's own directory, so the audit scripts ran via a symlink into the repo rather than as committed files. Nothing added to the repo.
+
+### Fix landed same day (scoped deliberately narrow)
+
+Andy scoped the immediate change to the correctness fix only; the pool expansion and the display work wait for the unification phase.
+
+- **[`capacity-utils.ts`](../src/lib/capacity-utils.ts)** — RAID 60 parity is now span-derived, `2 × (n / RAID60_SPAN_DRIVES)` with `RAID60_SPAN_DRIVES = 12`, replacing the flat 4. V700 (24 drives, 2 spans) is unchanged at 4; V800 (36 drives, 3 spans) correctly charges 6. Comment block rewritten with the per-model math.
+- **[`families.ts`](../src/lib/price-book/families.ts)** — the two confirmed typos: `VX5-V400-192` 132→144 TB, `VX5-V700-384` 316→320 TB.
+- **Test expectations that encoded the old parity** — `snapshot.test.ts` (720/36/RAID60 now `× 30/36`), and five `render.test.ts` `sumQuotedCapacity` cases built on a V800 fixture (640→600, 1920→1800, 1520→1480). These were asserting the bug; ADR 0068 set the precedent for updating expectations when the underlying math is corrected.
+- **Verified:** 245/245 tests pass, `tsc --noEmit` clean, and a live re-query confirms all six current pool SKUs now compute exactly the corrected figures. (Two pre-existing lint errors remain in `portal-header.tsx` and `project-quote-actions.ts` — untouched, unrelated.)
+- **V100 dual-publish also landed** — I had deferred this as "display work" and overstated the cost: the minimal honest version fits inside the existing `skuExtraData` strings (`"16 TB RAID 1 / 32 TB JBOD"` and the -40/-48 equivalents), no new rendering. Worth doing immediately because the previous `36 TB` was wrong under *both* readings on a customer-facing page. Kept as overrides rather than computed, since `usableCapacityTb()` takes one RAID level and cannot express a choice — the configurable case is what the override path is for.
+- **Still deferred:** the decimal/binary figure pair (ADR 0092 item 3). That one genuinely is document work — it touches the PDF pipeline and needs a footnote pattern, not a string change.
+- **Heads-up for sales:** every V800 quote and PDF now reports 6.7% less usable capacity. Correct, but visibly lower than any quote generated before today, and some projects that sized to one V800 will now size to two.
+
+### Decisions captured
+
+- [`0091-spec-unification-scope-boundary.md`](./decisions/0091-spec-unification-scope-boundary.md) (Accepted) — scope boundary and the admin-form editability bar. The architecture ADR is deliberately still unwritten.
+- [`0092-net-usable-capacity-definition.md`](./decisions/0092-net-usable-capacity-definition.md) (Accepted) — the canonical Net Usable Capacity math, the RAID 60 parity fix, V100 dual-publish, and decimal-TB-plus-binary on documents.
+
+---
+
+## 2026-07-23 — Datasheet automation — Phase 1: schema (migrations written, unapplied)
+
+Designed and wrote the two datasheet spec migrations per the Phase 1 brief, plus paired rollbacks, ADR 0090, and an apply note. **Stop-and-flag: nothing applied** — Andy applies via the dashboard SQL editor ([`docs/apply-notes/0090-datasheet-schema.md`](./apply-notes/0090-datasheet-schema.md)). No app code touched; no rows seeded (the spec numbers are a later content phase). The three fixed decisions from the plan were honoured: new table (not relaxed constraints), `product_specs.vms_certified` left alone, rear photography not scoped.
+
+### Work done
+
+- **New companion table `appliance_specs`** — [`20260723000001_datasheet_appliance_specs.sql`](../supabase/migrations/20260723000001_datasheet_appliance_specs.sql). Management/ACM/workstation archetypes (intended rows: `VX5-V150-ACM`, `VX5-V250-MGM`, `VX5-V255-MGM`, `VX5-V260-ACM`, `VX5-V265-ACM`, `VX5-SW10-100`, `VX5-SW20-200`). Text PK = SKU; RLS SELECT-open to `authenticated` + admin-only writes; no `created_at`/`updated_at` — a byte-for-byte copy of the `camera_specs` reference-table pattern (shared `is_admin(uuid)`, `(select auth.uid())` scalar-subquery wrap). `family_type` discriminator (`management`/`acm`/`workstation`, CHECK-enforced) drives which optional blocks the template expects. Base compute/OS/network fields for every archetype; NA-capable text storage (no numeric `storage_raw_tb` — that is exactly the column that blocks these SKUs); power with an optional `power_dc_input` (only the V250 sheet lists DC alongside AC); dimensions, weight, structured warranty, environmental, regulatory + NDAA, `security_features text[]`; workstation-only GPU/monitor/IO columns and the `camera_matrix jsonb`. ~52 columns; two btree indexes (`family_type`, `sheet_group`).
+- **`product_specs` additive migration** — [`20260723000002_datasheet_product_specs_additive.sql`](../supabase/migrations/20260723000002_datasheet_product_specs_additive.sql). 18 nullable columns, rack-video only, same additive-only pattern as the QuickCompare migration ([`20260602000001`](../supabase/migrations/20260602000001_quickcompare_columns.sql)): power (wattage/redundancy/AC), dimensions/weight, `warranty_years`+`warranty_terms` (legacy freeform `warranty` left intact), environmental, regulatory + `ndaa_text`, `security_features text[] NOT NULL DEFAULT '{}'` (so the 21 existing rows stay valid), `remote_mgmt`, `os_drive_desc`, `revision_date`. No constraint/index/RLS/existing-column change.
+- **Feature-block scaffolding (Task 3) — confirmed already covered for `product_specs`, added nothing.** The page-1 blocks need RAID level, drive-failure tolerance, and cachevault presence; `product_specs` already has `raid_level_display`, `hdd_count`, `drive_bays`, `battery_raid` (= cachevault), `os_redundancy`, `hotswap_power`, `max_cameras_h265`. Drive-failure tolerance is a pure function of RAID level + drive count, derived in the template, not stored. `appliance_specs` carries the same-named availability columns so the shared blocks read one substitution surface across both tables. The prose itself is deferred to a content phase, as briefed.
+- **Paired rollbacks** ([`datasheet-appliance-specs-rollback.sql`](../supabase/rollback/datasheet-appliance-specs-rollback.sql), [`datasheet-product-specs-additive-rollback.sql`](../supabase/rollback/datasheet-product-specs-additive-rollback.sql)) in `supabase/rollback/` per convention (outside `migrations/` so the CLI never auto-applies). The appliance rollback drops no extension (this migration enables none — unlike camera_specs' pg_trgm).
+
+### Judgment calls flagged for override (before applying)
+
+- **Two-CPU-variant = two rows sharing `sheet_group`, not one row with paired `cpu_a_*`/`cpu_b_*` columns.** V250+V255 both carry `sheet_group='V250'`; V260+V265 → `'V260'`; the template groups by it and renders variant columns. Chosen because one-row-per-SKU keeps parity with `product_specs` and an identical SKU→`current_products` price join, and paired columns would strand nullable `_b` fields on every single-variant sheet (V150/SW10/SW20). Confirmed by the datasheet URL grouping (one V250 factsheet covers V250+V255; SW10 and SW20 have *separate* sheets).
+- **Camera matrix = `camera_matrix jsonb`, not a child table.** 4 rows × 2 workstation SKUs = 8 rows, always read whole with the parent, never queried across sheets — a child table would add a second RLS surface + a join for no gain. Same call as `camera_specs.sensor_detail`. Shape documented in the column comment.
+- **Dimensions = two display strings** (`dimensions_mm`/`dimensions_in`), not six per-axis numerics — the only consumer is the renderer, nothing sorts on dimensions, and two strings can't drift out of unit-agreement.
+- **Table name `appliance_specs`** — kept from the plan's working name; fits `*_specs`, and `system_specs` was avoided as too close to `product_specs`. Workstations aren't strictly "appliances" — rename now if preferred, it's cheapest pre-seed.
+- **V150 `family_type`** (`acm` vs `management`) is a seed-time call — no value written this phase; the migration comment leans `acm` on the access-control branding.
+
+### Decisions captured
+
+- [`0090-datasheet-spec-schema.md`](./decisions/0090-datasheet-spec-schema.md) (Accepted)
+
+---
+
+## 2026-07-23 — Datasheet automation — Phase 0 audit (read-only)
+
+Read-only investigation answering the three open items in [`datasheets/datasheetplan.md`](../datasheets/datasheetplan.md), per the Phase 0 brief. No schema, migration, or code changes — findings only. Sources: the `product_specs` migrations/seed (the same data `scripts/update-comparison-data.ts` loads to the live table), `src/lib/price-book/families.ts`, both price-book page components, `public/price-book/`, and repo-wide grep. I did **not** query the live cloud DB; the seed + migration chain is the authoritative definition of the table and was read end-to-end.
+
+### Work done
+
+**Task 1 — V250 / V255 / V260 in `product_specs`.**
+
+- **The confirmed 7 are all present: 21 rows.** V100 / V200 / V400 / V500 / V600 / V700 / V800, three SKU tiers each, seeded in [`20260529000001_phase5_product_specs.sql`](../supabase/migrations/20260529000001_phase5_product_specs.sql) with the QuickCompare columns populated in [`20260602000001_quickcompare_columns.sql`](../supabase/migrations/20260602000001_quickcompare_columns.sql). The two `2026-06-05` "fix" migrations only `UPDATE` values (cpu_cache, hdd_count, raid_level_display) — no column changes.
+- **V250, V255, V260, V265 have zero rows.** Confirmed by grep across every migration, `data/server-specs.json`, and `scripts/` — no match. No later migration adds them; [`20260624000001_genetec_streamvault_hw_platform.sql`](../supabase/migrations/20260624000001_genetec_streamvault_hw_platform.sql) only adds competitor/Genetec rows.
+- **They are nonetheless real, live, priced SKUs.** They flow through the Pipedrive → `products` pricing pipeline into `current_products` (`VX5-V250-MGM` $14,020, `VX5-V255-MGM` $15,734, `VX5-V260-ACM` $14,029, `VX5-V265-ACM` $17,814 per prior JOURNAL/proposals), have full `families.ts` entries (copy, hero, live datasheet PDF URLs), and appear in quote/snapshot tests and the price-book showcase. **The gap is spec-side only:** pricing/products knows these SKUs; the hardware-spec table does not.
+- **The gap is broader than V250/V260.** `product_specs` covers exactly the 21 mainline rack-video SKUs. Every management / ACM / value-management / workstation SKU is absent: **V150 (ACM tier), V250, V255, V260, V265, SW10, SW20**. Of the ~10 target families in the plan, `product_specs` currently has hardware specs for 7 (all rack-video); the three non-video archetypes have none.
+- **Current column shape: 43 columns, not 44.** Base table created 19 columns; QuickCompare added 25 (3 physical + 12 system + 6 storage + 4 networking) = 44; then [`20260717000001_drop_product_specs_msrp.sql`](../supabase/migrations/20260717000001_drop_product_specs_msrp.sql) dropped `msrp` → **43 live**. The plan's "44 columns" is the pre-drop count.
+- **Whether the existing shape covers the V250 factsheet's three named needs — it does not, and one is a hard blocker:**
+  - *"NA" storage capacity (no HDD array):* **blocked by a CHECK constraint.** `storage_raw_tb numeric NOT NULL CHECK (storage_raw_tb > 0)` — a management/directory server with no HDD storage cannot be inserted as 0 or NULL. `drive_bays`/`hdd_count` are nullable (no check) so those could be 0/null, but `storage_raw_tb` cannot. The same class of problem hits `max_cameras` and `max_cameras_h265`, both `NOT NULL CHECK (> 0)` — a management/ACM server records no cameras. So three NOT-NULL/>0 checks actively block a V250/V260-shaped row.
+  - *Optional DC power input alongside AC:* **no power columns exist** (the plan's "fields confirmed missing" already lists PSU wattage / AC / optional DC). The only power-ish column is `hotswap_power` (text 'Yes'/'NO').
+  - *Dual CPU variant on one sheet:* the table is keyed one row per SKU (`id` = SKU) with single-value text `cpu_model_full` / `cores_threads`. `families.ts` already groups V250+V255 as one family (`productGroups: ["V250","V255"]`) and V260+V265 likewise, so "two CPUs on one sheet" reads as two SKU rows in one family rather than one row with a dual field — but the table has no structured field for two CPU options, and which representation the datasheet wants is unresolved (see flags).
+
+**Task 2 — hero / rear photography.**
+
+- **Every `heroImage` path in `families.ts` resolves to a real file** in `public/price-book/`; no dangling references. Mapping is complete and 1:1: `v100-hero.png` → V100; `1u-chassis-hero.png` → V200, **V250, V260** (shared generic 1U chassis); `v400-v500-hero.png` → V400, V500; `v600-hero.png` → V600; `v700-v800-hero.png` → V700, V800; `sw-hero.png` → SW (both SW10 & SW20).
+- **No rear photography exists anywhere.** A `find` for `*rear*` / `*back*` across `public/` returned nothing — every asset is a front/hero shot. The datasheet's rear-view (rear IO, especially workstations) has no source asset.
+- **Hero images are shared/generic, not per-SKU.** V250 and V260 have no distinct hero — they inherit the generic `1u-chassis-hero.png` also used by V200. V400/V500, V700/V800, and SW10/SW20 each share one image. If the datasheet wants a model-specific hero, most target SKUs lack one; sourcing new photography is a content dependency outside the repo/data.
+- Minor: `v700-v800-hero-LOWRES.png` exists but is unreferenced (families uses the full-res file) — an orphan low-res variant. Non-hero assets present: `Windows_Server_2022.png`, `5_year_warranty-circle-2.png` (price-book index badges).
+
+**Task 3 — source of the price-book copy blocks** (`src/app/(app)/price-book/[slug]/page.tsx`).
+
+- **Great For, Key Features, Technical Specs are data, centralized in one module.** They render from `family.greatFor` / `family.keyFeatures` / `family.technicalSpecs` in [`src/lib/price-book/families.ts`](../src/lib/price-book/families.ts), keyed by slug via `familyBySlug()`. Also from that module: `tagline`, `eyebrow`, `displayName`/`shortName`, `kpis`, `heroImage`, datasheet URLs, `skuExtraData`. A datasheet template can import the same source with **no copy duplication.**
+- **The compliance strip is NOT shareable as-is.** "Multi-VMS Validated / NDAA Compliant / American Made" is a **hardcoded inline array literal inside the page component** ([`[slug]/page.tsx` lines 267–271](../src/app/(app)/price-book/[slug]/page.tsx)) — not in families.ts, not in product_specs. A datasheet would duplicate it unless it is first extracted to families.ts or a shared constant. The 7-VMS list inside it is hardcoded a **second** time in the price-book *index* page ([`price-book/page.tsx` line 207](../src/app/(app)/price-book/page.tsx), the Enterprise Grade box).
+- **The bottom "fine print" / VSR / SQL-Server / "NDAA compliant with no disclosures" text** (`[slug]/page.tsx` lines 424–443) is likewise hardcoded in the component. It overlaps the datasheet footer material (NDAA disclosure text, revision date) the plan lists as missing.
+- SKU tables are data (`current_products` view joined to `product_specs` by `id` via `src/lib/price-book/cell-value.ts`), not copy.
+
+**Task 4 — other family-level content overlapping the page-1 feature blocks** (Flexible Storage, Lower Deployment Costs / H.265, High Data Availability, Strengthen Cybersecurity, Advanced Support).
+
+- **None of the five feature-block headings exist anywhere in the repo.** Repo-wide grep matched only "H.265". The datasheet's headline+paragraph feature-block *prose templates* are not present.
+- Closest existing overlaps (partial/thematic, all on the price-book **index** page, none per-family with value substitution):
+  - *Lower Deployment Costs / H.265* ↔ the "VideoX V5 Drives H.265 Performance" banner ([`price-book/page.tsx` lines 154–178](../src/app/(app)/price-book/page.tsx)): heading + body ("AMD Zen5 … 2.3x more H.265 streams per server …"). Closest single match; global, not per-family. Also documented in ADR 0056 and `docs/step-2-polish-support-docs.md`.
+  - *Flexible Storage / High Data Availability / Strengthen Cybersecurity* ↔ the "Enterprise Grade" box ([`price-book/page.tsx` lines 182–216](../src/app/(app)/price-book/page.tsx)): 8 bullets covering hot-swap HDD/SSD, hardware RAID + cachevault, redundant power/cooling, secure remote management, NDAA/American Made. Theme overlap only — a single global bullet box, not headline+paragraph blocks, no per-family substitution.
+- **The substitution *inputs* mostly exist in data even though the templates don't:** per-family RAID level ("RAID 5/6/60"), drive counts, cachevault, hot-swap live in `families.ts` `keyFeatures`/`technicalSpecs`; and `product_specs` has `raid_level_display`, `hdd_count`, `drive_bays`, `battery_raid`, `os_redundancy`, `hotswap_power`, `hdd_mtbf`, plus `infinity_guard`/`avx_512`/`chiplet_arch`. So a templated feature block has values to fill; only the prose shell is missing.
+- The prose "security feature list" the plan mentions (SEV/SME/Secure Boot/signed firmware) is **not in the repo** — only the `infinity_guard`/`avx_512` booleans exist.
+
+### Flagged ambiguities & contradictions (unresolved — for Phase 1/2)
+
+1. **`storage_raw_tb` / `max_cameras` / `max_cameras_h265` NOT-NULL >0 checks block V250/V260 rows.** Adding management/ACM SKUs to `product_specs` requires relaxing these constraints (or NA-encoding) vs a separate representation/archetype — a Phase 1 schema decision, not resolvable by adding nullable columns alone.
+2. **VMS list disagreement.** UI compliance strip = 7 VMSes (Milestone, Avigilon, Genetec, NXWitness, Hanwha, Exacq, Axxonsoft), hardcoded in two places; `product_specs.vms_certified` = 2–3 VMSes (e.g. "Milestone XProtect, Avigilon ACC, Genetec"; only 2 for `VX5-V100-32`). A datasheet must pick a source; they currently disagree.
+3. **"Dual CPU on one sheet" representation is undecided.** families.ts already models V250+V255 (and V260+V265) as two SKUs in one family; unclear whether the datasheet wants two SKU rows rendered as two columns or one row carrying a dual-value CPU field.
+4. **Spec gap is wider than the plan's framing.** Not just V250/V255/V260 — V150, V265, SW10, SW20 also have no `product_specs` rows. The whole workstation archetype (SW) and every management/ACM/value-management tier is spec-less today.
+5. **Column count drift.** Live table is 43 columns (post-MSRP-drop), plan says 44. Phase 1's additive migration should start from 43.
+6. **Rear photography and per-SKU hero shots do not exist** and cannot be produced from the repo — a content-acquisition dependency, not a code gap.
+
+---
+
 ## 2026-07-22 — Add 10 Hanwha camera models to the calculator seed
 
 ### Work done

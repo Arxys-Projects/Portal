@@ -890,12 +890,13 @@ describe("sumQuotedCapacity — page-2 Quoted-solution denominators", () => {
   const line = (productCode: string | null, quantity: number | null): QuoteLineItem =>
     ({ productCode, quantity } as QuoteLineItem);
 
-  // V800: 720 raw, 36 drives, RAID 60 → 720 × (36-4)/36 = 640 TB usable.
+  // V800: 720 raw, 36 drives, RAID 60 in 3 spans of 12 → 6 parity →
+  // 720 × (36-6)/36 = 600 TB usable (ADR 0092).
   const v800 = spec({ storageRawTb: 720, hddCount: 36, raidLevelDisplay: "60", maxBandwidthMbps: 4000 });
 
   it("single product, quantity 1: net-usable derived, bandwidth passed through", () => {
     const r = sumQuotedCapacity([card("V800", v800)], [line("V800", 1)]);
-    assert.equal(r.usableStorageTb, 640);
+    assert.equal(r.usableStorageTb, 600);
     assert.equal(r.bandwidthMbps, 4000);
     assert.equal(r.hasStorage, true);
     assert.equal(r.hasBandwidth, true);
@@ -903,7 +904,7 @@ describe("sumQuotedCapacity — page-2 Quoted-solution denominators", () => {
 
   it("quantity-weights: N boxes deliver N× capacity", () => {
     const r = sumQuotedCapacity([card("V800", v800)], [line("V800", 3)]);
-    assert.equal(r.usableStorageTb, 1920);
+    assert.equal(r.usableStorageTb, 1800);
     assert.equal(r.bandwidthMbps, 12000);
   });
 
@@ -914,13 +915,13 @@ describe("sumQuotedCapacity — page-2 Quoted-solution denominators", () => {
       [card("V800", v800), card("V700", v700)],
       [line("V800", 1), line("V700", 2)],
     );
-    assert.equal(r.usableStorageTb, 640 + 440 * 2); // 1520
+    assert.equal(r.usableStorageTb, 600 + 440 * 2); // 1480
     assert.equal(r.bandwidthMbps, 4000 + 2000 * 2); // 8000
   });
 
   it("a SKU split across lines sums its quantities", () => {
     const r = sumQuotedCapacity([card("V800", v800)], [line("V800", 1), line("V800", 2)]);
-    assert.equal(r.usableStorageTb, 1920);
+    assert.equal(r.usableStorageTb, 1800);
     assert.equal(r.bandwidthMbps, 12000);
   });
 
@@ -943,7 +944,7 @@ describe("sumQuotedCapacity — page-2 Quoted-solution denominators", () => {
 
   it("ignores line items with no matching showcase card (add-ons, warranties)", () => {
     const r = sumQuotedCapacity([card("V800", v800)], [line("V800", 1), line("VX5-WTY-5Y", 1)]);
-    assert.equal(r.usableStorageTb, 640);
+    assert.equal(r.usableStorageTb, 600);
     assert.equal(r.bandwidthMbps, 4000);
   });
 
