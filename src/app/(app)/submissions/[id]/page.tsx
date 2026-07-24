@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { loadSubmissionDetail } from "@/app/(app)/_components/load-submission";
+import {
+  loadSubmissionDetail,
+  loadSubmissionLineage,
+} from "@/app/(app)/_components/load-submission";
 import { SubmissionDetail } from "@/app/(app)/_components/submission-detail";
 
 export default async function PartnerSubmissionDetailPage({
@@ -11,6 +14,7 @@ export default async function PartnerSubmissionDetailPage({
   const { id } = await params;
   const submission = await loadSubmissionDetail(id);
   if (!submission) notFound();
+  const lineage = await loadSubmissionLineage(id);
 
   return (
     <div>
@@ -22,7 +26,7 @@ export default async function PartnerSubmissionDetailPage({
           ← Back to submission history
         </Link>
       </div>
-      <SubmissionDetail submission={submission} mode="partner" />
+      <SubmissionDetail submission={submission} mode="partner" lineage={lineage} />
     </div>
   );
 }

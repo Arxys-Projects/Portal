@@ -9,6 +9,42 @@ import type { SubmissionDetailRow } from "./submission-detail";
 
 type SubmissionBase = Omit<SubmissionDetailRow, "product">;
 
+export type SubmissionLineage = {
+  parent: { id: string; project_name: string | null; created_at: string } | null;
+  children: { id: string; project_name: string | null; created_at: string }[];
+};
+
+// ADR 0093 step 2 — revision lineage for the detail-page banner. RLS-scoped:
+// a viewer only sees a parent/child row they already have access to, so this
+// can never leak a submission outside the caller's normal visibility.
+export async function loadSubmissionLineage(id: string): Promise<SubmissionLineage> {
+  const supabase = await createSupabaseServerClient();
+
+  const { data: self } = await supabase
+    .from("submissions")
+    .select("parent_submission_id")
+    .eq("id", id)
+    .maybeSingle();
+
+  let parent: SubmissionLineage["parent"] = null;
+  if (self?.parent_submission_id) {
+    const { data } = await supabase
+      .from("submissions")
+      .select("id, project_name, created_at")
+      .eq("id", self.parent_submission_id)
+      .maybeSingle();
+    parent = data ?? null;
+  }
+
+  const { data: childRows } = await supabase
+    .from("submissions")
+    .select("id, project_name, created_at")
+    .eq("parent_submission_id", id)
+    .order("created_at", { ascending: false });
+
+  return { parent, children: childRows ?? [] };
+}
+
 export async function loadSubmissionDetail(
   id: string,
 ): Promise<SubmissionDetailRow | null> {

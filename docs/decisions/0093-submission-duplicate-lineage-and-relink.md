@@ -1,6 +1,6 @@
 # 0093 — Submission revision lineage, delete-error surfacing, and Pipedrive relink
 
-- **Status**: Proposed (step 1 implemented in working tree 2026-07-24, not yet committed/deployed)
+- **Status**: Accepted (step 2 implemented in working tree 2026-07-24, not yet committed/deployed — see "Step 2 status" below; step 1 shipped in [PR #7](https://github.com/Arxys-Projects/Portal/pull/7))
 - **Date**: 2026-07-24
 
 ## Context
@@ -53,3 +53,22 @@ Forced early: two more orphan drafts for the same North Bergen SD job appeared *
 258/258 tests pass, `tsc --noEmit` clean. Steps 2 (`parent_submission_id` migration) and 3 (Pipedrive retry/relink action) remain proposed only.
 
 A third orphan appeared after step 1 was committed and pushed, because it had not yet merged to `main` — commit-and-push is not deploy. Opened [PR #7](https://github.com/Arxys-Projects/Portal/pull/7) (`fix/raid60-net-usable-capacity` → `main`) to close that gap; awaiting review/merge.
+
+## Correction: the diagnosis in "Context" above was incomplete
+
+PR #7 merged (2026-07-24) and step 1 went live, and the North Bergen SD submission still produced a second "Open" row the very next time it was revised — a 5th recurrence, by one user, one revise click. That is not explainable by the "two independent users" race this ADR's Context section opens with, and the step-1 warning is structurally incapable of catching it: its dup-check deliberately excludes `input.sourceSubmissionId` from the "existing open" comparison (`calculator/actions.ts`, now line 234) so a legitimate single-user revision never trips it — but on a plain revise, the *only* other open row for that on-behalf target is the source itself, which the filter throws away before ever counting anything.
+
+The real mechanism, confirmed by tracing the revise flow end-to-end: `submitCalculation` ([`calculator/actions.ts`](../../src/app/(app)/calculator/actions.ts)) always `INSERT`s (line ~370), by design (ADR [0039](./0039-quote-revision-rehydration.md): "a revision is a brand-new row, the source is never mutated"). Nothing, anywhere, ever closes or flags the source row afterward. So **every** revision — on-behalf or not, one user or many — leaves the old row `status = "open"` forever while inserting a new, also-`"open"` row with a freshly recomputed price. The user's report ("anytime a project is revised it breaks, on every project") was the correct scope; the original two-user-race framing was a real but narrower instance of this same underlying gap, and happened to be the one an admin noticed first because it also produced a stray Pipedrive deal.
+
+Step 2 (below) fixes the actual mechanism. Step 1's duplicate warning stays in place — it still catches the genuinely-independent two-user case that lineage tracking alone can't distinguish from an intentional fresh submission — but it was never a fix for revise-time duplication, and the ADR text above should not be read as having claimed it was.
+
+## Step 2 status (2026-07-24)
+
+Implemented in the working tree (not yet committed/deployed):
+
+- **Migration** [`20260724000001_submission_revision_lineage.sql`](../../supabase/migrations/20260724000001_submission_revision_lineage.sql): additive nullable `submissions.parent_submission_id uuid references submissions(id) on delete set null`, plus a partial index. No data migration, no existing column touched.
+- **`submitCalculation`** ([`calculator/actions.ts`](../../src/app/(app)/calculator/actions.ts)) sets `parent_submission_id` on every revise, from an RLS-scoped read of the declared source (the same validated fetch already used to inherit the Pipedrive deal — consolidated into one query instead of two). A guessed/foreign source id silently fails to attach, same trust model as the existing Pipedrive-inherit check.
+- **`groupIntoDeals`** ([`lib/pipeline/forecast.ts`](../../src/lib/pipeline/forecast.ts)) now merges buckets connected by `parent_submission_id` (a small union-find over the existing text-match buckets), so a revise that also edits the project name still collapses into one deal instead of reading as two. Representative selection now prefers the lineage leaf (no other row points to it as parent) over a merely-newer-by-clock superseded row; an explicit `is_preferred` pin still overrides both. A new `supersededIds()` helper flags any row another row's `parent_submission_id` points to.
+- **UI**: the admin Grouped view's per-deal drill-down now shows a "Superseded" badge next to a stale row's real status, instead of showing two "Open" rows that look equally live. The submission detail page (both `/admin/submissions/[id]` and `/submissions/[id]`) shows "Revision of …" / "Superseded by …" lineage links via a new `loadSubmissionLineage()`.
+- 264/264 tests pass (6 new: lineage merge with a changed project name, superseded-never-wins-on-clock, preferred-still-wins-over-leaf, foreign parent id ignored gracefully, plus `supersededIds`), `tsc --noEmit` clean.
+- Not yet applied to the production database (`supabase db push`) or merged — same commit/push/deploy gap step 1 hit on its first attempt; do not consider this shipped until both have happened.

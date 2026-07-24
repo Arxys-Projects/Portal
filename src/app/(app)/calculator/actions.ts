@@ -196,6 +196,21 @@ export async function submitCalculation(
     };
   }
 
+  // ADR 0093 step 2 — validated revision source. RLS-scoped read: a caller can
+  // only link lineage to a source row they can see, so a guessed/foreign id
+  // silently fails to attach rather than leaking or binding cross-partner.
+  // Fetched once here and reused below for the Pipedrive-inherit check, so a
+  // revision costs one extra query total, not two.
+  let sourceSubmission: { id: string; pipedrive_deal_id: number | null } | null = null;
+  if (input.isRevision && input.sourceSubmissionId) {
+    const { data } = await supabase
+      .from("submissions")
+      .select("id, pipedrive_deal_id")
+      .eq("id", input.sourceSubmissionId)
+      .maybeSingle();
+    if (data) sourceSubmission = data as { id: string; pipedrive_deal_id: number | null };
+  }
+
   // ADR 0093 guardrail — an on-behalf submission has no lineage tracking
   // (ADR 0039: every revision is a brand-new row), so two internal reps can
   // independently file for the same customer without either seeing the
@@ -216,7 +231,7 @@ export async function submitCalculation(
       ? dupQuery.eq("on_behalf_of_partner_id", onBehalfPartnerId)
       : dupQuery.ilike("on_behalf_of_company_name", onBehalfCompanyName!.trim());
     const { data: existingOpen } = await dupQuery;
-    const others = (existingOpen ?? []).filter((r) => r.id !== input.sourceSubmissionId);
+    const others = (existingOpen ?? []).filter((r) => r.id !== sourceSubmission?.id);
     if (others.length > 0) {
       const names = others.map((r) => `"${r.project_name ?? "(untitled)"}"`).join(", ");
       duplicateWarnings = [
@@ -306,6 +321,9 @@ export async function submitCalculation(
     // ADR 0081: new submissions start Open (the default state). Won/Lost are
     // set manually. Matches the DB column default; set explicitly for clarity.
     status: "open",
+    // ADR 0093 step 2 — revision lineage. Only the validated source (see
+    // sourceSubmission above) is trusted, never the raw client-sent id.
+    parent_submission_id: sourceSubmission?.id ?? null,
     // partner_id stays = creator (auth.uid()); the on-behalf columns are what
     // redirect grouping + the Pipedrive deal to the target partner.
     on_behalf_of_partner_id: onBehalfPartnerId,
@@ -548,16 +566,12 @@ export async function submitCalculation(
   try {
     let dealId: number | undefined;
 
-    if (input.isRevision && input.sourceSubmissionId) {
-      // RLS-scoped read: a partner can only inherit a deal from a quote they
-      // own. A forbidden/missing source row yields null → falls through to
-      // create, so a guessed id can never attach to someone else's deal.
-      const { data: source } = await supabase
-        .from("submissions")
-        .select("pipedrive_deal_id")
-        .eq("id", input.sourceSubmissionId)
-        .maybeSingle();
-      const sourceDealId = source?.pipedrive_deal_id as number | null | undefined;
+    if (input.isRevision && sourceSubmission) {
+      // RLS-scoped read already ran above (sourceSubmission): a partner can
+      // only inherit a deal from a quote they own. A forbidden/missing source
+      // row left sourceSubmission null → falls through to create, so a
+      // guessed id can never attach to someone else's deal.
+      const sourceDealId = sourceSubmission.pipedrive_deal_id;
       if (sourceDealId) {
         try {
           ({ dealId } = await updateDealFromRevision(sourceDealId, dealSubmission, recommendation));

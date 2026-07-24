@@ -121,6 +121,15 @@ function KvRow({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
+export type SubmissionLineageSummary = {
+  parent: { id: string; project_name: string | null; created_at: string } | null;
+  children: { id: string; project_name: string | null; created_at: string }[];
+};
+
+function lineageDetailHref(mode: "admin" | "partner", id: string): string {
+  return mode === "admin" ? `/admin/submissions/${id}` : `/submissions/${id}`;
+}
+
 export function SubmissionDetail({
   submission,
   partner,
@@ -128,6 +137,7 @@ export function SubmissionDetail({
   canRevise,
   generateQuoteButton,
   projectQuotePanel,
+  lineage,
 }: {
   submission: SubmissionDetailRow;
   partner?: SubmissionPartnerSummary;
@@ -135,6 +145,7 @@ export function SubmissionDetail({
   canRevise?: boolean;
   generateQuoteButton?: ReactNode;
   projectQuotePanel?: ReactNode;
+  lineage?: SubmissionLineageSummary;
 }) {
   const groups = extractGroups(submission.groups_payload);
   // Phase 2 Step 3+4: a UUID-shaped recommended_product_id signals a
@@ -165,6 +176,35 @@ export function SubmissionDetail({
             {submission.id}
           </code>
         </p>
+        {lineage?.parent ? (
+          <p className="mt-1 text-sm text-ink-soft">
+            Revision of{" "}
+            <Link
+              href={lineageDetailHref(mode, lineage.parent.id)}
+              className="font-semibold text-arxys-navy hover:underline"
+            >
+              {lineage.parent.project_name || "(untitled submission)"} ·{" "}
+              {formatDate(lineage.parent.created_at)}
+            </Link>
+          </p>
+        ) : null}
+        {lineage && lineage.children.length > 0 ? (
+          <p className="mt-1 text-sm font-semibold text-danger">
+            Superseded by{" "}
+            {lineage.children.map((child, i) => (
+              <span key={child.id}>
+                {i > 0 ? ", " : ""}
+                <Link
+                  href={lineageDetailHref(mode, child.id)}
+                  className="underline decoration-2 underline-offset-2"
+                >
+                  {formatDate(child.created_at)}
+                </Link>
+              </span>
+            ))}{" "}
+            — this copy is no longer the current revision.
+          </p>
+        ) : null}
         {mode === "admin" && partner ? (
           <p className="mt-1 text-sm text-ink-soft">
             Partner:{" "}

@@ -2,7 +2,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { loadSubmissionDetail } from "@/app/(app)/_components/load-submission";
+import {
+  loadSubmissionDetail,
+  loadSubmissionLineage,
+} from "@/app/(app)/_components/load-submission";
 import { SubmissionDetail } from "@/app/(app)/_components/submission-detail";
 import { resolveSubmissionPartner } from "@/lib/pdf/partner-resolution";
 import { loadCurrentProjectQuote } from "@/lib/project-quote/assemble";
@@ -22,6 +25,7 @@ export default async function AdminSubmissionDetailPage({
 
   const submission = await loadSubmissionDetail(id);
   if (!submission) notFound();
+  const lineage = await loadSubmissionLineage(id);
 
   const supabase = await createSupabaseServerClient();
   const {
@@ -127,6 +131,7 @@ export default async function AdminSubmissionDetailPage({
         submission={submission}
         partner={partner}
         mode="admin"
+        lineage={lineage}
         canRevise={isInternal}
         generateQuoteButton={
           isInternal ? (
