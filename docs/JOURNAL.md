@@ -16,8 +16,20 @@ script (step 5) and the V100 correction (step 6) are **not** done.
 > `raid_level_alt_display` and `updated_by` null on all of them; `updated_at` stamped
 > uniformly at the apply time; `raid_level_display` still exactly `NA` / `5` / `6` / `60`;
 > `product_specs_audit` present and empty. The capacity trace re-run against the migrated
-> table was **identical to the pre-migration baseline** on all 21 rows. So §7 steps 3, 5 and
-> 6 are unblocked.
+> table was **identical to the pre-migration baseline** on all 21 rows.
+>
+> **Both triggers then verified live** with the apply note's no-op
+> `update product_specs set notes = notes where id = 'VX5-V100-32'` (run twice, hence two
+> audit rows — the table's first entries are its own smoke test). The BEFORE trigger moved
+> `updated_at` and left `updated_by` null, correct for a SQL-editor write with no
+> `auth.uid()`. The AFTER trigger wrote `operation = 'update'` with full 46-key `before` and
+> `after` snapshots — **43 original columns + the three this migration added**, which is the
+> count landing exactly where it should. The only field differing between the two snapshots
+> is `updated_at`, which proves two things at once: the no-op update really changed nothing
+> else, and the BEFORE stamp ran before the AFTER snapshot was taken. `security definer` with
+> `search_path = ''` inserts fine, and the `case when tg_op = 'UPDATE'` guard behaves.
+>
+> So §7 steps 3, 5 and 6 are unblocked.
 
 ### Work done
 

@@ -1,11 +1,12 @@
 # Apply note — ADR 0096 (`product_specs` admin-editable)
 
-> **APPLIED to production 2026-07-27** via the dashboard SQL editor. Checks 1–2
-> below pass; check 6 re-verified by a live trace over all 21 rows, identical to
-> the pre-migration baseline. Check 3 (the trigger smoke test) writes a row and
-> is recorded separately; checks 4–5 need a signed-in session and are the
-> `scripts/test-rls.ts` follow-up. The rest of this note is kept as the record of
-> what was applied and how to back it out.
+> **APPLIED to production 2026-07-27** via the dashboard SQL editor, and verified.
+> Checks 1, 2 and 3 below all pass — including both triggers, whose `before` /
+> `after` snapshots carry 46 keys (43 original columns + the three added here) and
+> differ only in `updated_at`. Check 6 re-verified by a live trace over all 21
+> rows, identical to the pre-migration baseline. Checks 4–5 need a signed-in
+> session and are the `scripts/test-rls.ts` follow-up. The rest of this note is
+> kept as the record of what was applied and how to back it out.
 
 One stop-and-flag migration for Andy to apply. The agent holds no DDL
 credentials (2026-07-17 CLI 401); apply via the Supabase **dashboard SQL
