@@ -283,7 +283,7 @@ function extractWarnings(payload: GroupsPayload | null): string[] {
 // populated for only 6 of the 18 pool SKUs, so the PDF's covered-capacity lines
 // take cameras and net-usable storage from product_specs via coveredCapacity().
 // This loader supplies identity and price only. See ADR 0094 and JOURNAL
-// 2026-07-24.
+// 2026-07-27.
 async function loadProductBySku(
   supabase: SupabaseClient,
   sku: string,

@@ -141,7 +141,7 @@ export type SizingPartnerRow = { company_name: string | null; contact_name: stri
 // NOT here — products.max_cameras / max_storage_tb are populated for only 6 of
 // the 18 pool SKUs, so delivered capacity comes from product_specs via
 // coveredCapacity() below. Leaving them out of the type keeps the sparse columns
-// unreachable from this path. See ADR 0094 and JOURNAL 2026-07-24.
+// unreachable from this path. See ADR 0094 and JOURNAL 2026-07-27.
 export type SizingProductRow = {
   product_group: string;
   product_name: string;

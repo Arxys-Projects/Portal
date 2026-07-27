@@ -4,10 +4,12 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
-## 2026-07-24 — Spec unification §2: swept the remaining `products` capacity readers (clean), and found a Price Book SKU gap
+## 2026-07-27 — Spec unification §2: swept the remaining `products` capacity readers (clean), and found a Price Book SKU gap
 
-Follow-on to the two spec-unification slices earlier the same day. The hand-off brief
-made §2 the start-here item: audit every other reader of `current_products.max_cameras`
+Follow-on to the two spec-unification slices of 2026-07-24. (The session that did this
+work started on the 24th and was suspended mid-way; the code changes and all
+verification date from the 24th, the docs and the commit from the 27th. Dated by the
+day it landed.) The hand-off brief made §2 the start-here item: audit every other reader of `current_products.max_cameras`
 / `max_storage_tb` for the same NULL-capacity bug that broke covered capacity, on the
 explicit warning that **the test suite cannot see this class of defect** — fixtures
 hand-populate capacity, so they never notice a change in *which rows or columns* reach

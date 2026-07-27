@@ -10,7 +10,7 @@
 
 ## State of play
 
-> **CORRECTED 2026-07-24 (later session).** Everything below this callout was written
+> **CORRECTED 2026-07-27 (later session).** Everything below this callout was written
 > before PR #7 merged. **All of the work described in this brief is now on `main` and
 > live in production.** The original text said "not pushed and not deployed"; that is
 > false. Verified: PR #7 merged as `e06d9a0`, and the latest production deployment was
@@ -51,7 +51,7 @@ capacity, so they could not see a change in *which rows* reach the path. Fixture
 much less than they look like they do when a change alters row selection rather than logic. Assume
 the same class of bug is still hiding elsewhere.
 
-## 2. DONE — swept 2026-07-24, no second instance of the bug
+## 2. DONE — swept 2026-07-27, no second instance of the bug
 
 > **This section is closed.** All four readers below were traced to their rendered
 > output against live production data. **Every one was a dead select** — none rendered
@@ -91,7 +91,7 @@ cheap cleanup** — that framing was wrong once already in this initiative.
 
 ## 3. Deploy communications owed — NOW RETROACTIVE, STILL UNSENT
 
-> **These changes are already live in production** (verified 2026-07-24; see the
+> **These changes are already live in production** (verified 2026-07-27; see the
 > State-of-play callout). The framing below — "whenever this ships" — no longer holds.
 > Partners may already have seen the new figures on quotes and PDFs. This is the most
 > time-sensitive open item in the brief and nothing has been sent.
@@ -147,12 +147,12 @@ Sales should hear all three before a partner does.
    cannot stay a co-authority — re-running the script would overwrite form edits. It also feeds
    `competitor_products`, which is out of scope, so it cannot simply be deleted.
 7. **Unpause the datasheet project.** `appliance_specs` and the `product_specs` additive migration
-   are **committed but still not applied** — re-verified against production 2026-07-24:
+   are **committed but still not applied** — re-verified against production 2026-07-27:
    `appliance_specs` returns `PGRST205` (absent) and `product_specs` still has 43 columns with
    0/18 of the additive set. Nothing in the audit invalidates them; the open question is whether
    they land as-is or fold into a wider canonical shape.
 
-   **New finding (2026-07-24) — the intended population is short by four SKUs.**
+   **New finding (2026-07-27) — the intended population is short by four SKUs.**
    `appliance_specs`' header lists 7 SKUs, drawn from `families.ts` `skuExtraData` keys, so it
    inherited that file's blind spot. `product_specs` covers no non-rack SKU, leaving 16 of 37
    active `current_products` SKUs uncovered; 5 are accessories that need no datasheet, but **four
@@ -171,7 +171,7 @@ Sales should hear all three before a partner does.
   `ea795e4` because `JOURNAL.md` was staged wholesale. **Check `git diff docs/JOURNAL.md | grep -E
   "^\+## "` before staging it, verify the next free ADR number immediately before claiming it, and
   never `git add -A` here.**
-- ~~**Uncommitted work that is not yours.**~~ **RESOLVED 2026-07-24.** All of it — ADR 0090 and its
+- ~~**Uncommitted work that is not yours.**~~ **RESOLVED 2026-07-27.** All of it — ADR 0090 and its
   apply-note, both datasheet migrations and their rollbacks, ADR 0093, and the `datasheets/*.md`
   planning docs — is now committed and tracked on `main`, and the JOURNAL links resolve. Verified
   with `git ls-files`; the working tree is clean. The *hazard* above it (shared working tree) is
@@ -187,7 +187,7 @@ Sales should hear all three before a partner does.
 
 ## Suggested first step
 
-> **UPDATED 2026-07-24.** §2 is done and clean — do not re-run it. The two live items are
+> **UPDATED 2026-07-27.** §2 is done and clean — do not re-run it. The two live items are
 > **§3 (the comms, now retroactive and still unsent)** and **§5.1 (the admin form)**, which is
 > the largest remaining piece and the reason the initiative exists. §5.7's newly-found
 > four-SKU gap is cheap to close and blocks the `appliance_specs` seed.

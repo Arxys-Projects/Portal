@@ -36,13 +36,13 @@
 //   * Covered capacity on the System Estimate PDF, Project Quote, and Customer
 //     Proposal comes from product_specs via coveredCapacity() (ADR 0092).
 //   * The Price Book computes net-usable from product_specs too, and the four
-//     remaining dead reads were removed 2026-07-24.
+//     remaining dead reads were removed 2026-07-27.
 //
 // The carry-forward is retained ON PURPOSE, not by oversight. products is
 // append-only, so dropping it would make the next run insert current rows with
 // NULL capacity and silently strip the 6 SKUs that still hold real values.
 // Retiring these columns properly means a drop migration, not a quiet stop —
-// see JOURNAL 2026-07-24 and the spec-unification brief.
+// see JOURNAL 2026-07-27 and the spec-unification brief.
 
 import { validateSheet } from "./validate-prices-sheet";
 import { parse } from "csv-parse/sync";

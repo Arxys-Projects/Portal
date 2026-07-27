@@ -1,7 +1,7 @@
 # 0095 — Retain `products.max_cameras` / `max_storage_tb`; remove the readers, defer the drop
 
 - **Status**: Accepted
-- **Date**: 2026-07-24
+- **Date**: 2026-07-27
 
 ## Context
 

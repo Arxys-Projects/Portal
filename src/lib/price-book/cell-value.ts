@@ -14,7 +14,7 @@ import type { SkuColumn } from "./families";
 // the joined product_specs row (see ProductSpecLite / the netStorage + bandwidth
 // cases below). Keeping them out of the type is what makes the old bug
 // unrepresentable rather than merely absent. See ADR 0092/0094 and JOURNAL
-// 2026-07-24.
+// 2026-07-27.
 export type ProductRow = {
   sku: string;
   product_name: string;
