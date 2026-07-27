@@ -402,7 +402,31 @@ substitute for these scripts; `service_role` `SELECT`s from `.env.local` are the
 
 **Re-verified 2026-07-27** (later session): the §4.1 capacity split still holds exactly — 6 SKUs
 populated in `current_products`, the other 31 `NULL`, `product_specs` complete for all 21 rack
-SKUs. Added finding: **16 of 37 active `current_products` SKUs have no `product_specs` row at
+SKUs. ~~Added finding: **16 of 37 active `current_products` SKUs have no `product_specs` row at
 all**, and four of those are active, priced appliances that the pending `appliance_specs`
 migration does *not* cover either (`VX5-SW25-200`, `VX5-SW30-300`, `VX5-SW35-300`,
-`VX5-V270-ACM`). See the brief's §5.7 and the 2026-07-27 JOURNAL entry.
+`VX5-V270-ACM`).~~ **That added finding is RETRACTED** — see below.
+
+**Retraction and re-verification, 2026-07-27 (second later session).** The four-SKU finding
+above was an artefact of counting `current_products` rows without filtering `active`. The
+view has 37 rows but only **32 are active**; the 5 inactive ones are exactly the set
+[ADR 0078](../docs/decisions/0078-pipedrive-eol-archive-not-delete.md) deactivated on
+2026-07-02 and archived in Pipedrive (`VX5-V270-ACM` superseded by `VX5-V265-ACM`, plus EOL
+`VX5-SW25-200` / `VX5-SW30-300` / `VX5-SW35-300` / `VX5-RAM-32GB`). Two of the four are not
+even priced (`call_for_quote`, `msrp` null). Every Price Book query filters
+`.eq("active", true)`, so their absence there is intentional and independently enforced.
+**Corrected coverage: 32 of 32** — 21 rack SKUs in `product_specs`, the 7 appliances in
+`appliance_specs`' intended population, 4 accessories needing no datasheet. Nothing blocks
+the seed.
+
+Two further live checks from that session, both bearing on §5:
+
+- **The 26 migration-only columns are fully populated.** Across all 43 columns × 21 rows the
+  only nulls are `notes` (20) and `product_sku` (21) — confirming §5's cleared-risk note and
+  establishing that the admin-form work is a write-path change, not a backfill.
+- **`raid_level_display` takes exactly four live values** — `'5'`, `'6'`, `'60'`, `'NA'` —
+  and `hdd_count == drive_bays` on all 21 rows. Both facts are load-bearing for the form's
+  validation design; see
+  [`spec-admin-form-design.md`](./spec-admin-form-design.md) §4. Note `'NA'` (the three V100
+  rows) is not handled by `usableCapacityTb()` and falls through to its RAID-5 branch,
+  returning `raw/2` — the correct RAID 1 figure **only because the V100 has 2 drives**.

@@ -4,6 +4,109 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-07-27 — Spec unification §5.1: designed the admin-editable canonical spec source, and retracted the previous session's four-SKU gap
+
+Design-only session. No application code, no schema, no writes to the database — the
+deliverables are [ADR 0096](./decisions/0096-product-specs-canonical-admin-editable.md),
+the implementation spec at
+[`datasheets/spec-admin-form-design.md`](../datasheets/spec-admin-form-design.md), and
+three document corrections. Scope was agreed with the stakeholder before the design was
+written, per the task framing.
+
+### Work done
+
+- **Retracted the previous session's §5.7 "four-SKU gap", which was not real.** It reported
+  `VX5-SW25-200`, `VX5-SW30-300`, `VX5-SW35-300` and `VX5-V270-ACM` as "active, priced
+  appliances covered by neither table" and blocking the `appliance_specs` seed. Verified
+  against production: **all four are `active = false`**, and two are not priced at all
+  (`SW30`/`SW35` are `call_for_quote`, `msrp` null). The finding came from counting
+  `current_products` rows without filtering `active` — the view has 37 rows but **32 are
+  active**. `snapshot.ts:63`'s "EOL'd" comment was right all along, and so was the Price
+  Book: every query there filters `.eq("active", true)`, so these rows could not render even
+  if a family listed their `productGroups`.
+- **The retraction was already documented, three weeks before the audit.**
+  [ADR 0078](./decisions/0078-pipedrive-eol-archive-not-delete.md) names this exact set —
+  "`VX5-V270-ACM` (superseded by the new `VX5-V265-ACM`) and four EOL items
+  (`VX5-SW25-200`, `VX5-SW30-300`, `VX5-SW35-300`, `VX5-RAM-32GB`)" — deactivated in the
+  portal 2026-07-02 and archived in Pipedrive. Live data matches it exactly: those five are
+  the only inactive rows in the view.
+- **Corrected coverage: 32 of 32, with no gap and no `sheet_group` decision needed.** 21 rack
+  SKUs in `product_specs`, the 7 appliances in `appliance_specs`' intended population
+  (V150/V250/V255/V260/V265/SW10/SW20 — exactly right), and 4 accessories that need no
+  datasheet (`VX5-GPU-A1000`, 3 × `VX5-NIC-SFP28*`). The `appliance_specs` seed is unblocked.
+- **Designed §5.1 and narrowed it substantially.** The audit's framing — "zero sources meet
+  the ADR 0091 bar" — is right but implies a bigger build than the evidence supports. Live
+  re-verification: all 42 live columns are read by something (`videox-compare/data.ts` maps
+  all 25 QuickCompare columns), only `product_sku` is dead, and **the 26 "migration-only"
+  columns are fully populated** — across 43 columns × 21 rows the only nulls are `notes` (20)
+  and `product_sku` (21). So `product_specs` already *is* the shape every consumer reads and
+  its data is complete; what it lacks is a write policy (RLS grants `SELECT` to
+  `authenticated` and nothing else). **The gap is a write path, not a table** — so it becomes
+  canonical in place, with no cutover and no consumer changes.
+- **That folds brief §5.2 into §5.1.** Give the table an admin write path and the
+  17-script-fed / 26-migration-only split stops existing, `hdd_count` and
+  `raid_level_display` included. The 26-column problem is a consequence of this work, not a
+  separate item.
+- **Four scope calls agreed with the stakeholder before designing**, three of which shape the
+  migration (which applies by dashboard, so it wants to be right in one trip): `product_specs`
+  only this slice — datasheet migrations stay unapplied and that project stays paused;
+  `updated_at`/`updated_by` **plus** an insert-only `product_specs_audit` table; cut the
+  `product_specs` upsert from `update-comparison-data.ts` and freeze `arxys.models` as a
+  provenance artifact rather than deleting it or keeping a `--reseed` escape hatch; and add
+  the nullable `raid_level_alt_display` column now, closing ADR 0092's V100 open item.
+- **The safety design is aimed at one named failure mode, not at risk in general.** Brief §1's
+  lesson is that fixture tests cannot see a change in *which* values reach a code path, and a
+  form editing `hdd_count` / `raid_level_display` is exactly that change, on demand, in
+  production, by a human — it moves net-usable storage on the Price Book, both PDFs, the
+  Project Quote and the Customer Proposal, and changes which SKU the recommender picks. So:
+  `raid_level_display` becomes a `<select>` over only the values `usableCapacityTb()` matches
+  (free text lets `'RAID 6'` fall through to the RAID-5 branch and *silently overstate*
+  capacity — the ADR 0092 under-spec bug, re-entered through an input box); the form shows a
+  live net-usable preview computed by the production helper, naming the delta and where it
+  will appear; cross-field rules refuse the save; and there is **no `DELETE` grant**, because
+  per ADR 0094 a SKU with no spec row is silently skipped by the recommender.
+- **Verification plan says fixtures are necessary and not sufficient**, and names the actual
+  acceptance check: a committed `.mts` script that runs all 21 live rows through the form's own
+  zod parser. That catches "the schema rejects data already in production" — which fixtures
+  structurally cannot, because they are written to match the schema.
+
+### Detours & fixes
+
+- **A latent capacity fragility that currently reads as correct code.** The three V100 rows
+  carry `raid_level_display = 'NA'`, which `usableCapacityTb()` does not handle — it falls
+  through to the documented RAID-5 branch, `parity = 1`, giving `raw × (2−1)/2 = raw/2`. That
+  equals the RAID 1 mirror figure **only because the V100 has exactly 2 drives**. The published
+  16/20/24 TB figures are right for the wrong reason, and an edit to `hdd_count` would break
+  them with no test failure. Fixed by modelling: `usableCapacityTb()` learns `'1'`
+  (`parity = n/2`) and `'JBOD'` (`parity = 0`). **No published number moves** — at `n = 2` the
+  mirror rule gives the same parity the fallback did — so the change is verifiable as a no-op
+  against live data.
+- **Deliberately did *not* seed the V100 correction in the migration.** The column is created
+  empty and the three rows are fixed through the form as its first real use. Seeding values
+  inside a migration is precisely the practice this initiative exists to end, and 26 columns
+  got their values that way already.
+- **ADR 0090's "no timestamps on reference tables" is departed from, knowingly.** Its
+  reasoning — "rows are refreshed by a reviewed admin seed load, not edited row-by-row in the
+  app" — was right for a seed-loaded table and stops being right the moment the table is
+  edited row-by-row, which is the point of this change. Recorded in ADR 0096 rather than left
+  as an unexplained inconsistency between two ADRs.
+- **The JSON cut turned out to be cleaner than expected.** `update-comparison-data.ts`' two
+  upserts are already fully independent — `toProductSpecRow` reads only `data.arxys.models`,
+  `toCompetitorProductRow` only `data.vms_vendors` — and nothing reads the JSON at runtime
+  (`display-specs.ts` is a hand-derived copy, not a loader). So removing the `product_specs`
+  half leaves the competitor path untouched, with no refactor.
+- **Nothing was built and nothing was applied.** Both datasheet migrations remain unapplied by
+  design; the ADR 0096 migration is not written yet (it is step 1 of the design's build
+  sequence, and will need a paired rollback and an apply-note). The Supabase CLI remains
+  unauthenticated here, so read-only `service_role` `SELECT`s via `.mts` scratch scripts were
+  again the only live route — and, per brief §1, the only verification that proved anything.
+
+### Decisions captured
+
+- [`0096-product-specs-canonical-admin-editable.md`](./decisions/0096-product-specs-canonical-admin-editable.md)
+
+---
+
 ## 2026-07-27 — Spec unification §2: swept the remaining `products` capacity readers (clean), and found a Price Book SKU gap
 
 Follow-on to the two spec-unification slices of 2026-07-24. (The session that did this
@@ -56,6 +159,13 @@ plausibility:
   consequence is that the brief's §3 deploy communications are owed **retroactively**:
   the V800's 6.7% capacity drop and the net-usable covered-capacity lines are already
   in front of partners.
+- ~~**`appliance_specs` covers 7 of the 16 gap SKUs, not all of them.**~~ **RETRACTED — see
+  the 2026-07-27 §5.1 entry above.** This bullet and the two that follow it counted
+  `current_products` rows without filtering `active`. There are 37 rows but **32 active**;
+  the four "gap" SKUs are all `active = false` and were already recorded as
+  superseded/EOL in [ADR 0078](./decisions/0078-pipedrive-eol-archive-not-delete.md) on
+  2026-07-06. Coverage is 32 of 32 and the `appliance_specs` seed is not blocked. The
+  `VX5-PP5-V100` bullet below is unaffected and still holds. Original text follows.
 - **`appliance_specs` covers 7 of the 16 gap SKUs, not all of them.** Checked the
   unapplied migration's intended population against live data. `product_specs` is
   rack-video-only, so 16 of 37 active `current_products` SKUs have no row there. Five

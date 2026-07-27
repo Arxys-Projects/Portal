@@ -130,11 +130,27 @@ Sales should hear all three before a partner does.
    source qualifies — `product_specs`' real source of truth is `data/server-specs.json`, a repo file
    applied by a manually-run script. This is the largest remaining piece and the one the whole
    initiative is for.
-2. **The 26 migration-only columns.** `update-comparison-data.ts` maintains 17 of `product_specs`' 43
+
+   > **DESIGNED 2026-07-27, not built.** Scope agreed with stakeholder;
+   > [ADR 0096](../docs/decisions/0096-product-specs-canonical-admin-editable.md) records
+   > the decisions and [`spec-admin-form-design.md`](./spec-admin-form-design.md) is the
+   > implementation spec (migration, form, safety design, build sequence). Headline: the
+   > canonical *shape* was never the problem — `product_specs` already is the shape all 8
+   > consumers read, its data is complete, and it has **no write policy at all**. So it
+   > becomes canonical in place: admin RLS write policies, `updated_at`/`updated_by` plus
+   > an insert-only audit table, a nullable `raid_level_alt_display` for the V100, an
+   > admin-only form at `/admin/specs`, and the `product_specs` half of
+   > `update-comparison-data.ts` removed. Read the design before writing code.
+2. ~~**The 26 migration-only columns.**~~ **FOLDED INTO ITEM 1 — not separate work.** Once
+   `product_specs` has an admin write path, the 17-script-fed / 26-migration-only split stops
+   existing, `hdd_count` and `raid_level_display` included. Original text, still accurate as
+   description: `update-comparison-data.ts` maintains 17 of `product_specs`' 43
    columns; the other 26 were added and seeded inside later migrations and have no other write path.
    Two of them — `hdd_count` and `raid_level_display` — feed the Calculator's storage math, so
    sizing depends on values only a migration can correct. Full list in audit §5. Note the script's
    upsert does *not* clobber them (verified), so a naive "fix" to that script could easily break it.
+   Re-verified 2026-07-27: all 26 are **fully populated** — across 43 columns × 21 rows the only
+   nulls are `notes` (20) and the dead `product_sku` (21).
 3. **Decimal/binary figure pair on documents** (ADR 0092 item 3). Touches the PDF pipeline; needs a
    footnote pattern.
 4. **Where non-tabular copy lives** — taglines, greatFor prose, keyFeatures, KPI labels, VSR
@@ -151,6 +167,36 @@ Sales should hear all three before a partner does.
    `appliance_specs` returns `PGRST205` (absent) and `product_specs` still has 43 columns with
    0/18 of the additive set. Nothing in the audit invalidates them; the open question is whether
    they land as-is or fold into a wider canonical shape.
+
+   > **RETRACTED 2026-07-27 (later session). The four-SKU gap below is not real, and
+   > `appliance_specs`' 7-SKU population is exactly correct.** The finding came from
+   > counting `current_products` rows without filtering `active`. Verified against
+   > production: **all four of those SKUs are `active = false`**, and two are not priced
+   > at all (`VX5-SW30-300` and `VX5-SW35-300` are `call_for_quote`, `msrp` null). They
+   > were deactivated on 2026-07-02 and archived in Pipedrive — **already recorded three
+   > weeks before the audit** in
+   > [ADR 0078](../docs/decisions/0078-pipedrive-eol-archive-not-delete.md), which names
+   > them precisely: "`VX5-V270-ACM` (superseded by the new `VX5-V265-ACM`) and four EOL
+   > items (`VX5-SW25-200`, `VX5-SW30-300`, `VX5-SW35-300`, `VX5-RAM-32GB`)".
+   > `snapshot.ts:63`'s "EOL'd" comment is correct.
+   >
+   > The Price Book absence is **intentional and independently enforced**: every Price
+   > Book query filters `.eq("active", true)`, so these rows could not render even if
+   > they were listed in a family's `productGroups`. Nothing to fix.
+   >
+   > Corrected arithmetic: `current_products` holds 37 rows of which **32 are active**
+   > (the 5 inactive being the ADR 0078 set). Coverage is **32 of 32** — 21 rack SKUs in
+   > `product_specs`, the 7 appliances in `appliance_specs`' intended population, and 4
+   > accessories (`VX5-GPU-A1000`, 3 × `VX5-NIC-SFP28*`) that need no datasheet. **The
+   > seed is not blocked and needs no `sheet_group` decision for V270.**
+   >
+   > Two smaller items from the original text do survive. `VX5-PP5-V100` really has
+   > **zero rows in `products`**, so the SW family's only `upgradeSkus` entry resolves to
+   > nothing — a small live bug, still unfixed. And the V260 family's `datasheetUrl` does
+   > point at `...V260-V270-ACM-V5.pdf`, a marketing asset still covering a superseded
+   > SKU — an Arxys-side asset issue, not a portal defect.
+
+   ### Original text (superseded)
 
    **New finding (2026-07-27) — the intended population is short by four SKUs.**
    `appliance_specs`' header lists 7 SKUs, drawn from `families.ts` `skuExtraData` keys, so it
@@ -187,10 +233,13 @@ Sales should hear all three before a partner does.
 
 ## Suggested first step
 
-> **UPDATED 2026-07-27.** §2 is done and clean — do not re-run it. The two live items are
-> **§3 (the comms, now retroactive and still unsent)** and **§5.1 (the admin form)**, which is
-> the largest remaining piece and the reason the initiative exists. §5.7's newly-found
-> four-SKU gap is cheap to close and blocks the `appliance_specs` seed.
+> **UPDATED 2026-07-27 (second later session).** §2 is done and clean — do not re-run it.
+> §5.1 is **designed and scope-agreed** (ADR 0096 +
+> [`spec-admin-form-design.md`](./spec-admin-form-design.md)) but **not built**: start at
+> that design's §7 build sequence. §5.7's four-SKU gap is **retracted** — those SKUs are
+> `active = false` and EOL per ADR 0078; nothing blocks the `appliance_specs` seed. That
+> leaves **§3 (the comms, retroactive and still unsent)** as the only untouched live item,
+> and it remains the most time-sensitive thing in this brief.
 
 The §2 method is still the right method for anything touching capacity, and is worth
 reusing: pick `VX5-V500-192` (real SKU, `current_products` capacity `NULL`, `product_specs`
