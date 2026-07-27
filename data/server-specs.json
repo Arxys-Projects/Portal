@@ -1378,6 +1378,7 @@
     }
   },
   "arxys": {
+    "_frozen": "FROZEN PRE-DB IMPORT ARTIFACT — NOT A SOURCE OF TRUTH. These 21 models were the original seed for public.product_specs. As of ADR 0096 (2026-07-27) product_specs is the canonical Arxys spec source and is edited in the portal admin form; this key is kept only as the provenance record of where the seeded values came from. Nothing reads it: scripts/update-competitor-data.ts dropped its product_specs upsert, and no runtime code loads this file. Editing anything below changes nothing anywhere. Do not re-add a reseed path — it would silently overwrite admin edits. Only vms_vendors is live (competitor_products).",
     "models": [
       {
         "id": "VX5-V100-32",

@@ -140,7 +140,10 @@ designed and scope-agreed, not built.
    applied by a manually-run script. This is the largest remaining piece and the one the whole
    initiative is for.
 
-   > **DESIGNED 2026-07-27, not built.** Scope agreed with stakeholder;
+   > **DESIGNED 2026-07-27; §7 steps 1, 2 and 4 built the same day** — the migration is
+   > written but **not applied**, the capacity levels and the script cut are shipped, and
+   > the form waits on the dashboard apply. See the *Suggested first step* block at the
+   > bottom of this brief for exactly what remains. Scope agreed with stakeholder;
    > [ADR 0096](../docs/decisions/0096-product-specs-canonical-admin-editable.md) records
    > the decisions and [`spec-admin-form-design.md`](./spec-admin-form-design.md) is the
    > implementation spec (migration, form, safety design, build sequence). Headline: the
@@ -149,7 +152,8 @@ designed and scope-agreed, not built.
    > becomes canonical in place: admin RLS write policies, `updated_at`/`updated_by` plus
    > an insert-only audit table, a nullable `raid_level_alt_display` for the V100, an
    > admin-only form at `/admin/specs`, and the `product_specs` half of
-   > `update-comparison-data.ts` removed. Read the design before writing code.
+   > `update-comparison-data.ts` removed (done — the script is now
+   > `update-competitor-data.ts`). Read the design before writing code.
 2. ~~**The 26 migration-only columns.**~~ **FOLDED INTO ITEM 1 — not separate work.** Once
    `product_specs` has an admin write path, the 17-script-fed / 26-migration-only split stops
    existing, `hdd_count` and `raid_level_display` included. Original text, still accurate as
@@ -242,18 +246,30 @@ designed and scope-agreed, not built.
 
 ## Suggested first step
 
-> **UPDATED 2026-07-27 (second later session).** §2 is done and clean — do not re-run it.
-> §5.1 is **designed and scope-agreed** (ADR 0096 +
-> [`spec-admin-form-design.md`](./spec-admin-form-design.md)) but **not built**: start at
-> that design's §7 build sequence. §5.7's four-SKU gap is **retracted** — those SKUs are
-> `active = false` and EOL per ADR 0078; nothing blocks the `appliance_specs` seed. **§3 is
-> done** — the deploy communication went out 2026-07-27 covering all three items.
+> **UPDATED 2026-07-27 (fourth later session).** §2 is done and clean — do not re-run it.
+> §5.7's four-SKU gap is **retracted** — those SKUs are `active = false` and EOL per
+> ADR 0078; nothing blocks the `appliance_specs` seed. **§3 is done** — the deploy
+> communication went out 2026-07-27 covering all three items.
 >
-> **§5.1 is now the only live item in this brief.** Start at
-> [`spec-admin-form-design.md`](./spec-admin-form-design.md) §7: the migration (+ rollback
-> + apply-note, hand to Andy, do not apply), the `usableCapacityTb()` `'1'`/`'JBOD'` levels
-> with a live no-op trace, and the `update-comparison-data.ts` cut. The form waits on the
-> dashboard apply.
+> **§5.1 is designed (ADR 0096 + [`spec-admin-form-design.md`](./spec-admin-form-design.md))
+> and steps 1, 2 and 4 of its §7 build sequence are built.** Do not re-do them:
+>
+> - **Step 1 — migration written, NOT APPLIED.**
+>   `supabase/migrations/20260727000001_product_specs_admin_editable.sql` + paired rollback +
+>   [`docs/apply-notes/0096-product-specs-admin-editable.md`](../docs/apply-notes/0096-product-specs-admin-editable.md).
+>   **Blocked on Andy applying it via the dashboard SQL editor.** Check whether it has been
+>   applied before assuming anything downstream — probe for
+>   `product_specs.raid_level_alt_display`, not `supabase migration list`.
+> - **Step 2 — shipped.** `usableCapacityTb()` knows `'1'` and `'JBOD'`; `'NA'` still falls
+>   through to RAID 5. Live trace over all 21 rows was byte-identical before and after.
+> - **Step 4 — shipped.** The script is now `scripts/update-competitor-data.ts` (competitor
+>   path only); `arxys.models` is frozen in `data/server-specs.json` behind an `_frozen` key.
+>
+> **What is left in §5.1:** design §7 steps 3, 5 and 6 — the admin form and actions, the
+> live zod round-trip script, and correcting the three V100 rows to `'1'` / `'JBOD'` through
+> the form. **All three depend on the migration being applied first.** The apply note also
+> flags a `product_specs` block for `scripts/test-rls.ts`, deliberately unwritten until the
+> policies exist.
 
 The §2 method is still the right method for anything touching capacity, and is worth
 reusing: pick `VX5-V500-192` (real SKU, `current_products` capacity `NULL`, `product_specs`

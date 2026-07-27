@@ -9,14 +9,27 @@
 const RAID60_SPAN_DRIVES = 12;
 
 // Net usable TB after RAID parity overhead. No hot spares on any model.
+//   RAID 1  -> half the drives are mirrors (usable = raw / 2 at any n)
 //   RAID 5  -> 1 parity drive   (usable = raw x (n-1)/n)
 //   RAID 6  -> 2 parity drives  (usable = raw x (n-2)/n)
 //   RAID 60 -> 2 parity drives per 12-drive span
 //              (V700: 24 drives = 2 spans = 4 parity;
 //               V800: 36 drives = 3 spans = 6 parity)
 //              With 12-drive spans this reduces to raw x 5/6 at any drive count.
+//   JBOD    -> no parity at all (usable = raw)
 // Anything else falls back to RAID 5. Returns raw when the drive count is
 // unknown or too small to apply the parity math.
+//
+// RAID 1 and JBOD are the V100's two shipping configurations (ADR 0096 §1d).
+// They are modelled here rather than hand-typed because the V100's published
+// 16 / 20 / 24 TB figures were previously right for the wrong reason: its rows
+// carry raid_level_display = 'NA', which falls through to the RAID-5 branch and
+// returns raw x (2-1)/2 = raw/2 — the correct mirror figure ONLY because the
+// V100 has exactly 2 drives. Adding these two levels moves no published number
+// (verified by a live trace over all 21 product_specs rows); it makes the right
+// answer arrive for the right reason, and makes the level meaningful the moment
+// an admin sets it. 'NA' is deliberately left falling through so existing rows
+// are untouched until they are corrected through the admin form.
 export function usableCapacityTb(
   rawTb: number | null,
   hddCount: number | null,
@@ -26,7 +39,13 @@ export function usableCapacityTb(
   const n = hddCount ?? 0;
   const level = (raidLevelDisplay ?? "").trim();
   let parity: number;
-  if (level === "6") parity = 2;
+  if (level === "1") {
+    // A mirror costs half the spindles whatever n is. Expressed as parity so it
+    // shares the formula below; an odd n (which the admin form refuses) still
+    // reports raw/2 rather than something arbitrary.
+    parity = n / 2;
+  } else if (level === "JBOD") parity = 0;
+  else if (level === "6") parity = 2;
   else if (level === "60") {
     // At least one span, so a drive count below a full span degrades to RAID 6
     // rather than reporting zero parity.

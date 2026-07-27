@@ -300,6 +300,13 @@ currently qualifies**:
 | `products` capacity | Not reachable — the Master Sheet has no capacity columns and the push script only carries forward |
 | `families.ts`, `display-specs.ts`, hardcoded copy | Code edit + deploy |
 
+> **Superseded for `product_specs` as of 2026-07-27 (ADR 0096).** Both rows above are now
+> historical. The JSON write path is gone — the script is `update-competitor-data.ts` and
+> refreshes competitors only — so `product_specs` has *no* JSON or script path at all. Its
+> write path is the admin RLS policies in
+> `20260727000001_product_specs_admin_editable.sql` and the `/admin/specs` form, which meets
+> the bar for all 42 live columns at once. The rest of the table still stands.
+
 The 26-column figure is the one that surprised me. Those columns were added by later migrations
 ([`20260602000001_quickcompare_columns.sql`](../supabase/migrations/20260602000001_quickcompare_columns.sql)
 and friends) and seeded inline in those migrations; `update-comparison-data.ts` never learned about

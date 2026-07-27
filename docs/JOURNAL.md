@@ -4,6 +4,97 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-07-27 — Spec unification §5.1: built the write path, taught the capacity helper two RAID levels, and cut the JSON's grip on `product_specs`
+
+Steps 1, 2 and 4 of [`spec-admin-form-design.md`](../datasheets/spec-admin-form-design.md)
+§7. No new decisions — [ADR 0096](./decisions/0096-product-specs-canonical-admin-editable.md)
+already records them all; this is the build. The form (§7 step 3), the live zod round-trip
+script (step 5) and the V100 correction (step 6) are **not** done: all three depend on the
+migration being applied, which is Andy's to do.
+
+### Work done
+
+**1. The migration — written, not applied.** STOP-AND-FLAG per the ADR 0083 / 0089
+convention, since new RLS policies are security-sensitive (and the CLI is unauthenticated
+here regardless).
+
+- [`supabase/migrations/20260727000001_product_specs_admin_editable.sql`](../supabase/migrations/20260727000001_product_specs_admin_editable.sql)
+  — admin `INSERT` / `UPDATE` policies mirroring `camera_specs` (`20260615000002`) with
+  `public.is_admin((select auth.uid()))`; `updated_at` / `updated_by`; the insert-only
+  `product_specs_audit` table with its trigger; nullable `raid_level_alt_display`.
+  **No `DELETE` grant and no delete policy** — ADR 0094 makes a missing spec row a silent
+  drop from the recommender pool, so the form must not be able to offer the control. That is
+  the one intentional divergence from the `camera_specs` template. **No value is seeded.**
+- Paired rollback at [`supabase/rollback/product-specs-admin-editable-rollback.sql`](../supabase/rollback/product-specs-admin-editable-rollback.sql)
+  and an apply note at [`docs/apply-notes/0096-product-specs-admin-editable.md`](./apply-notes/0096-product-specs-admin-editable.md)
+  with six numbered post-apply checks.
+- Pre-flight probed against production: `updated_at`, `updated_by`,
+  `raid_level_alt_display` and `product_specs_audit` are all absent, so the migration
+  applies cleanly. The two ADR 0090 datasheet migrations are still unapplied and are
+  order-independent of this one — the audit trigger snapshots via `to_jsonb`, so their 18
+  columns will simply start appearing in `before` / `after` once they exist.
+
+**2. `usableCapacityTb()` learned `'1'` and `'JBOD'`.**
+[`src/lib/capacity-utils.ts`](../src/lib/capacity-utils.ts) — RAID 1 is `parity = n/2`
+(half the spindles at any drive count), JBOD is `parity = 0`. `'NA'` still falls through to
+RAID 5, so the three uncorrected V100 rows are untouched until an admin fixes them. Three
+new tests, including that near-misses (`'jbod'`, `'RAID 1'`) take the fallback like any
+other unrecognised string, and that `'NA'` and `'1'` agree at `n = 2` — which is *why*
+nothing moved.
+
+**3. The script cut.** `scripts/update-comparison-data.ts` →
+[`scripts/update-competitor-data.ts`](../scripts/update-competitor-data.ts) (`git mv`, so
+history follows). Removed `toProductSpecRow`, the `product_specs` upsert, the
+`JsonArxysModel` type, and `arxys` from the `ServerSpecsJson` type; rewrote the header to
+say why the Arxys half is gone. The two upserts were already independent, so the competitor
+path needed no refactor — dry run still reports 51 rows across Milestone 14 / Avigilon 20 /
+Genetec 17. `arxys.models` stays in `data/server-specs.json` behind a new `_frozen` key
+marking it a pre-DB import artifact that nothing reads; deleting it would lose the only
+record of where the 21 seeded rows came from. No `--reseed` flag: a live path back into the
+table would silently clobber admin edits, which is the whole problem being solved.
+
+**Verification.** `tsc --noEmit` clean; 281 tests pass (278 baseline + 3); eslint clean on
+the three changed TS files (`npm run lint` also walks `.claude/worktrees/`, and there is one
+there right now, so whole-repo counts read double). Plus the trace below.
+
+**The live before/after capacity trace, which is the actual acceptance check.** A throwaway
+`.mts` script read all 21 `product_specs` rows through `usableCapacityTb()` before and after
+the change and dumped JSON; `diff` was empty. Every published figure held: V100 16/20/24,
+V200 48/60/72, V400 96/120/144, V500 160/200/240, V600 224/280/336, V700 320/400/480, V800
+480/600/720. Live `raid_level_display` values are exactly `NA`, `5`, `6`, `60` — the four the
+design predicted, none of which the new branches touch. The script was deleted after the
+run; §7 step 5's committed round-trip script is separate and still to come.
+
+### Detours & fixes
+
+- **The design's single AFTER trigger cannot work as written.** §1c specifies one
+  `AFTER INSERT OR UPDATE` `security definer` trigger that writes the audit row *and*
+  maintains `updated_at` / `updated_by`. An AFTER trigger's return value is discarded, so it
+  cannot stamp the row it fires for. Implemented as two triggers instead — `BEFORE` to stamp
+  (`security invoker`; it only assigns to `NEW`), `AFTER` to record. Behaviour matches the
+  design's intent exactly, and the audit's `after` snapshot now includes the provenance
+  columns because the stamp runs first. Noted in the migration and the apply note.
+- **`OLD` inside the audit trigger on `INSERT`.** Guarded with
+  `case when tg_op = 'UPDATE' then to_jsonb(old) else null end`. Postgres documents `OLD` as
+  *null* — not unassigned — in row-level `INSERT` triggers, so the bare call would have been
+  safe too; the guard is there to state the intent, not to dodge an error.
+- **No `scripts/test-rls.ts` block yet, deliberately.** It has a `camera_specs`
+  read-open / admin-write block (12a–12e) that a `product_specs` block should mirror, plus a
+  case camera_specs has no equivalent for: an admin `DELETE` must be *rejected*. Writing it
+  now would add a test that fails against a database where the policies do not yet exist.
+  Flagged in the apply note as the follow-up.
+- **RUNBOOK deliberately unchanged.** The blank-machine recipe still works: the new
+  migration sits in `supabase/migrations/`, so `supabase db push` picks it up on a fresh
+  project — stop-and-flag is about *production*, whose CLI history is desynced. The renamed
+  script was never in the recipe, and the RUNBOOK does not enumerate individual migrations
+  past 2026-06-16.
+- **Stale references cleaned up rather than left to rot.** The Phase 0 audit's "to change a
+  value today" table now carries a superseded banner for its two `product_specs` rows, and
+  the brief's status block records which §7 steps are built. The dated JOURNAL and
+  `phase-5-plan.md` mentions of the old script name are history and were left alone.
+
+---
+
 ## 2026-07-27 — Spec unification §5.1: designed the admin-editable canonical spec source, and retracted the previous session's four-SKU gap
 
 Design-only session. No application code, no schema, no writes to the database — the

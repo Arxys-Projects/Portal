@@ -1,9 +1,19 @@
-// Refresh product_specs and competitor_products from data/server-specs.json
-// (or a path you supply). Idempotent — safe to re-run after spreadsheet updates.
+// Refresh competitor_products from data/server-specs.json (or a path you
+// supply). Idempotent — safe to re-run after spreadsheet updates.
 //
-// Run:      node --env-file=.env.local --import tsx scripts/update-comparison-data.ts
-// Custom:   node --env-file=.env.local --import tsx scripts/update-comparison-data.ts --path /path/to/server-specs.json
+// Run:      node --env-file=.env.local --import tsx scripts/update-competitor-data.ts
+// Custom:   node --env-file=.env.local --import tsx scripts/update-competitor-data.ts --path /path/to/server-specs.json
 // Dry-run:  ... --dry-run
+//
+// This script used to refresh product_specs from the JSON's `arxys.models` too,
+// which made the repo file a co-authority that could silently overwrite admin
+// edits. ADR 0096 made product_specs the canonical, admin-editable source, so
+// that upsert is gone and `arxys.models` is frozen in the JSON as a provenance
+// record of the original import — read by nothing. Arxys specs are now edited in
+// the portal admin form; there is deliberately no reseed flag back into the DB.
+//
+// competitor_products keeps its JSON-plus-script path (out of scope per ADR
+// 0091) and is all this script now does.
 
 import { createClient } from "@supabase/supabase-js";
 import { createInterface } from "node:readline";
@@ -15,27 +25,6 @@ import { env } from "../src/lib/env";
 // ---------------------------------------------------------------------------
 // JSON shape (subset used by this script)
 // ---------------------------------------------------------------------------
-
-type JsonArxysModel = {
-  id: string;
-  model_name: string;
-  form_factor: string;
-  storage_raw_tb: number;
-  cpu_model: string;
-  cpu_cores_threads: string;
-  cpu_base_ghz: number;
-  cpu_architecture: number; // passmark score; mapped to cpu_passmark in DB
-  ram_gb: number;
-  max_cameras: number;
-  max_cameras_h265: number;
-  network: string;
-  raid_support: string;
-  os: string;
-  warranty: string;
-  vms_certified: string;
-  msrp: number;
-  notes?: string;
-};
 
 type JsonCompetitorModel = {
   id: string;
@@ -66,8 +55,10 @@ type JsonVmsVendor = {
   models: JsonCompetitorModel[];
 };
 
+// The file also carries `arxys`, `display_specs`, `spec_labels` and `messages`.
+// None is read here — `arxys.models` is frozen provenance (see the header) and
+// the other three were hand-copied into src/lib/comparison/display-specs.ts.
 type ServerSpecsJson = {
-  arxys: { models: JsonArxysModel[] };
   vms_vendors: Record<string, JsonVmsVendor>;
 };
 
@@ -96,32 +87,6 @@ function loadJson(filePath: string): ServerSpecsJson {
     console.error(`Failed to read ${filePath}: ${err instanceof Error ? err.message : String(err)}`);
     process.exit(1);
   }
-}
-
-function toProductSpecRow(m: JsonArxysModel) {
-  return {
-    id: m.id,
-    model_name: m.model_name,
-    form_factor: m.form_factor,
-    storage_raw_tb: m.storage_raw_tb,
-    cpu_model: m.cpu_model,
-    cpu_cores_threads: m.cpu_cores_threads,
-    cpu_base_ghz: m.cpu_base_ghz,
-    cpu_passmark: m.cpu_architecture,
-    ram_gb: m.ram_gb,
-    max_cameras: m.max_cameras,
-    max_cameras_h265: m.max_cameras_h265,
-    network: m.network,
-    raid_support: m.raid_support,
-    os: m.os,
-    warranty: m.warranty,
-    vms_certified: m.vms_certified,
-    // product_specs.msrp was dropped (ADR 0086): price lives only in
-    // current_products (the versioned source). Do not write it back here — the
-    // column no longer exists. m.msrp in server-specs.json is retained but unused.
-    notes: m.notes ?? null,
-    product_sku: null,
-  };
 }
 
 function toCompetitorProductRow(
@@ -177,18 +142,16 @@ async function main() {
   const { path: filePath, isDryRun } = parseArgs();
 
   console.log(
-    `=== update-comparison-data.ts${isDryRun ? " [DRY RUN]" : ""} ===\n`,
+    `=== update-competitor-data.ts${isDryRun ? " [DRY RUN]" : ""} ===\n`,
   );
   console.log(`Source: ${filePath}\n`);
 
   const data = loadJson(filePath);
 
-  const arxysRows = data.arxys.models.map(toProductSpecRow);
   const competitorRows = Object.entries(data.vms_vendors).flatMap(
     ([vendor, meta]) => meta.models.map((m) => toCompetitorProductRow(vendor, meta, m)),
   );
 
-  console.log(`product_specs rows:      ${arxysRows.length}`);
   console.log(`competitor_products rows: ${competitorRows.length}`);
   console.log(
     `  breakdown: ${Object.entries(data.vms_vendors)
@@ -213,17 +176,7 @@ async function main() {
     { auth: { persistSession: false, autoRefreshToken: false } },
   );
 
-  console.log("\nUpserting product_specs...");
-  const { error: specsErr } = await admin
-    .from("product_specs")
-    .upsert(arxysRows as unknown as never[], { onConflict: "id" });
-  if (specsErr) {
-    console.error(`  ERROR: ${specsErr.message}`);
-    process.exit(1);
-  }
-  console.log(`  ✓ ${arxysRows.length} row(s) upserted`);
-
-  console.log("Upserting competitor_products...");
+  console.log("\nUpserting competitor_products...");
   const { error: compErr } = await admin
     .from("competitor_products")
     .upsert(competitorRows as unknown as never[], { onConflict: "id" });
@@ -237,6 +190,6 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error("update-comparison-data failed:", err);
+  console.error("update-competitor-data failed:", err);
   process.exit(1);
 });
