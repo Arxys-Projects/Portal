@@ -266,12 +266,16 @@ designed and scope-agreed, not built.
 > - **Step 4 — shipped.** The script is now `scripts/update-competitor-data.ts` (competitor
 >   path only); `arxys.models` is frozen in `data/server-specs.json` behind an `_frozen` key.
 >
+> - **RLS coverage — done.** Block 21 (a–n) in `scripts/test-rls.ts`, 14 tests, all passing
+>   against production. Read-open holds; `INSERT`/`UPDATE` refused for partners *and*
+>   internal; `DELETE` refused for everyone including admins; `updated_by` / `changed_by`
+>   stamped from a real signed-in session. Tests run against a throwaway `RLS-SPEC-*` row,
+>   never a real SKU — do not "simplify" that, a rejection test that unexpectedly succeeds
+>   would mutate live capacity data.
+>
 > **What is left in §5.1, now all unblocked:** design §7 steps 3, 5 and 6 — the admin form
 > and actions, the live zod round-trip script, and correcting the three V100 rows to `'1'` /
-> `'JBOD'` through the form. Plus a `product_specs` block for `scripts/test-rls.ts`
-> (mirroring the `camera_specs` 12a–12e block, plus a case it has no equivalent for: an
-> admin `DELETE` must be *rejected*), which was deliberately left unwritten until the
-> policies existed. They exist now.
+> `'JBOD'` through the form.
 
 The §2 method is still the right method for anything touching capacity, and is worth
 reusing: pick `VX5-V500-192` (real SKU, `current_products` capacity `NULL`, `product_specs`

@@ -5,8 +5,9 @@
 > `after` snapshots carry 46 keys (43 original columns + the three added here) and
 > differ only in `updated_at`. Check 6 re-verified by a live trace over all 21
 > rows, identical to the pre-migration baseline. Checks 4–5 need a signed-in
-> session and are the `scripts/test-rls.ts` follow-up. The rest of this note is
-> kept as the record of what was applied and how to back it out.
+> session and are now covered by block 21 (a–n) in `scripts/test-rls.ts` — 14
+> tests, all passing against production. The rest of this note is kept as the
+> record of what was applied and how to back it out.
 
 One stop-and-flag migration for Andy to apply. The agent holds no DDL
 credentials (2026-07-17 CLI 401); apply via the Supabase **dashboard SQL
@@ -97,9 +98,10 @@ simply start appearing in `before` / `after` once they exist.
   stop-and-flag migrations here — do not "fix" it with `db push`.
 - Design §7 steps 3, 5 and 6 (the form, the live round-trip script, the V100
   correction) all unblock once this is applied.
-- **Codify checks 4–5 in `scripts/test-rls.ts`.** It has a `camera_specs`
-  read-open / admin-write block (tests 12a–12e) that a `product_specs` block
-  should mirror, plus one case camera_specs has no equivalent for: an admin
-  `DELETE` must be rejected. That block is deliberately not written yet — it
-  would fail against a database where these policies do not exist, and this
-  migration lands in the repo before it lands in production.
+- **Checks 4–5 are codified.** Block 21 (a–n) in `scripts/test-rls.ts`, added
+  2026-07-27 once the policies existed, mirrors the `camera_specs` block
+  (12a–12g) and adds the case camera_specs has no equivalent for — an admin
+  `DELETE` must be rejected — plus the provenance assertions a SQL-editor write
+  cannot make, since it has no `auth.uid()`. All 14 pass. Re-run with
+  `node --env-file=.env.local --import tsx scripts/test-rls.ts` after any change
+  to these policies.

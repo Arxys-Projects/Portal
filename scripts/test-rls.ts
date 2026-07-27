@@ -1,6 +1,7 @@
 // RLS verification suite for the Arxys Partner Portal.
 // Creates two ephemeral users (partner A and B), exercises the policies on
-// partners / products / submissions / camera_specs, and tears the users down.
+// partners / products / submissions / camera_specs / project_quotes /
+// access_requests / product_specs, and tears the users down.
 // Run with: npx tsx scripts/test-rls.ts
 
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
@@ -1263,6 +1264,312 @@ async function run() {
         .from("access_requests")
         .delete()
         .like("email", "%arxys-rls-test.invalid");
+    }
+
+    // --- ADR 0096: product_specs admin-editable write path ------------------
+    // Migration 20260727000001 gave product_specs its first write policy:
+    // SELECT stays read-open to authenticated, INSERT/UPDATE are admin-only,
+    // and DELETE is UNGRANTED FOR EVERYONE. Mirrors the camera_specs block
+    // (12a-12g) with two additions camera_specs has no equivalent for:
+    //
+    //   - 21i, the important one: an ADMIN's DELETE must be refused. Per ADR
+    //     0094 a SKU with no product_specs row is silently *skipped* by
+    //     loadCandidateSpecs rather than falling back to its raw nameplate, so
+    //     a deleted spec row drops a SKU out of the recommender pool with no
+    //     error anywhere. Availability is products.active's job. camera_specs
+    //     grants delete to admins; this table deliberately does not.
+    //   - 21k-21m: the provenance triggers. The post-apply smoke test could
+    //     only prove they fire for a SQL-editor write, where auth.uid() is
+    //     null. A real signed-in admin session is the only way to prove
+    //     updated_by / changed_by actually get stamped.
+    //
+    // Every assertion runs against a throwaway RLS-SPEC-* row, never a real
+    // SKU — a rejection test that unexpectedly *succeeds* would otherwise
+    // mutate or delete live customer-facing capacity data. That row is
+    // invisible to every consumer while it exists: /comparison looks specs up
+    // by competitor.arxys_match_id, videox-compare filters `VX5-V%`, the
+    // recommender joins to products, and the price book and both PDFs filter
+    // by an explicit SKU list.
+    {
+      const specSeedId = `RLS-SPEC-${Date.now()}`;
+      const specAdminId = `RLS-SPEC-ADMIN-${Date.now()}`;
+      // Every NOT NULL column on product_specs; the QuickCompare and
+      // hdd_count/raid_level columns added later are all nullable.
+      const specRow = (id: string) => ({
+        id,
+        model_name: `RLS test ${id}`,
+        form_factor: "2U Rackmount",
+        storage_raw_tb: 100,
+        cpu_model: "RLS Test CPU",
+        cpu_cores_threads: "8C/16T",
+        cpu_base_ghz: 3.0,
+        cpu_passmark: 1000,
+        ram_gb: 32,
+        max_cameras: 100,
+        max_cameras_h265: 100,
+        network: "RLS test",
+        raid_support: "RLS test",
+        os: "RLS test",
+        warranty: "RLS test",
+        vms_certified: "RLS test",
+      });
+
+      const { error: specSeedErr } = await admin
+        .from("product_specs")
+        .insert(specRow(specSeedId));
+      if (specSeedErr) {
+        record("21: seed product_specs row (service-role)", false, specSeedErr.message);
+      }
+
+      // Test 8c suspended adminPersona; 12g reactivated it. Re-assert here so
+      // this block does not depend on the order of the ones above it.
+      await admin
+        .from("partners")
+        .update({ status: "active" })
+        .eq("id", adminPersona.id);
+
+      // Test 21a: partner A can SELECT product_specs (read-open predates 0096).
+      {
+        const { data, error } = await a.client
+          .from("product_specs")
+          .select("id, model_name")
+          .eq("id", specSeedId);
+        record(
+          "21a: partner can SELECT product_specs (read-open)",
+          !error && data?.length === 1,
+          error ? `error: ${error.message}` : `count=${data?.length}`,
+        );
+      }
+
+      // Test 21b: internal user can SELECT product_specs.
+      {
+        const { data, error } = await internalPersona.client
+          .from("product_specs")
+          .select("id")
+          .eq("id", specSeedId);
+        record(
+          "21b: internal user can SELECT product_specs",
+          !error && data?.length === 1,
+          error ? `error: ${error.message}` : `count=${data?.length}`,
+        );
+      }
+
+      // Test 21c: partner A cannot INSERT — with-check violation is an error.
+      {
+        const { error } = await a.client
+          .from("product_specs")
+          .insert(specRow(`RLS-SPEC-PARTNER-${Date.now()}`));
+        record(
+          "21c: partner cannot INSERT product_specs (admin-only)",
+          Boolean(error),
+          error ? `blocked: ${error.message}` : "INSERT unexpectedly succeeded",
+        );
+      }
+
+      // Test 21d: internal user cannot INSERT. Writes are admin-only, NOT
+      // internal — the /admin layout admits both, so the form checks isAdmin
+      // specifically and RLS is what actually enforces it.
+      {
+        const { error } = await internalPersona.client
+          .from("product_specs")
+          .insert(specRow(`RLS-SPEC-INTERNAL-${Date.now()}`));
+        record(
+          "21d: internal user cannot INSERT product_specs (admin-only, not internal)",
+          Boolean(error),
+          error ? `blocked: ${error.message}` : "INSERT unexpectedly succeeded",
+        );
+      }
+
+      // Test 21e: partner A cannot UPDATE — no matching USING clause, so zero
+      // rows affected and the value is unchanged.
+      {
+        const { data, error } = await a.client
+          .from("product_specs")
+          .update({ storage_raw_tb: 9999 })
+          .eq("id", specSeedId)
+          .select("id");
+        const { data: after } = await admin
+          .from("product_specs")
+          .select("storage_raw_tb")
+          .eq("id", specSeedId)
+          .single();
+        record(
+          "21e: partner cannot UPDATE product_specs",
+          (data?.length ?? 0) === 0 && Number(after?.storage_raw_tb) === 100,
+          error
+            ? `error: ${error.message}`
+            : `affected=${data?.length} storage_raw_tb=${after?.storage_raw_tb}`,
+        );
+      }
+
+      // Test 21f: internal user cannot UPDATE either. This is the capacity
+      // guardrail — storage_raw_tb / hdd_count / raid_level_display feed
+      // usableCapacityTb() and therefore every customer-facing storage figure.
+      {
+        const { data, error } = await internalPersona.client
+          .from("product_specs")
+          .update({ storage_raw_tb: 8888 })
+          .eq("id", specSeedId)
+          .select("id");
+        const { data: after } = await admin
+          .from("product_specs")
+          .select("storage_raw_tb")
+          .eq("id", specSeedId)
+          .single();
+        record(
+          "21f: internal user cannot UPDATE product_specs (admin-only, not internal)",
+          (data?.length ?? 0) === 0 && Number(after?.storage_raw_tb) === 100,
+          error
+            ? `error: ${error.message}`
+            : `affected=${data?.length} storage_raw_tb=${after?.storage_raw_tb}`,
+        );
+      }
+
+      // Test 21g: partner A cannot DELETE — no grant at all, so this is a
+      // permission error rather than a silent zero-row no-op.
+      {
+        const { error } = await a.client
+          .from("product_specs")
+          .delete()
+          .eq("id", specSeedId)
+          .select("id");
+        const { count } = await admin
+          .from("product_specs")
+          .select("id", { count: "exact", head: true })
+          .eq("id", specSeedId);
+        record(
+          "21g: partner cannot DELETE product_specs",
+          Boolean(error) && count === 1,
+          error ? `blocked: ${error.message} remaining=${count}` : `DELETE unexpectedly succeeded, remaining=${count}`,
+        );
+      }
+
+      // Test 21h: admin CAN INSERT — the write path the form depends on.
+      {
+        const { data, error } = await adminPersona.client
+          .from("product_specs")
+          .insert(specRow(specAdminId))
+          .select("id");
+        record(
+          "21h: admin can INSERT product_specs",
+          !error && (data?.length ?? 0) === 1,
+          error ? `error: ${error.message}` : `inserted=${data?.length}`,
+        );
+      }
+
+      // Test 21i: admin CANNOT DELETE. The case camera_specs has no equivalent
+      // for, and the reason the grant was withheld (ADR 0094) — a missing spec
+      // row removes a SKU from the recommender pool silently.
+      {
+        const { error } = await adminPersona.client
+          .from("product_specs")
+          .delete()
+          .eq("id", specAdminId)
+          .select("id");
+        const { count } = await admin
+          .from("product_specs")
+          .select("id", { count: "exact", head: true })
+          .eq("id", specAdminId);
+        record(
+          "21i: admin cannot DELETE product_specs (grant withheld, ADR 0094)",
+          Boolean(error) && count === 1,
+          error ? `blocked: ${error.message} remaining=${count}` : `DELETE unexpectedly succeeded, remaining=${count}`,
+        );
+      }
+
+      // Test 21j: admin CAN UPDATE, and the BEFORE trigger stamps updated_by
+      // with the real auth.uid(). The post-apply SQL-editor test could not
+      // prove this half — it has no signed-in user, so updated_by stayed null.
+      {
+        const { error } = await adminPersona.client
+          .from("product_specs")
+          .update({ hdd_count: 8, raid_level_display: "6" })
+          .eq("id", specAdminId);
+        const { data: after } = await admin
+          .from("product_specs")
+          .select("hdd_count, raid_level_display, updated_by, updated_at")
+          .eq("id", specAdminId)
+          .single();
+        record(
+          "21j: admin can UPDATE product_specs and updated_by is stamped",
+          !error && after?.hdd_count === 8 && after?.updated_by === adminPersona.id,
+          error
+            ? `error: ${error.message}`
+            : `hdd_count=${after?.hdd_count} updated_by=${after?.updated_by === adminPersona.id ? "admin" : after?.updated_by}`,
+        );
+      }
+
+      // Test 21k: the AFTER trigger recorded both admin writes, with
+      // changed_by resolved and `before` null on the insert / populated on the
+      // update.
+      {
+        const { data, error } = await admin
+          .from("product_specs_audit")
+          .select("operation, changed_by, before, after")
+          .eq("spec_id", specAdminId)
+          .order("id");
+        const ins = data?.find((r) => r.operation === "insert");
+        const upd = data?.find((r) => r.operation === "update");
+        record(
+          "21k: audit trigger recorded the admin insert + update with changed_by",
+          !error &&
+            data?.length === 2 &&
+            ins?.before === null &&
+            ins?.changed_by === adminPersona.id &&
+            upd?.before !== null &&
+            upd?.changed_by === adminPersona.id &&
+            (upd?.after as { hdd_count?: number } | null)?.hdd_count === 8,
+          error ? `error: ${error.message}` : `rows=${data?.length}`,
+        );
+      }
+
+      // Test 21l: partner A cannot SELECT the audit table — admin-only, and a
+      // policy miss returns zero rows rather than an error.
+      {
+        const { data, error } = await a.client
+          .from("product_specs_audit")
+          .select("id")
+          .eq("spec_id", specAdminId);
+        record(
+          "21l: partner cannot SELECT product_specs_audit (admin-only)",
+          !error && (data?.length ?? 0) === 0,
+          error ? `error: ${error.message}` : `count=${data?.length}`,
+        );
+      }
+
+      // Test 21m: partner A cannot INSERT into the audit table either — no
+      // grant, so history cannot be forged from a client.
+      {
+        const { error } = await a.client.from("product_specs_audit").insert({
+          spec_id: specAdminId,
+          operation: "update",
+          after: { forged: true },
+        });
+        record(
+          "21m: partner cannot INSERT product_specs_audit (no grant, trigger-only)",
+          Boolean(error),
+          error ? `blocked: ${error.message}` : "INSERT unexpectedly succeeded",
+        );
+      }
+
+      // Test 21n: admin CAN read the audit table (the history view's source).
+      {
+        const { data, error } = await adminPersona.client
+          .from("product_specs_audit")
+          .select("id, operation")
+          .eq("spec_id", specAdminId);
+        record(
+          "21n: admin can SELECT product_specs_audit",
+          !error && (data?.length ?? 0) === 2,
+          error ? `error: ${error.message}` : `count=${data?.length}`,
+        );
+      }
+
+      // Cleanup via service-role: the spec rows AND the audit rows they
+      // generated. Without the second delete every run would leave permanent
+      // junk in the audit table — nothing in the app can remove it, by design.
+      await admin.from("product_specs").delete().like("id", "RLS-SPEC%");
+      await admin.from("product_specs_audit").delete().like("spec_id", "RLS-SPEC%");
     }
   } finally {
     await teardownPersona(a);

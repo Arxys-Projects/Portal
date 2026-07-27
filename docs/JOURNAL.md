@@ -4,6 +4,56 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-07-27 — `product_specs` RLS block in `test-rls.ts`: 14 tests, all passing against production
+
+Follow-on to the §5.1 apply below. The write path was verified by hand in the SQL editor;
+this codifies it, and covers the two things the manual check structurally could not.
+
+### Work done
+
+Added block **21 (a–n)** to [`scripts/test-rls.ts`](../scripts/test-rls.ts), modelled on the
+`camera_specs` block (12a–12g). Full suite run against production: **all pass**, including
+the 28 pre-existing tests.
+
+Read-open holds for partners and internal users (21a–21b). `INSERT` and `UPDATE` are refused
+for partners *and* for internal users (21c–21f) — that second half matters because the
+`/admin` layout admits internal as well as admin, so RLS is what actually enforces
+admin-only; an application-level bug cannot produce an unauthorised write. `DELETE` is
+refused for partners (21g) and admins alike (21i), the latter being the case `camera_specs`
+has no equivalent for and the whole reason the grant was withheld: per ADR 0094 a SKU with no
+spec row is *skipped* by `loadCandidateSpecs`, so a deleted row drops a SKU out of the
+recommender pool with no error anywhere. The admin write path works (21h, 21j), and the audit
+table is readable by admins only (21l, 21n) and cannot be written from a client at all
+(21m) — history cannot be forged.
+
+**The two the SQL-editor smoke test could not reach.** A dashboard write has no `auth.uid()`,
+so it left `updated_by` and `changed_by` null and proved only that the triggers fire. 21j
+asserts `updated_by === adminPersona.id` after a real signed-in admin update, and 21k asserts
+the audit trigger recorded both admin writes with `changed_by` resolved, `before` null on the
+insert and populated on the update, and the new `hdd_count` visible in the `after` snapshot.
+That closes apply-note checks 4 and 5.
+
+### Detours & fixes
+
+- **Every assertion runs against a throwaway `RLS-SPEC-*` row, never a real SKU.** The
+  hazard is specific: a rejection test that *unexpectedly succeeds* would mutate or delete
+  live customer-facing capacity data — and "admin `DELETE` is refused" is exactly such a
+  test. Checked first that the row is invisible to every consumer while it exists:
+  `/comparison` looks specs up by `competitor.arxys_match_id` so an unreferenced key never
+  renders, `videox-compare` filters `VX5-V%`, the recommender joins to `products`, and the
+  price book and both PDFs filter by an explicit SKU list. Confirmed after the run: 21 rows,
+  zero leaked.
+- **Cleanup has to delete the audit rows too.** The teardown drops `RLS-SPEC%` from
+  `product_specs` *and* from `product_specs_audit`. Without the second delete every run would
+  leave permanent junk in the audit table — nothing in the app can remove it, by design, so
+  it would only ever accumulate. Verified: the table holds exactly the two rows from the
+  manual smoke test and nothing else.
+- **Defensive admin reactivation.** Test 8c suspends `adminPersona` and 12g reactivates it,
+  so block 21 inherits an active admin only by ordering. Re-asserted `status = 'active'` at
+  the top of the block rather than depending on a block 700 lines earlier.
+
+---
+
 ## 2026-07-27 — Spec unification §5.1: built the write path, taught the capacity helper two RAID levels, and cut the JSON's grip on `product_specs`
 
 Steps 1, 2 and 4 of [`spec-admin-form-design.md`](../datasheets/spec-admin-form-design.md)
