@@ -254,22 +254,24 @@ designed and scope-agreed, not built.
 > **§5.1 is designed (ADR 0096 + [`spec-admin-form-design.md`](./spec-admin-form-design.md))
 > and steps 1, 2 and 4 of its §7 build sequence are built.** Do not re-do them:
 >
-> - **Step 1 — migration written, NOT APPLIED.**
+> - **Step 1 — migration written and APPLIED to production 2026-07-27.**
 >   `supabase/migrations/20260727000001_product_specs_admin_editable.sql` + paired rollback +
 >   [`docs/apply-notes/0096-product-specs-admin-editable.md`](../docs/apply-notes/0096-product-specs-admin-editable.md).
->   **Blocked on Andy applying it via the dashboard SQL editor.** Check whether it has been
->   applied before assuming anything downstream — probe for
->   `product_specs.raid_level_alt_display`, not `supabase migration list`.
+>   Verified read-only after the apply: 21 rows intact, new columns null, audit table empty,
+>   capacity trace identical to baseline. It will **not** show in `supabase migration list` —
+>   dashboard applies do not write the CLI history table. Probe for
+>   `product_specs.raid_level_alt_display` if you need to confirm.
 > - **Step 2 — shipped.** `usableCapacityTb()` knows `'1'` and `'JBOD'`; `'NA'` still falls
 >   through to RAID 5. Live trace over all 21 rows was byte-identical before and after.
 > - **Step 4 — shipped.** The script is now `scripts/update-competitor-data.ts` (competitor
 >   path only); `arxys.models` is frozen in `data/server-specs.json` behind an `_frozen` key.
 >
-> **What is left in §5.1:** design §7 steps 3, 5 and 6 — the admin form and actions, the
-> live zod round-trip script, and correcting the three V100 rows to `'1'` / `'JBOD'` through
-> the form. **All three depend on the migration being applied first.** The apply note also
-> flags a `product_specs` block for `scripts/test-rls.ts`, deliberately unwritten until the
-> policies exist.
+> **What is left in §5.1, now all unblocked:** design §7 steps 3, 5 and 6 — the admin form
+> and actions, the live zod round-trip script, and correcting the three V100 rows to `'1'` /
+> `'JBOD'` through the form. Plus a `product_specs` block for `scripts/test-rls.ts`
+> (mirroring the `camera_specs` 12a–12e block, plus a case it has no equivalent for: an
+> admin `DELETE` must be *rejected*), which was deliberately left unwritten until the
+> policies existed. They exist now.
 
 The §2 method is still the right method for anything touching capacity, and is worth
 reusing: pick `VX5-V500-192` (real SKU, `current_products` capacity `NULL`, `product_specs`

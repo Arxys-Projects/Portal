@@ -9,8 +9,15 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 Steps 1, 2 and 4 of [`spec-admin-form-design.md`](../datasheets/spec-admin-form-design.md)
 §7. No new decisions — [ADR 0096](./decisions/0096-product-specs-canonical-admin-editable.md)
 already records them all; this is the build. The form (§7 step 3), the live zod round-trip
-script (step 5) and the V100 correction (step 6) are **not** done: all three depend on the
-migration being applied, which is Andy's to do.
+script (step 5) and the V100 correction (step 6) are **not** done.
+
+> **The migration was applied to production the same day** (2026-07-27 19:16 UTC, dashboard
+> SQL editor). Post-apply verification, read-only via `service_role`: 21 rows intact;
+> `raid_level_alt_display` and `updated_by` null on all of them; `updated_at` stamped
+> uniformly at the apply time; `raid_level_display` still exactly `NA` / `5` / `6` / `60`;
+> `product_specs_audit` present and empty. The capacity trace re-run against the migrated
+> table was **identical to the pre-migration baseline** on all 21 rows. So §7 steps 3, 5 and
+> 6 are unblocked.
 
 ### Work done
 
