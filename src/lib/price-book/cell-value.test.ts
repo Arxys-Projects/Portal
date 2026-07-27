@@ -7,16 +7,16 @@ import {
   type ProductSpecLite,
 } from "./cell-value";
 
-// A V700-shaped row: products.max_storage_tb is the RAW nameplate (480) and
-// max_cameras is a stream count (325) — the two fields the old renderer
-// mislabeled as "Net Usable Storage" and "Max Camera Bandwidth".
+// A V700-shaped row. ProductRow no longer carries products.max_storage_tb (the
+// RAW nameplate, 480) or products.max_cameras (a stream count, 325) — the two
+// fields the old renderer mislabeled as "Net Usable Storage" and "Max Camera
+// Bandwidth". They are gone from the type, so that mislabeling is now a
+// compile error rather than something these tests have to catch at runtime.
 const v700Row: ProductRow = {
   sku: "VX5-V700-480",
   product_name: "VideoX V700 480TB 4U 24Bay",
   msrp: 54512,
   price_type: "numeric",
-  max_storage_tb: 480,
-  max_cameras: 325,
 };
 
 // product_specs config for the V700: 480 raw, 24 drives, RAID 60 -> 400 usable.
@@ -35,7 +35,7 @@ describe("cellValue — netStorage (Net Usable Storage)", () => {
   });
 
   it("applies RAID 5 parity (V200: 80 raw, 4 drives -> 60)", () => {
-    const row: ProductRow = { ...v700Row, max_storage_tb: 80 };
+    const row: ProductRow = { ...v700Row };
     const spec: ProductSpecLite = {
       storage_raw_tb: 80,
       hdd_count: 4,
@@ -84,7 +84,10 @@ describe("cellValue — ssdStorage (SSD Storage)", () => {
 
 describe("cellValue — bandwidth (Max Camera Bandwidth)", () => {
   it("renders max_bandwidth_mbps, NOT the camera count", () => {
-    // Bug was 325 Mbit/s (the camera count). Real bandwidth is 4000.
+    // Bug was 325 Mbit/s (products.max_cameras). No camera count is in scope
+    // any more, so the notEqual below is a belt-and-braces guard on a bug the
+    // ProductRow type now makes unrepresentable — unlike the "480 TB" guards
+    // above, where the raw nameplate is still reachable via v700Spec.
     assert.equal(cellValue("bandwidth", v700Row, v700Spec), "4000 Mbit/s");
     assert.notEqual(cellValue("bandwidth", v700Row, v700Spec), "325 Mbit/s");
   });

@@ -163,8 +163,6 @@ function makeSizing(): ProjectQuoteSizing {
     product: {
       product_group: "V800",
       product_name: "VideoX V800 720TB",
-      max_cameras: 800,
-      max_storage_tb: 720,
       msrp: 74048,
     },
     productSpec: makeSpecRow(),

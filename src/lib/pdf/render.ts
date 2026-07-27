@@ -276,9 +276,14 @@ function extractWarnings(payload: GroupsPayload | null): string[] {
   return payload?.warnings ?? [];
 }
 
-// Phase 2 Step 3+4: products is now SKU-PK with inline max_cameras +
-// max_storage_tb. server_specs is gone. Legacy UUID-shaped values resolve to
-// null (caller renders "(legacy data)" via the isLegacy branch).
+// Phase 2 Step 3+4: products is SKU-PK; server_specs is gone. Legacy UUID-shaped
+// values resolve to null (caller renders "(legacy data)" via the isLegacy branch).
+//
+// Deliberately does NOT read products.max_cameras / max_storage_tb. Those are
+// populated for only 6 of the 18 pool SKUs, so the PDF's covered-capacity lines
+// take cameras and net-usable storage from product_specs via coveredCapacity().
+// This loader supplies identity and price only. See ADR 0094 and JOURNAL
+// 2026-07-24.
 async function loadProductBySku(
   supabase: SupabaseClient,
   sku: string,
@@ -287,14 +292,12 @@ async function loadProductBySku(
     sku: string;
     product_name: string;
     product_group: string;
-    max_cameras: number | null;
-    max_storage_tb: number | null;
     msrp: number | null;
   };
 } | null> {
   const { data: product } = await supabase
     .from("current_products")
-    .select("sku, product_name, product_group, max_cameras, max_storage_tb, msrp")
+    .select("sku, product_name, product_group, msrp")
     .eq("sku", sku)
     .maybeSingle();
   if (!product) return null;
@@ -303,8 +306,6 @@ async function loadProductBySku(
       sku: product.sku,
       product_name: product.product_name,
       product_group: product.product_group,
-      max_cameras: product.max_cameras,
-      max_storage_tb: product.max_storage_tb === null ? null : Number(product.max_storage_tb),
       msrp: product.msrp === null ? null : Number(product.msrp),
     },
   };

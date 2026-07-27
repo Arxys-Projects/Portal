@@ -137,11 +137,14 @@ export type SizingSubmissionRow = {
   groups_payload: unknown;
 };
 export type SizingPartnerRow = { company_name: string | null; contact_name: string | null } | null;
+// The current_products join: family/model identity and the price. Capacity is
+// NOT here — products.max_cameras / max_storage_tb are populated for only 6 of
+// the 18 pool SKUs, so delivered capacity comes from product_specs via
+// coveredCapacity() below. Leaving them out of the type keeps the sparse columns
+// unreachable from this path. See ADR 0094 and JOURNAL 2026-07-24.
 export type SizingProductRow = {
   product_group: string;
   product_name: string;
-  max_cameras: number | null;
-  max_storage_tb: number | null;
   msrp: number | null;
 } | null;
 export type SizingProductSpecRow = {

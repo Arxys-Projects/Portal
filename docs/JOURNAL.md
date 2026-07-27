@@ -4,6 +4,94 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-07-24 — Spec unification §2: swept the remaining `products` capacity readers (clean), and found a Price Book SKU gap
+
+Follow-on to the two spec-unification slices earlier the same day. The hand-off brief
+made §2 the start-here item: audit every other reader of `current_products.max_cameras`
+/ `max_storage_tb` for the same NULL-capacity bug that broke covered capacity, on the
+explicit warning that **the test suite cannot see this class of defect** — fixtures
+hand-populate capacity, so they never notice a change in *which rows or columns* reach
+a path.
+
+**The sweep came back clean. There is no second instance of the bug.** Every remaining
+reader was traced to its rendered output against live production data, not read for
+plausibility:
+
+| Site | Finding |
+|---|---|
+| `price-book/[slug]/page.tsx` (3 selects) | Selected both; rendered neither. `cell-value.ts` takes net-usable from `product_specs` via `usableCapacityTb()` and bandwidth from `max_bandwidth_mbps`; `ssdStorage` is hardcoded `"—"`. |
+| `project-quote/assemble.ts` | Selected both; `snapshot.ts` consumes only `product_group` / `product_name` / `msrp`. Covered capacity goes through `coveredCapacity()`. |
+| **`pdf/render.ts` `loadProductBySku`** | **Not in the brief's list.** Selected *and* returned both; consumers use only name/group/msrp. |
+| `push-prices.ts` | Both sites are carry-forward **writes into the portal table**. The brief's claim that 508-509 "reads them for the Pipedrive push" is wrong — that line is inside `pushPortalRows`, and `pushPipedrive()` never touches capacity. |
+
+### Work done
+
+- **Removed the four dead reads and, more importantly, the fields from the row types**
+  (`ProductRow`, `SizingProductRow`, `loadProductBySku`'s return shape). Re-introducing
+  the ADR 0092/0094 regression is now a compile error, not a runtime possibility. The
+  DB columns and the `push-prices.ts` carry-forward were deliberately left alone —
+  [ADR 0095](./decisions/0095-retain-products-capacity-columns.md) records why.
+- **Rewrote `push-prices.ts`' stale header comment.** It still described the calculator
+  filtering on `not('max_cameras','is',null)`, which ADR 0094 removed. Replaced with
+  what the carry-forward actually does, that this script is now the columns' only
+  writer with no reader anywhere, and why stopping it would be actively harmful.
+- **Verified against live data rather than fixtures**, per the brief's lesson: ran the
+  real `cellValue()` over live production rows through the *narrowed* selects. All 18
+  pool SKUs render correct net-usable and bandwidth; `VX5-V500-192` (the NULL-capacity
+  probe) gives 275 cameras / 160 TB and `VX5-V800-720` gives 325 / 600 TB. Independent
+  corroboration of ADR 0092: the Master Sheet product names literally read "Net usable
+  160TB" and "Net usable 600TB", matching the computed figures exactly.
+- `tsc --noEmit` clean, 278/278 tests, eslint clean on all eight changed files.
+
+### Detours & fixes
+
+- **The brief's own state section was stale in every particular.** It described branch
+  `fix/raid60-net-usable-capacity` as "two commits, not pushed and not deployed" with
+  a list of uncommitted work belonging to another session. In fact all of it had been
+  merged to `main` via PR #7 (`e06d9a0`) and **was already live in production** — the
+  latest prod deploy was created four seconds after `main`'s tip commit. The working
+  tree was clean; nothing was uncommitted. Corrected in the brief. The practical
+  consequence is that the brief's §3 deploy communications are owed **retroactively**:
+  the V800's 6.7% capacity drop and the net-usable covered-capacity lines are already
+  in front of partners.
+- **`appliance_specs` covers 7 of the 16 gap SKUs, not all of them.** Checked the
+  unapplied migration's intended population against live data. `product_specs` is
+  rack-video-only, so 16 of 37 active `current_products` SKUs have no row there. Five
+  are accessories (GPU/NIC/RAM) that correctly need none. But **four are active,
+  priced appliance SKUs covered by neither table**: `VX5-SW25-200`, `VX5-SW30-300`,
+  `VX5-SW35-300`, `VX5-V270-ACM`. The migration drew its population from
+  `families.ts` `skuExtraData` keys, so it inherited that file's blind spot.
+- **Those same four SKUs are invisible in the Price Book** — a live gap independent of
+  the datasheet work. The SW family declares `productGroups: ["SW10","SW20"]` and the
+  V260 family `["V260","V265"]`, so SW25/SW30/SW35/V270 render nowhere, while the V260
+  family's own `datasheetUrl` points at a factsheet named `...V260-V270-ACM-V5.pdf`.
+  Left unfixed — out of this session's scope, but recorded because it affects the
+  `appliance_specs` seed shape (V270 likely belongs in the V260 `sheet_group`).
+- **`VX5-PP5-V100` has zero rows in `products`.** It is a `skuExtraData` key and the SW
+  family's only `upgradeSkus` entry, so that upgrade section resolves to nothing.
+- **Both datasheet migrations confirmed unapplied in production** — `appliance_specs`
+  absent (`PGRST205`), `product_specs` still 43 columns with 0/18 of the additive
+  columns. Consistent with the brief; not applied, per the apply-note.
+- **The Supabase CLI is not authenticated** (`Unauthorized` on `projects list`) though
+  linked to the project ref, so `migration list` / `db push` are unavailable. Read-only
+  `SELECT`s via `service_role` from `.env.local` work normally, which is all the audit
+  method needs.
+- **Correction to the audit Appendix's scratch-script recipe:** the scripts must be
+  `.mts`, not `.ts` — `tsx` transforms `.ts` as CJS and rejects top-level `await`. And
+  a script living outside the repo cannot resolve `@supabase/supabase-js`; either keep
+  it inside the project or import via absolute path to
+  `node_modules/@supabase/supabase-js/dist/index.mjs`.
+- **In-app visual verification was not achieved.** The dev server starts, but
+  `/price-book/v500` returns `307 → /login` and this session has no portal credentials.
+  The live-data trace exercises the identical query and renderer, so the change is
+  verified — but not by looking at the rendered page.
+
+### Decisions captured
+
+- [`0095-retain-products-capacity-columns.md`](./decisions/0095-retain-products-capacity-columns.md)
+
+---
+
 ## 2026-07-24 — The REAL "revising breaks the project" bug: Pipedrive soft-deleted deals (400 ERR_DEAL_DELETED)
 
 The 6th report of the same symptom, and the one that finally produced the actual cause — from a **production log**, not from reading code. ADR 0093 steps 1 and 2 (below) were both real fixes to real defects, but **neither was the thing the user kept seeing.** Worth stating plainly: three consecutive sessions diagnosed this from source alone and were wrong each time. The log line took two minutes to find with `vercel logs` and settled it immediately.

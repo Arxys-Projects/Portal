@@ -191,7 +191,7 @@ export async function assembleProjectQuoteSnapshot(
       recommendedSku
         ? supabase
             .from("current_products")
-            .select("product_group, product_name, max_cameras, max_storage_tb, msrp")
+            .select("product_group, product_name, msrp")
             .eq("sku", recommendedSku)
             .maybeSingle()
         : Promise.resolve({ data: null }),

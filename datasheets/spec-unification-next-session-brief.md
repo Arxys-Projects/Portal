@@ -10,15 +10,25 @@
 
 ## State of play
 
-Branch **`fix/raid60-net-usable-capacity`**, two commits, **not pushed and not deployed**:
+> **CORRECTED 2026-07-24 (later session).** Everything below this callout was written
+> before PR #7 merged. **All of the work described in this brief is now on `main` and
+> live in production.** The original text said "not pushed and not deployed"; that is
+> false. Verified: PR #7 merged as `e06d9a0`, and the latest production deployment was
+> created four seconds after `main`'s tip commit. The working tree is clean.
+> Consequences: **§3's deploy communications are owed retroactively, not
+> prospectively** — partners can already see the new figures. §2 is **done** (see the
+> §2 callout). §6's "uncommitted work that is not yours" no longer applies: all of it
+> is committed and tracked. Test count is now **278**, not 258.
+
+Branch **`fix/raid60-net-usable-capacity`** — *merged to `main` via PR #7 and deployed*:
 
 - `ea795e4` — RAID 60 parity fix (ADR 0092), the Phase 0 audit, ADR 0091.
 - `1ec2f95` — recommender pool 6 → 18 SKUs (ADR 0094), pure `selectCandidates()` + 7 tests.
-- branch `HEAD` — covered-capacity regression fix (§1) and this brief. (Deliberately not cited by
-  hash: it is the commit that carries this file, so any amend would invalidate the reference.)
+- `dfb25d9` — covered-capacity regression fix (§1) and this brief.
 
-258 tests pass, `tsc --noEmit` clean. Two pre-existing lint errors in `portal-header.tsx` and
-`project-quote-actions.ts` are unrelated and untouched.
+278 tests pass, `tsc --noEmit` clean. Two pre-existing lint errors in `portal-header.tsx` and
+`project-quote-actions.ts` are unrelated and untouched. (Note: `npm run lint` also walks
+`.claude/worktrees/`, so error counts appear doubled when another session's worktree exists.)
 
 ## 1. DONE — covered-capacity regression, found and fixed before handoff
 
@@ -41,7 +51,29 @@ capacity, so they could not see a change in *which rows* reach the path. Fixture
 much less than they look like they do when a change alters row selection rather than logic. Assume
 the same class of bug is still hiding elsewhere.
 
-## 2. START HERE — audit the other consumers of `products` capacity for the same bug
+## 2. DONE — swept 2026-07-24, no second instance of the bug
+
+> **This section is closed.** All four readers below were traced to their rendered
+> output against live production data. **Every one was a dead select** — none rendered
+> either column. Details in the JOURNAL entry; the decision not to drop the columns yet
+> is [ADR 0095](../docs/decisions/0095-retain-products-capacity-columns.md).
+>
+> Two corrections to the list below. **It missed a site:** `pdf/render.ts`'s
+> `loadProductBySku` selected *and returned* both columns. And its `push-prices.ts`
+> claim is wrong — lines 508-509 are a carry-forward **write** inside `pushPortalRows`,
+> not a Pipedrive read; `pushPipedrive()` never touches capacity. The stale header
+> comment was real and is fixed.
+>
+> What shipped: the four dead reads removed **along with the fields on `ProductRow`,
+> `SizingProductRow`, and `loadProductBySku`'s return type**, so the regression class is
+> now a compile error. The DB columns and the `push-prices.ts` carry-forward were kept
+> deliberately — stopping the carry-forward would silently `NULL` the 6 populated SKUs
+> on the next run, because `products` is append-only. Read ADR 0095 before touching
+> either.
+
+### Original text (superseded)
+
+The same NULL-capacity assumption may sit elsewhere, and §1 proves the tests will not tell you.
 
 The same NULL-capacity assumption may sit elsewhere, and §1 proves the tests will not tell you.
 Known remaining readers of `current_products.max_cameras` / `max_storage_tb`, all worth checking
@@ -57,7 +89,12 @@ against a SKU from the NULL-capacity 12 (`VX5-V500-192` is a good probe):
 Only after this sweep is it safe to consider dropping the duplicated columns. **Do not treat that as
 cheap cleanup** — that framing was wrong once already in this initiative.
 
-## 3. Deploy communications owed
+## 3. Deploy communications owed — NOW RETROACTIVE, STILL UNSENT
+
+> **These changes are already live in production** (verified 2026-07-24; see the
+> State-of-play callout). The framing below — "whenever this ships" — no longer holds.
+> Partners may already have seen the new figures on quotes and PDFs. This is the most
+> time-sensitive open item in the brief and nothing has been sent.
 
 Two visible changes land together whenever this ships:
 
@@ -110,8 +147,22 @@ Sales should hear all three before a partner does.
    cannot stay a co-authority — re-running the script would overwrite form edits. It also feeds
    `competitor_products`, which is out of scope, so it cannot simply be deleted.
 7. **Unpause the datasheet project.** `appliance_specs` and the `product_specs` additive migration
-   are written but **neither applied nor committed** (see §6). Nothing in the audit invalidates
-   them; the only open question is whether they land as-is or fold into a wider canonical shape.
+   are **committed but still not applied** — re-verified against production 2026-07-24:
+   `appliance_specs` returns `PGRST205` (absent) and `product_specs` still has 43 columns with
+   0/18 of the additive set. Nothing in the audit invalidates them; the open question is whether
+   they land as-is or fold into a wider canonical shape.
+
+   **New finding (2026-07-24) — the intended population is short by four SKUs.**
+   `appliance_specs`' header lists 7 SKUs, drawn from `families.ts` `skuExtraData` keys, so it
+   inherited that file's blind spot. `product_specs` covers no non-rack SKU, leaving 16 of 37
+   active `current_products` SKUs uncovered; 5 are accessories that need no datasheet, but **four
+   are active, priced appliances covered by neither table**: `VX5-SW25-200`, `VX5-SW30-300`,
+   `VX5-SW35-300`, `VX5-V270-ACM`. Those same four are also absent from every family's
+   `productGroups`, so they **render nowhere in the Price Book today** — while the V260 family's
+   `datasheetUrl` points at a factsheet named `...V260-V270-ACM-V5.pdf`. Decide the `sheet_group`
+   for V270 (likely alongside V260/V265) before seeding. Separately, `VX5-PP5-V100` is a
+   `skuExtraData` key and the SW family's only `upgradeSkus` entry but has **zero rows in
+   `products`**.
 
 ## 6. Hazards specific to this repo
 
@@ -120,10 +171,11 @@ Sales should hear all three before a partner does.
   `ea795e4` because `JOURNAL.md` was staged wholesale. **Check `git diff docs/JOURNAL.md | grep -E
   "^\+## "` before staging it, verify the next free ADR number immediately before claiming it, and
   never `git add -A` here.**
-- **Uncommitted work that is not yours.** Still untracked at handoff: ADR 0090, its apply-note, the
-  two datasheet migrations and their rollbacks, ADR 0093, and the other `datasheets/*.md` planning
-  docs. The JOURNAL links to several of them, so those links do not resolve in the repo yet. Leave
-  them alone unless asked.
+- ~~**Uncommitted work that is not yours.**~~ **RESOLVED 2026-07-24.** All of it — ADR 0090 and its
+  apply-note, both datasheet migrations and their rollbacks, ADR 0093, and the `datasheets/*.md`
+  planning docs — is now committed and tracked on `main`, and the JOURNAL links resolve. Verified
+  with `git ls-files`; the working tree is clean. The *hazard* above it (shared working tree) is
+  still live, so keep checking `git diff docs/JOURNAL.md | grep -E "^\+## "` before staging.
 - **The two datasheet migrations are unapplied by design** — Andy applies via the dashboard SQL
   editor per [`docs/apply-notes/0090-datasheet-schema.md`](../docs/apply-notes/0090-datasheet-schema.md).
   Do not apply them.
@@ -135,11 +187,23 @@ Sales should hear all three before a partner does.
 
 ## Suggested first step
 
-Work §2 the way §1 was eventually caught, not the way it was missed: pick `VX5-V500-192` (real SKU,
-`current_products` capacity `NULL`, `product_specs` complete) and trace it through each remaining
-reader end to end against live data. Do not rely on the test suite to surface this class of bug — see
-§1's lesson. The scratch verification scripts from this session (audit Appendix pattern) are the
-right tool: read-only `SELECT`s via `node --env-file=.env.local --import tsx`.
+> **UPDATED 2026-07-24.** §2 is done and clean — do not re-run it. The two live items are
+> **§3 (the comms, now retroactive and still unsent)** and **§5.1 (the admin form)**, which is
+> the largest remaining piece and the reason the initiative exists. §5.7's newly-found
+> four-SKU gap is cheap to close and blocks the `appliance_specs` seed.
+
+The §2 method is still the right method for anything touching capacity, and is worth
+reusing: pick `VX5-V500-192` (real SKU, `current_products` capacity `NULL`, `product_specs`
+complete) and trace it end to end against live data rather than trusting the suite — see
+§1's lesson. Read-only `SELECT`s via `node --env-file=.env.local --import tsx`.
+
+Two practical corrections to that recipe, learned the hard way: the scratch scripts must be
+**`.mts`**, because `tsx` transforms `.ts` as CJS and rejects top-level `await`; and a script
+placed outside the repo cannot resolve `@supabase/supabase-js`, so either keep it inside the
+project or import the absolute path to
+`node_modules/@supabase/supabase-js/dist/index.mjs`. Also note the **Supabase CLI is
+unauthenticated** in this environment (`Unauthorized`), so `migration list` / `db push` are
+unavailable; read-only `service_role` queries from `.env.local` work fine.
 
 Model: Opus 5, effort high. Cross-module work with live-data verification and a customer-facing blast
 radius.

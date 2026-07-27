@@ -392,3 +392,17 @@ lost on re-versioning; the JSON↔DB drift check (0 mismatches, and the 26-orpha
 the §4.2 `families.ts`-vs-computed storage diff. Worth re-running before Phase 1 if any time passes
 — the capacity and VMS findings are live-data findings and could be fixed out from under this
 document.
+
+**Two corrections to the recipe** (found 2026-07-24 re-running these): the scripts must be
+`.mts`, not `.ts` — `tsx` transforms `.ts` as CJS and rejects top-level `await` — and a script
+outside the repo cannot resolve `@supabase/supabase-js`, so keep it inside the project or import
+the absolute path to `node_modules/@supabase/supabase-js/dist/index.mjs`. Note also that the
+**Supabase CLI is unauthenticated** here (`projects list` → `Unauthorized`), so it cannot
+substitute for these scripts; `service_role` `SELECT`s from `.env.local` are the only live route.
+
+**Re-verified 2026-07-24** (later session): the §4.1 capacity split still holds exactly — 6 SKUs
+populated in `current_products`, the other 31 `NULL`, `product_specs` complete for all 21 rack
+SKUs. Added finding: **16 of 37 active `current_products` SKUs have no `product_specs` row at
+all**, and four of those are active, priced appliances that the pending `appliance_specs`
+migration does *not* cover either (`VX5-SW25-200`, `VX5-SW30-300`, `VX5-SW35-300`,
+`VX5-V270-ACM`). See the brief's §5.7 and the 2026-07-24 JOURNAL entry.
