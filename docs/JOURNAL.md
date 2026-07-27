@@ -101,6 +101,17 @@ written, per the task framing.
   unauthenticated here, so read-only `service_role` `SELECT`s via `.mts` scratch scripts were
   again the only live route — and, per brief §1, the only verification that proved anything.
 
+### Status update — the V800 deploy communication went out
+
+Recorded because three documents had been tracking it as unsent since PR #7 deployed. The
+**V800 capacity message has been sent** (stakeholder confirmed, 2026-07-27), closing brief
+§3 item 1 and the V800-720 720 → 600 TB line of item 3 with it — the same 6.7% drop, stated
+on the documents. **Two comms items remain owed:** the ADR 0094 pool expansion changing
+roughly two thirds of new recommendations (a separate cause and a separate audience), and
+the covered-capacity change on the other five previously-working SKUs (V700-480, V600-320,
+V500-240, V400-160, V200-80). Those are still the most time-sensitive open items in the
+initiative.
+
 ### Decisions captured
 
 - [`0096-product-specs-canonical-admin-editable.md`](./decisions/0096-product-specs-canonical-admin-editable.md)
