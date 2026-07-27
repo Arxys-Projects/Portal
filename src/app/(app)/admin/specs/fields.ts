@@ -1,0 +1,366 @@
+// Field metadata for the product_specs admin form (ADR 0096; design
+// datasheets/spec-admin-form-design.md §3).
+//
+// ONE declarative list drives three consumers: the zod schema (./schema.ts),
+// the form's rendered inputs (./_components/spec-form.tsx), and the index
+// page's column labels. That is deliberate. ADR 0096's stated negative is
+// "every future column needs a field added or it is silently unreachable
+// through the only supported write path — the same failure mode as the 26
+// columns, one layer up." Adding a column here validates it AND renders it, so
+// the two halves cannot drift apart.
+//
+// No zod, no React, no server-only imports — this module is bundled into the
+// client form, so it must stay pure data.
+//
+// The 43 fields here are the 42 live columns minus `product_sku`, plus
+// `raid_level_alt_display` (new in migration 20260727000001).
+//
+// product_sku is DELIBERATELY NOT SURFACED: null in all 21 rows, the Phase 0
+// audit found it dead, and its own migration comment calls it "reserved for
+// future join to products.sku" — a join done in-process on
+// product_specs.id == products.sku instead. It belongs in the same drop
+// migration as the ADR 0095 columns.
+//
+// updated_at / updated_by are also absent, and MUST stay absent: the
+// product_specs_stamp_updated BEFORE trigger maintains both. An action writing
+// them would fight the trigger.
+
+/**
+ * RAID levels the form will accept, in the order they are offered.
+ *
+ * This list is exactly the set of strings `usableCapacityTb()` matches on, plus
+ * 'NA'. That coupling is the point (design §4a): the helper sends every
+ * unrecognised string to its documented RAID-5 branch, so a free-text input
+ * accepting 'RAID 6', '6 ', or '06' would *silently overstate* net-usable
+ * capacity by one drive's worth — the exact under-spec failure ADR 0092 was
+ * written to fix, re-introduced one layer up. A closed option list makes that
+ * unrepresentable rather than merely unlikely.
+ *
+ * If a level outside this set ever ships, the select and `usableCapacityTb()`
+ * move together (ADR 0096, When to revisit).
+ */
+export const RAID_LEVEL_OPTIONS = [
+  { value: "1", label: "RAID 1 (mirror — usable = raw / 2)" },
+  { value: "5", label: "RAID 5 (1 parity drive)" },
+  { value: "6", label: "RAID 6 (2 parity drives)" },
+  { value: "60", label: "RAID 60 (2 parity per 12-drive span)" },
+  { value: "JBOD", label: "JBOD (no parity — usable = raw)" },
+  // 'NA' is carried ONLY so the three uncorrected V100 rows round-trip through
+  // this form. It is not a RAID level: usableCapacityTb() does not recognise it
+  // and falls through to the RAID-5 branch, which returns the correct mirror
+  // figure for the V100 only because that box has exactly 2 drives. Correcting
+  // those rows to '1' / 'JBOD' is design §7 step 6.
+  { value: "NA", label: "NA — deprecated, do not select for new rows" },
+] as const;
+
+export const RAID_LEVEL_VALUES = RAID_LEVEL_OPTIONS.map((o) => o.value);
+
+export type SpecFieldKind =
+  /** Primary key. Required, and read-only once the row exists. */
+  | "id"
+  /** NOT NULL text column. */
+  | "text-required"
+  /** Nullable text column; blank submits as null. */
+  | "text-optional"
+  /** Nullable free-form text, rendered as a textarea. */
+  | "textarea-optional"
+  /** NOT NULL integer with a CHECK (> 0). */
+  | "int-required-positive"
+  /** Nullable integer; 0 is legitimate (gbe_10_ports is 0 on 1U models). */
+  | "int-optional"
+  /** NOT NULL numeric with a CHECK (> 0). */
+  | "num-required-positive"
+  /** NOT NULL-in-practice RAID level select. See schema.ts for why required. */
+  | "raid-required"
+  /** Nullable RAID level select; blank submits as null. */
+  | "raid-optional";
+
+export type SpecField = {
+  name: string;
+  label: string;
+  kind: SpecFieldKind;
+  /** Max characters for text kinds. Longest live value is 41 (vms_certified). */
+  maxLength?: number;
+  /** Shown under the input. Reserved for the fields that carry real risk. */
+  hint?: string;
+};
+
+export type SpecSection = {
+  title: string;
+  /** Rendered above the section's fields when present. */
+  note?: string;
+  fields: SpecField[];
+};
+
+/**
+ * The seven sections of design §3, in order, following the groupings the
+ * migrations already comment.
+ */
+export const SPEC_SECTIONS: SpecSection[] = [
+  {
+    title: "Identity",
+    fields: [
+      {
+        name: "id",
+        label: "SKU / spec id",
+        kind: "id",
+        maxLength: 64,
+        hint: "Must equal products.sku exactly — the two tables are joined on it in process, with no foreign key to catch a mismatch.",
+      },
+      { name: "model_name", label: "Model name", kind: "text-required", maxLength: 200 },
+      { name: "form_factor", label: "Form factor", kind: "text-required", maxLength: 200 },
+      { name: "rack_units", label: "Rack units", kind: "text-optional", maxLength: 200 },
+      { name: "notes", label: "Notes", kind: "textarea-optional", maxLength: 2000 },
+    ],
+  },
+  {
+    title: "CPU",
+    fields: [
+      { name: "cpu_model", label: "CPU model", kind: "text-required", maxLength: 200 },
+      { name: "cpu_model_full", label: "CPU model (full)", kind: "text-optional", maxLength: 200 },
+      { name: "cpu_cores_threads", label: "Cores / threads", kind: "text-required", maxLength: 200 },
+      { name: "cores_threads", label: "Cores / threads (QuickCompare)", kind: "text-optional", maxLength: 200 },
+      { name: "cpu_base_ghz", label: "CPU base GHz", kind: "num-required-positive" },
+      { name: "cpu_turbo_ghz", label: "CPU turbo GHz", kind: "text-optional", maxLength: 200 },
+      { name: "cpu_passmark", label: "CPU Passmark", kind: "int-required-positive" },
+      { name: "cpu_cache", label: "CPU cache", kind: "text-optional", maxLength: 200 },
+      { name: "mem_bandwidth", label: "Memory bandwidth", kind: "text-optional", maxLength: 200 },
+      { name: "avx_512", label: "AVX-512", kind: "text-optional", maxLength: 200 },
+      { name: "workload_affinity", label: "Workload affinity", kind: "text-optional", maxLength: 200 },
+      { name: "chiplet_arch", label: "Chiplet architecture", kind: "text-optional", maxLength: 200 },
+      { name: "infinity_guard", label: "Infinity Guard", kind: "text-optional", maxLength: 200 },
+    ],
+  },
+  {
+    title: "Memory",
+    fields: [
+      { name: "ram_gb", label: "RAM (GB)", kind: "int-required-positive" },
+      { name: "ram_spec", label: "RAM spec", kind: "text-optional", maxLength: 200 },
+    ],
+  },
+  {
+    title: "Storage & RAID",
+    note: "storage_raw_tb, hdd_count and the two RAID levels are the inputs to usableCapacityTb(). Every net-usable figure the portal publishes is derived from them — check the preview before saving.",
+    fields: [
+      {
+        name: "storage_raw_tb",
+        label: "Raw storage (TB)",
+        kind: "num-required-positive",
+        hint: "Nameplate total, before parity. Never the net-usable figure.",
+      },
+      { name: "drive_bays", label: "Drive bays", kind: "int-optional" },
+      {
+        name: "hdd_count",
+        label: "HDD count",
+        kind: "int-optional",
+        hint: "Populated drives. Cannot exceed drive bays.",
+      },
+      { name: "hdd_mtbf", label: "HDD MTBF", kind: "text-optional", maxLength: 200 },
+      { name: "raid_support", label: "RAID support (marketing string)", kind: "text-required", maxLength: 200 },
+      {
+        name: "raid_level_display",
+        label: "RAID level (as configured)",
+        kind: "raid-required",
+        hint: "Drives the net-usable calculation.",
+      },
+      {
+        name: "raid_level_alt_display",
+        label: "Alternate RAID level (optional)",
+        kind: "raid-optional",
+        hint: "Only for boxes that ship configurable either way — the V100 (RAID 1 or JBOD). Leave blank otherwise.",
+      },
+      { name: "battery_raid", label: "Battery-backed RAID", kind: "text-optional", maxLength: 200 },
+      { name: "os_ssd_type", label: "OS SSD type", kind: "text-optional", maxLength: 200 },
+      { name: "os_redundancy", label: "OS redundancy", kind: "text-optional", maxLength: 200 },
+    ],
+  },
+  {
+    title: "Capacity & throughput",
+    fields: [
+      { name: "max_cameras", label: "Max cameras", kind: "int-required-positive" },
+      { name: "max_cameras_h265", label: "Max cameras (H.265)", kind: "int-required-positive" },
+      { name: "max_bandwidth_mbps", label: "Max bandwidth (Mbps)", kind: "int-optional" },
+    ],
+  },
+  {
+    title: "Networking & power",
+    fields: [
+      { name: "network", label: "Network (summary string)", kind: "text-required", maxLength: 200 },
+      { name: "gbe_1_ports", label: "1 GbE ports", kind: "int-optional" },
+      { name: "gbe_10_ports", label: "10 GbE ports", kind: "int-optional" },
+      { name: "sfp_addon", label: "SFP add-on", kind: "text-optional", maxLength: 200 },
+      { name: "hotswap_power", label: "Hot-swap power", kind: "text-optional", maxLength: 200 },
+    ],
+  },
+  {
+    title: "Software & support",
+    fields: [
+      { name: "os", label: "Operating system", kind: "text-required", maxLength: 200 },
+      { name: "os_edition", label: "OS edition", kind: "text-optional", maxLength: 200 },
+      { name: "warranty", label: "Warranty", kind: "text-required", maxLength: 200 },
+      { name: "vms_certified", label: "VMS certified", kind: "text-required", maxLength: 200 },
+      { name: "avigilon_gpu", label: "Avigilon GPU", kind: "text-optional", maxLength: 200 },
+    ],
+  },
+];
+
+// ---------------------------------------------------------------------------
+// Cross-field rules and warnings
+//
+// These live HERE, next to the metadata, rather than inside the zod schema,
+// because three consumers need the same answer: the schema (to refuse the save),
+// the form (to show the editor the refusal as they type, before they submit),
+// and the action's confirmation message. Restating the conditions in the client
+// would be the same duplication-drift hazard the shared field list exists to
+// avoid — with the added sting that a client copy could disagree with the server
+// about whether a capacity edit is legal.
+//
+// Every rule was checked against the live 21 rows before it was written, so none
+// rejects data already in production (verified 2026-07-27):
+//   - hdd_count == drive_bays on all 21 rows
+//   - the six RAID 60 rows carry hdd_count 24 (V700) and 36 (V800)
+//   - the three RAID 1 candidates are the V100 at hdd_count 2
+//   - max_cameras == max_cameras_h265 on all 21 rows
+// ---------------------------------------------------------------------------
+
+/** The subset of a spec row the rules and warnings read. */
+export type SpecRuleValues = {
+  drive_bays?: number | null;
+  hdd_count?: number | null;
+  raid_level_display?: string | null;
+  raid_level_alt_display?: string | null;
+  max_cameras?: number | null;
+  max_cameras_h265?: number | null;
+};
+
+export type SpecRuleViolation = { field: string; message: string };
+
+/** "" / null / non-numeric text -> null. Lets the form feed raw input strings in. */
+export function toNumberOrNull(value: unknown): number | null {
+  if (value === null || value === undefined) return null;
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (trimmed === "") return null;
+    const n = Number(trimmed);
+    return Number.isFinite(n) ? n : null;
+  }
+  return null;
+}
+
+/** Parity rules that depend on the drive count, applied to whichever level column
+ *  is being checked. Both columns feed usableCapacityTb(), so a drive count that
+ *  does not fit the level corrupts the alternate figure exactly as it does the
+ *  primary. */
+function levelDriveCountViolation(
+  level: string | null | undefined,
+  hddCount: number | null | undefined,
+  field: string,
+  label: string,
+): SpecRuleViolation | null {
+  if (level == null || hddCount == null) return null;
+  // RAID 60 parity is 2 x round(n / 12). A drive count that is not a whole
+  // number of spans makes that round() guess, and the published figure is then
+  // wrong in one direction or the other.
+  if (level === "60" && hddCount % 12 !== 0) {
+    return {
+      field,
+      message: `RAID 60 is built from 12-drive spans, so ${label} requires an HDD count that is a multiple of 12 (currently ${hddCount}).`,
+    };
+  }
+  if (level === "1" && hddCount % 2 !== 0) {
+    return {
+      field,
+      message: `RAID 1 mirrors drives in pairs, so ${label} requires an even HDD count (currently ${hddCount}).`,
+    };
+  }
+  return null;
+}
+
+/** Conditions that REFUSE the save (design §4c). Empty array means clean. */
+export function specRuleViolations(values: SpecRuleValues): SpecRuleViolation[] {
+  const violations: SpecRuleViolation[] = [];
+  const { hdd_count: hddCount, drive_bays: driveBays } = values;
+
+  if (hddCount != null && driveBays != null && hddCount > driveBays) {
+    violations.push({
+      field: "hdd_count",
+      message: `HDD count (${hddCount}) cannot exceed drive bays (${driveBays}).`,
+    });
+  }
+
+  const primary = levelDriveCountViolation(
+    values.raid_level_display,
+    hddCount,
+    "raid_level_display",
+    "RAID level",
+  );
+  if (primary) violations.push(primary);
+
+  const alt = levelDriveCountViolation(
+    values.raid_level_alt_display,
+    hddCount,
+    "raid_level_alt_display",
+    "the alternate RAID level",
+  );
+  if (alt) violations.push(alt);
+
+  return violations;
+}
+
+/**
+ * Things worth a second look that are explicitly NOT errors (design §4c).
+ *
+ * The first two conditions hold on all 21 live rows today, so a violation is
+ * more likely a typo than a real spec — but neither is impossible, and the form
+ * must not refuse a legitimate one.
+ */
+export function specWarnings(values: SpecRuleValues): string[] {
+  const warnings: string[] = [];
+  const { max_cameras: cameras, max_cameras_h265: camerasH265 } = values;
+  if (cameras != null && camerasH265 != null && cameras !== camerasH265) {
+    warnings.push(
+      `Max cameras (${cameras}) and max cameras H.265 (${camerasH265}) differ. They are equal on all 21 current models — check this is intentional.`,
+    );
+  }
+  const level = values.raid_level_display;
+  const altLevel = values.raid_level_alt_display;
+  if (altLevel != null && altLevel === level) {
+    warnings.push(
+      `The alternate RAID level is the same as the configured level (${level}). An alternate configuration that matches the primary publishes the same figure twice — leave it blank unless the box really ships two ways.`,
+    );
+  }
+  if (level === "NA") {
+    warnings.push(
+      "RAID level 'NA' is deprecated: usableCapacityTb() does not recognise it and falls through to the RAID-5 branch. Set the level the box actually ships (the V100 is RAID 1 or JBOD).",
+    );
+  }
+  return warnings;
+}
+
+/** Every field, flattened — the schema builder and the form both walk this. */
+export const SPEC_FIELDS: SpecField[] = SPEC_SECTIONS.flatMap((s) => s.fields);
+
+/** Field names in section order. Also the column list the pages select. */
+export const SPEC_FIELD_NAMES: string[] = SPEC_FIELDS.map((f) => f.name);
+
+export const SPEC_FIELDS_BY_NAME: Record<string, SpecField> = Object.fromEntries(
+  SPEC_FIELDS.map((f) => [f.name, f]),
+);
+
+/**
+ * A database row (or nothing, on the create form) as the display strings the
+ * inputs take. Null becomes "" — which specInputFromFormData/blankToNull turns
+ * back into null on the way out, so an untouched empty column round-trips
+ * unchanged rather than becoming an empty string in the database.
+ */
+export function initialValuesFromRow(
+  row: Record<string, unknown> | null,
+): Record<string, string> {
+  const values: Record<string, string> = {};
+  for (const name of SPEC_FIELD_NAMES) {
+    const value = row?.[name];
+    values[name] = value === null || value === undefined ? "" : String(value);
+  }
+  return values;
+}

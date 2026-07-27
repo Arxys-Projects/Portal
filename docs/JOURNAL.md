@@ -4,6 +4,121 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-07-27 — Spec unification §5.1 steps 3 & 5: the admin form, and the live round-trip that validates its schema
+
+Steps 3 and 5 of [`spec-admin-form-design.md`](../datasheets/spec-admin-form-design.md) §7.
+No new decisions — [ADR 0096](./decisions/0096-product-specs-canonical-admin-editable.md)
+decisions 4 and 5 already cover the authorisation model and the validation design; everything
+below is those decisions built.
+
+### Work done
+
+**Three routes** under the existing admin shell:
+[`/admin/specs`](<../src/app/(app)/admin/specs/page.tsx>) (index — SKU, model, net usable,
+last edited, edited by), [`/admin/specs/[sku]`](<../src/app/(app)/admin/specs/[sku]/page.tsx>)
+(edit), [`/admin/specs/new`](<../src/app/(app)/admin/specs/new/page.tsx>). Nav entry added to
+`AdminNav` behind a new `isAdmin` prop passed from the `/admin` layout, so an internal user
+never sees a link to a surface that would 404 for them.
+
+**Admin-only at three layers.** The `/admin` layout admits admin *and* internal, so each page
+and both actions check `gate.isAdmin` specifically — matching `project-quote-actions.ts` and
+the admin XLSX export. The actions use `createSupabaseServerClient()`, never
+`createSupabaseAdminClient()`: RLS is the real enforcement point (test block 21c–21f), so an
+application-level bug in the `isAdmin` check cannot produce a write. **No delete action
+exists**, and none should — the grant is withheld (21i proves the database refuses it even for
+an admin) and the UI must not offer the control either.
+
+**One field list, three consumers.** [`fields.ts`](<../src/app/(app)/admin/specs/fields.ts>)
+declares the 43 fields in the seven design §3 sections; the zod schema is built by walking it
+and the form renders by walking it. ADR 0096's stated negative is that "every future column
+needs a field added or it is silently unreachable through the only supported write path — the
+same failure mode as the 26 columns, one layer up." A shared list means adding a column
+validates *and* renders it, and the round-trip script fails the build if the two ever diverge
+from the table.
+
+`product_sku` is deliberately not surfaced (dead, null in all 21 rows). `updated_at` /
+`updated_by` are not surfaced either and must never be: the `product_specs_stamp_updated`
+BEFORE trigger owns both, and an action writing them would fight it. All three are *stripped*
+rather than rejected by the schema, which is what lets a raw `select *` row be parsed whole.
+
+**The safety design (§4), the part that carries the risk:**
+
+- **RAID levels are `<select>` over a closed set** — `1`, `5`, `6`, `60`, `JBOD`, plus `NA`
+  labelled deprecated so the three uncorrected V100 rows round-trip. Tests assert that
+  `RAID 6`, `raid6`, `06`, `6.0`, `R60`, `0` and `10` are all refused: each would fall through
+  `usableCapacityTb()`'s exact-match chain to the RAID-5 branch and *silently overstate* usable
+  capacity by one drive's worth — the under-spec failure ADR 0092 fixed, re-introduced through
+  a text input.
+- **A live net-usable preview** ([`net-usable-preview.tsx`](<../src/app/(app)/admin/specs/_components/net-usable-preview.tsx>))
+  showing saved value, new value, the delta in TB and percent, and where the figure lands. It
+  imports the real `usableCapacityTb()` and the Price Book's own `formatTb()` rather than
+  restating either — a preview that re-implements the maths can agree with itself and still
+  disagree with what gets published, which would be worse than no preview. The alternate
+  figure is a second call to the same helper with only the level varied, which is exactly why
+  ADR 0096 decision 7 chose one nullable level column over two capacity columns.
+- **Cross-field rules that refuse the save**: `hdd_count <= drive_bays`; RAID 60 requires
+  `hdd_count % 12 == 0`; RAID 1 requires an even count. `max_cameras_h265 != max_cameras` is a
+  warning, not a rejection. Every rule was checked against the live 21 rows first, so none
+  rejects production data.
+
+**Step 5 — [`scripts/roundtrip-product-specs.mts`](../scripts/roundtrip-product-specs.mts)**,
+read-only, one `SELECT`. It asserts three things against real production rows: every row
+**parses** through the form's own parser; the parsed output **preserves** every value column by
+column (a coercion bug could let a row parse and still be corrupted by a save that changed
+nothing); and every live column is **reachable** through the form. Result: 21/21 rows,
+43/43 fields preserved, 46 live columns accounted for as 43 fields + 3 recorded exceptions.
+
+### Detours & fixes
+
+- **Three judgment calls inside ADR 0096 decision 5's remit, worth recording because none is
+  obvious from the code.** (1) `raid_level_display` is **required** by the schema even though
+  the column is nullable — a null level is not neutral, it falls down the RAID-5 branch, so
+  leaving it unset quietly publishes a RAID-5 figure for a box that may not be RAID 5. That is
+  the same silent-overstatement path §4a closes for free text, reached by omission instead of
+  by typo; requiring it rejects no live data (all 21 rows carry a value). (2) The RAID 60 and
+  RAID 1 drive-count rules are applied to **`raid_level_alt_display` as well** — it feeds a
+  second `usableCapacityTb()` call, so a drive count that does not fit it corrupts the
+  alternate figure exactly as it would the primary. Safe: `alt` is null on all 21 rows. (3) An
+  alternate level *identical* to the primary is a **warning**, not a rejection — it publishes
+  the same figure twice, which is meaningless but not impossible.
+- **The cross-field rules live in `fields.ts`, not in the zod schema.** First cut had them
+  inside `superRefine`, which meant the form could not show a violation until after a round
+  trip — and restating them client-side would have put a second copy of "is this capacity edit
+  legal" in the codebase, free to disagree with the server. Moved the conditions into the
+  client-safe module; `schema.ts` now only translates them into zod issues. One implementation,
+  three readers (schema, form, action).
+- **`z.number()` rejects NaN before a `.refine()` can run.** A test asserting a readable
+  message for `hdd_count: "twelve"` failed with zod's raw
+  `Invalid input: expected number, received NaN` — and revealed the `finiteNumber` wrapper was
+  dead code twice over, since `z.number()` rejects `Infinity` on its own too. Root cause: the
+  refinement never executes because the type check fails first. Fixed at the source with an
+  error *function* that distinguishes the two states the preprocessor produces — `null` means
+  the field was blank ("… is required."), anything else means unparseable text ("… must be a
+  number."). Regression test asserts both exact strings.
+- **`formatTb()` exported from `price-book/cell-value.ts`.** One-word change, but the preview's
+  entire value is that the editor sees the number that will be published, not a
+  differently-rounded cousin.
+- **Browser verification not done — the one piece of the verification plan left open.**
+  `/admin/specs` is admin-gated, so rendering it required creating an account and entering a
+  password to sign in, which is not something I do. Everything testable without a session was
+  run (below); the interactive check — that the preview recomputes as you type — is Andy's,
+  and it folds into design §7 step 6 (correcting the three V100 rows to `1` / `JBOD`), which
+  was already his first real use of the form.
+
+### Verification
+
+- `npx tsc --noEmit` — clean.
+- `npm test` — **317 pass, 0 fail** (281 baseline + 36 new schema tests).
+- `npx eslint` on changed files only — clean. (`npm run lint` also walks
+  `.claude/worktrees/`, so counts appear doubled when another session has one.)
+- `scripts/roundtrip-product-specs.mts` against production — 21/21 rows parse clean, every
+  value preserved, every live column reachable. Three expected `WARN` lines for the V100 `NA`
+  rows.
+- `scripts/test-rls.ts` re-run against production — all pass, block 21 (a–n) intact,
+  unmodified.
+
+---
+
 ## 2026-07-27 — `product_specs` RLS block in `test-rls.ts`: 14 tests, all passing against production
 
 Follow-on to the §5.1 apply below. The write path was verified by hand in the SQL editor;

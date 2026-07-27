@@ -8,14 +8,31 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cx } from "@/app/(app)/_components/ui/styles";
 
-const ITEMS = [
+// adminOnly items are hidden for internal (non-admin) users. The /admin layout
+// admits admin AND internal (Phase 8 Step C), so a link to an admin-only
+// surface would otherwise 404 for an internal user who clicked it.
+const ITEMS: Array<{
+  label: string;
+  href: string;
+  exact?: boolean;
+  adminOnly?: boolean;
+}> = [
   { label: "Overview", href: "/admin", exact: true },
   { label: "Partners", href: "/admin/partners" },
   { label: "Requests", href: "/admin/requests" },
   { label: "Partner Pipeline", href: "/admin/submissions" },
+  // ADR 0096 — editing product_specs changes customer-facing capacity figures,
+  // so the surface is admin-only at the page, the action and RLS alike.
+  { label: "Product Specs", href: "/admin/specs", adminOnly: true },
 ];
 
-export default function AdminNav({ pendingRequests = 0 }: { pendingRequests?: number }) {
+export default function AdminNav({
+  pendingRequests = 0,
+  isAdmin = false,
+}: {
+  pendingRequests?: number;
+  isAdmin?: boolean;
+}) {
   const pathname = usePathname();
   const isActive = (href: string, exact?: boolean) =>
     exact ? pathname === href : pathname === href || pathname.startsWith(href + "/");
@@ -34,7 +51,7 @@ export default function AdminNav({ pendingRequests = 0 }: { pendingRequests?: nu
         Admin
       </p>
       <ul className="flex flex-col gap-1">
-        {ITEMS.map((item) => {
+        {ITEMS.filter((item) => !item.adminOnly || isAdmin).map((item) => {
           const showBadge = item.href === "/admin/requests" && pendingRequests > 0;
           return (
             <li key={item.href}>

@@ -23,7 +23,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   return (
     <div className="grid grid-cols-1 gap-6 md:grid-cols-[208px_1fr]">
       <nav className="md:sticky md:top-4 md:self-start">
-        <AdminNav pendingRequests={pendingRequests ?? 0} />
+        <AdminNav pendingRequests={pendingRequests ?? 0} isAdmin={gate.isAdmin} />
       </nav>
       <div className="min-w-0">{children}</div>
     </div>

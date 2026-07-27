@@ -40,7 +40,10 @@ export function formatMsrp(row: ProductRow): string {
 }
 
 // TB display: round to one decimal and drop a trailing ".0" (e.g. 60, 62.5).
-function formatTb(tb: number): string {
+// Exported so the admin spec form's net-usable preview (ADR 0096 §4b) prints
+// the figure exactly as the Price Book will — the preview's whole value is that
+// the editor sees the published number, not a differently-rounded cousin.
+export function formatTb(tb: number): string {
   return `${Math.round(tb * 10) / 10}`;
 }
 

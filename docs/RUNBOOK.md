@@ -210,6 +210,22 @@ Expected output ends with `All authenticated RLS tests passed.` and zero failure
 
 If you don't have `tsx` installed yet: `npm install --save-dev tsx`.
 
+Then round-trip the live `product_specs` rows through the admin form's own zod schema:
+
+```bash
+node --env-file=.env.local --import tsx scripts/roundtrip-product-specs.mts
+```
+
+Read-only — a single `SELECT`, no writes. Expected output ends with `All 21 live rows parse
+clean through the form's own schema, preserve every value, and every live column is
+reachable.` Three `WARN` lines about the V100 rows carrying `raid_level_display = 'NA'` are
+expected until those rows are corrected through the form (design §7 step 6); warnings do not
+fail the run.
+
+This is the acceptance check for the `/admin/specs` form, and it catches a class of bug the
+unit tests structurally cannot — see [ADR 0096](./decisions/0096-product-specs-canonical-admin-editable.md)
+and the script's own header.
+
 ## 8. Supabase: configure auth URLs
 
 In the dashboard at **Authentication → URL Configuration**:
@@ -324,6 +340,7 @@ Always use the alias in remote URLs: `git@github.com-arxys:Arxys-Projects/Portal
 | Run unit tests (recommendation algorithm, etc.) | `npm test` |
 | Direct TypeScript check (faster than `next build`'s in-process check) | `npx tsc --noEmit` |
 | Run RLS regression suite | `node --env-file=.env.local --import tsx scripts/test-rls.ts` |
+| Round-trip live `product_specs` through the admin form's schema (read-only) | `node --env-file=.env.local --import tsx scripts/roundtrip-product-specs.mts` |
 | Create a new admin user | `node --env-file=.env.local --import tsx scripts/bootstrap-admin.ts --email ... --name ... --company ...` |
 | New migration | `supabase migration new <name>` (creates a timestamped empty SQL file) |
 | Apply pending migrations | `SUPABASE_DB_PASSWORD='...' supabase db push` |
