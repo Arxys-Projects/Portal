@@ -101,16 +101,19 @@ written, per the task framing.
   unauthenticated here, so read-only `service_role` `SELECT`s via `.mts` scratch scripts were
   again the only live route — and, per brief §1, the only verification that proved anything.
 
-### Status update — the V800 deploy communication went out
+### Status update — the deploy communications went out, closing brief §3 entirely
 
-Recorded because three documents had been tracking it as unsent since PR #7 deployed. The
-**V800 capacity message has been sent** (stakeholder confirmed, 2026-07-27), closing brief
-§3 item 1 and the V800-720 720 → 600 TB line of item 3 with it — the same 6.7% drop, stated
-on the documents. **Two comms items remain owed:** the ADR 0094 pool expansion changing
-roughly two thirds of new recommendations (a separate cause and a separate audience), and
-the covered-capacity change on the other five previously-working SKUs (V700-480, V600-320,
-V500-240, V400-160, V200-80). Those are still the most time-sensitive open items in the
-initiative.
+Recorded because three documents had been tracking §3 as unsent since PR #7 (`e06d9a0`)
+deployed. The retroactive communication went out 2026-07-27 and **covered all three items**
+(stakeholder confirmed): the V800's 6.7% capacity drop (ADR 0092), the ADR 0094 pool
+expansion changing roughly two thirds of new recommendations, and the covered-capacity lines
+switching to net-usable on all six previously-working SKUs (V800-720 720 → 600 TB, V700-480
+480 → 400, V600-320 320 → 280, V500-240 240 → 200, V400-160 160 → 120, V200-80 80 → 60).
+
+The window this was about — changes live in production before sales was briefed, with
+partners able to see the new figures first — is now closed rather than merely acknowledged.
+**§5.1, the admin form, is the initiative's only remaining live item**: designed and
+scope-agreed above, not built.
 
 ### Decisions captured
 

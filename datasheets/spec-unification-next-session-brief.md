@@ -89,33 +89,35 @@ against a SKU from the NULL-capacity 12 (`VX5-V500-192` is a good probe):
 Only after this sweep is it safe to consider dropping the duplicated columns. **Do not treat that as
 cheap cleanup** — that framing was wrong once already in this initiative.
 
-## 3. Deploy communications owed — V800 SENT, TWO ITEMS STILL OPEN
+## 3. DONE — deploy communications sent 2026-07-27, all three items
 
-> **These changes are already live in production** (verified 2026-07-27; see the
-> State-of-play callout). The framing below — "whenever this ships" — no longer holds.
-> Partners may already have seen the new figures on quotes and PDFs.
+> **This section is closed.** The retroactive deploy communication went out on
+> 2026-07-27 and **covered all three items below** (stakeholder confirmed). The changes
+> had been live in production since PR #7 (`e06d9a0`) deployed, so partners could already
+> see the new figures on quotes and PDFs before sales was briefed — that window is now
+> closed, not merely acknowledged.
 >
-> **UPDATED 2026-07-27: the V800 capacity message has been sent** (stakeholder
-> confirmed). That closes item 1 below, and the V800-720 line of item 3 along with it
-> (720 → 600 TB covered is the same 6.7% drop, stated on the documents). **Items 2 and
-> the other five SKUs in item 3 are still unsent** — see the per-item status.
+> Nothing in this section is owed. It stays in place because the three items are the
+> customer-visible consequences of ADRs 0092 and 0094, and a future reader tracing why a
+> partner's old quote disagrees with a new one will want them stated.
 
-Two visible changes land together whenever this ships:
+The three visible changes, all now communicated:
 
-- ~~**V800 capacity drops 6.7%**~~ **— SENT 2026-07-27.** On every quote and PDF (ADR 0092 — the
-  array always delivered this; the code was over-crediting it). Some projects that sized to one
-  V800 now size to two.
-- **STILL UNSENT — Roughly two thirds of new recommendations change**, all cheaper in the reviewed
+- ~~**V800 capacity drops 6.7%**~~ **— SENT.** On every quote and PDF (ADR 0092 — the array always
+  delivered this; the code was over-crediting it). Some projects that sized to one V800 now size to
+  two.
+- ~~**Roughly two thirds of new recommendations change**~~ **— SENT.** All cheaper in the reviewed
   grid ($722 to $48,197). Existing submissions keep their stored snapshots; only new calculations
-  shift. Not covered by the V800 message: this is the ADR 0094 pool expansion, a separate cause
-  with a separate audience (anyone who quoted a job last week gets a different answer this week).
-- **PARTLY SENT — Covered-capacity lines on all three documents now report net-usable, not raw**
-  (§1). Visible on the 6 previously-working SKUs: **V800-720 goes 720 → 600 TB covered (sent, as
-  above)**; still unsent for V700-480 480 → 400, V600-320 320 → 280, V500-240 240 → 200, V400-160
-  160 → 120, V200-80 80 → 60. These are the honest figures and they now match what the
-  recommendation was sized against, but every one is a number a partner may have seen before.
+  shift. This is the ADR 0094 pool expansion — a separate cause from the V800 drop, with a separate
+  audience (anyone who quoted a job last week gets a different answer this week).
+- ~~**Covered-capacity lines on all three documents now report net-usable, not raw**~~ **— SENT.**
+  (§1.) Visible on the 6 previously-working SKUs: V800-720 720 → 600 TB covered, V700-480 480 →
+  400, V600-320 320 → 280, V500-240 240 → 200, V400-160 160 → 120, V200-80 80 → 60. These are the
+  honest figures and they now match what the recommendation was sized against, but every one is a
+  number a partner may have seen before.
 
-Sales should hear all three before a partner does. One of the three now has.
+Sales heard all three. **The only remaining live item in this brief is §5.1 — the admin form**,
+designed and scope-agreed, not built.
 
 ## 4. Settled — do not re-litigate
 
@@ -244,10 +246,14 @@ Sales should hear all three before a partner does. One of the three now has.
 > §5.1 is **designed and scope-agreed** (ADR 0096 +
 > [`spec-admin-form-design.md`](./spec-admin-form-design.md)) but **not built**: start at
 > that design's §7 build sequence. §5.7's four-SKU gap is **retracted** — those SKUs are
-> `active = false` and EOL per ADR 0078; nothing blocks the `appliance_specs` seed.
-> **§3's V800 message has been sent**; its other two items (the recommendation-change
-> blast radius, and the covered-capacity change on the remaining five SKUs) are still
-> owed and remain the most time-sensitive things in this brief.
+> `active = false` and EOL per ADR 0078; nothing blocks the `appliance_specs` seed. **§3 is
+> done** — the deploy communication went out 2026-07-27 covering all three items.
+>
+> **§5.1 is now the only live item in this brief.** Start at
+> [`spec-admin-form-design.md`](./spec-admin-form-design.md) §7: the migration (+ rollback
+> + apply-note, hand to Andy, do not apply), the `usableCapacityTb()` `'1'`/`'JBOD'` levels
+> with a live no-op trace, and the `update-comparison-data.ts` cut. The form waits on the
+> dashboard apply.
 
 The §2 method is still the right method for anything touching capacity, and is worth
 reusing: pick `VX5-V500-192` (real SKU, `current_products` capacity `NULL`, `product_specs`
