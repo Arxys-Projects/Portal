@@ -1,6 +1,6 @@
 # 0097 — The datasheet spec surfaces join the admin-editable pattern before they are applied
 
-- **Status**: Proposed (design review gate — nothing applied or built until Andy signs off)
+- **Status**: Accepted (approved by Andy 2026-07-28; build sequence unblocked)
 - **Date**: 2026-07-28
 - **Related**: 0090 (the schema shape — upheld, but its write-path/provenance stance is
   superseded in part, see Decision 1), 0096 (the pattern being extended), 0091 (the editability

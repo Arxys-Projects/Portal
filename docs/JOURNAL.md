@@ -36,7 +36,7 @@ gated on Andy's review.
   rows likewise enter through the extended `/admin/specs` form — 21 hand edits, the accepted
   one-time cost.
 - **Docs**: [ADR 0097](./decisions/0097-datasheet-surfaces-join-admin-editable-pattern.md)
-  (Proposed, review gate);
+  (**approved by Andy same day → Accepted**; build sequence unblocked);
   [`datasheets/datasheet-phase2-admin-surface-design.md`](../datasheets/datasheet-phase2-admin-surface-design.md)
   (full design + 7-step build sequence); do-not-apply-as-is banner on
   [apply-note 0090](./apply-notes/0090-datasheet-schema.md); `datasheetplan.md` STATUS flipped
