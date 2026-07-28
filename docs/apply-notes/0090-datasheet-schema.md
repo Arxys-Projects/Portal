@@ -1,5 +1,22 @@
 # Apply note — the datasheet spec schema (ADR 0090, amended by ADR 0097)
 
+> **APPLIED to production 2026-07-28** via the dashboard SQL editor, both files, and verified.
+> Checks 1–6 all pass: `appliance_specs` and `appliance_specs_audit` created empty with RLS on;
+> `authenticated` holds `select/insert/update` and **not** `delete` on `appliance_specs` and
+> **no** insert on its audit table; `pg_policies` shows exactly three policies on
+> `appliance_specs` (SELECT/INSERT/UPDATE) and one on the audit table, with no DELETE row
+> anywhere; the rolled-back throwaway row produced an `insert` audit row (`before` null) then an
+> `update` row (`before` set), both snapshotting all **64** columns, so the BEFORE stamp and the
+> AFTER audit both fire; `product_specs` still has its 21 rows and now **68** columns, and a
+> no-op update proved the existing ADR 0096 triggers picked the 22 new columns up automatically
+> — snapshot width 46 → 68, no write-path work needed. Check 8 (non-admin write refused, admin
+> DELETE refused with a real `auth.uid()`) still needs test-rls block 22, which lands with the
+> surface in build step 5; check 3's grant/policy inspection is the evidence until then.
+> Check 10 confirmed as designed: `roundtrip-product-specs.mts` now reports **22 failures**,
+> naming exactly the new columns, with PARSES and PRESERVES green (21 rows, 43/43 fields).
+> Build step 4 closes that window. The rest of this note is kept as the record of what was
+> applied and how to back it out.
+
 Two stop-and-flag migrations for Andy to apply. The agent holds no DDL credentials
 (2026-07-17 CLI 401); apply each via the Supabase **dashboard SQL editor**. The CLI never
 auto-applies these — the rollbacks live in `supabase/rollback/`, outside

@@ -4,6 +4,74 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-07-28 — Datasheet Phase 2 build step 3: both amended migrations applied to production and verified
+
+Andy applied both files via the dashboard SQL editor in the same session that amended them
+(build step 1, entry below). The datasheet data layer is now live and writable.
+
+### Work done
+
+- **Applied [`20260729000001_datasheet_appliance_specs.sql`](../supabase/migrations/20260729000001_datasheet_appliance_specs.sql)
+  and [`20260729000002_datasheet_product_specs_additive.sql`](../supabase/migrations/20260729000002_datasheet_product_specs_additive.sql)**
+  to production. `appliance_specs` (64 columns) + `appliance_specs_audit` + both trigger
+  functions exist; `product_specs` went 46 → 68 columns with its 21 rows untouched.
+- **Ran the [apply-note](./apply-notes/0090-datasheet-schema.md) checklist, checks 1–6 —
+  all pass.** Recorded in the note's new APPLIED banner. The three that mattered most:
+  - **The withheld DELETE is real at two independent layers.**
+    `has_table_privilege('authenticated', 'public.appliance_specs', 'delete')` → false, and
+    `pg_policies` shows exactly three policies on the table (SELECT/INSERT/UPDATE) with no
+    DELETE row. `authenticated` also holds no INSERT on `appliance_specs_audit`, so the audit
+    table is insert-only from every client's point of view — rows arrive solely via the
+    security-definer trigger.
+  - **Both triggers fire, and the two-trigger split is doing its job.** The throwaway
+    `ZZZ-APPLY-CHECK` row inside a rolled-back transaction produced an `insert` audit row
+    (`before` null) followed by an `update` row (`before` set), each snapshotting all **64**
+    columns — i.e. the AFTER trigger captured the values the BEFORE trigger had just stamped,
+    which is the whole reason it is two triggers and not one.
+  - **The additive migration needed no write-path work, and that is now measured rather than
+    asserted.** A no-op update on `VX5-V100-32` produced an audit snapshot **68** keys wide, up
+    from the 46 the 0096 note recorded. The ADR 0096 policies and triggers are row-level and
+    `to_jsonb`-based, so all 22 new columns became audited and admin-writable the instant they
+    existed.
+- **Confirmed the expected round-trip window is exactly as predicted (apply-note check 10).**
+  `roundtrip-product-specs.mts` now exits with **22 failures**, COVERS naming exactly the 22
+  new columns as unreachable through `/admin/specs`; PARSES and PRESERVES stay green (21 rows,
+  43/43 fields each). This is the designed consequence of applying before the form code — the
+  reverse order would ship a form whose saves fail against columns that don't exist. Build
+  step 4 closes it.
+- **Still outstanding, by design:** apply-note check 8 (non-admin write refused, admin DELETE
+  refused *with a real `auth.uid()`*) needs `scripts/test-rls.ts` block 22, which lands with the
+  appliance surface in build step 5. A SQL-editor session runs privileged and bypasses RLS, so
+  it structurally cannot make that assertion — the grant/policy inspection above is the
+  available evidence until then. `appliance_specs` remains empty: all seven rows are entered
+  through the form in build step 6, per ADR 0097 §8.
+
+### Detours & fixes
+
+- **Two false starts on the mechanics, both mine, neither touching the database.** First, the
+  verify checklist was run before the forward scripts — the note's "Verify after applying"
+  section held the first copy-pasteable SQL in the document while the apply step itself was
+  only described in prose, so `select count(*) from public.appliance_specs` was the natural
+  first thing to run and failed with `42P01 relation does not exist`. A `to_regclass` /
+  column-count probe established that nothing had been applied and nothing was broken (the
+  Supabase editor runs a pasted script in a transaction, so a mid-way failure would roll back
+  entirely rather than leave a half-built table). Second, the shell command offered to load the
+  file onto the clipboard (`pbcopy < …`) was pasted into the SQL editor and produced
+  `42601 syntax error at or near "pbcopy"` — the fix was to hand over the migration contents
+  directly as files rather than route them through a terminal step, and to be explicit about
+  which window each block belongs to.
+- **Worth carrying into future apply-notes:** put the apply instruction in the note as its own
+  step, ahead of the verify section, and never mix shell and SQL blocks in the same handover
+  without labelling the target. Nothing in the SQL itself needed a single change — both files
+  applied first time, exactly as written.
+
+### Decisions captured
+
+None — [ADR 0097](./decisions/0097-datasheet-surfaces-join-admin-editable-pattern.md) covers
+this step; build step 3 executed it.
+
+---
+
 ## 2026-07-28 — Datasheet Phase 2 build step 1: both Phase 1 migrations amended to the ADR 0096 pattern, handed to Andy for apply
 
 SQL and docs only, per the brief — no application code (that is build steps 2 / 4 / 5, separate
