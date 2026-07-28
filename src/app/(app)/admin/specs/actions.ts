@@ -37,7 +37,7 @@ import { usableCapacityTb } from "@/lib/capacity-utils";
 // functions.
 import type { SpecActionState } from "@/lib/spec-form";
 import { specWarnings, type SpecRuleValues } from "./fields";
-import { parseSpecForm, specInputFromFormData } from "./schema";
+import { parseSpecForm, specInputFromFormData, type SpecFormValues } from "./schema";
 
 async function requireAdmin(): Promise<
   { ok: true; userId: string } | { ok: false; error: string }
@@ -78,7 +78,7 @@ function revalidateSpecPaths(sku: string) {
 }
 
 /** The net-usable figure the save just published, for the confirmation message. */
-function netUsableSummary(values: Record<string, string | number | null>): string {
+function netUsableSummary(values: SpecFormValues): string {
   const usable = usableCapacityTb(
     values.storage_raw_tb as number | null,
     values.hdd_count as number | null,

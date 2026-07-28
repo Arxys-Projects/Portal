@@ -25,7 +25,14 @@ import {
 } from "../fields";
 import { NetUsablePreview, type CapacityInputs } from "./net-usable-preview";
 
-/** The fields whose values drive the live preview and the live rule checks. */
+/**
+ * The fields whose values drive the live preview and the live rule checks.
+ *
+ * The first seven are the capacity inputs (ADR 0096). The last four are the two
+ * datasheet warnings added with the additive columns — the warranty pair and
+ * the dimensions pair each need both halves live, since either one changing can
+ * make the pair disagree.
+ */
 const LIVE_FIELDS = [
   "storage_raw_tb",
   "hdd_count",
@@ -34,6 +41,10 @@ const LIVE_FIELDS = [
   "raid_level_alt_display",
   "max_cameras",
   "max_cameras_h265",
+  "warranty",
+  "warranty_years",
+  "dimensions_mm",
+  "dimensions_in",
 ] as const;
 
 /**
@@ -49,6 +60,10 @@ function ruleValuesFrom(live: SpecLiveValues): SpecRuleValues {
     raid_level_alt_display: live.raid_level_alt_display || null,
     max_cameras: toNumberOrNull(live.max_cameras),
     max_cameras_h265: toNumberOrNull(live.max_cameras_h265),
+    warranty: live.warranty || null,
+    warranty_years: toNumberOrNull(live.warranty_years),
+    dimensions_mm: live.dimensions_mm || null,
+    dimensions_in: live.dimensions_in || null,
   };
 }
 

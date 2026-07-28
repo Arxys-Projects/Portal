@@ -151,11 +151,21 @@ for (const row of rows) {
     // Numeric comparison is by value: Postgres `numeric` arrives as a JS number
     // through supabase-js, but comparing numerically rather than strictly keeps
     // this honest if that ever changes to a string.
+    //
+    // text[] columns (security_features) arrive as real arrays and are parsed
+    // back into new arrays, so `===` is false for every row even when nothing
+    // changed. Element-wise comparison is what actually answers "did this value
+    // survive the round-trip" for a list.
     const equal =
-      typeof before === "number" || typeof after === "number"
-        ? Number(before) === Number(after) &&
-          (before === null) === (after === null)
-        : before === after;
+      Array.isArray(before) || Array.isArray(after)
+        ? Array.isArray(before) &&
+          Array.isArray(after) &&
+          before.length === after.length &&
+          before.every((v, i) => v === after[i])
+        : typeof before === "number" || typeof after === "number"
+          ? Number(before) === Number(after) &&
+            (before === null) === (after === null)
+          : before === after;
     if (!equal) {
       drifted.push(
         `${field}: ${JSON.stringify(before)} -> ${JSON.stringify(after)}`,
@@ -169,7 +179,9 @@ for (const row of rows) {
 
   const rowWarnings = specWarnings(parsed.values as SpecRuleValues);
   if (rowWarnings.length > 0) warningsByRow.push({ id, warnings: rowWarnings });
-  console.log(`  OK    ${id.padEnd(14)} 43/43 fields preserved`);
+  console.log(
+    `  OK    ${id.padEnd(14)} ${SPEC_FIELD_NAMES.length}/${SPEC_FIELD_NAMES.length} fields preserved`,
+  );
 }
 
 // ---------------------------------------------------------------------------

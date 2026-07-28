@@ -176,6 +176,7 @@ export const SPEC_SECTIONS: SpecSection[] = [
       { name: "battery_raid", label: "Battery-backed RAID", kind: "text-optional", maxLength: 200 },
       { name: "os_ssd_type", label: "OS SSD type", kind: "text-optional", maxLength: 200 },
       { name: "os_redundancy", label: "OS redundancy", kind: "text-optional", maxLength: 200 },
+      { name: "os_drive_desc", label: "OS / VMS drive description", kind: "text-optional", maxLength: 200 },
     ],
   },
   {
@@ -194,6 +195,11 @@ export const SPEC_SECTIONS: SpecSection[] = [
       { name: "gbe_10_ports", label: "10 GbE ports", kind: "int-optional" },
       { name: "sfp_addon", label: "SFP add-on", kind: "text-optional", maxLength: 200 },
       { name: "hotswap_power", label: "Hot-swap power", kind: "text-optional", maxLength: 200 },
+      // display_ports is a physical connector, but it belongs with the other
+      // port counts rather than in Physical (which is dimensions and weight):
+      // the sheets print it in the same block as the network ports.
+      { name: "display_ports", label: "Display ports", kind: "text-optional", maxLength: 200 },
+      { name: "remote_mgmt", label: "Remote management", kind: "text-optional", maxLength: 200 },
     ],
   },
   {
@@ -201,9 +207,87 @@ export const SPEC_SECTIONS: SpecSection[] = [
     fields: [
       { name: "os", label: "Operating system", kind: "text-required", maxLength: 200 },
       { name: "os_edition", label: "OS edition", kind: "text-optional", maxLength: 200 },
-      { name: "warranty", label: "Warranty", kind: "text-required", maxLength: 200 },
+      {
+        name: "warranty",
+        label: "Warranty (legacy string)",
+        kind: "text-required",
+        maxLength: 200,
+        hint: "Stays NOT NULL and in use. The two structured fields beside it are what the datasheet reads — keep them consistent with this.",
+      },
+      { name: "warranty_years", label: "Warranty years", kind: "int-optional" },
+      { name: "warranty_terms", label: "Warranty terms", kind: "text-optional", maxLength: 200 },
       { name: "vms_certified", label: "VMS certified", kind: "text-required", maxLength: 200 },
       { name: "avigilon_gpu", label: "Avigilon GPU", kind: "text-optional", maxLength: 200 },
+    ],
+  },
+  // -------------------------------------------------------------------------
+  // Sections 8–12: the datasheet columns (migration 20260729000002, applied
+  // 2026-07-28; ADR 0097 decision 2 and design §5).
+  //
+  // Every one of these is nullable, because the 21 live rows carry no value for
+  // any of them yet — the values are entered through this form, by hand, from
+  // the physical factsheets (design §8 / build step 6). The exception is
+  // security_features, which is NOT NULL DEFAULT '{}': its `string-list` kind
+  // submits [] for a blank list, never null.
+  // -------------------------------------------------------------------------
+  {
+    title: "Power & cooling",
+    fields: [
+      { name: "power_wattage", label: "Power supply", kind: "text-optional", maxLength: 200 },
+      { name: "power_redundancy", label: "Power redundancy", kind: "text-optional", maxLength: 200 },
+      { name: "power_max_consumption", label: "Max power consumption", kind: "text-optional", maxLength: 200 },
+      { name: "power_ac_input", label: "AC input", kind: "text-optional", maxLength: 200 },
+      {
+        name: "power_dc_input",
+        label: "DC input",
+        kind: "text-optional",
+        maxLength: 200,
+        hint: "Only the sheets that print a DC line alongside AC — the V100/V200. Leave blank otherwise.",
+      },
+      { name: "cooling", label: "Cooling", kind: "text-optional", maxLength: 200 },
+    ],
+  },
+  {
+    title: "Physical",
+    note: "Dimensions are display strings copied from the sheet, not per-axis numbers — the sheets print mm on the rack models, so the inches field is usually blank.",
+    fields: [
+      { name: "dimensions_mm", label: "Dimensions (mm)", kind: "text-optional", maxLength: 200 },
+      { name: "dimensions_in", label: "Dimensions (in)", kind: "text-optional", maxLength: 200 },
+      { name: "shipping_weight", label: "Shipping weight", kind: "text-optional", maxLength: 200 },
+    ],
+  },
+  {
+    title: "Environmental",
+    fields: [
+      { name: "operating_temp", label: "Operating temperature", kind: "text-optional", maxLength: 200 },
+      { name: "storage_temp", label: "Storage temperature", kind: "text-optional", maxLength: 200 },
+      { name: "humidity", label: "Humidity", kind: "text-optional", maxLength: 200 },
+    ],
+  },
+  {
+    title: "Regulatory & security",
+    fields: [
+      { name: "regulatory_safety", label: "Safety standards", kind: "text-optional", maxLength: 200 },
+      { name: "regulatory_emissions", label: "Emissions standards", kind: "text-optional", maxLength: 200 },
+      { name: "ndaa_text", label: "NDAA disclosure", kind: "textarea-optional", maxLength: 2000 },
+      {
+        name: "security_features",
+        label: "Security features",
+        kind: "string-list",
+        maxLength: 200,
+        hint: "One per line (SEV, SME, Secure Boot, signed firmware …). A blank list is stored as an empty list, not as null.",
+      },
+    ],
+  },
+  {
+    title: "Datasheet meta",
+    fields: [
+      {
+        name: "revision_date",
+        label: "Revision date",
+        kind: "date-optional",
+        hint: "The as-of date printed on the sheet this row's values were taken from.",
+      },
     ],
   },
 ];
@@ -235,6 +319,10 @@ export type SpecRuleValues = {
   raid_level_alt_display?: string | null;
   max_cameras?: number | null;
   max_cameras_h265?: number | null;
+  warranty?: string | null;
+  warranty_years?: number | null;
+  dimensions_mm?: string | null;
+  dimensions_in?: string | null;
 };
 
 /** Parity rules that depend on the drive count, applied to whichever level column
@@ -324,7 +412,39 @@ export function specWarnings(values: SpecRuleValues): string[] {
       "RAID level 'NA' is deprecated: usableCapacityTb() does not recognise it and falls through to the RAID-5 branch. Set the level the box actually ships (the V100 is RAID 1 or JBOD).",
     );
   }
+
+  // Two representations of the warranty now coexist: the legacy NOT NULL string
+  // the Price Book prints, and the structured years the datasheet reads. Drift
+  // between them is exactly what keeping both invites, and neither side can be
+  // called wrong from a single row — so this warns rather than refuses.
+  const legacyYears = leadingDigits(values.warranty);
+  if (
+    values.warranty_years != null &&
+    legacyYears != null &&
+    legacyYears !== values.warranty_years
+  ) {
+    warnings.push(
+      `Warranty years (${values.warranty_years}) disagrees with the legacy warranty string, which starts "${legacyYears}". The datasheet reads the structured field and the Price Book prints the string — make them agree.`,
+    );
+  }
+
+  // The pairing is deliberately one-directional. The live rack sheets print mm
+  // only, so a blank inches field is the normal case and must stay silent; an
+  // inches figure with no mm is the half-done one.
+  if (values.dimensions_in && !values.dimensions_mm) {
+    warnings.push(
+      "Dimensions (in) is filled but Dimensions (mm) is blank. The rack sheets print mm, so the mm field is the one the datasheet reads first.",
+    );
+  }
+
   return warnings;
+}
+
+/** The leading run of digits in a string, e.g. "5yr NBD, Advanced Replacement" -> 5. */
+function leadingDigits(value: string | null | undefined): number | null {
+  if (value == null) return null;
+  const match = /^\s*(\d+)/.exec(value);
+  return match ? Number(match[1]) : null;
 }
 
 /** Every field, flattened — the schema builder and the form both walk this. */

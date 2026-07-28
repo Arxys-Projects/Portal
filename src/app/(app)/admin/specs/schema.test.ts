@@ -89,8 +89,8 @@ function expectFieldError(input: unknown, field: string) {
 }
 
 describe("specFormSchema — field coverage", () => {
-  it("validates exactly the 43 fields the form renders", () => {
-    assert.equal(SPEC_FIELD_NAMES.length, 43);
+  it("validates exactly the 65 fields the form renders", () => {
+    assert.equal(SPEC_FIELD_NAMES.length, 65);
     const shapeKeys = Object.keys(specFormSchema.shape).sort();
     assert.deepEqual(shapeKeys, [...SPEC_FIELD_NAMES].sort());
   });
@@ -433,6 +433,54 @@ describe("specWarnings — surfaced, never enforced (design §4c)", () => {
     assert.match(specWarnings(values)[0], /same as the configured level/);
   });
 
+  it("flags warranty years that contradict the legacy warranty string", () => {
+    // Two representations of the same fact now coexist — the legacy NOT NULL
+    // string the Price Book prints, and the structured years the datasheet
+    // reads. Drift between them is what keeping both invites.
+    const values = expectOk(
+      validRow({ warranty: "5yr NBD, Advanced Replacement", warranty_years: 3 }),
+    );
+    assert.match(specWarnings(values).join(" | "), /disagrees with the legacy warranty string/);
+  });
+
+  it("says nothing when the warranty years and the legacy string agree", () => {
+    assert.deepEqual(
+      specWarnings(
+        expectOk(validRow({ warranty: "5yr NBD, Advanced Replacement", warranty_years: 5 })),
+      ),
+      [],
+    );
+  });
+
+  it("says nothing when only one warranty representation is filled", () => {
+    // The live rows carry the legacy string and no structured years, so this
+    // must stay silent or every row would warn.
+    assert.deepEqual(specWarnings(expectOk(validRow({ warranty_years: null }))), []);
+    assert.deepEqual(
+      specWarnings(expectOk(validRow({ warranty: "NBD Advanced Replacement", warranty_years: 5 }))),
+      [],
+    );
+  });
+
+  it("flags inches dimensions with no mm, but not the reverse", () => {
+    // One-directional on purpose: the live rack sheets print mm only, so a
+    // blank inches field is the normal case and must not warn.
+    assert.match(
+      specWarnings(expectOk(validRow({ dimensions_in: '17.2 x 3.5 x 25.5"', dimensions_mm: null }))).join(" | "),
+      /Dimensions \(mm\) is blank/,
+    );
+    assert.deepEqual(
+      specWarnings(expectOk(validRow({ dimensions_mm: "437 x 89 x 648", dimensions_in: null }))),
+      [],
+    );
+    assert.deepEqual(
+      specWarnings(
+        expectOk(validRow({ dimensions_mm: "437 x 89 x 648", dimensions_in: '17.2 x 3.5 x 25.5"' })),
+      ),
+      [],
+    );
+  });
+
   it("flags the deprecated NA level it still accepts", () => {
     const values = expectOk(
       validRow({ raid_level_display: "NA", drive_bays: 2, hdd_count: 2, storage_raw_tb: 32 }),
@@ -509,12 +557,12 @@ describe("initialValuesFromRow", () => {
     assert.equal(values.storage_raw_tb, "192");
     assert.equal(values.notes, "");
     assert.equal(values.raid_level_alt_display, "");
-    assert.equal(Object.keys(values).length, 43);
+    assert.equal(Object.keys(values).length, 65);
   });
 
   it("produces a blank set for the create form", () => {
     const values = initialValuesFromRow(null);
-    assert.equal(Object.keys(values).length, 43);
+    assert.equal(Object.keys(values).length, 65);
     assert.ok(Object.values(values).every((v) => v === ""));
   });
 });

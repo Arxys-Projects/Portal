@@ -4,6 +4,78 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-07-28 — Datasheet Phase 2 build step 4: `/admin/specs` extended to the 22 additive columns; the round-trip window closes
+
+The step-3 apply left 22 columns on `product_specs` reachable only by migration — the exact
+failure mode ADR 0096 exists to end, held open deliberately for one step because applying
+before the form code was the safe ordering. This closes it. `roundtrip-product-specs.mts` goes
+from **exit 1 with 22 COVERS failures to exit 0**, and every column on the table is now
+reachable through the only supported write path.
+
+### Work done
+
+- **Two new kinds in the kit**, deferred from step 2 and landing with their first consumers:
+  - `date-optional` — `<input type="date">`, blank → null, zod `z.iso.date()`. Postgres and
+    the date input agree on `YYYY-MM-DD`, so the column is read as an ISO string rather than
+    parsed into a `Date` and formatted back.
+  - `string-list` — textarea, one item per line; splits, trims, drops empty lines. **Blank
+    coerces to `[]`, never null** — the column is `NOT NULL DEFAULT '{}'`, so a null would be
+    refused by Postgres at the only write path and an editor clearing the last line of a list
+    would get a database error instead of an empty list. The per-entry length cap is per item,
+    not on the whole list.
+  - `initialValuesFromRow` learned to join arrays with newlines. `String(["a","b"])` gives
+    `"a,b"`, which would re-parse as a single item — a silent list-collapsing bug on every
+    re-edit. `isWideKind()` now decides the both-columns grid span, so `string-list` gets the
+    same full width as `textarea-optional`.
+- **22 fields added to [`fields.ts`](../src/app/\(app\)/admin/specs/fields.ts), 43 → 65.**
+  Five new sections (Power & cooling, Physical, Environmental, Regulatory & security,
+  Datasheet meta) hold 17; five go into existing sections — `warranty_years`/`warranty_terms`
+  beside the legacy `warranty`, `remote_mgmt` and `display_ports` into *Networking & power*,
+  `os_drive_desc` into *Storage & RAID*. No layout work was needed: the shell renders whatever
+  the field list declares.
+- **Two new warnings**, both surfaced and never enforced:
+  - `warranty_years` contradicting the leading digit of the legacy `warranty` string. Two
+    representations of one fact now coexist by design (the string is NOT NULL and the Price
+    Book prints it; the datasheet reads the structured field), and drift is what that invites.
+  - `dimensions_in` filled with `dimensions_mm` blank — **one-directional on purpose**. The
+    live rack sheets print mm only, so a blank inches field is the normal case and must stay
+    silent, or all 21 rows would warn.
+  - `LIVE_FIELDS` grew 7 → 11 so both pairs check as they are typed.
+- **[`roundtrip-product-specs.mts`](../scripts/roundtrip-product-specs.mts)**: the comparator
+  learned array deep-equality — `[] === []` is false, so without it every row would have
+  reported `security_features` as drift — and the hardcoded `43/43` became
+  `${SPEC_FIELD_NAMES.length}`.
+
+### Verification
+
+| Gate | Before (step 2 close) | After |
+|---|---|---|
+| round-trip exit | 1 | **0** |
+| round-trip COVERS | 22 failures | **0 — every live column reachable** |
+| round-trip PARSES / PRESERVES | 21 rows × 43/43 | **21 rows × 65/65** |
+| `npm test` | 341 pass / 0 fail | **355 pass / 0 fail** |
+| `tsc --noEmit` / eslint / `next build` | clean | clean |
+
+Coverage now reads `68 live columns, 65 form fields, 3 intentionally unsurfaced` — the three
+being `product_sku` (dead) and the two trigger-owned provenance columns.
+
+### Detours & fixes
+
+- **`SpecFormValues` had to widen, and that surfaced a stale signature.** Adding `string[]`
+  to the value union broke `netUsableSummary()` in `actions.ts`, which had restated the old
+  `Record<string, string | number | null>` inline instead of importing the type. Fixed by
+  importing `SpecFormValues` — the restatement was the actual defect, and it would have gone
+  on silently disagreeing with the parser's real output shape.
+
+### Decisions captured
+
+No new ADR. ADR 0097 decisions 2 and 4 cover this step; design §5 specified each field's
+section and both warnings, so nothing here was a fresh judgment call except `display_ports`,
+which §5 left as "its natural section" — grouped with the other port fields rather than with
+Physical, since the sheets print it in the same block as the network ports.
+
+---
+
 ## 2026-07-28 — Datasheet Phase 2 build step 2: the shared spec-form kit extracted, `/admin/specs` migrated onto it
 
 ADR 0096's revisit condition ("a second archetype's form makes the duplication worse than a

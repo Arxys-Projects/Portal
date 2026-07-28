@@ -36,6 +36,13 @@ export type SpecFieldKind =
   | "int-optional"
   /** NOT NULL numeric with a CHECK (> 0). */
   | "num-required-positive"
+  /** Nullable `date` column; blank submits as null. Rendered as <input type="date">. */
+  | "date-optional"
+  /**
+   * NOT NULL `text[]` with a DEFAULT '{}'. Rendered one item per line in a
+   * textarea; blank submits as `[]`, NEVER null — see the builder in ./schema.
+   */
+  | "string-list"
   /** Closed option list, required. See SpecEnumField. */
   | "enum-required"
   /** Closed option list, nullable; blank submits as null. */
@@ -114,6 +121,15 @@ export function isRequiredKind(field: SpecField): boolean {
   );
 }
 
+/**
+ * Kinds whose input spans both grid columns rather than sharing a row: the
+ * free-text ones, where a half-width box would be the wrong shape for the
+ * content.
+ */
+export function isWideKind(field: SpecField): boolean {
+  return field.kind === "textarea-optional" || field.kind === "string-list";
+}
+
 /** Every field of every section, flattened in section order. */
 export function flattenSpecFields(sections: readonly SpecSection[]): SpecField[] {
   return sections.flatMap((s) => s.fields);
@@ -137,6 +153,11 @@ export function toNumberOrNull(value: unknown): number | null {
  * inputs take. Null becomes "" — which specInputFromFormData/blankToNull turns
  * back into null on the way out, so an untouched empty column round-trips
  * unchanged rather than becoming an empty string in the database.
+ *
+ * A `text[]` column arrives as a real array and is joined one item per line,
+ * which is how the `string-list` textarea renders and re-parses it. `String()`
+ * on an array would produce "a,b" — comma-joined, and then split back into a
+ * single item on the way in.
  */
 export function initialValuesFromRow(
   fieldNames: readonly string[],
@@ -145,7 +166,13 @@ export function initialValuesFromRow(
   const values: Record<string, string> = {};
   for (const name of fieldNames) {
     const value = row?.[name];
-    values[name] = value === null || value === undefined ? "" : String(value);
+    if (value === null || value === undefined) {
+      values[name] = "";
+    } else if (Array.isArray(value)) {
+      values[name] = value.join("\n");
+    } else {
+      values[name] = String(value);
+    }
   }
   return values;
 }

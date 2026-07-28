@@ -121,6 +121,50 @@ export function requiredPositiveNumber(field: SpecPlainField) {
   );
 }
 
+/**
+ * A nullable `date` column. Postgres hands back "YYYY-MM-DD" and
+ * `<input type="date">` posts the same shape, so the two input shapes agree
+ * here without conversion — which is exactly why the column is read as an ISO
+ * date string rather than parsed into a JS Date and formatted back.
+ */
+export function optionalDate(field: SpecPlainField) {
+  return z.preprocess(
+    blankToNull,
+    z.iso
+      .date({ error: `${field.label} must be a date (YYYY-MM-DD).` })
+      .nullable(),
+  );
+}
+
+/**
+ * A NOT NULL `text[]` column rendered one item per line.
+ *
+ * Blank coerces to `[]`, **never null**. That is the whole reason this is its
+ * own kind rather than a textarea: the column is `NOT NULL DEFAULT '{}'`, so a
+ * null would be refused by Postgres at the only supported write path — an
+ * editor clearing the last line of a list would get a database error instead of
+ * an empty list. Empty lines are dropped and each item trimmed, so trailing
+ * newlines and indentation in the textarea do not become list entries.
+ */
+export function stringList(field: SpecPlainField) {
+  return z.preprocess(
+    (value) => {
+      if (value === undefined || value === null) return [];
+      if (Array.isArray(value)) return value;
+      if (typeof value !== "string") return value;
+      return value
+        .split("\n")
+        .map((line) => line.trim())
+        .filter((line) => line !== "");
+    },
+    z.array(
+      z.string().max(field.maxLength ?? 200, {
+        error: `Each ${field.label.toLowerCase()} entry must be ${field.maxLength ?? 200} characters or fewer.`,
+      }),
+    ),
+  );
+}
+
 function enumValues(field: SpecEnumField) {
   return z.enum(field.options.map((o) => o.value) as [string, ...string[]], {
     error: field.invalidMessage,
@@ -160,6 +204,10 @@ export function schemaForField(field: SpecField): z.ZodType {
       return optionalInt(field);
     case "num-required-positive":
       return requiredPositiveNumber(field);
+    case "date-optional":
+      return optionalDate(field);
+    case "string-list":
+      return stringList(field);
     case "enum-required":
       return requiredEnum(field);
     case "enum-optional":
@@ -206,8 +254,11 @@ export function buildSpecSchema(
   });
 }
 
-/** A parsed row: every column the form owns, coerced. */
-export type SpecFormValues = Record<string, string | number | null>;
+/**
+ * A parsed row: every column the form owns, coerced. `string[]` is the
+ * `string-list` kind's output — the only non-scalar, and never null.
+ */
+export type SpecFormValues = Record<string, string | number | string[] | null>;
 
 export type SpecParseResult =
   | { ok: true; values: SpecFormValues }

@@ -41,6 +41,6 @@ Written before the work, not updated after it; the JOURNAL records what actually
 
 | File | Status |
 |---|---|
-| [`decisions/claude-code-brief-0097-step-2.md`](./decisions/claude-code-brief-0097-step-2.md) | **Open** — ADR [0097](./decisions/0097-datasheet-surfaces-join-admin-editable-pattern.md) build step 2: extract `src/lib/spec-form/` and migrate `/admin/specs` onto it. Steps 1 and 3 (migrations amended, applied, verified) shipped 2026-07-28. |
+| [`decisions/claude-code-brief-0097-step-2.md`](./decisions/claude-code-brief-0097-step-2.md) | Complete — ADR [0097](./decisions/0097-datasheet-surfaces-join-admin-editable-pattern.md) build step 2: `src/lib/spec-form/` extracted and `/admin/specs` migrated onto it, shipped 2026-07-28. Steps 1, 3 and 4 also shipped that day; **step 5** (the `appliance_specs` surface) is the open one and has no brief yet — design §3–4 and §7 scope it. |
 | [`decisions/claude-code-brief-0089-customer-proposal-and-logo.md`](./decisions/claude-code-brief-0089-customer-proposal-and-logo.md) | Complete — ADR [0089](./decisions/0089-customer-proposal-and-partner-logo-system.md) Customer Proposal + partner logo system. Shipped to production 2026-07-22. |
 | [`phase-7-step-1-brief.md`](./phase-7-step-1-brief.md) | Complete — `phase-7-plan.md` step 1, shipped 2026-06-04. Predates the `decisions/` convention above; left where it is. |

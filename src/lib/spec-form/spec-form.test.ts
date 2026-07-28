@@ -9,6 +9,7 @@ import {
   isEnumField,
   isNumericKind,
   isRequiredKind,
+  isWideKind,
   parseSpecInput,
   specInputFromFormData,
   toNumberOrNull,
@@ -43,6 +44,8 @@ const SECTIONS: SpecSection[] = [
       { name: "count", label: "Count", kind: "int-required-positive" },
       { name: "ports", label: "Ports", kind: "int-optional" },
       { name: "ratio", label: "Ratio", kind: "num-required-positive" },
+      { name: "asOf", label: "As of", kind: "date-optional" },
+      { name: "tags", label: "Tags", kind: "string-list", maxLength: 20 },
       {
         name: "colour",
         label: "Colour",
@@ -76,6 +79,8 @@ function validRow(overrides: Record<string, unknown> = {}) {
     count: 4,
     ports: 0,
     ratio: 1.5,
+    asOf: null,
+    tags: [],
     colour: "red",
     accent: null,
     ...overrides,
@@ -112,6 +117,8 @@ describe("buildSpecSchema", () => {
       "count",
       "ports",
       "ratio",
+      "asOf",
+      "tags",
       "colour",
       "accent",
     ]);
@@ -204,6 +211,84 @@ describe("the generalised enum kind (ADR 0097 decision 4)", () => {
     assert.equal(isRequiredKind(colour), true);
     assert.equal(isRequiredKind(accent), false);
     assert.equal(isNumericKind(colour), false);
+  });
+});
+
+describe("date-optional", () => {
+  it("round-trips the YYYY-MM-DD shape Postgres and <input type=\"date\"> both use", () => {
+    // The two input shapes agree here without conversion, which is why the
+    // column is read as an ISO string rather than parsed into a Date.
+    assert.equal(expectOk(validRow({ asOf: "2026-07-28" })).asOf, "2026-07-28");
+  });
+
+  it("treats blank as null rather than as an invalid date", () => {
+    for (const blank of ["", "   ", null, undefined]) {
+      assert.equal(expectOk(validRow({ asOf: blank })).asOf, null);
+    }
+  });
+
+  it("refuses shapes that are not an ISO date, with the field's own label", () => {
+    for (const bad of ["28/07/2026", "2026-13-01", "July 28 2026", "2026-07-28T00:00:00Z"]) {
+      assert.equal(
+        expectFieldError(validRow({ asOf: bad }), "asOf"),
+        "As of must be a date (YYYY-MM-DD).",
+      );
+    }
+  });
+});
+
+describe("string-list", () => {
+  it("coerces a blank list to [] and NEVER to null", () => {
+    // The column this kind exists for is NOT NULL DEFAULT '{}'. A null would be
+    // refused by Postgres at the only supported write path, so an editor
+    // clearing the last line would get a database error instead of an empty
+    // list. This is the single most important property of the kind.
+    for (const blank of ["", "   ", "\n\n", null, undefined]) {
+      assert.deepEqual(expectOk(validRow({ tags: blank })).tags, []);
+    }
+  });
+
+  it("splits one item per line, trimming each", () => {
+    assert.deepEqual(expectOk(validRow({ tags: "SEV\nSecure Boot" })).tags, [
+      "SEV",
+      "Secure Boot",
+    ]);
+    assert.deepEqual(expectOk(validRow({ tags: "  SEV  \n  SME  " })).tags, ["SEV", "SME"]);
+  });
+
+  it("drops empty and whitespace-only lines rather than storing them", () => {
+    // Trailing newlines are what a textarea produces most often; they must not
+    // become empty list entries.
+    assert.deepEqual(expectOk(validRow({ tags: "SEV\n\n  \nSME\n" })).tags, ["SEV", "SME"]);
+  });
+
+  it("accepts an array unchanged, so a Postgres row parses as-is", () => {
+    assert.deepEqual(expectOk(validRow({ tags: ["SEV", "SME"] })).tags, ["SEV", "SME"]);
+  });
+
+  it("caps each entry, not the list as a whole", () => {
+    assert.match(
+      expectFieldError(validRow({ tags: "x".repeat(21) }), "tags.0"),
+      /must be 20 characters or fewer/,
+    );
+    // Many short entries are fine — the limit is per item.
+    assert.deepEqual(
+      expectOk(validRow({ tags: Array(50).fill("SEV").join("\n") })).tags,
+      Array(50).fill("SEV"),
+    );
+  });
+
+  it("renders back to one-per-line text, so a saved list re-edits cleanly", () => {
+    // String(["a","b"]) would give "a,b", which would re-parse as ONE item.
+    const values = initialValuesFromRow(FIELD_NAMES, validRow({ tags: ["SEV", "SME"] }));
+    assert.equal(values.tags, "SEV\nSME");
+    assert.deepEqual(expectOk(values).tags, ["SEV", "SME"]);
+  });
+
+  it("is not a required kind — a blank list is a legitimate value", () => {
+    const tags = FIELDS.find((f) => f.name === "tags") as SpecField;
+    assert.equal(isRequiredKind(tags), false);
+    assert.equal(isWideKind(tags), true);
   });
 });
 

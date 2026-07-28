@@ -32,6 +32,7 @@ import {
   isEnumField,
   isNumericKind,
   isRequiredKind,
+  isWideKind,
   type SpecField,
   type SpecRuleViolation,
   type SpecSection,
@@ -212,6 +213,34 @@ export function SpecFormShell({
       );
     }
 
+    if (field.kind === "string-list") {
+      // One item per line. No maxLength on the textarea: the cap is per entry,
+      // not on the whole list, and the schema enforces it with a message that
+      // says so — a total-character limit here would silently truncate a
+      // legitimate long list instead.
+      return (
+        <textarea
+          id={field.name}
+          name={field.name}
+          rows={4}
+          defaultValue={initialValues[field.name] ?? ""}
+          className={`${INPUT_CLASS} font-mono`}
+        />
+      );
+    }
+
+    if (field.kind === "date-optional") {
+      return (
+        <input
+          id={field.name}
+          name={field.name}
+          type="date"
+          defaultValue={initialValues[field.name] ?? ""}
+          className={INPUT_CLASS}
+        />
+      );
+    }
+
     const numeric = isNumericKind(field);
     const common = {
       id: field.name,
@@ -291,7 +320,7 @@ export function SpecFormShell({
             {section.fields.map((field) => (
               <div
                 key={field.name}
-                className={field.kind === "textarea-optional" ? "sm:col-span-2" : ""}
+                className={isWideKind(field) ? "sm:col-span-2" : ""}
               >
                 <label
                   htmlFor={field.name}
