@@ -81,6 +81,17 @@ behind the same symptom.
   previously burned on this bug family by reasoning from source; confirming
   live state first is what kept this one to a single pass.
 
+### Verified live
+
+- Shipped to production in `d9eb2de` (push to `main` auto-deploys; deployment Ready).
+- Andy ran **Retry Pipedrive link** on `0e3f351a` against the deployed fix and confirmed the
+  deal linked — i.e. the retry-without-`value` path succeeded against a real deal with products
+  attached, which is the exact case that returned `400` before. `pipedrive_deal_id` is no longer
+  null on that row.
+- Outstanding by design, not a defect: deal 5448's line items still carry the previous
+  revision's 2 × V700 / $204,796 sizing against a $151,990 revision, pending manual
+  reconciliation per ADR 0098. Rev 1 (`b7f8d916`) stays unlinked — superseded by rev 2.
+
 ### Decisions captured
 
 - [`0098-revision-updates-vs-attached-deal-products.md`](./decisions/0098-revision-updates-vs-attached-deal-products.md)
