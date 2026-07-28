@@ -21,6 +21,10 @@ type SubmissionMini = {
   // back to this row. Still status="open" in the DB (ADR 0081's lifecycle is
   // deal-outcome, not revision position), but it is no longer the live copy.
   superseded: boolean;
+  // Per-submission deal id. Distinct from the deal row's id above: rows in one
+  // lineage can point at different deals (or none), which is exactly what you
+  // need to see before choosing which submission to open.
+  pipedrive_deal_id: string | null;
 };
 
 export type PartnerGroup = {
@@ -112,42 +116,64 @@ function DealRow({ deal }: { deal: Deal & { submissions: SubmissionMini[] } }) {
 
   return (
     <div className="border-b border-line-soft last:border-0">
-      <button
-        type="button"
-        onClick={() => setExpanded((v) => !v)}
-        aria-expanded={expanded}
-        className="flex w-full items-center justify-between px-6 py-2.5 text-left hover:bg-[#f7f9fc]"
-      >
-        <div className="flex items-center gap-2.5">
-          <span className="text-sm font-medium text-ink">
-            {deal.project_name ?? "(untitled)"}
-          </span>
-          {deal.pipedrive_deal_id ? (
-            <StatusBadge variant="source">Pipedrive</StatusBadge>
-          ) : null}
-          <StatusBadge variant="status" status={deal.status as SubmissionStatus} />
-        </div>
-        <div className="flex items-center gap-4 text-right">
-          <span className="text-sm tabular-nums text-ink">
-            {formatPrice(deal.total_list_price_usd)}
-          </span>
-          <span className="text-xs text-ink-soft">
-            {deal.all_submission_ids.length} submission
-            {deal.all_submission_ids.length !== 1 ? "s" : ""}
-          </span>
-          <svg
-            width="15"
-            height="15"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
-            className={`text-arxys-navy transition-transform ${expanded ? "rotate-180" : ""}`}
+      {/* The Pipedrive link is a SIBLING of the expand button, not a child of it:
+          an <a> nested inside a <button> is invalid HTML and the two click
+          targets fight each other. The button still fills the row so the whole
+          strip stays clickable to expand. */}
+      <div className="flex w-full items-center gap-3 pr-4 hover:bg-[#f7f9fc]">
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          aria-expanded={expanded}
+          className="flex flex-1 items-center justify-between px-6 py-2.5 text-left"
+        >
+          <div className="flex items-center gap-2.5">
+            <span className="text-sm font-medium text-ink">
+              {deal.project_name ?? "(untitled)"}
+            </span>
+            <StatusBadge variant="status" status={deal.status as SubmissionStatus} />
+          </div>
+          <div className="flex items-center gap-4 text-right">
+            <span className="text-sm tabular-nums text-ink">
+              {formatPrice(deal.total_list_price_usd)}
+            </span>
+            <span className="text-xs text-ink-soft">
+              {deal.all_submission_ids.length} submission
+              {deal.all_submission_ids.length !== 1 ? "s" : ""}
+            </span>
+            <svg
+              width="15"
+              height="15"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              className={`text-arxys-navy transition-transform ${expanded ? "rotate-180" : ""}`}
+            >
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </div>
+        </button>
+        {/* Replaces the old non-clickable "Pipedrive" badge. Carrying the deal
+            NUMBER is the point: it lets you confirm you're about to open the
+            right deal without clicking through to a submission first. When
+            there's no deal, say so explicitly rather than showing nothing —
+            an empty space reads as "not loaded", not as "none". */}
+        {deal.pipedrive_deal_id ? (
+          <a
+            href={`https://app.pipedrive.com/deal/${deal.pipedrive_deal_id}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="shrink-0 rounded-lg border-2 border-arxys-navy px-2.5 py-1 text-xs font-bold text-arxys-navy hover:bg-arxys-navy hover:text-white"
           >
-            <polyline points="6 9 12 15 18 9" />
-          </svg>
-        </div>
-      </button>
+            Pipedrive #{deal.pipedrive_deal_id} ↗
+          </a>
+        ) : (
+          <span className="shrink-0 px-2.5 py-1 text-xs font-semibold text-ink-soft">
+            No Pipedrive deal
+          </span>
+        )}
+      </div>
 
       {expanded ? (
         <div className="bg-[#f7f9fc] px-8 pb-3 pt-1">
@@ -157,6 +183,7 @@ function DealRow({ deal }: { deal: Deal & { submissions: SubmissionMini[] } }) {
                 <th className="py-1.5 font-bold uppercase tracking-wide">Date</th>
                 <th className="py-1.5 font-bold uppercase tracking-wide">Status</th>
                 <th className="py-1.5 text-right font-bold uppercase tracking-wide">List price</th>
+                <th className="py-1.5 pl-4 font-bold uppercase tracking-wide">Pipedrive</th>
                 <th className="py-1.5"></th>
               </tr>
             </thead>
@@ -174,6 +201,23 @@ function DealRow({ deal }: { deal: Deal & { submissions: SubmissionMini[] } }) {
                   </td>
                   <td className="py-1.5 text-right tabular-nums text-ink">
                     {formatPrice(s.total_list_price_usd)}
+                  </td>
+                  <td className="py-1.5 pl-4">
+                    {s.pipedrive_deal_id ? (
+                      <a
+                        href={`https://app.pipedrive.com/deal/${s.pipedrive_deal_id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-bold text-arxys-navy underline decoration-2 underline-offset-2 hover:no-underline"
+                      >
+                        #{s.pipedrive_deal_id} ↗
+                      </a>
+                    ) : (
+                      // Spelled out, not left blank — a missing link on this row
+                      // means the submission never reached the CRM, which is a
+                      // fact worth reading, not an empty cell.
+                      <span className="text-ink-soft">None</span>
+                    )}
                   </td>
                   <td className="py-1.5 text-right">
                     <Link

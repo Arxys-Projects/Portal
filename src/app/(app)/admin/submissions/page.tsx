@@ -144,6 +144,7 @@ export default async function AdminSubmissionsPage({
       total_list_price_usd: number | null;
       created_at: string;
       superseded: boolean;
+      pipedrive_deal_id: string | null;
     };
     // ADR 0093 step 2 — a row another submission's parent_submission_id points
     // to has been revised; the drill-down marks it Superseded rather than
@@ -159,6 +160,7 @@ export default async function AdminSubmissionsPage({
         total_list_price_usd: s.total_list_price_usd,
         created_at: s.created_at,
         superseded: superseded.has(s.id),
+        pipedrive_deal_id: s.pipedrive_deal_id,
       });
     }
 

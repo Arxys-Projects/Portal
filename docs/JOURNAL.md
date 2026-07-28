@@ -4,6 +4,50 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-07-28 — Partner Pipeline: clickable Pipedrive deal links at both levels
+
+Andy's ask: from the grouped Partner Pipeline view you could see *that* a project had a
+Pipedrive deal but not *which* one, so choosing between five submissions meant clicking
+**View** and backing out until you found the right one. Standing constraint on this surface:
+the primary user needs visual clarity and dumb-proofing over density.
+
+### Work done
+
+- **Project row** — the inert `[Pipedrive]` badge is now a bordered link carrying the deal
+  number: `Pipedrive #5448 ↗`, new tab, same `app.pipedrive.com/deal/{id}` pattern already used
+  on the submission detail page. The number is the whole point — it lets you confirm the target
+  before navigating.
+- **Drill-down table** — new **Pipedrive** column, so each submission in a lineage shows its own
+  deal. Rows in one chain genuinely point at different deals (City of Plainfield: 5443, 5444,
+  none, 5448, none), which is precisely the thing that was invisible.
+- **Absence is stated, never blank** — `No Pipedrive deal` on the project row, `None` in the
+  table. An empty cell reads as "didn't load"; the words read as a fact.
+
+### Detours & fixes
+
+- **The `[Pipedrive]` badge sat inside the row's expand `<button>`.** An `<a>` nested in a
+  `<button>` is invalid HTML and the two click targets fight — hovering the link would still
+  arm the expand toggle. Restructured the row header so the button and the link are siblings in
+  a flex container, with the button `flex-1` so the whole strip still expands on click. The link
+  needed to move to the right edge as a consequence; keeping it inline next to the project name
+  would have required either nesting it (invalid) or dropping click-to-expand on most of the row.
+- `pipedrive_deal_id` was already being fetched by the page query and then dropped when building
+  `SubMini` — the column needed threading through, not a new query.
+
+### Still open
+
+Andy identified that the grouped view puts **one box per person**, not per company — 14 separate
+"JCT Solutions" boxes, since `partners` holds 14 person rows all with that `company_name`, and
+only the company name is rendered. His stated model is Partner Company → Project Name, with the
+person largely irrelevant for lookup. Options were written up (label the boxes / sort them
+together / regroup by company); regrouping is the recommended one but changes Open Pipeline
+(same project filed by two reps would collapse to one deal) and the "Active partners" count, so
+it's awaiting his go-ahead and will get its own ADR. Related data hygiene surfaced while
+checking: `Digital Provisions` vs `Digital Provisions Inc` won't merge under name
+normalisation, `Intelli-Tec`/`Intelli-tec` will, and Lloyd Levitt has two partner rows.
+
+---
+
 ## 2026-07-28 — Revising a quoted deal silently lost its Pipedrive link (a *third* distinct revise bug)
 
 Andy reported revising and editing deals was broken again, on submission
