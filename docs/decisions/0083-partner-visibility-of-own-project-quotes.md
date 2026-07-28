@@ -1,6 +1,6 @@
 # 0083 — Partner visibility of own Project Quotes
 
-**Status:** Accepted (ships on migration approval)
+**Status:** Accepted (verified live in production 2026-07-28 — route, My Pipeline download row, and RLS policy 20260720000001 all confirmed on `main` and in prod; RLS suite 20a-20d and 20e-20g pass)
 **Date:** 2026-07-21
 **Amends:** 0059 (internal-only Project Quote wall)
 **Related:** 0089 (Customer Proposal + partner logo system) rides on this policy

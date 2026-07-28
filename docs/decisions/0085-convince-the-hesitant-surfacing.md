@@ -1,6 +1,6 @@
 # 0085 — Convince-the-hesitant surfacing
 
-Status: Accepted (2026-07-20 — portal + PDF pieces implemented; badge/support copy pending Andy's wording review; "build the case" packet remains deferred to Phase 2)
+Status: Accepted, copy approved as final (verified live in production 2026-07-28 — price-lock badge, support & warranty strip, and comparison-PDF market-reality callouts all confirmed on `main` with copy matching this ADR; "build the case" packet remains deferred to Phase 2 as a separate, later item)
 Deciders: Andy Newbom
 Relates to: the VMS Server Comparison tool and its downloadable PDF, the price book, the quote documents. Depends on 0084 for placement.
 

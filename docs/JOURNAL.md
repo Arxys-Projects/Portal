@@ -4,6 +4,94 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-07-28 — ADR 0083 and ADR 0085 verify-then-close: both confirmed fully live, no build needed
+
+### Work done
+
+- **Read-only verification pass**, no migrations or RLS touched. Confirmed on `main` at
+  `cdead55`:
+  - ADR 0083: `/api/submissions/[id]/project-quote/pdf` route present; My Pipeline "Project
+    Quote" / "Customer Proposal" download links present in
+    [`src/app/(app)/submissions/pipeline.tsx`](../src/app/(app)/submissions/pipeline.tsx)
+    (marked `// ADR 0083`).
+  - ADR 0085: price-lock badge in `price-book/page.tsx` reads "Price locked on PO acceptance"
+    (worded on Arxys's acceptance, per the ADR's gate); support & warranty strip in
+    `comparison/comparison-form.tsx` carries the 5-year advanced-replacement warranty, NBD
+    advanced-parts self-repair, and 8-5 Pacific / no-24-7 lines; comparison-PDF market-reality
+    callouts wired in `lib/pdf/comparison-template.tsx`.
+- **Ran `RUN_0083_TESTS=1 npx tsx --env-file=.env.local scripts/test-rls.ts` against
+  production** — all tests pass, including 20a-20d (ADR 0083 owner-SELECT, cross-partner
+  negative, on-behalf-positive, insert-still-blocked) and 20e-20g (ADR 0089 Customer Proposal
+  reaffirmation on the same policy).
+- Confirmed migration `20260720000001_project_quotes_partner_select.sql` matches the ADR
+  0083 spec (owning partner via creator OR on-behalf target added to SELECT; INSERT stays
+  internal-only; table stays immutable) — verified behaviorally via the test suite rather
+  than raw `pg_policies` introspection, since no direct Postgres connection string is present
+  in `.env.local` (service-role REST client only).
+- Updated both ADR status headers to Accepted / verified-live:
+  [`0083-partner-visibility-of-own-project-quotes.md`](./decisions/0083-partner-visibility-of-own-project-quotes.md),
+  [`0085-convince-the-hesitant-surfacing.md`](./decisions/0085-convince-the-hesitant-surfacing.md).
+- No code or schema changes made. Nothing further to build on either ADR; the Phase 2 "build
+  the case" packet from 0085 remains a separate, later item.
+
+---
+
+## 2026-07-28 — Spec unification (SSOT) initiative closed; ADR 0083/0085 approved; ADR 0087 gap-analysis scope cut
+
+### Work done
+
+- **§7 step 6 (V100 correction) and the browser smoke test — both done, confirmed by Andy.**
+  The three V100 `product_specs` rows have been corrected through the `/admin/specs` form,
+  and the live net-usable preview has been verified working in an authenticated browser
+  session. All seven steps of [`spec-admin-form-design.md`](../datasheets/spec-admin-form-design.md)
+  §7 are now complete. **The spec-unification / SSOT initiative (ADR 0096) is closed** — no
+  further items remain open on this thread. The datasheet automation project (paused
+  2026-07-23 specifically pending this work) is unblocked to resume.
+- **ADR 0083 and ADR 0085 — approved by Andy.** Status updated to **Accepted** on both. See
+  the note below the decisions list — before treating either as a fresh implementation task,
+  the existing journal trail says most or all of the build for both may already be live in
+  production, so this needs a confirm-before-build pass rather than a straight rebuild.
+- **ADR 0087 gap-analysis backlog — 4 of the 11 net-new items cut, marked Not active** (Andy's
+  call, will not be built): Price Book lead-time column, deal-registration status loop,
+  warranty/serial lookup, VMS license line on estimates. The remaining 7 items (price-staleness
+  flag, partner notification emails, clone-project action, per-SKU lifecycle status column,
+  datasheet links per model, partner-specific pricing, and the A&E spec documents themselves —
+  ADR 0087, the highest-leverage item, still needs its own dedicated scoping session) stay open
+  and unscoped.
+
+### Detours & fixes
+
+- **ADR 0083 / 0085 status vs. what's actually deployed — flagged, not resolved here.**
+  Re-reading the trail: the 2026-07-20 UX-pass entry's own git state (`main @ 6a66f54`, dated
+  2026-07-20, per the 2026-07-22 entry's detour note) implies the 0083 *code* (route + My
+  Pipeline download row) and all of 0085's portal/PDF pieces were already merged to `main` and
+  in production **as of 2026-07-20** — the download row was just rendering empty until its RLS
+  policy applied. That policy — migration `20260720000001_project_quotes_partner_select.sql` —
+  was then applied to production on **2026-07-22**, bundled into the ADR 0089 ship because
+  Customer Proposal rides the same route and policy. The 2026-07-24 entry's `db push` error
+  ("policy already exists" on `20260720000001`) independently confirms that migration is live.
+  Net read: **ADR 0083 looks fully live and functional since 2026-07-22, and ADR 0085's code
+  looks fully live since 2026-07-20** — the only open item on 0085 was copy sign-off, which
+  Andy's approval today appears to close. Recorded here rather than silently assumed, since
+  writing an implementation brief for work that's already shipped would risk exactly the
+  "policy already exists" re-run error this repo has already hit once.
+
+### Decisions captured
+
+- Spec unification initiative (ADR 0096 / `spec-admin-form-design.md` §7) — **Closed, all
+  steps complete.**
+- [`0083-partner-visibility-of-own-project-quotes.md`](./decisions/0083-partner-visibility-of-own-project-quotes.md)
+  → **Accepted** (was: Proposed, built to review gate).
+- [`0085-convince-the-hesitant-surfacing.md`](./decisions/0085-convince-the-hesitant-surfacing.md)
+  → **Accepted, copy approved as final** (was: Accepted, copy under review). Packet (Phase 2)
+  remains a separate, later item.
+- [`0087-ae-spec-documents-division-28.md`](./decisions/0087-ae-spec-documents-division-28.md)
+  gap-analysis backlog — 4 items marked **Not active**: Price Book lead-time column,
+  deal-registration status loop, warranty/serial lookup, VMS license line on estimates. ADR
+  0087 itself remains Proposed, pending its own scoping session.
+
+---
+
 ## 2026-07-27 — Spec unification §5.1 steps 3 & 5: the admin form, and the live round-trip that validates its schema
 
 Steps 3 and 5 of [`spec-admin-form-design.md`](../datasheets/spec-admin-form-design.md) §7.
