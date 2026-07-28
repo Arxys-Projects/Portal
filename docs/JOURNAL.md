@@ -4,6 +4,59 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-07-28 — Datasheet Phase 2 kickoff: both Phase 1 migrations must be amended to the ADR 0096 pattern before applying; appliance_specs admin surface designed
+
+Design-only session, per the brief — no schema applied, no application code written. Output
+gated on Andy's review.
+
+### Work done
+
+- **Re-read the two unapplied Phase 1 migrations (`20260723000001/2`) against the shipped
+  ADR 0096 pattern** (`/admin/specs` fields.ts / schema / actions / audit triggers /
+  round-trip). Finding: applying them as-is would recreate the exact problem SSOT closed —
+  `appliance_specs` explicitly carries no provenance ("refreshed by a reviewed admin seed
+  load"), grants admin DELETE, and has no audit; the 18 additive columns would be reachable
+  only by migration until the form learns them.
+- **Verified the Phase 1 field inventory against six live Illustrator factsheets** (V800 +
+  V400 local from Andy; V250/255, V260, SW10, SW20 fetched from the `families.ts` URLs). The
+  ADR 0090 shape holds — including the two-CPU-variant `sheet_group` model and the camera
+  matrix jsonb shape (the SW10 sheet's "FPS" column header actually holds codec values; fps is
+  in the footnote). Four per-SKU sheet blocks have **no column anywhere**: Cooling, Max Power
+  Consumption, Display Ports (rack side), and the RAID prose block (appliance side). Plus the
+  pre-pause known `power_dc_input` gap, and `max_bandwidth_mbps` needed on `appliance_specs`
+  for the SW sheets / skuExtraData `bandwidth` retirement.
+- **Designed the amendments and the `/admin/appliance-specs` surface** — three routes, one
+  field list, admin-only at RLS/action/UI layers, structured camera-matrix editor, family_type
+  select, cross-row sheet_group warning, no net-usable preview (nothing computes from
+  appliance rows), a shared spec-form kit extracted from `/admin/specs` (0096's "second
+  archetype" revisit condition fired), two live round-trip scripts, test-rls block 22.
+- **Confirmed the entry path**: `appliance_specs` starts empty; all 7 rows (ACM SKUs included
+  — the skuExtraData retirement needs them; ACM-specific schema stays deferred) are entered
+  through the form, never seeded by migration. The 22 additive columns' values on the 21 rack
+  rows likewise enter through the extended `/admin/specs` form — 21 hand edits, the accepted
+  one-time cost.
+- **Docs**: [ADR 0097](./decisions/0097-datasheet-surfaces-join-admin-editable-pattern.md)
+  (Proposed, review gate);
+  [`datasheets/datasheet-phase2-admin-surface-design.md`](../datasheets/datasheet-phase2-admin-surface-design.md)
+  (full design + 7-step build sequence); do-not-apply-as-is banner on
+  [apply-note 0090](./apply-notes/0090-datasheet-schema.md); `datasheetplan.md` STATUS flipped
+  to RESUMED with the pause record kept.
+
+### Detours & fixes
+
+- **The user-supplied Dropbox factsheet paths were unreadable** (macOS TCC denies
+  `~/Library/CloudStorage` to the agent even unsandboxed). Local Desktop copies (V800/V400)
+  plus arxys.com fetches for the appliance sheets covered it.
+
+### Decisions captured
+
+- [`0097-datasheet-surfaces-join-admin-editable-pattern.md`](./decisions/0097-datasheet-surfaces-join-admin-editable-pattern.md)
+  — amend-before-apply, six verified new columns, no-delete + audit on `appliance_specs`,
+  shared form kit, form-as-entry-path for all rows. Supersedes ADR 0090's
+  no-timestamps/seed-load stance for `appliance_specs` (shape otherwise upheld).
+
+---
+
 ## 2026-07-28 — ADR 0083 and ADR 0085 verify-then-close: both confirmed fully live, no build needed
 
 ### Work done

@@ -1,5 +1,19 @@
 # Apply note — ADR 0090 (datasheet spec schema)
 
+> **DO NOT APPLY AS-IS (2026-07-28).** Both migrations below predate ADR 0096 and must be
+> amended first — applied unchanged they would recreate the no-admin-write-path problem the
+> SSOT initiative just closed (a new table with delete granted and no provenance/audit, plus
+> 18 columns reachable only by migration). The amendment list and the build sequence are in
+> [ADR 0097](../decisions/0097-datasheet-surfaces-join-admin-editable-pattern.md) and
+> [`datasheets/datasheet-phase2-admin-surface-design.md`](../../datasheets/datasheet-phase2-admin-surface-design.md)
+> §2 — in short: `appliance_specs` gains `updated_at`/`updated_by`, an audit table + trigger
+> pair, and **loses its DELETE grant/policy**; six factsheet-verified columns are added across
+> the two files (`power_dc_input`, `power_max_consumption`, `cooling`, `display_ports` on
+> `product_specs`; `cooling`, `power_max_consumption`, `raid_support`, `max_bandwidth_mbps` on
+> `appliance_specs`); both files get post-20260727 timestamps. This note will be rewritten
+> against the amended files in build step 1; everything below describes the **pre-amendment**
+> files and is kept for the record.
+
 Stop-and-flag migrations for Andy to apply. The agent holds no DDL credentials
 (2026-07-17 CLI 401); apply each via the Supabase **dashboard SQL editor**. The
 CLI never auto-applies these (rollbacks live in `supabase/rollback/`, outside

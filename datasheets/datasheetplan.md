@@ -117,6 +117,24 @@ dashboard. Phase 2 design can start once that's done.
 
 ---
 
+## STATUS: RESUMED (2026-07-28) — pause lifted, apply gated on ADR 0097 review
+
+The unification initiative this project paused for is closed: ADR 0096 made `product_specs`
+canonical and admin-form-editable, `/admin/specs` is live, and the V100 rows are corrected.
+The 2026-07-28 Phase 2 kickoff session reconciled this project's two unapplied migrations with
+that outcome — **they must be amended before applying** (provenance + audit + no-delete on
+`appliance_specs`; six factsheet-verified columns added across both files, which absorbs and
+extends the "Outstanding fix" DC-input item above). Design and build sequence:
+[ADR 0097](../docs/decisions/0097-datasheet-surfaces-join-admin-editable-pattern.md) /
+[`datasheet-phase2-admin-surface-design.md`](./datasheet-phase2-admin-surface-design.md).
+
+Consequences for the phases above: "Data population" is now *entry through the admin forms*
+(`/admin/specs` extended sections; new `/admin/appliance-specs`), never a seed migration or
+script. Phase 2 (visual design) can start once the amended migrations are applied; it works
+from the source PDFs and does not need the database populated.
+
+The original pause record is kept below.
+
 ## STATUS: PAUSED (2026-07-24)
 
 Paused pending a separate initiative to unify product spec data across the whole portal
