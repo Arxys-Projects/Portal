@@ -34,17 +34,69 @@ the primary user needs visual clarity and dumb-proofing over density.
 - `pipedrive_deal_id` was already being fetched by the page query and then dropped when building
   `SubMini` — the column needed threading through, not a new query.
 
-### Still open
+### Follow-on
 
-Andy identified that the grouped view puts **one box per person**, not per company — 14 separate
-"JCT Solutions" boxes, since `partners` holds 14 person rows all with that `company_name`, and
-only the company name is rendered. His stated model is Partner Company → Project Name, with the
-person largely irrelevant for lookup. Options were written up (label the boxes / sort them
-together / regroup by company); regrouping is the recommended one but changes Open Pipeline
-(same project filed by two reps would collapse to one deal) and the "Active partners" count, so
-it's awaiting his go-ahead and will get its own ADR. Related data hygiene surfaced while
-checking: `Digital Provisions` vs `Digital Provisions Inc` won't merge under name
-normalisation, `Intelli-Tec`/`Intelli-tec` will, and Lloyd Levitt has two partner rows.
+The one-box-per-person problem identified in the same session is now fixed — see the entry above.
+
+---
+
+## 2026-07-28 — Partner Pipeline regrouped by company (ADR 0099)
+
+`partners` holds one row per **person** (80 rows, 34 companies; JCT Solutions alone has 14), and
+the grouped view keyed its boxes on `partners.id` while printing only `company_name` — so five
+identically-labelled "JCT Solutions" boxes, scattered non-adjacently because the group list was
+in Map insertion order with no sort. Andy's model for this surface is Partner Company → Project
+Name, contact secondary.
+
+### Work done
+
+- **`groupIntoDeals` buckets on `lower(trim(company name))`** instead of `partners.id`, resolved
+  from the on-behalf target when set, else the creator, with an id fallback.
+- **`Deal.partner_id` / `partner_name` → `company_key` / `company_name`**, so a company key can
+  never be mistaken for a `partners.id`, plus a new `Deal.contact_name` for display only.
+- **View**: one box per company headed `N projects · M contacts`, contact on each project row,
+  groups sorted alphabetically and live deals before lost within a company — this view is used to
+  look a project up, not to rank by value. The "Active partners" tile became
+  **Active partner companies** with the contact count named beside it, so 26 → 13 reads as a
+  regrouping rather than as partners having gone missing.
+- **XLSX export** inherits the grouping (shared function): "Partner" → "Partner Company" plus a
+  new "Contact" column, merged title ranges and widths shifted to 7 columns.
+- 10 new tests (372 total), `tsc`/eslint/`next build` clean.
+
+### Detours & fixes
+
+- **Measured the impact before building, and the warning I'd given Andy was wrong.** I had told
+  him Open Pipeline would probably drop, because merging reps at one company collapses duplicate
+  deals. Measured against production first — by rewriting each submission's `partner_id` to its
+  company key and feeding the *existing* function, so merge semantics were identical rather than
+  re-derived — and the answer was **no change at all**: 68 deals and $8,110,095 before and after,
+  26 boxes → 13. No project name is currently filed by two different people at the same company,
+  so nothing collapses. Cheap to check, and it would have been a bad surprise to ship on a guess.
+- **A test caught a real mislabelling**: the first cut resolved the contact as
+  `on_behalf_of_partner_id ?? partner_id`, which for a *free-typed* on-behalf company named the
+  internal Arxys rep who filed it — someone at a different company entirely. The contact must
+  belong to the bucket's company, so `effectiveCompany` now returns the partner row the contact
+  may come from, and it is `null` for a free-typed company.
+- The partner-facing callers (`/dashboard`, `/submissions`) pass `partners: []`; the id fallback
+  keeps their behaviour byte-identical, which is asserted by its own test.
+
+### Data hygiene surfaced (not fixed)
+
+Name-based grouping is only as good as the strings. Live in production: **`TRL` and
+`TRL Sytems, inc.` are two boxes and are probably one company**; `Digital Provisions` vs
+`Digital Provisions Inc` would split if both had submissions; `Intelli-Tec`/`Intelli-tec` now
+merge correctly. Regional entities (`LONG Building Technologies, inc. - AK` vs `- ID`) correctly
+stay apart. Also unrelated: Lloyd Levitt has two partner rows. Fixing these means editing partner
+records — nothing in the UI signals that two boxes *ought* to be one.
+
+Company grouping also makes human near-duplicates visible for the first time by putting them
+adjacent: within JCT, `bcua-littleferry` (Viren Bhagat) next to `BCUA Little Ferry NJ` (Andrew
+Giancaspro), and `kean-1085` next to `Kean University - 1085 Morris`. Different project names, so
+they don't auto-merge — but they now sit side by side where someone can spot them.
+
+### Decisions captured
+
+- [`0099-partner-pipeline-groups-by-company.md`](./decisions/0099-partner-pipeline-groups-by-company.md)
 
 ---
 

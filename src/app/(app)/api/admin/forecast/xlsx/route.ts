@@ -46,7 +46,7 @@ export async function GET() {
         .order("created_at", { ascending: false }),
       supabase
         .from("partners")
-        .select("id, company_name")
+        .select("id, company_name, contact_name")
         .order("company_name"),
     ]);
 
@@ -58,6 +58,7 @@ export async function GET() {
   const partners = (partnerRows ?? []).map((p) => ({
     id: p.id,
     company_name: p.company_name,
+    contact_name: p.contact_name,
   }));
   const deals = groupIntoDeals(submissions, partners);
   const { openPipeline, wonTotal } = computePipelineTotals(deals);
@@ -94,24 +95,27 @@ async function buildXlsx(
   const ws = wb.addWorksheet("Partner Forecast");
 
   // Title
-  ws.mergeCells("A1:F1");
+  ws.mergeCells("A1:G1");
   ws.getCell("A1").value = "Arxys Partner Pipeline";
   ws.getCell("A1").font = { bold: true, size: 14 };
 
-  ws.mergeCells("A2:F2");
+  ws.mergeCells("A2:G2");
   ws.getCell("A2").value = `Generated ${generatedAt.toISOString().replace("T", " ").slice(0, 16)} UTC — Pre-CRM partner activity`;
   ws.getCell("A2").font = { italic: true, color: { argb: "FF6B7280" } };
 
   // ADR 0081 — Open Pipeline is a straight sum of Open deals; Weighted Forecast
   // is retired. Won total shown for reference (no weighting).
-  ws.mergeCells("A3:F3");
+  ws.mergeCells("A3:G3");
   ws.getCell("A3").value = `Open pipeline: ${fmtUsd(openPipeline)}   Won total: ${fmtUsd(wonTotal)}`;
   ws.getCell("A3").font = { color: { argb: "FF374151" } };
 
   // Header row at row 5
   const headerRow = ws.getRow(5);
+  // ADR 0099 — deals group by partner COMPANY, so "Partner" is a company and
+  // the contact needs its own column rather than being lost in the regrouping.
   headerRow.values = [
-    "Partner",
+    "Partner Company",
+    "Contact",
     "Project",
     "Status",
     "List Price",
@@ -133,27 +137,29 @@ async function buildXlsx(
     const value = deal.total_list_price_usd ?? 0;
 
     const dataRow = ws.getRow(rowIdx++);
-    dataRow.getCell(1).value = deal.partner_name;
-    dataRow.getCell(2).value = deal.project_name ?? "(untitled)";
-    dataRow.getCell(3).value = deal.status ?? "open";
+    dataRow.getCell(1).value = deal.company_name;
+    dataRow.getCell(2).value = deal.contact_name ?? "—";
+    dataRow.getCell(3).value = deal.project_name ?? "(untitled)";
+    dataRow.getCell(4).value = deal.status ?? "open";
 
-    dataRow.getCell(4).value = value;
-    dataRow.getCell(4).numFmt = '"$"#,##0.00';
+    dataRow.getCell(5).value = value;
+    dataRow.getCell(5).numFmt = '"$"#,##0.00';
 
-    dataRow.getCell(5).value = deal.pipedrive_deal_id ?? "—";
+    dataRow.getCell(6).value = deal.pipedrive_deal_id ?? "—";
 
     const quoteDate = new Date(deal.representative_created_at);
-    dataRow.getCell(6).value = quoteDate;
-    dataRow.getCell(6).numFmt = "yyyy-mm-dd";
+    dataRow.getCell(7).value = quoteDate;
+    dataRow.getCell(7).numFmt = "yyyy-mm-dd";
   }
 
   // Column widths
-  ws.getColumn(1).width = 24;
-  ws.getColumn(2).width = 30;
-  ws.getColumn(3).width = 10;
-  ws.getColumn(4).width = 14;
-  ws.getColumn(5).width = 20;
-  ws.getColumn(6).width = 14;
+  ws.getColumn(1).width = 24; // Partner Company
+  ws.getColumn(2).width = 22; // Contact
+  ws.getColumn(3).width = 30; // Project
+  ws.getColumn(4).width = 10; // Status
+  ws.getColumn(5).width = 14; // List Price
+  ws.getColumn(6).width = 20; // Pipedrive Deal ID
+  ws.getColumn(7).width = 14; // Quote Date
 
   const arrayBuffer = await wb.xlsx.writeBuffer();
   return Buffer.from(arrayBuffer as ArrayBuffer);

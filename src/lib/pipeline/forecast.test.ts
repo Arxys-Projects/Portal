@@ -9,8 +9,14 @@ import {
 } from "./forecast";
 
 const PARTNERS: PartnerRow[] = [
-  { id: "p1", company_name: "Acme Corp" },
-  { id: "p2", company_name: "Beta LLC" },
+  { id: "p1", company_name: "Acme Corp", contact_name: "Ann Adams" },
+  { id: "p2", company_name: "Beta LLC", contact_name: "Bob Boyle" },
+  // A SECOND person at Acme, spelled with different case — ADR 0099's whole
+  // point is that p1 and p3 share one box. Mirrors production, where
+  // "JCT Solutions" had 14 person rows and "Intelli-Tec"/"Intelli-tec" coexist.
+  { id: "p3", company_name: "acme corp", contact_name: "Cal Chen" },
+  // Same company, different legal suffix — deliberately does NOT merge.
+  { id: "p4", company_name: "Acme Corp Inc", contact_name: "Dee Diaz" },
 ];
 
 function sub(
@@ -48,13 +54,110 @@ describe("groupIntoDeals — dedup", () => {
     assert.equal(deals.length, 1);
   });
 
-  it("keeps deals separate for different partners on the same project name", () => {
+  it("keeps deals separate for different COMPANIES on the same project name", () => {
     const subs = [
       sub({ id: "s1", partner_id: "p1" }),
       sub({ id: "s2", partner_id: "p2" }),
     ];
     const deals = groupIntoDeals(subs, PARTNERS);
     assert.equal(deals.length, 2);
+  });
+});
+
+// ADR 0099 — `partners` holds one row per PERSON, so keying deals on partner_id
+// gave one box per contact: 14 identically-labelled "JCT Solutions" boxes with
+// no company subtotal anywhere and nothing on screen to tell them apart.
+describe("groupIntoDeals — company grouping (ADR 0099)", () => {
+  it("merges two PEOPLE at the same company filing the same project into ONE deal", () => {
+    const subs = [
+      sub({ id: "s1", partner_id: "p1" }),
+      sub({ id: "s3", partner_id: "p3" }),
+    ];
+    const deals = groupIntoDeals(subs, PARTNERS);
+    assert.equal(deals.length, 1, "two reps at one company must share a deal");
+    assert.equal(deals[0].all_submission_ids.length, 2);
+    assert.equal(deals[0].company_key, "acme corp");
+  });
+
+  it("puts every project from one company in a single bucket, whoever filed it", () => {
+    const subs = [
+      sub({ id: "s1", partner_id: "p1", project_name: "Alpha" }),
+      sub({ id: "s2", partner_id: "p3", project_name: "Bravo" }),
+      sub({ id: "s3", partner_id: "p1", project_name: "Charlie" }),
+    ];
+    const deals = groupIntoDeals(subs, PARTNERS);
+    assert.equal(deals.length, 3, "three distinct projects");
+    assert.equal(new Set(deals.map((d) => d.company_key)).size, 1, "one company bucket");
+  });
+
+  it("normalises company case and whitespace so signup typos don't split a company", () => {
+    const subs = [sub({ id: "s1", partner_id: "p1" }), sub({ id: "s3", partner_id: "p3" })];
+    const deals = groupIntoDeals(subs, PARTNERS);
+    // "Acme Corp" and "acme corp" → one key; the label is whichever row was seen
+    // first, so assert on the key rather than the display casing.
+    assert.equal(deals[0].company_key, "acme corp");
+  });
+
+  it("does NOT merge legal-suffix variants — those need the partner records fixed", () => {
+    // Documents a known limitation rather than pretending it's handled:
+    // production has "Digital Provisions" and "Digital Provisions Inc".
+    const subs = [
+      sub({ id: "s1", partner_id: "p1" }),
+      sub({ id: "s4", partner_id: "p4" }),
+    ];
+    const deals = groupIntoDeals(subs, PARTNERS);
+    assert.equal(deals.length, 2);
+  });
+
+  it("falls back to per-partner buckets when no partners are supplied", () => {
+    // The partner-facing callers pass []. Nothing can resolve to a company name,
+    // and a single partner's own view must behave exactly as it did before.
+    const subs = [
+      sub({ id: "s1", partner_id: "p1" }),
+      sub({ id: "s3", partner_id: "p3" }),
+    ];
+    const deals = groupIntoDeals(subs, []);
+    assert.equal(deals.length, 2, "no company names known — must not collapse");
+    assert.deepEqual(deals.map((d) => d.company_key).sort(), ["p1", "p3"]);
+  });
+});
+
+describe("groupIntoDeals — contact on the deal (ADR 0099)", () => {
+  it("carries the representative submission's contact", () => {
+    const deals = groupIntoDeals([sub({ id: "s1", partner_id: "p1" })], PARTNERS);
+    assert.equal(deals[0].contact_name, "Ann Adams");
+  });
+
+  it("takes the contact from the newest (representative) row when a deal merges", () => {
+    const subs = [
+      sub({ id: "old", partner_id: "p1", created_at: "2026-01-01T00:00:00Z" }),
+      sub({ id: "new", partner_id: "p3", created_at: "2026-02-01T00:00:00Z" }),
+    ];
+    const deals = groupIntoDeals(subs, PARTNERS);
+    assert.equal(deals.length, 1);
+    assert.equal(deals[0].contact_name, "Cal Chen");
+  });
+
+  it("uses the on-behalf TARGET's contact, not the internal rep who filed it", () => {
+    const subs = [sub({ id: "s1", partner_id: "p1", on_behalf_of_partner_id: "p2" })];
+    const deals = groupIntoDeals(subs, PARTNERS);
+    assert.equal(deals[0].contact_name, "Bob Boyle");
+  });
+
+  it("is null for a free-typed company — there is no portal identity to name", () => {
+    const subs = [
+      sub({ id: "s1", partner_id: "p1", on_behalf_of_company_name: "Gamma Security" }),
+    ];
+    const deals = groupIntoDeals(subs, PARTNERS);
+    assert.equal(deals[0].contact_name, null);
+  });
+
+  it("is never a grouping key — a company with two contacts still merges", () => {
+    const subs = [
+      sub({ id: "s1", partner_id: "p1" }),
+      sub({ id: "s3", partner_id: "p3" }),
+    ];
+    assert.equal(groupIntoDeals(subs, PARTNERS).length, 1);
   });
 });
 
@@ -107,8 +210,8 @@ describe("groupIntoDeals — on-behalf-of (Phase 7 Step 1)", () => {
     ];
     const deals = groupIntoDeals(subs, PARTNERS);
     assert.equal(deals.length, 1);
-    assert.equal(deals[0].partner_id, "p2");
-    assert.equal(deals[0].partner_name, "Beta LLC");
+    assert.equal(deals[0].company_key, "beta llc");
+    assert.equal(deals[0].company_name, "Beta LLC");
   });
 
   it("groups an on-behalf submission with the target partner's own submission", () => {
@@ -119,7 +222,7 @@ describe("groupIntoDeals — on-behalf-of (Phase 7 Step 1)", () => {
     const deals = groupIntoDeals(subs, PARTNERS);
     assert.equal(deals.length, 1);
     assert.equal(deals[0].all_submission_ids.length, 2);
-    assert.equal(deals[0].partner_id, "p2");
+    assert.equal(deals[0].company_key, "beta llc");
   });
 
   it("groups free-typed on-behalf companies by normalised name and labels them", () => {
@@ -138,14 +241,14 @@ describe("groupIntoDeals — on-behalf-of (Phase 7 Step 1)", () => {
     const deals = groupIntoDeals(subs, PARTNERS);
     assert.equal(deals.length, 1);
     assert.equal(deals[0].all_submission_ids.length, 2);
-    assert.equal(deals[0].partner_name, "Gamma Security");
+    assert.equal(deals[0].company_name, "Gamma Security");
   });
 
-  it("leaves normal self-serve submissions grouped by their creator", () => {
+  it("leaves normal self-serve submissions grouped by their creator's company", () => {
     const subs = [sub({ id: "s1", partner_id: "p1" })];
     const deals = groupIntoDeals(subs, PARTNERS);
-    assert.equal(deals[0].partner_id, "p1");
-    assert.equal(deals[0].partner_name, "Acme Corp");
+    assert.equal(deals[0].company_key, "acme corp");
+    assert.equal(deals[0].company_name, "Acme Corp");
   });
 });
 

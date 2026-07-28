@@ -94,9 +94,10 @@ export default async function AdminSubmissionsPage({
   const supabase = await createSupabaseServerClient();
 
   // Load partners list (for filter dropdown and for the forecast grouping).
+  // contact_name feeds the per-project contact column (ADR 0099).
   const { data: partnerRows } = await supabase
     .from("partners")
-    .select("id, company_name")
+    .select("id, company_name, contact_name")
     .order("company_name");
 
   // --- Partner group-by view ---
@@ -129,6 +130,7 @@ export default async function AdminSubmissionsPage({
     const partners = (partnerRows ?? []).map((p) => ({
       id: p.id,
       company_name: p.company_name,
+      contact_name: p.contact_name,
     }));
 
     const deals = groupIntoDeals(submissions, partners);
@@ -164,28 +166,51 @@ export default async function AdminSubmissionsPage({
       });
     }
 
-    const partnerGroupMap = new Map<string, PartnerGroup>();
+    // ADR 0099 — one group per COMPANY, not per person.
+    const companyGroupMap = new Map<string, PartnerGroup>();
     for (const deal of deals) {
-      if (!partnerGroupMap.has(deal.partner_id)) {
-        partnerGroupMap.set(deal.partner_id, {
-          partner_id: deal.partner_id,
-          partner_name: deal.partner_name,
+      if (!companyGroupMap.has(deal.company_key)) {
+        companyGroupMap.set(deal.company_key, {
+          company_key: deal.company_key,
+          company_name: deal.company_name,
           deals: [],
         });
       }
-      const group = partnerGroupMap.get(deal.partner_id)!;
+      const group = companyGroupMap.get(deal.company_key)!;
       const dealSubs = deal.all_submission_ids
         .map((id) => subById.get(id))
         .filter((s): s is SubMini => s !== undefined);
       group.deals.push({ ...deal, submissions: dealSubs });
     }
 
-    const groups = [...partnerGroupMap.values()];
-    // A partner is "active" if they have a live (open or won) deal — ADR 0081
-    // removed the draft state, so lost-only partners are the only exclusion.
-    const activePartners = groups.filter((g) =>
+    const groups = [...companyGroupMap.values()];
+
+    // Alphabetical by company, then live deals before lost and alphabetical by
+    // project within each. The map's insertion order was submission-recency,
+    // which scattered a company's boxes down the page — the thing that made 14
+    // identical "JCT Solutions" headers so hard to read. This view is used to
+    // LOOK A PROJECT UP, so predictable ordering beats value ranking.
+    const collator = new Intl.Collator(undefined, { sensitivity: "base", numeric: true });
+    groups.sort((a, b) => collator.compare(a.company_name, b.company_name));
+    for (const g of groups) {
+      g.deals.sort((a, b) => {
+        const live = (d: typeof a) => (d.status === "lost" ? 1 : 0);
+        if (live(a) !== live(b)) return live(a) - live(b);
+        return collator.compare(a.project_name ?? "", b.project_name ?? "");
+      });
+    }
+
+    // A company is "active" if it has a live (open or won) deal — ADR 0081
+    // removed the draft state, so lost-only companies are the only exclusion.
+    const activeCompanies = groups.filter((g) =>
       g.deals.some((d) => d.status === "open" || d.status === "won"),
     ).length;
+    // Distinct named contacts across every deal on the page. Reported alongside
+    // the company count so the drop from 26 boxes to 13 reads as a regrouping
+    // rather than as partners having gone missing.
+    const activeContacts = new Set(
+      deals.map((d) => d.contact_name).filter((n): n is string => Boolean(n)),
+    ).size;
 
     // Status counts across all deals (the representative per deal).
     const statusCounts: Record<string, number> = {};
@@ -208,7 +233,8 @@ export default async function AdminSubmissionsPage({
         />
         <PartnerGroupView
           groups={groups}
-          totalActivePartners={activePartners}
+          totalActiveCompanies={activeCompanies}
+          totalActiveContacts={activeContacts}
           totalOpenPipeline={openPipeline}
           statusCounts={statusCounts}
         />

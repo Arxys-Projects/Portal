@@ -27,9 +27,11 @@ type SubmissionMini = {
   pipedrive_deal_id: string | null;
 };
 
+// ADR 0099 — one group per partner COMPANY. Previously one per person, which
+// produced 14 identically-labelled "JCT Solutions" boxes.
 export type PartnerGroup = {
-  partner_id: string;
-  partner_name: string;
+  company_key: string;
+  company_name: string;
   deals: (Deal & { submissions: SubmissionMini[] })[];
 };
 
@@ -58,6 +60,11 @@ function PartnerCard({
   wonTotal: number;
 }) {
   const [expanded, setExpanded] = useState(false);
+  // Distinct named contacts behind this company's projects. Shown in the header
+  // so a company with many reps is self-explanatory before you expand it.
+  const contactCount = new Set(
+    group.deals.map((d) => d.contact_name).filter((n): n is string => Boolean(n)),
+  ).size;
 
   return (
     <div className="overflow-hidden rounded-xl border-2 border-line bg-surface">
@@ -68,9 +75,12 @@ function PartnerCard({
         className="flex w-full items-center justify-between px-4 py-3 text-left hover:bg-[#f7f9fc]"
       >
         <div className="flex items-center gap-3">
-          <span className="text-sm font-bold text-ink">{group.partner_name}</span>
+          <span className="text-sm font-bold text-ink">{group.company_name}</span>
           <span className="text-xs text-ink-soft">
-            {group.deals.length} deal{group.deals.length !== 1 ? "s" : ""}
+            {group.deals.length} project{group.deals.length !== 1 ? "s" : ""}
+            {contactCount > 0
+              ? ` · ${contactCount} contact${contactCount !== 1 ? "s" : ""}`
+              : ""}
           </span>
         </div>
         <div className="flex items-center gap-6 text-right">
@@ -127,13 +137,19 @@ function DealRow({ deal }: { deal: Deal & { submissions: SubmissionMini[] } }) {
           aria-expanded={expanded}
           className="flex flex-1 items-center justify-between px-6 py-2.5 text-left"
         >
-          <div className="flex items-center gap-2.5">
-            <span className="text-sm font-medium text-ink">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <span className="truncate text-sm font-medium text-ink">
               {deal.project_name ?? "(untitled)"}
             </span>
             <StatusBadge variant="status" status={deal.status as SubmissionStatus} />
+            {/* ADR 0099 — the contact is information, not navigation: the boxes
+                are companies now, so this answers "whose is this?" without
+                being what you search by. */}
+            {deal.contact_name ? (
+              <span className="shrink-0 text-xs text-ink-soft">{deal.contact_name}</span>
+            ) : null}
           </div>
-          <div className="flex items-center gap-4 text-right">
+          <div className="flex shrink-0 items-center gap-4 text-right">
             <span className="text-sm tabular-nums text-ink">
               {formatPrice(deal.total_list_price_usd)}
             </span>
@@ -239,12 +255,14 @@ function DealRow({ deal }: { deal: Deal & { submissions: SubmissionMini[] } }) {
 
 export function PartnerGroupView({
   groups,
-  totalActivePartners,
+  totalActiveCompanies,
+  totalActiveContacts,
   totalOpenPipeline,
   statusCounts,
 }: {
   groups: PartnerGroup[];
-  totalActivePartners: number;
+  totalActiveCompanies: number;
+  totalActiveContacts: number;
   totalOpenPipeline: number;
   statusCounts: Record<string, number>;
 }) {
@@ -252,7 +270,21 @@ export function PartnerGroupView({
     <div className="mt-6 space-y-4">
       {/* Summary tiles — three-state model (ADR 0081), no weighting. */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        <MetricTile label="Active partners" value={String(totalActivePartners)} />
+        {/* ADR 0099 — "Active partners" used to count person-boxes. Now that the
+            boxes are companies the number would silently halve, so both figures
+            are named explicitly rather than leaving a smaller number to be
+            misread as lost partners. */}
+        <MetricTile
+          label="Active partner companies"
+          value={
+            <span>
+              {totalActiveCompanies}
+              <span className="pl-2 text-[13px] font-semibold text-ink-soft">
+                {totalActiveContacts} contact{totalActiveContacts !== 1 ? "s" : ""}
+              </span>
+            </span>
+          }
+        />
         <MetricTile label="Open pipeline" value={formatPrice(totalOpenPipeline)} />
         <MetricTile
           label="By status"
@@ -272,7 +304,7 @@ export function PartnerGroupView({
       <div className="space-y-2">
         {groups.map((group) => (
           <PartnerCard
-            key={group.partner_id}
+            key={group.company_key}
             group={group}
             openPipeline={groupTotal(group.deals, "open")}
             wonTotal={groupTotal(group.deals, "won")}

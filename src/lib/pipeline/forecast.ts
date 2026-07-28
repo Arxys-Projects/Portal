@@ -28,11 +28,22 @@ export type SubmissionRow = {
 export type PartnerRow = {
   id: string;
   company_name: string;
+  // ADR 0099 — surfaced on the deal row so the grouped admin view can show WHO
+  // filed a project once the boxes are companies rather than people. Optional:
+  // the partner-facing callers pass [] and never render a contact.
+  contact_name?: string | null;
 };
 
 export type Deal = {
-  partner_id: string;
-  partner_name: string;
+  // ADR 0099 — the COMPANY bucket key (normalised company name), not a
+  // partners.id. `partners` holds one row per person, so keying on the id gave
+  // one box per contact — 14 identical "JCT Solutions" boxes with no way to
+  // tell them apart and no company subtotal anywhere.
+  company_key: string;
+  company_name: string;
+  // The contact on the representative submission. Display only — never a
+  // grouping key. Null when the company was free-typed (no portal identity).
+  contact_name: string | null;
   // Normalised (trimmed + lower-cased) project key for grouping.
   project_key: string;
   // Original display name from the representative submission.
@@ -46,30 +57,62 @@ export type Deal = {
   all_submission_ids: string[];
 };
 
-// Resolve the partner a submission rolls up to (Phase 7 Step 1). For a normal
-// self-serve row this is the creator; for an on-behalf row it is the target.
-//   groupingId — the stable bucket key:
-//     COALESCE(on_behalf_of_partner_id, lower(trim(company_name)), partner_id).
-//   partnerName — the human label for that bucket.
-function effectivePartner(
+// Resolve the COMPANY a submission rolls up to (ADR 0099; Phase 7 Step 1 for
+// the on-behalf semantics). For a self-serve row the company is the creator's;
+// for an on-behalf row it is the target's.
+//
+//   companyKey  — the bucket key: lower(trim(company name)) whenever a name can
+//                 be resolved, else the partner id.
+//   companyName — the display label for that bucket.
+//
+// Keying on the NAME rather than partners.id is the whole point: `partners`
+// holds one row per person, so an id key split every multi-contact company into
+// one box per contact (JCT Solutions had 14). Names are free-typed at signup, so
+// this merges case/whitespace variants ("Intelli-Tec" / "Intelli-tec") but NOT
+// suffix variants ("Digital Provisions" / "Digital Provisions Inc") — those need
+// the partner records reconciled, and deliberately-distinct regional entities
+// ("LONG Building Technologies, inc. - AK" vs "- ID") correctly stay apart.
+//
+// The id fallback matters: the partner-facing callers pass partners: [], so no
+// name resolves and every row buckets by its own partner_id exactly as before.
+// A single partner's own view must not change behaviour here.
+//
+// `contactPartnerId` is the partner row the CONTACT comes from, and it must
+// belong to the same company as the bucket — otherwise a free-typed on-behalf
+// row would be labelled with the internal rep who filed it, who works somewhere
+// else entirely. Null when the bucket's company has no portal identity.
+function effectiveCompany(
   s: SubmissionRow,
   partnerMap: Map<string, string>,
-): { groupingId: string; partnerName: string } {
+): { companyKey: string; companyName: string; contactPartnerId: string | null } {
   const fk = s.on_behalf_of_partner_id ?? null;
-  const company = (s.on_behalf_of_company_name ?? "").trim();
+  const typed = (s.on_behalf_of_company_name ?? "").trim();
+
+  // On-behalf of a MATCHED partner: the target's company owns the bucket, and
+  // the target's own contact is the right person to name.
   if (fk) {
-    // Matched partner: group by the stable FK; label from the denormalised
-    // company name, falling back to the partners map (admin views) then the id.
-    return { groupingId: fk, partnerName: company || partnerMap.get(fk) || fk };
+    const label = typed || partnerMap.get(fk) || "";
+    return label
+      ? { companyKey: label.trim().toLowerCase(), companyName: label.trim(), contactPartnerId: fk }
+      : { companyKey: fk, companyName: fk, contactPartnerId: fk };
   }
-  if (company) {
-    // Free-typed company: no portal identity — group by the normalised name.
-    return { groupingId: company.toLowerCase(), partnerName: company };
+
+  // On-behalf of a free-typed company (mutually exclusive with the FK): there is
+  // no partner row for it, so there is no contact to show. Deliberately NOT the
+  // creator — they're an Arxys rep, not a contact at this company.
+  if (typed) {
+    return { companyKey: typed.toLowerCase(), companyName: typed, contactPartnerId: null };
   }
-  return {
-    groupingId: s.partner_id,
-    partnerName: partnerMap.get(s.partner_id) ?? s.partner_id,
-  };
+
+  // Plain self-serve: the creator's own company and the creator as contact.
+  const label = partnerMap.get(s.partner_id) || "";
+  return label
+    ? {
+        companyKey: label.trim().toLowerCase(),
+        companyName: label.trim(),
+        contactPartnerId: s.partner_id,
+      }
+    : { companyKey: s.partner_id, companyName: s.partner_id, contactPartnerId: s.partner_id };
 }
 
 // One deal = one (effective-partner, trimmed-lower project_name) pair, merged
@@ -81,20 +124,22 @@ export function groupIntoDeals(
   partners: PartnerRow[],
 ): Deal[] {
   const partnerMap = new Map<string, string>();
+  const contactMap = new Map<string, string | null>();
   for (const p of partners) {
     partnerMap.set(p.id, p.company_name);
+    contactMap.set(p.id, p.contact_name ?? null);
   }
 
-  type Bucket = { subs: SubmissionRow[]; partnerName: string };
+  type Bucket = { subs: SubmissionRow[]; companyName: string };
   const buckets = new Map<string, Bucket>();
   const idToKey = new Map<string, string>();
 
   for (const s of submissions) {
     const projectKey = (s.project_name ?? "").trim().toLowerCase();
-    const { groupingId, partnerName } = effectivePartner(s, partnerMap);
-    const key = `${groupingId}\x00${projectKey}`;
+    const { companyKey, companyName } = effectiveCompany(s, partnerMap);
+    const key = `${companyKey}\x00${projectKey}`;
     if (!buckets.has(key)) {
-      buckets.set(key, { subs: [], partnerName });
+      buckets.set(key, { subs: [], companyName });
     }
     buckets.get(key)!.subs.push(s);
     idToKey.set(s.id, key);
@@ -129,14 +174,14 @@ export function groupIntoDeals(
   for (const [key, bucket] of buckets) {
     const root = find(key);
     if (!merged.has(root)) {
-      merged.set(root, { subs: [], partnerName: bucket.partnerName });
+      merged.set(root, { subs: [], companyName: bucket.companyName });
     }
     merged.get(root)!.subs.push(...bucket.subs);
   }
 
   const deals: Deal[] = [];
-  for (const [root, { subs, partnerName }] of merged) {
-    const partnerId = root.slice(0, root.indexOf("\x00"));
+  for (const [root, { subs, companyName }] of merged) {
+    const companyKey = root.slice(0, root.indexOf("\x00"));
 
     const byCreatedDesc = (a: SubmissionRow, b: SubmissionRow) =>
       new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
@@ -157,8 +202,14 @@ export function groupIntoDeals(
     const rep = preferred ?? [...candidates].sort(byCreatedDesc)[0];
 
     deals.push({
-      partner_id: partnerId,
-      partner_name: partnerName,
+      company_key: companyKey,
+      company_name: companyName,
+      // Resolved from the REPRESENTATIVE row: a merged deal shows the contact
+      // behind the copy actually being reported, not whoever happened to be first.
+      contact_name: (() => {
+        const { contactPartnerId } = effectiveCompany(rep, partnerMap);
+        return contactPartnerId ? contactMap.get(contactPartnerId) ?? null : null;
+      })(),
       project_key: (rep.project_name ?? "").trim().toLowerCase(),
       project_name: rep.project_name,
       status: rep.status,
