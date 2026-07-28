@@ -108,7 +108,9 @@ export async function adminDeleteSubmission(
 // ---------------------------------------------------------------------------
 
 export type RelinkResult =
-  | { ok: true; dealId: number; inherited: boolean }
+  // valueUpdateSkipped: the deal was updated, but Pipedrive refused its `value`
+  // because line items are attached — the admin needs to fix the products by hand.
+  | { ok: true; dealId: number; inherited: boolean; valueUpdateSkipped: boolean }
   | { ok: false; error: string };
 
 export async function adminRelinkPipedriveDeal(submissionId: string): Promise<RelinkResult> {
@@ -219,6 +221,7 @@ export async function adminRelinkPipedriveDeal(submissionId: string): Promise<Re
   try {
     let dealId: number | undefined;
     let inherited = false;
+    let valueUpdateSkipped = false;
 
     // If this row is a revision whose PARENT still has a usable deal, update
     // that deal in place instead of creating a second one — creating fresh here
@@ -233,7 +236,7 @@ export async function adminRelinkPipedriveDeal(submissionId: string): Promise<Re
       const parentDealId = parent?.pipedrive_deal_id as number | null | undefined;
       if (parentDealId) {
         try {
-          ({ dealId } = await updateDealFromRevision(
+          ({ dealId, valueUpdateSkipped } = await updateDealFromRevision(
             parentDealId,
             built.inputs.submission,
             built.inputs.recommendation,
@@ -271,7 +274,7 @@ export async function adminRelinkPipedriveDeal(submissionId: string): Promise<Re
 
     revalidatePath(`/admin/submissions/${sub.id}`);
     revalidatePath("/admin/submissions");
-    return { ok: true, dealId, inherited };
+    return { ok: true, dealId, inherited, valueUpdateSkipped };
   } catch (err) {
     console.error("pipedrive relink failed", { submissionId: sub.id, error: err });
     // Surface the REAL Pipedrive message. This is an internal-only surface, and

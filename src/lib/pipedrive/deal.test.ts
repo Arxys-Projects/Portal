@@ -19,6 +19,22 @@ type Responder = (url: URL, method: string, body: unknown) => unknown;
 
 let responder: Responder = () => ({ success: true, data: {} });
 
+// A responder returns this to make the mock emit a genuine Pipedrive error
+// envelope (non-2xx + success:false) rather than a success payload. Needed to
+// exercise the 400 branches — a thrown Error from the responder surfaces as a
+// fetch rejection, which is NOT a PipedriveError and so can't test the
+// error-shape predicates.
+class MockErrorResponse {
+  constructor(
+    readonly status: number,
+    readonly body: unknown,
+  ) {}
+}
+
+function pipedriveError(status: number, error: string, extra: Record<string, unknown> = {}) {
+  return new MockErrorResponse(status, { success: false, error, ...extra });
+}
+
 function installFetchMock(): void {
   globalThis.fetch = (async (input: Request | string | URL, init?: RequestInit) => {
     const urlStr = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
@@ -27,6 +43,12 @@ function installFetchMock(): void {
     const body = init?.body ? JSON.parse(String(init.body)) : undefined;
     calls.push({ url: urlStr, method, body });
     const data = responder(url, method, body);
+    if (data instanceof MockErrorResponse) {
+      return new Response(JSON.stringify(data.body), {
+        status: data.status,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
     return new Response(JSON.stringify({ success: true, data }), {
       status: 200,
       headers: { "Content-Type": "application/json" },
@@ -175,13 +197,18 @@ const fixturePartner = {
 let createDealFromSubmission: typeof import("./deal").createDealFromSubmission;
 let updateDealFromRevision: typeof import("./deal").updateDealFromRevision;
 let isDealUneditableError: typeof import("./deal").isDealUneditableError;
+let isDealValueLockedError: typeof import("./deal").isDealValueLockedError;
 let PipedriveErrorClass: typeof import("./client").PipedriveError;
 let resetCache: typeof import("./lookups").__resetLookupCache;
 
 before(async () => {
   installFetchMock();
-  ({ createDealFromSubmission, updateDealFromRevision, isDealUneditableError } =
-    await import("./deal"));
+  ({
+    createDealFromSubmission,
+    updateDealFromRevision,
+    isDealUneditableError,
+    isDealValueLockedError,
+  } = await import("./deal"));
   ({ PipedriveError: PipedriveErrorClass } = await import("./client"));
   ({ __resetLookupCache: resetCache } = await import("./lookups"));
 });
@@ -541,6 +568,156 @@ describe("updateDealFromRevision", () => {
       fixtureRecommendation(),
     );
     assert.equal(result.dealId, EXISTING_DEAL_ID);
+  });
+
+  it("reports valueUpdateSkipped=false on a clean update", async () => {
+    const result = await updateDealFromRevision(
+      EXISTING_DEAL_ID,
+      fixtureSubmission,
+      fixtureRecommendation(),
+    );
+    assert.equal(result.valueUpdateSkipped, false);
+  });
+});
+
+// City of Plainfield, 2026-07-28. A deal with products attached rejects any PUT
+// carrying `value` — 400 "Cannot update deal value, the deal has products
+// attached to it" — and the rejection discards the ENTIRE payload, custom fields
+// included. Attaching products is the normal state of a worked deal (the Project
+// Quote path reads those line items), so every revise of a quoted deal used to
+// fall past isDealUneditableError into a swallow-and-log catch and strand the
+// revision with pipedrive_deal_id = null while reporting success.
+describe("updateDealFromRevision — deal value locked by attached products", () => {
+  const VALUE_LOCKED_MESSAGE = "Cannot update deal value, the deal has products attached to it.";
+
+  // 400s the first PUT (the one carrying `value`) and succeeds on any PUT that
+  // omits it — exactly Pipedrive's behaviour on a deal with line items.
+  function valueLockedResponder(): Responder {
+    return (url, method, body) => {
+      if (url.pathname.startsWith("/v1/deals/") && method === "PUT") {
+        if (body && typeof body === "object" && "value" in (body as Record<string, unknown>)) {
+          return pipedriveError(400, VALUE_LOCKED_MESSAGE);
+        }
+        return { id: EXISTING_DEAL_ID, title: "Existing Deal", value: 0 };
+      }
+      return defaultResponder(url, method, body);
+    };
+  }
+
+  it("retries without `value` and keeps every other field, rather than losing the deal", async () => {
+    responder = valueLockedResponder();
+    const result = await updateDealFromRevision(
+      EXISTING_DEAL_ID,
+      fixtureSubmission,
+      fixtureRecommendation(),
+    );
+
+    assert.equal(result.dealId, EXISTING_DEAL_ID);
+    assert.equal(result.valueUpdateSkipped, true);
+
+    const puts = calls.filter(
+      (c) => c.url.includes(`/v1/deals/${EXISTING_DEAL_ID}`) && c.method === "PUT",
+    );
+    assert.equal(puts.length, 2, "expected the value-bearing PUT plus one retry");
+
+    const retry = puts[1].body as Record<string, unknown>;
+    assert.ok(!("value" in retry), "the retry must NOT carry value");
+    // Everything the revision actually needs to refresh still lands — this is
+    // the part the all-or-nothing 400 was destroying.
+    assert.equal(retry[CUSTOM_FIELD_KEYS.arxys_submission_id], fixtureSubmission.submissionId);
+    assert.equal(retry[CUSTOM_FIELD_KEYS.arxys_total_cameras], 900);
+    assert.equal(
+      retry[CUSTOM_FIELD_KEYS.arxys_portal_url],
+      `https://portal-arxys.vercel.app/submissions/${fixtureSubmission.submissionId}`,
+    );
+    assert.equal(retry[CALC_FIELD_KEYS.Resolution], "4MP");
+
+    // Still an in-place update — no duplicate deal in the CRM (ADR 0093).
+    assert.equal(
+      calls.filter((c) => c.url.endsWith("/v1/deals") && c.method === "POST").length,
+      0,
+      "must not POST a new deal when only the value write was refused",
+    );
+  });
+
+  it("flags the un-written price in the pinned note so sales reconcile the line items", async () => {
+    responder = valueLockedResponder();
+    await updateDealFromRevision(EXISTING_DEAL_ID, fixtureSubmission, fixtureRecommendation());
+
+    const noteCall = calls.find((c) => c.url.includes("/v1/notes") && c.method === "POST");
+    assert.ok(noteCall, "expected a POST /v1/notes call");
+    const note = noteCall.body as { content: string };
+    assert.match(note.content, /Revised from portal/);
+    assert.match(note.content, /ACTION NEEDED/);
+    // The new sizing and price must be IN the note — it's the only place sales
+    // can see the figure Pipedrive refused to store.
+    assert.match(note.content, /3 × V800/);
+    assert.match(note.content, /\$222,144/);
+  });
+
+  it("does NOT swallow an unrelated 400 — that still propagates", async () => {
+    responder = (url, method, body) => {
+      if (url.pathname.startsWith("/v1/deals/") && method === "PUT") {
+        return pipedriveError(400, "Invalid value for field arxys_total_cameras");
+      }
+      return defaultResponder(url, method, body);
+    };
+    await assert.rejects(
+      () => updateDealFromRevision(EXISTING_DEAL_ID, fixtureSubmission, fixtureRecommendation()),
+      /Invalid value for field/,
+    );
+    // One attempt only — no blind retry on an error we don't understand.
+    assert.equal(
+      calls.filter((c) => c.url.includes(`/v1/deals/${EXISTING_DEAL_ID}`) && c.method === "PUT")
+        .length,
+      1,
+    );
+  });
+});
+
+describe("isDealValueLockedError", () => {
+  it("matches the real production 400", () => {
+    const err = new PipedriveErrorClass(
+      400,
+      "Cannot update deal value, the deal has products attached to it.",
+      { success: false, error: "Cannot update deal value, the deal has products attached to it." },
+    );
+    assert.equal(isDealValueLockedError(err), true);
+  });
+
+  it("is not confused with the deleted-deal 400 — the two need different handling", () => {
+    const deleted = new PipedriveErrorClass(
+      400,
+      "Entity is deleted. You must first restore it before you can edit",
+      { success: false, code: "ERR_DEAL_DELETED" },
+    );
+    assert.equal(isDealValueLockedError(deleted), false);
+    // ...and the value-locked error must not trigger the create-a-fresh-deal
+    // fallback, which would duplicate the deal in the CRM.
+    const locked = new PipedriveErrorClass(
+      400,
+      "Cannot update deal value, the deal has products attached to it.",
+      { success: false },
+    );
+    assert.equal(isDealUneditableError(locked), false);
+  });
+
+  it("ignores other statuses and non-Pipedrive errors", () => {
+    const message = "Cannot update deal value, the deal has products attached to it.";
+    for (const status of [401, 403, 404, 429, 500]) {
+      assert.equal(
+        isDealValueLockedError(new PipedriveErrorClass(status, message, { success: false })),
+        false,
+        `status ${status} must not be treated as value-locked`,
+      );
+    }
+    assert.equal(isDealValueLockedError(new Error(message)), false);
+    assert.equal(isDealValueLockedError(null), false);
+    assert.equal(isDealValueLockedError(undefined), false);
+    assert.equal(
+      isDealValueLockedError(new PipedriveErrorClass(400, "Some other rejection", { success: false })),
+      false,
+    );
   });
 });
 

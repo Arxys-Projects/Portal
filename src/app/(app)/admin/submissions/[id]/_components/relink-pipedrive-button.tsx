@@ -24,9 +24,21 @@ export function RelinkPipedriveButton({ submissionId }: { submissionId: string }
         return;
       }
       setNotice(
-        res.inherited
-          ? `Updated the source quote's existing deal #${res.dealId} in place.`
-          : `Created and linked Pipedrive deal #${res.dealId}.`,
+        [
+          res.inherited
+            ? `Updated the source quote's existing deal #${res.dealId} in place.`
+            : `Created and linked Pipedrive deal #${res.dealId}.`,
+          // The deal's value is locked to its attached line items, so it still
+          // shows the previous revision's price. A pinned note on the deal spells
+          // out the new figure for sales.
+          res.valueUpdateSkipped
+            ? `Deal value was NOT changed — this deal has products attached, so Pipedrive keeps its ` +
+              `value tied to the line items. Update the products in Pipedrive to reflect the new sizing ` +
+              `(see the pinned note on the deal).`
+            : null,
+        ]
+          .filter(Boolean)
+          .join(" "),
       );
       router.refresh();
     });

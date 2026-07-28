@@ -341,6 +341,30 @@ export function isDealUneditableError(err: unknown): boolean {
   return code === "ERR_DEAL_DELETED";
 }
 
+// Is this error Pipedrive refusing to write `value` because the deal has
+// products attached?
+//
+// Once a deal has line items, Pipedrive treats their sum as the authoritative
+// deal value and rejects any PUT carrying `value` with
+// 400 "Cannot update deal value, the deal has products attached to it."
+// The rejection takes the ENTIRE payload down with it, so a revision also loses
+// its arxys_* custom fields and portal URL — not just the price.
+//
+// This is the normal state of a worked deal, not an edge case: the Project
+// Quote path reads a deal's line items, so any deal that's had a quote
+// generated is in exactly this condition. Before this was handled, the 400 fell
+// past isDealUneditableError() into the callers' swallow-and-log catch, leaving
+// every such revision with pipedrive_deal_id = null while reporting success.
+//
+// Unlike ERR_DEAL_DELETED this response carries no `code`, only the
+// human-readable `error` string, so match on status plus wording rather than an
+// exact string — Pipedrive has reworded it before.
+export function isDealValueLockedError(err: unknown): boolean {
+  if (!(err instanceof PipedriveError)) return false;
+  if (err.status !== 400) return false;
+  return /deal value/i.test(err.message) && /products?/i.test(err.message);
+}
+
 // Phase 4 Step 3 — non-destructive revision update.
 //
 // Updates an EXISTING deal in place from a new revision submission. It writes
@@ -355,7 +379,7 @@ export async function updateDealFromRevision(
   dealId: number,
   submission: DealSubmissionInput,
   recommendation: RecommendationResult,
-): Promise<{ dealId: number }> {
+): Promise<{ dealId: number; valueUpdateSkipped: boolean }> {
   const [customFieldKeys, calcFieldKeys] = await Promise.all([
     ensureCustomFields(),
     resolveCalculatorFieldKeys(),
@@ -366,25 +390,56 @@ export async function updateDealFromRevision(
     calcFieldKeys,
   });
 
-  await pipedriveClient.updateDeal(dealId, fields);
+  // A deal with products attached rejects `value` — and rejects the whole
+  // payload with it (see isDealValueLockedError). Retry without `value` so the
+  // calculator fields and portal URL still land; the note below flags the price
+  // we could NOT write so sales reconcile the line items by hand rather than
+  // trusting a stale figure. We do NOT touch the line items ourselves: sales
+  // routinely hand-tune quantities, discounts, and extra SKUs on a worked deal,
+  // and silently overwriting that is worse than a stale value.
+  let valueUpdateSkipped = false;
+  try {
+    await pipedriveClient.updateDeal(dealId, fields);
+  } catch (err) {
+    if (!isDealValueLockedError(err)) throw err;
+    const { value: _value, ...fieldsWithoutValue } = fields;
+    await pipedriveClient.updateDeal(dealId, fieldsWithoutValue);
+    valueUpdateSkipped = true;
+    console.warn("pipedrive deal value locked by attached products — updated all other fields", {
+      dealId,
+      submissionId: submission.submissionId,
+    });
+  }
 
   // Revision marker note. Failure must not fail the revision. Add-on status is
   // folded in so sales see the current toggles if they changed in the revision.
   const revisedOn = new Date().toISOString().slice(0, 10);
+  const winner = recommendation.winner;
+  const lines = [
+    `Revised from portal on ${revisedOn}. ` +
+      `Add-ons — Failover recorder: ${submission.addOnFailoverRecorder ? "Yes" : "No"} · ` +
+      `Management server: ${submission.addOnManagementServer ? "Yes" : "No"}`,
+  ];
+  if (valueUpdateSkipped) {
+    lines.push(
+      `ACTION NEEDED — deal value and products were NOT updated. This deal has products attached, ` +
+        `so Pipedrive keeps its value locked to the line items and rejects any value we send. ` +
+        `This revision sizes to ${winner.units} × ${winner.productGroup} at ` +
+        `$${winner.totalCostUsd.toLocaleString("en-US")}. Please review the line items against that figure — ` +
+        `the value shown on this deal is from the previous revision.`,
+    );
+  }
   try {
     await pipedriveClient.createNote({
       deal_id: dealId,
-      content:
-        `Revised from portal on ${revisedOn}. ` +
-        `Add-ons — Failover recorder: ${submission.addOnFailoverRecorder ? "Yes" : "No"} · ` +
-        `Management server: ${submission.addOnManagementServer ? "Yes" : "No"}`,
+      content: lines.join("\n\n"),
       pinned_to_deal_flag: 1,
     });
   } catch (err) {
     console.error("pipedrive revision note creation failed", err);
   }
 
-  return { dealId };
+  return { dealId, valueUpdateSkipped };
 }
 
 // ---------------------------------------------------------------------------

@@ -4,6 +4,89 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-07-28 — Revising a quoted deal silently lost its Pipedrive link (a *third* distinct revise bug)
+
+Andy reported revising and editing deals was broken again, on submission
+`0e3f351a` (City of Plainfield). This is the third separate root cause behind
+"revising breaks it" — and unlike the previous two, it was not the two-user race
+(ADR 0093's original diagnosis) or Pipedrive soft-deletion
+(the 2026-07-24 fix). Both of those are still fixed; this was a new one hiding
+behind the same symptom.
+
+### Work done
+
+- **Diagnosis, from production state rather than source.** The five-row chain for
+  City of Plainfield showed an unmistakable alternating pattern:
+
+  | Submission | Parent's deal | Result |
+  |---|---|---|
+  | `566260cf` root | — | created 5443 ✅ |
+  | `b7f8d916` rev 1 | 5443 | **null** ❌ |
+  | `57872ce3` rev 2 | null | created 5448 ✅ |
+  | `0e3f351a` rev 3 | 5448 | **null** ❌ |
+
+  Revising off a parent that *had* a deal failed; revising off a parent with no
+  deal "succeeded" by creating a fresh one. Deals 5443 and 5448 were both alive
+  and editable in Pipedrive (`deleted: false`) — ruling out the soft-delete
+  cause immediately — and both had exactly one product attached, `VideoX V700
+  576TB`, qty 2.
+
+- **Root cause.** Pipedrive derives a deal's value from its attached line items
+  and rejects any PUT carrying `value` on such a deal:
+  `400 Cannot update deal value, the deal has products attached to it.`
+  The rejection discards the **whole payload**, so the `arxys_*` custom fields
+  and portal URL went down with the price. `isDealUneditableError` only knows
+  404 and `ERR_DEAL_DELETED`, so this 400 rethrew into the callers'
+  swallow-and-log catch — leaving `pipedrive_deal_id = null` while reporting
+  success to the submitter.
+
+  This was the *normal* path, not an edge case: generating a Project Quote reads
+  a deal's line items, so **every deal that had ever had a quote generated was
+  permanently un-revisable.**
+
+- **Fix.** New `isDealValueLockedError` predicate (status + message wording;
+  this response carries no `code`). On a match, `updateDealFromRevision` retries
+  the PUT with `value` stripped and everything else intact, then folds an
+  `ACTION NEEDED` block into the pinned revision note carrying the sizing and
+  price Pipedrive refused to store. Deliberately kept separate from
+  `isDealUneditableError` — the deal is editable, so falling through to
+  create-a-fresh-deal would duplicate it in the CRM, the very thing ADR 0093
+  exists to prevent.
+
+- The portal still never touches product line items; `updateDealFromRevision`
+  now returns `valueUpdateSkipped`, which the admin **Retry Pipedrive link**
+  button surfaces so the reconciliation is asked for explicitly.
+
+- **Tests**: 9 new (362 total, all passing), `tsc` clean. The fetch mock gained
+  a `MockErrorResponse` escape hatch — it previously wrapped everything in a
+  200/`success: true` envelope, so no test could produce a real `PipedriveError`
+  and none of the 400 branches were reachable. The exact production error string
+  is pinned, so a Pipedrive reword fails loudly instead of regressing silently.
+
+### Detours & fixes
+
+- **Reading `vercel logs` first did not pay off this time**, though it remains
+  the right default (it is what cracked the soft-delete bug). The runtime log
+  window had already rolled past both failures — newest entry predated the 20:51
+  submission — and contained no Pipedrive errors. What actually cracked it was
+  Andy's screenshot of the admin page: the **Retry Pipedrive link** action
+  surfaces the raw Pipedrive message, and ADR 0093 step 3 built that surface
+  precisely so a swallowed error would be recoverable by hand. The lesson to
+  carry: check the error the app is *already* showing before reaching for logs.
+
+- **Nearly mis-attributed this to the soft-delete bug.** The symptom is
+  identical — revision, `pipedrive_deal_id = null`, success reported — and that
+  cause was fresh in the notes. Querying the two deals' actual `deleted` flags
+  took one call and ruled it out before any theorising. Three sessions were
+  previously burned on this bug family by reasoning from source; confirming
+  live state first is what kept this one to a single pass.
+
+### Decisions captured
+
+- [`0098-revision-updates-vs-attached-deal-products.md`](./decisions/0098-revision-updates-vs-attached-deal-products.md)
+
+---
+
 ## 2026-07-28 — Datasheet Phase 2 build step 4: `/admin/specs` extended to the 22 additive columns; the round-trip window closes
 
 The step-3 apply left 22 columns on `product_specs` reachable only by migration — the exact
