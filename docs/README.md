@@ -31,3 +31,16 @@ The three core docs above are the source of truth for *what happened* and *how t
 | `phase-3-plan.md` (not yet created) | **Next** — Portal Phase 3 work plan. Will cover custom domain `portal.arxys.com` + 2-3 partner cohort invite + anything else surfaced after Phase 2 close. Scoped when needed. |
 | [`phase-2-plan.md`](./phase-2-plan.md) | Complete (2026-05-22) — Portal Phase 2 work plan (Pricing Pipeline + MVP feature-complete). Historical record; see ADR [0036](./decisions/0036-phase-2-closure-and-phase-3-scope.md) for closure. |
 | [`proposals/phase-2-pricing-pipeline.md`](./proposals/phase-2-pricing-pipeline.md) | Reference — verbatim copy of Andy's Pricing Pipeline planning doc. Authoritative spec for Pipeline Phases 0–3. Read-only history; the operational plan was in `phase-2-plan.md`. |
+
+## Handoff briefs
+
+Session-scoping briefs for work handed to a fresh Claude Code session: model + effort, what to
+read first, tasks, and the hard "do not" list. One per build step that needs one — not every
+step does. They live next to the ADR they implement, as `decisions/claude-code-brief-*.md`.
+Written before the work, not updated after it; the JOURNAL records what actually happened.
+
+| File | Status |
+|---|---|
+| [`decisions/claude-code-brief-0097-step-2.md`](./decisions/claude-code-brief-0097-step-2.md) | **Open** — ADR [0097](./decisions/0097-datasheet-surfaces-join-admin-editable-pattern.md) build step 2: extract `src/lib/spec-form/` and migrate `/admin/specs` onto it. Steps 1 and 3 (migrations amended, applied, verified) shipped 2026-07-28. |
+| [`decisions/claude-code-brief-0089-customer-proposal-and-logo.md`](./decisions/claude-code-brief-0089-customer-proposal-and-logo.md) | Complete — ADR [0089](./decisions/0089-customer-proposal-and-partner-logo-system.md) Customer Proposal + partner logo system. Shipped to production 2026-07-22. |
+| [`phase-7-step-1-brief.md`](./phase-7-step-1-brief.md) | Complete — `phase-7-plan.md` step 1, shipped 2026-06-04. Predates the `decisions/` convention above; left where it is. |
