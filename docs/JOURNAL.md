@@ -67,6 +67,14 @@ stronger result: capturing the script's full stdout before and after and diffing
 the two runs are **byte-identical**, every OK line included. For a refactor whose only claim is
 "nothing changed", that is the assertion worth having.
 
+**Andy manually confirmed the rendered form** — the one thing the automated gates cannot see.
+All five checks pass: the net-usable preview reacts live to an HDD-count edit (proving the
+extras slot receives live values, the most rewired path); both RAID selects keep their own
+blank-option wording (`— select a level —` / `— none —`) and the full option list; a
+drives-exceed-bays refusal still blocks the save and disables the button; a camera-count
+mismatch still warns without blocking; and the create form's SKU field is editable and
+placeholdered where the edit form's is read-only.
+
 ### Detours & fixes
 
 - **Discriminated-union narrowing failed on the intersection form of `SpecField`.** With
