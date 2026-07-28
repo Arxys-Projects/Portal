@@ -9,6 +9,11 @@
 // columns, one layer up." Adding a column here validates it AND renders it, so
 // the two halves cannot drift apart.
 //
+// The KINDS, the zod builders and the renderer that read this list now live in
+// @/lib/spec-form (ADR 0097 decision 4), shared with the appliance_specs form.
+// This file is the product_specs half and stays that way: sections, labels,
+// hints, rules and warnings are per-table by design.
+//
 // No zod, no React, no server-only imports — this module is bundled into the
 // client form, so it must stay pure data.
 //
@@ -24,6 +29,14 @@
 // updated_at / updated_by are also absent, and MUST stay absent: the
 // product_specs_stamp_updated BEFORE trigger maintains both. An action writing
 // them would fight the trigger.
+
+import {
+  flattenSpecFields,
+  initialValuesFromRow as initialValuesFromRowForFields,
+  type SpecField,
+  type SpecRuleViolation,
+  type SpecSection,
+} from "@/lib/spec-form";
 
 /**
  * RAID levels the form will accept, in the order they are offered.
@@ -55,42 +68,29 @@ export const RAID_LEVEL_OPTIONS = [
 
 export const RAID_LEVEL_VALUES = RAID_LEVEL_OPTIONS.map((o) => o.value);
 
-export type SpecFieldKind =
-  /** Primary key. Required, and read-only once the row exists. */
-  | "id"
-  /** NOT NULL text column. */
-  | "text-required"
-  /** Nullable text column; blank submits as null. */
-  | "text-optional"
-  /** Nullable free-form text, rendered as a textarea. */
-  | "textarea-optional"
-  /** NOT NULL integer with a CHECK (> 0). */
-  | "int-required-positive"
-  /** Nullable integer; 0 is legitimate (gbe_10_ports is 0 on 1U models). */
-  | "int-optional"
-  /** NOT NULL numeric with a CHECK (> 0). */
-  | "num-required-positive"
-  /** NOT NULL-in-practice RAID level select. See schema.ts for why required. */
-  | "raid-required"
-  /** Nullable RAID level select; blank submits as null. */
-  | "raid-optional";
+/**
+ * The RAID select as the shared `enum-required` / `enum-optional` kind takes
+ * it. Spread into both level fields so the two cannot drift apart, and so the
+ * appliance form's own list (the same options minus 'NA', ADR 0097 §4c) is a
+ * visibly separate declaration rather than an accidental import.
+ */
+const RAID_SELECT = {
+  options: RAID_LEVEL_OPTIONS,
+  invalidMessage: "Pick a RAID level from the list.",
+} as const;
 
-export type SpecField = {
-  name: string;
-  label: string;
-  kind: SpecFieldKind;
-  /** Max characters for text kinds. Longest live value is 41 (vms_certified). */
-  maxLength?: number;
-  /** Shown under the input. Reserved for the fields that carry real risk. */
-  hint?: string;
-};
-
-export type SpecSection = {
-  title: string;
-  /** Rendered above the section's fields when present. */
-  note?: string;
-  fields: SpecField[];
-};
+// The kind vocabulary, the SpecField/SpecSection shapes and the coercion
+// helpers are the shared kit's (ADR 0097 decision 4). Re-exported here so the
+// three consumers, the tests and the round-trip script keep importing the
+// product_specs surface from one place.
+export {
+  toNumberOrNull,
+  type SpecField,
+  type SpecFieldKind,
+  type SpecFieldOption,
+  type SpecRuleViolation,
+  type SpecSection,
+} from "@/lib/spec-form";
 
 /**
  * The seven sections of design §3, in order, following the groupings the
@@ -160,13 +160,17 @@ export const SPEC_SECTIONS: SpecSection[] = [
       {
         name: "raid_level_display",
         label: "RAID level (as configured)",
-        kind: "raid-required",
+        kind: "enum-required",
+        ...RAID_SELECT,
+        emptyOptionLabel: "— select a level —",
         hint: "Drives the net-usable calculation.",
       },
       {
         name: "raid_level_alt_display",
         label: "Alternate RAID level (optional)",
-        kind: "raid-optional",
+        kind: "enum-optional",
+        ...RAID_SELECT,
+        emptyOptionLabel: "— none —",
         hint: "Only for boxes that ship configurable either way — the V100 (RAID 1 or JBOD). Leave blank otherwise.",
       },
       { name: "battery_raid", label: "Battery-backed RAID", kind: "text-optional", maxLength: 200 },
@@ -232,21 +236,6 @@ export type SpecRuleValues = {
   max_cameras?: number | null;
   max_cameras_h265?: number | null;
 };
-
-export type SpecRuleViolation = { field: string; message: string };
-
-/** "" / null / non-numeric text -> null. Lets the form feed raw input strings in. */
-export function toNumberOrNull(value: unknown): number | null {
-  if (value === null || value === undefined) return null;
-  if (typeof value === "number") return Number.isFinite(value) ? value : null;
-  if (typeof value === "string") {
-    const trimmed = value.trim();
-    if (trimmed === "") return null;
-    const n = Number(trimmed);
-    return Number.isFinite(n) ? n : null;
-  }
-  return null;
-}
 
 /** Parity rules that depend on the drive count, applied to whichever level column
  *  is being checked. Both columns feed usableCapacityTb(), so a drive count that
@@ -339,7 +328,7 @@ export function specWarnings(values: SpecRuleValues): string[] {
 }
 
 /** Every field, flattened — the schema builder and the form both walk this. */
-export const SPEC_FIELDS: SpecField[] = SPEC_SECTIONS.flatMap((s) => s.fields);
+export const SPEC_FIELDS: SpecField[] = flattenSpecFields(SPEC_SECTIONS);
 
 /** Field names in section order. Also the column list the pages select. */
 export const SPEC_FIELD_NAMES: string[] = SPEC_FIELDS.map((f) => f.name);
@@ -348,19 +337,9 @@ export const SPEC_FIELDS_BY_NAME: Record<string, SpecField> = Object.fromEntries
   SPEC_FIELDS.map((f) => [f.name, f]),
 );
 
-/**
- * A database row (or nothing, on the create form) as the display strings the
- * inputs take. Null becomes "" — which specInputFromFormData/blankToNull turns
- * back into null on the way out, so an untouched empty column round-trips
- * unchanged rather than becoming an empty string in the database.
- */
+/** The kit's row -> display strings helper, bound to this table's field list. */
 export function initialValuesFromRow(
   row: Record<string, unknown> | null,
 ): Record<string, string> {
-  const values: Record<string, string> = {};
-  for (const name of SPEC_FIELD_NAMES) {
-    const value = row?.[name];
-    values[name] = value === null || value === undefined ? "" : String(value);
-  }
-  return values;
+  return initialValuesFromRowForFields(SPEC_FIELD_NAMES, row);
 }

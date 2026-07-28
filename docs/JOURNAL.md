@@ -4,7 +4,90 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
-## 2026-07-28 — Datasheet Phase 2 build step 3: both amended migrations applied to production and verified
+## 2026-07-28 — Datasheet Phase 2 build step 2: the shared spec-form kit extracted, `/admin/specs` migrated onto it
+
+ADR 0096's revisit condition ("a second archetype's form makes the duplication worse than a
+generic editor would be") fired at ADR 0097 decision 4. This is that extraction, and nothing
+else: a pure refactor of the shipped, live `/admin/specs` surface with no user-visible change,
+no new field, no new column coverage, and no SQL.
+
+### Work done
+
+- **Created [`src/lib/spec-form/`](../src/lib/spec-form/)** — pure data + zod, no server
+  imports, so both admin surfaces, the node test runner and the round-trip scripts can import
+  it freely:
+  - [`fields.ts`](../src/lib/spec-form/fields.ts) — the `SpecFieldKind` union, the
+    `SpecField`/`SpecSection` shapes, the `isEnumField`/`isNumericKind`/`isRequiredKind`
+    predicates the renderer keys on, `toNumberOrNull`, `initialValuesFromRow` and
+    `specInputFromFormData` (both now taking the field-name list as their first argument, so
+    a second table binds its own).
+  - [`schema.ts`](../src/lib/spec-form/schema.ts) — `blankToNull` / `blankToNumber`, one
+    builder per kind, and `buildSpecSchema(fields, ruleViolations?)` + `parseSpecInput`.
+  - [`form-shell.tsx`](../src/lib/spec-form/form-shell.tsx) — `<SpecFormShell>`, the
+    section-walking renderer, lifted verbatim from the product_specs form.
+  - [`action-state.ts`](../src/lib/spec-form/action-state.ts) — `SpecActionState`. It moved
+    into the kit because the shell is what renders it; `actions.ts` now imports it as a type
+    only, which a `"use server"` module may do without adding a runtime export.
+- **Generalised the RAID select into `enum-required` / `enum-optional`** taking per-field
+  `options`. `emptyOptionLabel` and `invalidMessage` are **required** properties of an enum
+  field rather than kit defaults: a defaulted blank-option label would render
+  plausible-but-wrong copy on the appliance form and nothing would catch it. The two RAID
+  fields spread one local `RAID_SELECT` constant, so the primary and alternate levels cannot
+  drift. `family_type` and the matrix codec (ADR 0097 §4a/§4d) are the next two instances.
+- **The net-usable preview is the extras slot's first instance.** `extras` is a function of
+  the live values rather than a node, so a per-table extra can react to typing without the
+  shell knowing what it is reacting to. The preview itself is untouched and stays
+  product_specs-only — ADR 0097 §4f is explicit that appliance rows compute nothing and get
+  no preview.
+- **Migrated `/admin/specs` onto the kit.** What stayed per-table, by design: `fields.ts`
+  (sections, labels, hints, rules, warnings — 366 → 345 lines), `schema.ts` (assembly only,
+  220 → 49), `actions.ts`, the three pages, and the bespoke preview. The form component went
+  363 → 105 lines and now holds only what is actually product_specs': which fields must be
+  live, how their raw strings coerce, and the preview hanging off them.
+- **`schema.test.ts` (520 lines) was not touched** and passes unchanged — including its
+  `Object.keys(specFormSchema.shape)` coverage assertion, which is why `buildSpecSchema`
+  applies `superRefine` unconditionally (a conditional would have changed the returned type).
+  Added [`src/lib/spec-form/spec-form.test.ts`](../src/lib/spec-form/spec-form.test.ts), 24
+  tests over a small synthetic table, weighted toward the generalised enum kind.
+
+### Verification
+
+| Gate | Before | After |
+|---|---|---|
+| `tsc --noEmit` | clean | clean |
+| `npm test` | 317 pass / 0 fail | 341 pass / 0 fail (+24 kit tests) |
+| `eslint` on changed files | — | clean |
+| `next build` | — | succeeds (proves the `"use server"` type-only import is legal) |
+| round-trip PARSES / PRESERVES | 21 rows × 43/43 | 21 rows × 43/43 |
+| round-trip COVERS | 22 failures | 22 failures, same column names |
+
+The round-trip's 22 COVERS failures are the expected step-3 window (the 22 columns the apply
+added, unreachable until step 4 surfaces them) and are closed by step 4, not by this step. The
+stronger result: capturing the script's full stdout before and after and diffing them shows
+the two runs are **byte-identical**, every OK line included. For a refactor whose only claim is
+"nothing changed", that is the assertion worth having.
+
+### Detours & fixes
+
+- **Discriminated-union narrowing failed on the intersection form of `SpecField`.** With
+  `SpecEnumField = SpecFieldBase & { kind: "enum-required" | "enum-optional"; … }`, TypeScript
+  narrowed *positively* (inside `if (field.kind === "textarea-optional")`) but not
+  *negatively* — after an early `return` in the enum branch, `field.maxLength` still errored
+  with "does not exist on type SpecEnumField". Flattening both members to plain object types
+  did not fix it. What did: replacing the negative kind test with the `isEnumField` type
+  predicate, whose `field is SpecEnumField` signature gives TypeScript an explicit
+  `Exclude<SpecField, SpecEnumField>` for the remainder of the function. The flattened types
+  were kept anyway — the union reads better without the intersection.
+
+### Decision deferred, not taken silently
+
+Design §5 lists `date-optional` and `string-list` as kit contents, but their first consumers
+(`revision_date`, `security_features`) are step 4 fields. **Both are deferred to step 4**, so
+step 2 adds no kind without a caller — an untested kind sitting in the kit for a week is a
+kind whose blank-coercion behaviour (`string-list` must coerce blank to `[]`, never null,
+because the column is `NOT NULL DEFAULT '{}'`) would first be exercised by production data
+rather than by a test written alongside its field. The generalised enum kind was **not**
+deferrable: the RAID select is its first instance and had to keep working today.
 
 Andy applied both files via the dashboard SQL editor in the same session that amended them
 (build step 1, entry below). The datasheet data layer is now live and writable.

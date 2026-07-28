@@ -31,13 +31,13 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { dbError } from "@/lib/errors/safe-message";
 import { productGroupToFamilySlug } from "@/lib/price-book/families";
 import { usableCapacityTb } from "@/lib/capacity-utils";
+// The result shape is the shared kit's: <SpecFormShell> is what renders it, so
+// the contract belongs next to the renderer rather than in one table's actions.
+// Imported as a type only — a "use server" module may export nothing but async
+// functions.
+import type { SpecActionState } from "@/lib/spec-form";
 import { specWarnings, type SpecRuleValues } from "./fields";
 import { parseSpecForm, specInputFromFormData } from "./schema";
-
-export type SpecActionState =
-  | { status: "idle" }
-  | { status: "error"; error: string; fieldErrors?: Record<string, string[]> }
-  | { status: "ok"; message: string; warnings?: string[] };
 
 async function requireAdmin(): Promise<
   { ok: true; userId: string } | { ok: false; error: string }
