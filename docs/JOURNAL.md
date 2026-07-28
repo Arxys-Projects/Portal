@@ -4,6 +4,107 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-07-28 — Datasheet Phase 2 build step 5: `/admin/appliance-specs` — the second surface on the pattern
+
+Build step 3 applied `appliance_specs` (64 columns) to production and left it **empty and
+unreachable**: no form, no script, no seed. This is its write path. Three routes, one field
+list, 62 fields, admin-only at RLS / action / UI, no delete anywhere — and 14 live RLS
+assertions that say so from a real signed-in session, which a dashboard SQL editor structurally
+cannot.
+
+### Work done
+
+- **[`fields.ts`](../src/app/\(app\)/admin/appliance-specs/fields.ts)** — the 12 sections of
+  design §3, 62 fields = 64 columns minus the two trigger-owned provenance columns. Nearly
+  every field reuses a kit kind from steps 2/4 (`text-optional`, `int-optional`,
+  `textarea-optional`, `string-list`, `date-optional`, `enum-required`/`enum-optional`); the
+  archetype treatments are `family_type` as a closed select over the CHECK domain, the RAID
+  select minus `'NA'` (that entry exists only so the legacy V100 rows round-trip on
+  product_specs), and the camera matrix.
+- **`schema.ts` passes NO cross-field rule function, and that is the finding, not an omission.**
+  Nothing on this table can be refused from a single row: every archetype-specific column is
+  nullable by ADR 0090's "population is a template concern", and the one real invariant — the
+  `sheet_group` pairing — spans rows. So the safety design here is entirely warnings plus the
+  closed selects, and the form refuses nothing except malformed values.
+- **The cross-row `sheet_group` check, in three places that agree** (design §4b): a pure
+  `sheetGroupWarnings()` in fields.ts, called by the update action after a successful save (one
+  follow-up SELECT), by the edit page as an always-on panel — *"Sheet group V250 — shares its
+  datasheet with VX5-V255-MGM"* — and by the index, which groups its tables by sheet group and
+  shows the same warnings per group. The edit-page panel is also where a freshly created row's
+  group gets checked, since create redirects rather than returning a message.
+- **Archetype-conditional sections, warnings both directions.** The Workstation section hides on
+  a management/ACM row and `db_drive_desc` hides on a workstation row, driven by the live
+  `family_type`. A workstation with no GPU or an empty matrix warns; a management row with GPU
+  values warns and **names them**, because they are out of sight.
+- **[`roundtrip-appliance-specs.mts`](../scripts/roundtrip-appliance-specs.mts)** — same
+  PARSES / PRESERVES / COVERS shape as the product_specs script, with deep equality for the
+  jsonb matrix and the `text[]` list, `INTENTIONALLY_UNSURFACED = {updated_at, updated_by}`, and
+  an explicit empty-table exit 0 (the expected state until build step 6). It also prints the
+  sheet-group map, which no single row can see.
+- **[`test-rls.ts`](../scripts/test-rls.ts) block 22**, 14 tests mirroring block 21 against
+  `appliance_specs` and `appliance_specs_audit`. This closes apply-note check 8, left open at
+  build step 3: a SQL-editor session runs privileged, so only a real session can prove
+  internal-is-refused, **admin-DELETE-is-refused**, and that the triggers stamp a genuine
+  `auth.uid()`. 22j deliberately writes the jsonb and `text[]` columns, so the two non-scalar
+  kinds are exercised end to end at the database.
+- **Nav**: "Appliance Specs" beside "Product Specs", behind the same `adminOnly` flag.
+
+### Verification
+
+| Gate | Result |
+|---|---|
+| `npm test` | **416 pass / 0 fail** (was 372; +32 appliance schema, +12 kit) |
+| `tsc --noEmit` / eslint / `next build` | clean; all three routes compile |
+| `test-rls.ts` block 22 vs production | **14/14 PASS**, whole suite green |
+| appliance round-trip, empty table | `0 rows — coverage unchecked`, exit 0 |
+| appliance round-trip, one seeded row | **64 live columns, 62 form fields, 2 unsurfaced — every column reachable; 62/62 preserved** |
+| product_specs round-trip (regression) | 21 rows × 65/65, exit 0 — unchanged |
+
+The COVERS check would otherwise have gone unrun until step 6 (it reads the column list off a
+returned row, and there are none). So a throwaway `service_role` row was inserted, the
+round-trip run against it, and the row plus its audit rows deleted — the same pattern block 22
+uses, and it is what turned "62 fields ought to cover 64 columns" into a measured fact. The row
+carried a real camera matrix and security-features list, so the jsonb and `text[]` preservation
+is measured too. `appliance_specs` is back to 0 rows.
+
+### Detours & fixes
+
+- **Two design details could not both be built as written, and §3 won.** ADR 0097 §5 names the
+  matrix editor as the second instance of the kit's `extras` slot; §3 lists `camera_matrix` as a
+  field of the Workstation section. `extras` renders outside the section walk, so an "extra"
+  field would have no rendered input — and an input that does not render does not submit. Built
+  as a kit kind (`json-rows`) instead, rendering in its own section like every other field, so
+  the one-list-drives-everything invariant holds for the jsonb column too. Recorded as
+  [ADR 0100](./decisions/0100-json-rows-kit-kind-and-hidden-not-unmounted-sections.md).
+- **Conditional rendering would have silently blanked eleven columns.** §4e says hidden values
+  must be "preserved, never silently dropped", and the obvious React implementation does the
+  opposite: an unmounted input is absent from FormData, which every action here reads as null,
+  so switching a row to `management` and saving would have wiped the GPU block. The shell hides
+  with the `hidden` attribute and keeps the inputs mounted. Same ADR.
+- **Nested zod errors were invisible in the form, and had been since step 4.** The shell looks
+  up `fieldErrors[field.name]`, but an array issue's path is `camera_matrix.1.fps` — so a bad
+  matrix cell produced "Fix the highlighted fields" with nothing highlighted. `parseSpecInput`
+  now keys nested issues on the field and moves the position into the message (`Row 2: …`).
+  `security_features` had the same defect (`security_features.3`) and inherits the fix.
+- **A row with an unrecognised key is refused, not stripped.** zod's default `object()` would
+  drop it — and dropping is exactly the silent data loss the structured editor exists to
+  prevent, so the row shape is `strictObject`. The editor makes the same call: a stored value it
+  cannot represent is kept verbatim in the hidden input, shown in an amber panel, and the save
+  is refused until it is replaced.
+- **One test expectation of mine was wrong, not the code**: `"6 "` for a RAID level parses to
+  `"6"` — the kit trims before matching the enum, deliberately (step 2's own test asserts it).
+
+### Decisions captured
+
+- [`0100-json-rows-kit-kind-and-hidden-not-unmounted-sections.md`](./decisions/0100-json-rows-kit-kind-and-hidden-not-unmounted-sections.md)
+
+### What is left
+
+Build step 6 — Andy enters the seven rows through the form, then both round-trips are the
+acceptance check. `appliance_specs` stays empty until then, by design.
+
+---
+
 ## 2026-07-28 — Partner Pipeline: clickable Pipedrive deal links at both levels
 
 Andy's ask: from the grouped Partner Pipeline view you could see *that* a project had a

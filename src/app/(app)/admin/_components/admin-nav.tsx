@@ -24,6 +24,10 @@ const ITEMS: Array<{
   // ADR 0096 — editing product_specs changes customer-facing capacity figures,
   // so the surface is admin-only at the page, the action and RLS alike.
   { label: "Product Specs", href: "/admin/specs", adminOnly: true },
+  // ADR 0097 — the management / ACM / workstation companion table. Same
+  // admin-only treatment: these rows feed the datasheets and, once the Price
+  // Book overrides retire, its strings for those SKUs.
+  { label: "Appliance Specs", href: "/admin/appliance-specs", adminOnly: true },
 ];
 
 export default function AdminNav({

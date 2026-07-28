@@ -1571,6 +1571,317 @@ async function run() {
       await admin.from("product_specs").delete().like("id", "RLS-SPEC%");
       await admin.from("product_specs_audit").delete().like("spec_id", "RLS-SPEC%");
     }
+
+    // --- ADR 0097: appliance_specs admin-editable write path -----------------
+    // Migration 20260729000001 created appliance_specs already carrying the ADR
+    // 0096 pattern: SELECT read-open to authenticated, INSERT/UPDATE admin-only,
+    // DELETE UNGRANTED FOR EVERYONE, provenance stamped by a BEFORE trigger and
+    // an insert-only audit table written by a security-definer AFTER trigger.
+    // This block mirrors 21a-21n against that table.
+    //
+    // It is also the only place two of the apply-note's checks can be made at
+    // all. A dashboard SQL-editor session runs privileged and bypasses RLS, so
+    // the post-apply verification could inspect grants and policies but could
+    // not prove that a real signed-in non-admin is refused, or that an admin's
+    // DELETE is refused, or that the triggers stamp a real auth.uid() rather
+    // than null. Those are 22c-22d, 22i and 22j-22k below.
+    //
+    // Every assertion runs against a throwaway RLS-APPL-* row. The table is
+    // empty in production until the seven real rows are entered by hand (ADR
+    // 0097 §8), and nothing reads it yet — but the same rule applies as for
+    // block 21: a rejection test that unexpectedly succeeds must not be able to
+    // touch a row a datasheet renders from.
+    {
+      const applSeedId = `RLS-APPL-${Date.now()}`;
+      const applAdminId = `RLS-APPL-ADMIN-${Date.now()}`;
+      // Every NOT NULL column on appliance_specs. security_features is NOT NULL
+      // too, but DEFAULT '{}', so it is left out to prove the default holds.
+      const applRow = (id: string) => ({
+        id,
+        model_name: `RLS test ${id}`,
+        product_group: "V250",
+        family_type: "management",
+        sheet_group: `RLS-${id}`,
+        cpu_model: "RLS Test CPU",
+        ram_spec: "32GB DDR5 ECC",
+        os_edition: "RLS test",
+        form_factor: "1U Rackmount",
+      });
+
+      const { error: applSeedErr } = await admin
+        .from("appliance_specs")
+        .insert(applRow(applSeedId));
+      if (applSeedErr) {
+        record("22: seed appliance_specs row (service-role)", false, applSeedErr.message);
+      }
+
+      // Test 22a: partner A can SELECT appliance_specs (read-open, mirroring
+      // product_specs and camera_specs).
+      {
+        const { data, error } = await a.client
+          .from("appliance_specs")
+          .select("id, model_name")
+          .eq("id", applSeedId);
+        record(
+          "22a: partner can SELECT appliance_specs (read-open)",
+          !error && data?.length === 1,
+          error ? `error: ${error.message}` : `count=${data?.length}`,
+        );
+      }
+
+      // Test 22b: internal user can SELECT appliance_specs.
+      {
+        const { data, error } = await internalPersona.client
+          .from("appliance_specs")
+          .select("id")
+          .eq("id", applSeedId);
+        record(
+          "22b: internal user can SELECT appliance_specs",
+          !error && data?.length === 1,
+          error ? `error: ${error.message}` : `count=${data?.length}`,
+        );
+      }
+
+      // Test 22c: partner A cannot INSERT — with-check violation is an error.
+      {
+        const { error } = await a.client
+          .from("appliance_specs")
+          .insert(applRow(`RLS-APPL-PARTNER-${Date.now()}`));
+        record(
+          "22c: partner cannot INSERT appliance_specs (admin-only)",
+          Boolean(error),
+          error ? `blocked: ${error.message}` : "INSERT unexpectedly succeeded",
+        );
+      }
+
+      // Test 22d: internal user cannot INSERT. Writes are admin-only, NOT
+      // internal — the /admin layout admits both, so the pages and actions check
+      // isAdmin specifically and RLS is what actually enforces it.
+      {
+        const { error } = await internalPersona.client
+          .from("appliance_specs")
+          .insert(applRow(`RLS-APPL-INTERNAL-${Date.now()}`));
+        record(
+          "22d: internal user cannot INSERT appliance_specs (admin-only, not internal)",
+          Boolean(error),
+          error ? `blocked: ${error.message}` : "INSERT unexpectedly succeeded",
+        );
+      }
+
+      // Test 22e: partner A cannot UPDATE — no matching USING clause, so zero
+      // rows affected and the value is unchanged.
+      {
+        const { data, error } = await a.client
+          .from("appliance_specs")
+          .update({ model_name: "PARTNER EDIT" })
+          .eq("id", applSeedId)
+          .select("id");
+        const { data: after } = await admin
+          .from("appliance_specs")
+          .select("model_name")
+          .eq("id", applSeedId)
+          .single();
+        record(
+          "22e: partner cannot UPDATE appliance_specs",
+          (data?.length ?? 0) === 0 && after?.model_name === `RLS test ${applSeedId}`,
+          error
+            ? `error: ${error.message}`
+            : `affected=${data?.length} model_name=${after?.model_name}`,
+        );
+      }
+
+      // Test 22f: internal user cannot UPDATE either. These rows publish the
+      // management / ACM / workstation datasheets and, once the skuExtraData
+      // overrides retire, the Price Book strings for those SKUs.
+      {
+        const { data, error } = await internalPersona.client
+          .from("appliance_specs")
+          .update({ model_name: "INTERNAL EDIT" })
+          .eq("id", applSeedId)
+          .select("id");
+        const { data: after } = await admin
+          .from("appliance_specs")
+          .select("model_name")
+          .eq("id", applSeedId)
+          .single();
+        record(
+          "22f: internal user cannot UPDATE appliance_specs (admin-only, not internal)",
+          (data?.length ?? 0) === 0 && after?.model_name === `RLS test ${applSeedId}`,
+          error
+            ? `error: ${error.message}`
+            : `affected=${data?.length} model_name=${after?.model_name}`,
+        );
+      }
+
+      // Test 22g: partner A cannot DELETE — no grant at all, so this is a
+      // permission error rather than a silent zero-row no-op.
+      {
+        const { error } = await a.client
+          .from("appliance_specs")
+          .delete()
+          .eq("id", applSeedId)
+          .select("id");
+        const { count } = await admin
+          .from("appliance_specs")
+          .select("id", { count: "exact", head: true })
+          .eq("id", applSeedId);
+        record(
+          "22g: partner cannot DELETE appliance_specs",
+          Boolean(error) && count === 1,
+          error
+            ? `blocked: ${error.message} remaining=${count}`
+            : `DELETE unexpectedly succeeded, remaining=${count}`,
+        );
+      }
+
+      // Test 22h: admin CAN INSERT — the write path /admin/appliance-specs/new
+      // depends on, and the one all seven real rows arrive through. The insert
+      // omits security_features, so a pass also proves the NOT NULL DEFAULT '{}'
+      // holds for a payload that does not mention it.
+      {
+        const { data, error } = await adminPersona.client
+          .from("appliance_specs")
+          .insert(applRow(applAdminId))
+          .select("id");
+        record(
+          "22h: admin can INSERT appliance_specs",
+          !error && (data?.length ?? 0) === 1,
+          error ? `error: ${error.message}` : `inserted=${data?.length}`,
+        );
+      }
+
+      // Test 22i: admin CANNOT DELETE. The withheld grant (ADR 0097 decision 1):
+      // once the overrides retire these rows are the only source for those SKUs'
+      // Price Book strings and datasheets, so a deletion blanks them with no
+      // error anywhere — the ADR 0094 failure shape. service_role is the
+      // documented recovery path, which is what the cleanup below uses.
+      {
+        const { error } = await adminPersona.client
+          .from("appliance_specs")
+          .delete()
+          .eq("id", applAdminId)
+          .select("id");
+        const { count } = await admin
+          .from("appliance_specs")
+          .select("id", { count: "exact", head: true })
+          .eq("id", applAdminId);
+        record(
+          "22i: admin cannot DELETE appliance_specs (grant withheld, ADR 0097)",
+          Boolean(error) && count === 1,
+          error
+            ? `blocked: ${error.message} remaining=${count}`
+            : `DELETE unexpectedly succeeded, remaining=${count}`,
+        );
+      }
+
+      // Test 22j: admin CAN UPDATE, and the BEFORE trigger stamps updated_by
+      // with the real auth.uid(). Also exercises the jsonb and text[] columns
+      // the form's two non-scalar kinds write — the camera matrix and the
+      // security-features list.
+      {
+        const { error } = await adminPersona.client
+          .from("appliance_specs")
+          .update({
+            family_type: "workstation",
+            security_features: ["Secure Boot", "Signed firmware"],
+            camera_matrix: [
+              { resolution: "1080p", codec: "H.265", fps: 15, cameras: 64, bandwidth_mbps: 125 },
+            ],
+          })
+          .eq("id", applAdminId);
+        const { data: after } = await admin
+          .from("appliance_specs")
+          .select("family_type, security_features, camera_matrix, updated_by, updated_at")
+          .eq("id", applAdminId)
+          .single();
+        const matrix = after?.camera_matrix as { cameras?: number }[] | null;
+        record(
+          "22j: admin can UPDATE appliance_specs and updated_by is stamped",
+          !error &&
+            after?.family_type === "workstation" &&
+            (after?.security_features as string[] | null)?.length === 2 &&
+            matrix?.[0]?.cameras === 64 &&
+            after?.updated_by === adminPersona.id,
+          error
+            ? `error: ${error.message}`
+            : `family_type=${after?.family_type} updated_by=${after?.updated_by === adminPersona.id ? "admin" : after?.updated_by}`,
+        );
+      }
+
+      // Test 22k: the AFTER trigger recorded both admin writes, with changed_by
+      // resolved and `before` null on the insert / populated on the update. The
+      // two-trigger split (BEFORE stamps, AFTER records) is what puts the
+      // provenance columns inside the `after` snapshot.
+      {
+        const { data, error } = await admin
+          .from("appliance_specs_audit")
+          .select("operation, changed_by, before, after")
+          .eq("spec_id", applAdminId)
+          .order("id");
+        const ins = data?.find((r) => r.operation === "insert");
+        const upd = data?.find((r) => r.operation === "update");
+        const updAfter = upd?.after as { family_type?: string; updated_by?: string } | null;
+        record(
+          "22k: audit trigger recorded the admin insert + update with changed_by",
+          !error &&
+            data?.length === 2 &&
+            ins?.before === null &&
+            ins?.changed_by === adminPersona.id &&
+            upd?.before !== null &&
+            upd?.changed_by === adminPersona.id &&
+            updAfter?.family_type === "workstation" &&
+            updAfter?.updated_by === adminPersona.id,
+          error ? `error: ${error.message}` : `rows=${data?.length}`,
+        );
+      }
+
+      // Test 22l: partner A cannot SELECT the audit table — admin-only, and a
+      // policy miss returns zero rows rather than an error.
+      {
+        const { data, error } = await a.client
+          .from("appliance_specs_audit")
+          .select("id")
+          .eq("spec_id", applAdminId);
+        record(
+          "22l: partner cannot SELECT appliance_specs_audit (admin-only)",
+          !error && (data?.length ?? 0) === 0,
+          error ? `error: ${error.message}` : `count=${data?.length}`,
+        );
+      }
+
+      // Test 22m: partner A cannot INSERT into the audit table either — no
+      // grant, so history cannot be forged from a client.
+      {
+        const { error } = await a.client.from("appliance_specs_audit").insert({
+          spec_id: applAdminId,
+          operation: "update",
+          after: { forged: true },
+        });
+        record(
+          "22m: partner cannot INSERT appliance_specs_audit (no grant, trigger-only)",
+          Boolean(error),
+          error ? `blocked: ${error.message}` : "INSERT unexpectedly succeeded",
+        );
+      }
+
+      // Test 22n: admin CAN read the audit table.
+      {
+        const { data, error } = await adminPersona.client
+          .from("appliance_specs_audit")
+          .select("id, operation")
+          .eq("spec_id", applAdminId);
+        record(
+          "22n: admin can SELECT appliance_specs_audit",
+          !error && (data?.length ?? 0) === 2,
+          error ? `error: ${error.message}` : `count=${data?.length}`,
+        );
+      }
+
+      // Cleanup via service-role — the only path that can remove either table's
+      // rows, which is the point of 22i.
+      await admin.from("appliance_specs").delete().like("id", "RLS-APPL%");
+      await admin.from("appliance_specs_audit").delete().like("spec_id", "RLS-APPL%");
+    }
   } finally {
     await teardownPersona(a);
     await teardownPersona(b);

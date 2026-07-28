@@ -23,6 +23,9 @@ import { z } from "zod";
 import type {
   SpecEnumField,
   SpecField,
+  SpecJsonColumn,
+  SpecJsonRow,
+  SpecJsonRowsField,
   SpecPlainField,
   SpecRuleViolation,
 } from "./fields";
@@ -165,6 +168,101 @@ export function stringList(field: SpecPlainField) {
   );
 }
 
+/**
+ * A value that was submitted as a string and did not survive `JSON.parse`.
+ * Carried through the preprocessor as a marker so the array's error function can
+ * tell "the editor sent something that is not JSON at all" apart from "this is
+ * JSON, but not a list of rows" — two different things for an editor to fix.
+ */
+const NOT_JSON = Symbol("not-json");
+
+function jsonColumnSchema(column: SpecJsonColumn): z.ZodType {
+  // No row number here: one column schema is shared by every row, so it cannot
+  // know its own index. parseSpecInput reads the issue path and prefixes
+  // "Row N:" — see issueKeyAndMessage below.
+  const where = column.label;
+  if (column.kind === "int-positive") {
+    return z.preprocess(
+      blankToNumber,
+      z
+        .number({ error: numberError(where) })
+        .int({ error: `${where} must be a whole number.` })
+        .positive({ error: `${where} must be greater than 0.` }),
+    );
+  }
+  if (column.kind === "enum") {
+    const options = column.options ?? [];
+    return z.preprocess(
+      blankToNull,
+      z.enum(options.map((o) => o.value) as [string, ...string[]], {
+        error: `${where} must be one of: ${options.map((o) => o.value).join(", ")}.`,
+      }),
+    );
+  }
+  return z.preprocess(
+    blankToNull,
+    z
+      .string({ error: `${where} is required.` })
+      .min(1, { error: `${where} is required.` })
+      .max(column.maxLength ?? 80, {
+        error: `${where} must be ${column.maxLength ?? 80} characters or fewer.`,
+      }),
+  );
+}
+
+/**
+ * A nullable `jsonb` column holding an array of flat records (the `json-rows`
+ * kind — ADR 0097 §4d).
+ *
+ * Both input shapes reach it, as everywhere else in this file: the browser posts
+ * the editor's hidden input as a JSON **string**, and a production row arrives
+ * as a real array. Blank submits as null; a row missing a key, carrying an extra
+ * one, or holding a non-numeric count is REFUSED with a message naming the row
+ * and the column — `strictObject` rather than `object`, because stripping an
+ * unrecognised key would silently discard whatever the previous write had put
+ * there.
+ */
+export function jsonRows(field: SpecJsonRowsField) {
+  const row = z.strictObject(
+    Object.fromEntries(
+      field.columns.map((c) => [c.key, jsonColumnSchema(c)]),
+    ) as Record<string, z.ZodType>,
+    {
+      // Two different failures reach this message, and telling them apart is
+      // the difference between a fixable error and a puzzle: a row that is not
+      // an object at all, and a row carrying a key this field does not know.
+      error: (issue) =>
+        "keys" in issue && Array.isArray(issue.keys)
+          ? `has ${issue.keys.length === 1 ? "an unexpected key" : "unexpected keys"}: ${issue.keys.join(", ")}. The known columns are: ${field.columns.map((c) => c.key).join(", ")}.`
+          : `must be an object with the keys: ${field.columns.map((c) => c.key).join(", ")}.`,
+    },
+  );
+
+  return z.preprocess(
+    (value) => {
+      if (value === undefined || value === null) return null;
+      if (typeof value === "string") {
+        const trimmed = value.trim();
+        if (trimmed === "") return null;
+        try {
+          return JSON.parse(trimmed);
+        } catch {
+          return NOT_JSON;
+        }
+      }
+      return value;
+    },
+    z
+      .array(row, {
+        error: (issue) =>
+          issue.input === NOT_JSON
+            ? `${field.label} could not be read — the editor submitted something that is not valid JSON. Re-enter the rows.`
+            : `${field.label} must be a list of rows.`,
+      })
+      .nullable(),
+  );
+}
+
 function enumValues(field: SpecEnumField) {
   return z.enum(field.options.map((o) => o.value) as [string, ...string[]], {
     error: field.invalidMessage,
@@ -212,6 +310,8 @@ export function schemaForField(field: SpecField): z.ZodType {
       return requiredEnum(field);
     case "enum-optional":
       return optionalEnum(field);
+    case "json-rows":
+      return jsonRows(field);
   }
 }
 
@@ -255,14 +355,43 @@ export function buildSpecSchema(
 }
 
 /**
- * A parsed row: every column the form owns, coerced. `string[]` is the
- * `string-list` kind's output — the only non-scalar, and never null.
+ * A parsed row: every column the form owns, coerced. The two non-scalars are
+ * the `string-list` kind's output (never null) and the `json-rows` kind's array
+ * of row objects (nullable).
  */
-export type SpecFormValues = Record<string, string | number | string[] | null>;
+export type SpecFormValues = Record<
+  string,
+  string | number | string[] | SpecJsonRow[] | null
+>;
 
 export type SpecParseResult =
   | { ok: true; values: SpecFormValues }
   | { ok: false; fieldErrors: Record<string, string[]> };
+
+/**
+ * Which input an issue belongs under, and what to say about it.
+ *
+ * The scalar kinds produce a one-segment path, so the key is the field name and
+ * the message is used as written. The two list kinds nest — `security_features.2`
+ * for a `string-list` entry, `camera_matrix.1.fps` for a `json-rows` cell — and
+ * an error keyed on a path is an error the form cannot display: the shell looks
+ * up `fieldErrors[field.name]`, so a nested key means the editor is told to "fix
+ * the highlighted fields" with nothing highlighted. Both therefore land on the
+ * field, with the position moved into the message where a human can read it.
+ */
+function issueKeyAndMessage(issue: { path: PropertyKey[]; message: string }): {
+  key: string;
+  message: string;
+} {
+  const [head, index] = issue.path;
+  if (head === undefined) return { key: "_form", message: issue.message };
+  const key = String(head);
+  if (typeof index !== "number") return { key, message: issue.message };
+  // One wording for both list kinds: a `string-list` renders one entry per line
+  // and a `json-rows` one record per row, so "Row 3" names the same thing the
+  // editor is looking at either way.
+  return { key, message: `Row ${index + 1}: ${issue.message}` };
+}
 
 export function parseSpecInput(
   schema: z.ZodType,
@@ -274,8 +403,8 @@ export function parseSpecInput(
   }
   const fieldErrors: Record<string, string[]> = {};
   for (const issue of parsed.error.issues) {
-    const key = issue.path.join(".") || "_form";
-    (fieldErrors[key] ??= []).push(issue.message);
+    const { key, message } = issueKeyAndMessage(issue);
+    (fieldErrors[key] ??= []).push(message);
   }
   return { ok: false, fieldErrors };
 }

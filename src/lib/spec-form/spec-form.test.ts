@@ -7,6 +7,7 @@ import {
   flattenSpecFields,
   initialValuesFromRow,
   isEnumField,
+  isJsonRowsField,
   isNumericKind,
   isRequiredKind,
   isWideKind,
@@ -64,6 +65,23 @@ const SECTIONS: SpecSection[] = [
       },
     ],
   },
+  {
+    title: "Rows",
+    fields: [
+      {
+        name: "matrix",
+        label: "Matrix",
+        kind: "json-rows",
+        columns: [
+          { key: "label", label: "Label", kind: "text", maxLength: 10 },
+          { key: "shade", label: "Shade", kind: "enum", options: COLOUR_OPTIONS },
+          { key: "count", label: "Count", kind: "int-positive" },
+        ],
+        addRowLabel: "Add a row",
+        emptyLabel: "No rows.",
+      },
+    ],
+  },
 ];
 
 const FIELDS = flattenSpecFields(SECTIONS);
@@ -83,9 +101,13 @@ function validRow(overrides: Record<string, unknown> = {}) {
     tags: [],
     colour: "red",
     accent: null,
+    matrix: null,
     ...overrides,
   };
 }
+
+/** One well-formed json-rows row, as Postgres stores it. */
+const MATRIX_ROW = { label: "1080p", shade: "red", count: 64 };
 
 function expectOk(input: unknown, s = schema) {
   const result = parseSpecInput(s, input);
@@ -121,6 +143,7 @@ describe("buildSpecSchema", () => {
       "tags",
       "colour",
       "accent",
+      "matrix",
     ]);
     assert.deepEqual(Object.keys(schema.shape).sort(), [...FIELD_NAMES].sort());
   });
@@ -267,9 +290,12 @@ describe("string-list", () => {
   });
 
   it("caps each entry, not the list as a whole", () => {
+    // The error lands on the FIELD, with the entry number in the message: the
+    // shell looks up fieldErrors by field name, so a 'tags.0' key would leave
+    // the editor with "fix the highlighted fields" and nothing highlighted.
     assert.match(
-      expectFieldError(validRow({ tags: "x".repeat(21) }), "tags.0"),
-      /must be 20 characters or fewer/,
+      expectFieldError(validRow({ tags: "x".repeat(21) }), "tags"),
+      /^Row 1: .*must be 20 characters or fewer/,
     );
     // Many short entries are fine — the limit is per item.
     assert.deepEqual(
@@ -289,6 +315,116 @@ describe("string-list", () => {
     const tags = FIELDS.find((f) => f.name === "tags") as SpecField;
     assert.equal(isRequiredKind(tags), false);
     assert.equal(isWideKind(tags), true);
+  });
+});
+
+describe("json-rows (ADR 0100 — the camera matrix's kind)", () => {
+  it("accepts a real jsonb array straight out of Postgres", () => {
+    assert.deepEqual(expectOk(validRow({ matrix: [MATRIX_ROW] })).matrix, [MATRIX_ROW]);
+  });
+
+  it("accepts the same rows as the JSON string the hidden input posts", () => {
+    // The two input shapes must agree, or the live round-trip cannot feed a
+    // production row through the same parser the browser posts to.
+    assert.deepEqual(
+      expectOk(validRow({ matrix: JSON.stringify([MATRIX_ROW]) })).matrix,
+      [MATRIX_ROW],
+    );
+  });
+
+  it("coerces the editor's cell strings to the column types", () => {
+    // Every cell in the editor is an <input>, so the numbers arrive as strings;
+    // the stored jsonb must hold real numbers or the template's arithmetic and
+    // the round-trip's comparison both break.
+    const values = expectOk(
+      validRow({ matrix: JSON.stringify([{ label: "1080p", shade: "red", count: "64" }]) }),
+    );
+    assert.deepEqual(values.matrix, [MATRIX_ROW]);
+  });
+
+  it("treats blank as null — an empty matrix is no matrix, not []", () => {
+    for (const blank of ["", "   ", null, undefined]) {
+      assert.equal(expectOk(validRow({ matrix: blank })).matrix, null);
+    }
+  });
+
+  it("refuses text that is not JSON at all, and says so", () => {
+    assert.match(
+      expectFieldError(validRow({ matrix: "{not json" }), "matrix"),
+      /not valid JSON/,
+    );
+  });
+
+  it("refuses JSON that is not a list of rows", () => {
+    for (const bad of ['{"label":"1080p"}', '"1080p"', "42"]) {
+      assert.match(
+        expectFieldError(validRow({ matrix: bad }), "matrix"),
+        /must be a list of rows/,
+      );
+    }
+  });
+
+  it("refuses a row with a missing key, naming the row", () => {
+    assert.match(
+      expectFieldError(
+        validRow({ matrix: [{ label: "1080p", shade: "red" }] }),
+        "matrix",
+      ),
+      /^Row 1: Count is required\./,
+    );
+  });
+
+  it("refuses a row with an unrecognised key rather than stripping it", () => {
+    // Stripping would silently discard whatever a previous write put there —
+    // the failure mode this kind exists to close (ADR 0090's unvalidated JSONB).
+    assert.match(
+      expectFieldError(
+        validRow({ matrix: [{ ...MATRIX_ROW, fps: 30 }] }),
+        "matrix",
+      ),
+      /^Row 1: .*unexpected key: fps/,
+    );
+  });
+
+  it("refuses an out-of-domain enum cell and a non-positive count", () => {
+    assert.match(
+      expectFieldError(validRow({ matrix: [{ ...MATRIX_ROW, shade: "crimson" }] }), "matrix"),
+      /^Row 1: Shade must be one of: red, blue\./,
+    );
+    assert.match(
+      expectFieldError(validRow({ matrix: [{ ...MATRIX_ROW, count: 0 }] }), "matrix"),
+      /^Row 1: Count must be greater than 0\./,
+    );
+    assert.match(
+      expectFieldError(validRow({ matrix: [{ ...MATRIX_ROW, count: "thirty" }] }), "matrix"),
+      /^Row 1: Count must be a number\./,
+    );
+  });
+
+  it("numbers the row an error is in, not just the first one", () => {
+    assert.match(
+      expectFieldError(
+        validRow({ matrix: [MATRIX_ROW, { ...MATRIX_ROW, count: -1 }] }),
+        "matrix",
+      ),
+      /^Row 2: /,
+    );
+  });
+
+  it("renders a stored matrix back as the JSON its hidden input carries", () => {
+    // The kit's row -> display-string helper must not join a jsonb array with
+    // newlines the way it joins a text[]: that would render "[object Object]".
+    const values = initialValuesFromRow(FIELD_NAMES, validRow({ matrix: [MATRIX_ROW] }));
+    assert.equal(values.matrix, JSON.stringify([MATRIX_ROW]));
+    assert.deepEqual(expectOk(values).matrix, [MATRIX_ROW]);
+  });
+
+  it("is a wide, optional field the renderer keys off its own predicate", () => {
+    const matrix = FIELDS.find((f) => f.name === "matrix") as SpecField;
+    assert.equal(isJsonRowsField(matrix), true);
+    assert.equal(isEnumField(matrix), false);
+    assert.equal(isRequiredKind(matrix), false);
+    assert.equal(isWideKind(matrix), true);
   });
 });
 

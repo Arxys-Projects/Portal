@@ -9,9 +9,11 @@
 > `update` row (`before` set), both snapshotting all **64** columns, so the BEFORE stamp and the
 > AFTER audit both fire; `product_specs` still has its 21 rows and now **68** columns, and a
 > no-op update proved the existing ADR 0096 triggers picked the 22 new columns up automatically
-> — snapshot width 46 → 68, no write-path work needed. Check 8 (non-admin write refused, admin
-> DELETE refused with a real `auth.uid()`) still needs test-rls block 22, which lands with the
-> surface in build step 5; check 3's grant/policy inspection is the evidence until then.
+> — snapshot width 46 → 68, no write-path work needed. **Check 8 now passes too**: test-rls
+> block 22 landed with the appliance surface in build step 5 and its 14 assertions run green
+> against production — internal INSERT/UPDATE refused, partner refused, **admin DELETE refused**,
+> `updated_by` / `changed_by` stamped with a real `auth.uid()`, and the audit table
+> admin-SELECT-only with client INSERT refused.
 > Check 10 confirmed as designed: `roundtrip-product-specs.mts` now reports **22 failures**,
 > naming exactly the new columns, with PARSES and PRESERVES green (21 rows, 43/43 fields).
 > Build step 4 closes that window. The rest of this note is kept as the record of what was
@@ -180,13 +182,11 @@ neither leaves the other in a broken state. Against the already-applied `2026072
    **`scripts/test-rls.ts` block 22** mirrors block 21 (a–n) against `appliance_specs` —
    SELECT open to both roles, INSERT/UPDATE admin-only with internal refused, DELETE refused
    for partner **and admin**, provenance stamped on an admin write, and
-   `appliance_specs_audit` admin-SELECT-only with insert refused. Block 22 lands with the
-   surface in build step 5; run it then:
+   `appliance_specs_audit` admin-SELECT-only with insert refused.
+   **Landed and run green in build step 5 (2026-07-28), 14/14:**
    ```bash
    node --env-file=.env.local --import tsx scripts/test-rls.ts
    ```
-   Until then, check 3's grant/policy inspection is the available evidence that DELETE is
-   unreachable.
 9. `npx tsc --noEmit` clean and `npm test` green — no app code reads any of this yet, so
    nothing should move.
 
@@ -226,10 +226,11 @@ Still open only in the sense that they are cheap to change *before* rows exist:
 - Neither migration will show as applied in `supabase migration list` — dashboard applies do
   not write the CLI's history table. That is expected for stop-and-flag migrations here;
   **do not "fix" it with `db push`**, which would try to re-run them.
-- Build steps 4–6 unblock: the `product_specs` form extension, the `appliance_specs` surface
-  (+ `roundtrip-appliance-specs.mts` + test-rls block 22), then entry of the seven appliance
-  rows and the 22 additive values across the 21 rack rows. Step 2 (the shared
-  `src/lib/spec-form/` kit) is independent and can land either side of this apply.
+- Build steps 4–6 unblock: the `product_specs` form extension (**done**), the `appliance_specs`
+  surface + `roundtrip-appliance-specs.mts` + test-rls block 22 (**done**), then entry of the
+  seven appliance rows and the 22 additive values across the 21 rack rows (step 6, outstanding).
+  Step 2 (the shared `src/lib/spec-form/` kit) is independent and can land either side of this
+  apply.
 - If you need to back either one out, the rollbacks are exact reverses. Note that the
   `appliance_specs` rollback **drops both tables**, discarding any entered rows and their
   audit history — export first if entry has started.

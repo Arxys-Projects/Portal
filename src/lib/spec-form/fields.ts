@@ -21,6 +21,9 @@
 /** One choice in an `enum-required` / `enum-optional` select. */
 export type SpecFieldOption = { value: string; label: string };
 
+/** One row of a `json-rows` field, as it is stored in the jsonb column. */
+export type SpecJsonRow = Record<string, string | number>;
+
 export type SpecFieldKind =
   /** Primary key. Required, and read-only once the row exists. */
   | "id"
@@ -46,7 +49,13 @@ export type SpecFieldKind =
   /** Closed option list, required. See SpecEnumField. */
   | "enum-required"
   /** Closed option list, nullable; blank submits as null. */
-  | "enum-optional";
+  | "enum-optional"
+  /**
+   * A nullable `jsonb` column holding an array of flat records — rendered as an
+   * editable table of rows with a fixed set of typed columns, serialised into
+   * one hidden input. See SpecJsonRowsField.
+   */
+  | "json-rows";
 
 /**
  * A field whose value must come from a closed list.
@@ -76,18 +85,63 @@ export type SpecEnumField = {
   invalidMessage: string;
 };
 
+/** One column of a `json-rows` field's row shape. */
+export type SpecJsonColumn = {
+  /** The key inside each stored row object. */
+  key: string;
+  label: string;
+  kind: "text" | "int-positive" | "enum";
+  /** Required — and only read — when `kind` is "enum". */
+  options?: readonly SpecFieldOption[];
+  /** Max characters, "text" columns only. */
+  maxLength?: number;
+  placeholder?: string;
+};
+
+/**
+ * A nullable `jsonb` column holding an array of flat records with a KNOWN row
+ * shape, edited as a table rather than as raw JSON.
+ *
+ * Its first instance is `appliance_specs.camera_matrix` (ADR 0097 §4d), whose
+ * five keys the datasheet template reads by name. ADR 0090 logged "the camera
+ * matrix's internal shape is unvalidated JSONB" as a negative; a JSON textarea
+ * would have left it that way — a missing key or a fps typed as "30 " reaches
+ * the template as silently wrong output, and the form is the only write path,
+ * so this kind is where that closes.
+ *
+ * The kit owns the *mechanism* (a table of typed cells, add/remove row, one
+ * hidden input, a zod array-of-objects built from `columns`). The per-table
+ * field list owns which columns exist and what they are called — the same split
+ * as every other kind here.
+ */
+export type SpecJsonRowsField = {
+  name: string;
+  label: string;
+  /** Shown under the editor. */
+  hint?: string;
+  kind: "json-rows";
+  columns: readonly SpecJsonColumn[];
+  /** Label for the add-row button, e.g. "Add a matrix row". */
+  addRowLabel: string;
+  /** Shown in place of the table when there are no rows. */
+  emptyLabel: string;
+};
+
 /** Every other kind: free text and numbers. */
 export type SpecPlainField = {
   name: string;
   label: string;
   /** Shown under the input. Reserved for the fields that carry real risk. */
   hint?: string;
-  kind: Exclude<SpecFieldKind, "enum-required" | "enum-optional">;
+  kind: Exclude<
+    SpecFieldKind,
+    "enum-required" | "enum-optional" | "json-rows"
+  >;
   /** Max characters for text kinds. */
   maxLength?: number;
 };
 
-export type SpecField = SpecPlainField | SpecEnumField;
+export type SpecField = SpecPlainField | SpecEnumField | SpecJsonRowsField;
 
 export type SpecSection = {
   title: string;
@@ -101,6 +155,10 @@ export type SpecRuleViolation = { field: string; message: string };
 
 export function isEnumField(field: SpecField): field is SpecEnumField {
   return field.kind === "enum-required" || field.kind === "enum-optional";
+}
+
+export function isJsonRowsField(field: SpecField): field is SpecJsonRowsField {
+  return field.kind === "json-rows";
 }
 
 export function isNumericKind(field: SpecField): boolean {
@@ -127,7 +185,12 @@ export function isRequiredKind(field: SpecField): boolean {
  * content.
  */
 export function isWideKind(field: SpecField): boolean {
-  return field.kind === "textarea-optional" || field.kind === "string-list";
+  return (
+    field.kind === "textarea-optional" ||
+    field.kind === "string-list" ||
+    // A row editor is a table; half a grid column is never the right width.
+    field.kind === "json-rows"
+  );
 }
 
 /** Every field of every section, flattened in section order. */
@@ -158,6 +221,14 @@ export function toNumberOrNull(value: unknown): number | null {
  * which is how the `string-list` textarea renders and re-parses it. `String()`
  * on an array would produce "a,b" — comma-joined, and then split back into a
  * single item on the way in.
+ *
+ * A `jsonb` array-of-objects (the `json-rows` kind) arrives as an array too,
+ * and is serialised back to JSON — the string its hidden input carries and its
+ * zod builder re-parses. Joining THAT with newlines would render
+ * "[object Object]" per row, so the two array shapes are told apart by their
+ * elements rather than by the kind: this helper is bound to a list of field
+ * NAMES, not fields, so that the product_specs surface's existing binding keeps
+ * working untouched.
  */
 export function initialValuesFromRow(
   fieldNames: readonly string[],
@@ -169,7 +240,13 @@ export function initialValuesFromRow(
     if (value === null || value === undefined) {
       values[name] = "";
     } else if (Array.isArray(value)) {
-      values[name] = value.join("\n");
+      // An empty array renders as "" whichever kind it belongs to: `string-list`
+      // coerces blank back to [], and `json-rows` coerces it to null — the form
+      // never writes an empty matrix as [], so a stored [] would show up as
+      // round-trip drift rather than being silently rewritten.
+      if (value.length === 0) values[name] = "";
+      else if (value.every((v) => typeof v === "string")) values[name] = value.join("\n");
+      else values[name] = JSON.stringify(value);
     } else {
       values[name] = String(value);
     }

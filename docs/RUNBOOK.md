@@ -226,6 +226,18 @@ This is the acceptance check for the `/admin/specs` form, and it catches a class
 unit tests structurally cannot — see [ADR 0096](./decisions/0096-product-specs-canonical-admin-editable.md)
 and the script's own header.
 
+Then the same check for the `/admin/appliance-specs` form:
+
+```bash
+node --env-file=.env.local --import tsx scripts/roundtrip-appliance-specs.mts
+```
+
+Also read-only. On a fresh project `appliance_specs` is **empty** — the seven management / ACM /
+workstation rows are typed in through the admin form and are never seeded by a migration
+([ADR 0097](./decisions/0097-datasheet-surfaces-join-admin-editable-pattern.md) §8) — so the
+expected output is `0 rows — nothing to round-trip yet, coverage unchecked.` and exit 0. Once
+the rows are entered it reports `7 live rows … every live column is reachable`.
+
 ## 8. Supabase: configure auth URLs
 
 In the dashboard at **Authentication → URL Configuration**:
@@ -341,6 +353,7 @@ Always use the alias in remote URLs: `git@github.com-arxys:Arxys-Projects/Portal
 | Direct TypeScript check (faster than `next build`'s in-process check) | `npx tsc --noEmit` |
 | Run RLS regression suite | `node --env-file=.env.local --import tsx scripts/test-rls.ts` |
 | Round-trip live `product_specs` through the admin form's schema (read-only) | `node --env-file=.env.local --import tsx scripts/roundtrip-product-specs.mts` |
+| Round-trip live `appliance_specs` through its admin form's schema (read-only) | `node --env-file=.env.local --import tsx scripts/roundtrip-appliance-specs.mts` |
 | Create a new admin user | `node --env-file=.env.local --import tsx scripts/bootstrap-admin.ts --email ... --name ... --company ...` |
 | New migration | `supabase migration new <name>` (creates a timestamped empty SQL file) |
 | Apply pending migrations | `SUPABASE_DB_PASSWORD='...' supabase db push` |

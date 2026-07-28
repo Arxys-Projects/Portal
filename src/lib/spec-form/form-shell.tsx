@@ -18,18 +18,29 @@
 // fields the browser owns.
 //
 // WHAT STAYS PER-TABLE. `extras` is the slot for the treatments that only make
-// sense for one table: the net-usable preview on product_specs (ADR 0096 §4b),
-// the camera-matrix editor on appliance_specs (ADR 0097 §4d). It is a function
-// of the live values, not a node, so an extra can react to typing without the
-// shell knowing what it is reacting to. `liveChecks` is the same arrangement
-// for the rules and warnings, whose conditions live next to each table's field
-// metadata.
+// sense for one table: the net-usable preview on product_specs (ADR 0096 §4b).
+// It is a function of the live values, not a node, so an extra can react to
+// typing without the shell knowing what it is reacting to. `liveChecks` is the
+// same arrangement for the rules and warnings, whose conditions live next to
+// each table's field metadata. The camera-matrix editor is NOT an extra: it is
+// the `json-rows` kind, rendered in its own section like every other field, so
+// the field list keeps driving the whole form (ADR 0100).
+//
+// HIDING IS NOT UNMOUNTING. `hiddenSections` / `hiddenFields` visually collapse
+// parts of the form that do not apply to the archetype being edited (ADR 0097
+// §4e: the Workstation block on a management row). The inputs stay MOUNTED and
+// keep submitting — an unmounted input is absent from FormData, which every
+// action here reads as null, so unmounting a filled field would silently blank
+// the column on the next save. What the editor gets instead is a warning naming
+// what is set out of view. Only nullable fields may be hidden: a hidden
+// `required` input makes the browser refuse to submit with nothing to focus.
 
 import Link from "next/link";
 import { useActionState, useState, type ReactNode } from "react";
 import { Button, Select } from "@/app/(app)/_components/ui";
 import {
   isEnumField,
+  isJsonRowsField,
   isNumericKind,
   isRequiredKind,
   isWideKind,
@@ -37,6 +48,7 @@ import {
   type SpecRuleViolation,
   type SpecSection,
 } from "./fields";
+import { JsonRowsEditor } from "./json-rows-editor";
 import type { SpecActionState } from "./action-state";
 
 const INITIAL: SpecActionState = { status: "idle" };
@@ -89,6 +101,8 @@ export function SpecFormShell({
   liveFields = [],
   liveChecks,
   extras,
+  hiddenSections,
+  hiddenFields,
   idPlaceholder,
   backHref,
   backLabel,
@@ -109,6 +123,10 @@ export function SpecFormShell({
   liveChecks?: (live: SpecLiveValues) => SpecLiveChecks;
   /** The per-table slot, rendered above the fields. */
   extras?: (live: SpecLiveValues) => ReactNode;
+  /** Section titles to collapse for the current live values. Kept mounted. */
+  hiddenSections?: (live: SpecLiveValues) => readonly string[];
+  /** Field names to collapse for the current live values. Kept mounted. */
+  hiddenFields?: (live: SpecLiveValues) => readonly string[];
   /** Placeholder for the `id` input on the create form. */
   idPlaceholder?: string;
   backHref: string;
@@ -133,6 +151,9 @@ export function SpecFormShell({
     warnings: [],
   };
   const violationByField = new Map(violations.map((v) => [v.field, v.message]));
+
+  const hiddenSectionTitles = new Set(hiddenSections?.(live) ?? []);
+  const hiddenFieldNames = new Set(hiddenFields?.(live) ?? []);
 
   const serverFieldErrors = state.status === "error" ? state.fieldErrors : undefined;
 
@@ -197,6 +218,20 @@ export function SpecFormShell({
             </option>
           ))}
         </Select>
+      );
+    }
+
+    if (isJsonRowsField(field)) {
+      // The editor owns its rows and serialises them into one hidden input, so
+      // there is nothing for the shell to control. When the field is live it
+      // reports the serialised value up, which is how a warning can react to a
+      // matrix being emptied.
+      return (
+        <JsonRowsEditor
+          field={field}
+          initialJson={initialValues[field.name] ?? ""}
+          onChange={isLive ? (json) => setLiveField(field.name, json) : undefined}
+        />
       );
     }
 
@@ -306,6 +341,7 @@ export function SpecFormShell({
       {sections.map((section) => (
         <fieldset
           key={section.title}
+          hidden={hiddenSectionTitles.has(section.title)}
           className="rounded-[14px] border border-line bg-surface p-5"
         >
           <legend className="px-1.5 text-[11px] font-bold uppercase tracking-[0.09em] text-[#5c6472]">
@@ -320,6 +356,7 @@ export function SpecFormShell({
             {section.fields.map((field) => (
               <div
                 key={field.name}
+                hidden={hiddenFieldNames.has(field.name)}
                 className={isWideKind(field) ? "sm:col-span-2" : ""}
               >
                 <label
