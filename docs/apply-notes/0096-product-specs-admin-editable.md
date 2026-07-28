@@ -54,10 +54,12 @@ The one behaviour change that is live the moment you apply: an admin could write
 `product_specs` through the PostgREST API directly. That is the intent.
 
 Ordering against the two still-unapplied datasheet migrations
-(`20260723000001` / `20260723000002`, ADR 0090): **independent, either order.**
-This migration touches none of their columns, and the audit trigger snapshots
-whatever shape the row has via `to_jsonb`, so the 18 additive columns will
-simply start appearing in `before` / `after` once they exist.
+(`20260729000001` / `20260729000002`, ADR 0090 — renumbered from `20260723*` and
+amended to this pattern by ADR 0097): **independent, either order.** This
+migration touches none of their columns, and the audit trigger snapshots whatever
+shape the row has via `to_jsonb`, so the 22 additive columns will simply start
+appearing in `before` / `after` once they exist. That claim is now itself a check
+in [apply-note 0090](./0090-datasheet-schema.md) (snapshot width 46 → 68 keys).
 
 ## Verify after applying
 

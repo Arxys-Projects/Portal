@@ -4,6 +4,98 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-07-28 — Datasheet Phase 2 build step 1: both Phase 1 migrations amended to the ADR 0096 pattern, handed to Andy for apply
+
+SQL and docs only, per the brief — no application code (that is build steps 2 / 4 / 5, separate
+sessions). Implements [ADR 0097](./decisions/0097-datasheet-surfaces-join-admin-editable-pattern.md)
+and [design §2](../datasheets/datasheet-phase2-admin-surface-design.md) as written; nothing was
+redesigned. **Both migrations are STOP-AND-FLAG and remain unapplied** — Andy applies them via
+the dashboard SQL editor (build step 3).
+
+### Work done
+
+- **Renamed both files to post-`20260727000001` timestamps** so filename order matches apply
+  order against the already-applied ADR 0096 migration:
+  `20260723000001` → [`20260729000001_datasheet_appliance_specs.sql`](../supabase/migrations/20260729000001_datasheet_appliance_specs.sql),
+  `20260723000002` → [`20260729000002_datasheet_product_specs_additive.sql`](../supabase/migrations/20260729000002_datasheet_product_specs_additive.sql).
+  `git mv`, so history follows. Neither had ever been applied, which is what made the whole
+  amendment free.
+- **`appliance_specs` brought onto the full `20260727000001` pattern** — provenance
+  (`updated_at not null default now()` / `updated_by uuid references partners(id)`, with the
+  same column comments), an insert-only `appliance_specs_audit` table (identical shape,
+  `(spec_id, changed_at desc)` index, RLS SELECT-to-admin only, no client
+  INSERT/UPDATE/DELETE grant), and the trigger pair `appliance_specs_stamp_updated` (BEFORE,
+  security invoker) + `appliance_specs_write_audit` (AFTER, security definer) — both with empty
+  `search_path` and EXECUTE revoked from `anon, authenticated, public`. Mirrored line-for-line
+  against the live 0096 template rather than written fresh.
+- **DELETE removed from `appliance_specs`.** The grant drops to `select, insert, update` and
+  `appliance_specs_delete_admin` is gone. Rationale carried over in the file's own RLS comment:
+  once the `skuExtraData` overrides retire, these rows are the only source for the
+  management/ACM/workstation Price Book strings and the datasheet renderer, so a deletion
+  silently blanks those surfaces — the ADR 0094 failure shape. `service_role` is the recovery
+  path; withholding the grant means the form cannot offer the control by mistake.
+- **Six factsheet-verified columns added while the files were still unapplied.**
+  `appliance_specs` gains `cooling`, `power_max_consumption`, `raid_support`,
+  `max_bandwidth_mbps integer` (58 → 64 columns, counting the two provenance columns);
+  `product_specs` additive goes 18 → 22 with `power_dc_input`, `power_max_consumption`,
+  `cooling`, `display_ports`. All nullable, all with column comments. The additive migration
+  needed no structural change — the 0096 policies, triggers and audit table are row-level and
+  `to_jsonb`-based, so new columns are covered the moment they exist.
+- **`appliance_specs` header comment rewritten.** Its "NO created_at / updated_at — rows are
+  refreshed by a reviewed admin seed load" paragraph was the pre-0096 worldview and is now
+  false; replaced with the ADR 0097 write-path rationale. The "intended population (seeded in a
+  LATER content phase)" block now reads "entered through /admin/appliance-specs, never seeded by
+  migration", and the V150 `acm`-vs-`management` note changed from a seed-time judgment to an
+  entry-time call made in the form's `family_type` select — there is no seed to make it at.
+- **Both rollbacks updated to exact reverses.**
+  [`datasheet-appliance-specs-rollback.sql`](../supabase/rollback/datasheet-appliance-specs-rollback.sql)
+  now drops the triggers, both functions and the audit table before the main table, drops only
+  the three policies that exist, and states plainly that it discards any entered rows plus their
+  audit history.
+  [`datasheet-product-specs-additive-rollback.sql`](../supabase/rollback/datasheet-product-specs-additive-rollback.sql)
+  gains the four new column drops (verified: forward add-set and rollback drop-set are
+  identical, 22 each).
+- **[Apply-note 0090](./apply-notes/0090-datasheet-schema.md) rewritten against the amended
+  files**, do-not-apply-as-is banner dropped and replaced with a short record of what changed.
+  Verify checklist now mirrors the 0096 note: audit table empty; grant/policy inspection
+  proving `authenticated` holds no DELETE on `appliance_specs` and no INSERT on its audit table;
+  a throwaway insert + no-op update **inside a rolled-back transaction** showing stamp and both
+  audit rows without leaving a seeded row behind; 21 `product_specs` rows intact with the 22
+  columns present and null; snapshot width 46 → 68 keys as the concrete proof that the existing
+  triggers picked up the new columns; and the expected `roundtrip-product-specs.mts` COVERS
+  failure naming exactly the 22 new columns until build step 4 lands. The dashboard-apply /
+  CLI-history-desync warning is kept verbatim, including "do not fix it with `db push`".
+- **Corrected the forward-reference in [apply-note 0096](./apply-notes/0096-product-specs-admin-editable.md)**
+  — it named the old timestamps and "18 additive columns"; now points at `20260729000001/2` and
+  22, and cites the new snapshot-width check.
+- **Checks: `npx tsc --noEmit` clean, `npm test` 317/317 green.** Expected — no application code
+  reads any of this yet, which is exactly the reason the apply can precede the forms. ESLint had
+  nothing to do: every changed file is `.sql` or `.md` (it reports "File ignored because no
+  matching configuration was supplied", exit 0).
+
+### Detours & fixes
+
+- **Two live cross-references broke on the rename, not one.** Grepping for the old timestamps
+  turned up `docs/apply-notes/0096-*.md` (fixed here) and a code comment at
+  [`cell-value.ts:79`](../src/lib/price-book/cell-value.ts:79) pointing at "migration
+  20260723000001". The latter is `src/` and so out of this session's no-application-code scope —
+  **left stale and flagged** for build step 2, which touches `src/` anyway. Historical JOURNAL
+  entries and the design doc's §2 headings keep the old numbers deliberately: they are the
+  record of what those files were called at the time.
+- **No local Postgres to parse-check the SQL against** (no `psql`, no Docker). Verified
+  mechanically instead: column count by parse (64, after discarding the `check (...)`
+  continuation line a naive regex counts as a column), forward/rollback column-set diff, and a
+  line-by-line comparison of every provenance/audit/trigger construct against the live
+  `20260727000001` file. Adjacent-string-literal concatenation in the column comments follows
+  the same newline-separated form 0096 already uses in production.
+
+### Decisions captured
+
+None — [ADR 0097](./decisions/0097-datasheet-surfaces-join-admin-editable-pattern.md) already
+covers this step; it was implemented, not extended.
+
+---
+
 ## 2026-07-28 — Datasheet Phase 2 kickoff: both Phase 1 migrations must be amended to the ADR 0096 pattern before applying; appliance_specs admin surface designed
 
 Design-only session, per the brief — no schema applied, no application code written. Output
