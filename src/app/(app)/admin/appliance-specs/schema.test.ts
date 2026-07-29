@@ -7,9 +7,12 @@ import {
 } from "./schema";
 import {
   applianceWarnings,
+  filledPrefillFields,
   initialValuesFromRow,
+  prefillInitialValues,
   sheetGroupWarnings,
   APPLIANCE_FIELD_NAMES,
+  APPLIANCE_PREFILL_FIELD_NAMES,
   FAMILY_TYPE_OPTIONS,
   type ApplianceRuleValues,
 } from "./fields";
@@ -476,5 +479,213 @@ describe("sheetGroupWarnings — the cross-row check (design §4b)", () => {
       { id: "C", family_type: "workstation" },
     ]);
     assert.equal(warnings.length, 2);
+  });
+});
+
+// The sibling prefill's copy set (ADR 0103, which reads on ADR 0102). These
+// tests guard a boundary, not a convenience: the prefill overwrites whatever it
+// names with ANOTHER row's value, so a per-SKU field leaking into this list
+// would copy one sibling's CPU, RAM, drive size or GPU block onto another's row
+// — silently, and through the same form that is supposed to catch it.
+
+// Every field NOT in the copy set, categorised. Restated as a literal rather
+// than derived from APPLIANCE_PREFILL_FIELD_NAMES so the union assertion below
+// is a genuine two-sided check: a column added to the form and put in NEITHER
+// list fails this test, which is what "no column is silently ungoverned" means.
+const APPLIANCE_EXCLUDED_FIELD_NAMES = [
+  // identity — per SKU by definition
+  "id",
+  "model_name",
+  "product_group",
+  "family_type",
+  "sheet_group",
+  // compute — the CPU/RAM that distinguish V250/V255/V260/V265
+  "cpu_model",
+  "cores_threads",
+  "cpu_cache",
+  "cpu_base_ghz",
+  "cpu_turbo_ghz",
+  "ram_spec",
+  // storage — sizes vary per SKU (V255 OS is 960GB not 480GB)
+  "storage_summary",
+  "os_drive_desc",
+  "db_drive_desc",
+  "drive_bays",
+  "raid_level_display",
+  // ports — display_ports differs SW10/SW20
+  "display_ports",
+  // the SW block — the whole GPU/matrix/bandwidth surface SW20 adds over SW10
+  "max_bandwidth_mbps",
+  "monitor_support",
+  "gpu_model",
+  "gpu_count",
+  "gpu_vram",
+  "gpu_cuda_cores",
+  "gpu_tensor_cores",
+  "gpu_rt_cores",
+  "gpu_encoders",
+  "gpu_decoders",
+  "front_io",
+  "rear_io",
+  "camera_matrix",
+  // meta — per SKU
+  "revision_date",
+  "notes",
+];
+
+describe("APPLIANCE_PREFILL_FIELD_NAMES — the copy-set boundary", () => {
+  it("holds the 30 chassis-and-platform fields", () => {
+    assert.equal(APPLIANCE_PREFILL_FIELD_NAMES.length, 30);
+  });
+
+  it("names only real fields on this form", () => {
+    const unknown = APPLIANCE_PREFILL_FIELD_NAMES.filter(
+      (name) => !APPLIANCE_FIELD_NAMES.includes(name),
+    );
+    assert.deepEqual(unknown, []);
+  });
+
+  it("has no duplicates", () => {
+    assert.equal(
+      new Set(APPLIANCE_PREFILL_FIELD_NAMES).size,
+      APPLIANCE_PREFILL_FIELD_NAMES.length,
+    );
+  });
+
+  it("excludes the primary key, so a prefill cannot retarget the save", () => {
+    assert.ok(!APPLIANCE_PREFILL_FIELD_NAMES.includes("id"));
+  });
+
+  it("excludes every per-SKU and per-archetype field", () => {
+    // Copying any of these from a neighbour overwrites a real difference: the
+    // CPU/RAM that separate the four V-chassis siblings, the drive sizes, and
+    // the whole GPU block SW20 adds over SW10.
+    for (const name of [
+      "cpu_model",
+      "ram_spec",
+      "cpu_base_ghz",
+      "cpu_turbo_ghz",
+      "os_drive_desc",
+      "db_drive_desc",
+      "storage_summary",
+      "drive_bays",
+      "raid_level_display",
+      "display_ports",
+      "max_bandwidth_mbps",
+      "monitor_support",
+      "gpu_model",
+      "camera_matrix",
+      "model_name",
+    ]) {
+      assert.ok(
+        !APPLIANCE_PREFILL_FIELD_NAMES.includes(name),
+        `${name} is per-SKU or per-archetype and must never be copied between rows`,
+      );
+    }
+  });
+
+  it("partitions the form: copy set and excluded set are disjoint and cover every field", () => {
+    // The load-bearing assertion. If a column is added to the form and put in
+    // neither list, the union stops equalling APPLIANCE_FIELD_NAMES and this
+    // fails — so a new column cannot silently escape the copy/no-copy decision.
+    const overlap = APPLIANCE_PREFILL_FIELD_NAMES.filter((name) =>
+      APPLIANCE_EXCLUDED_FIELD_NAMES.includes(name),
+    );
+    assert.deepEqual(overlap, [], "a field is in both the copy set and the excluded set");
+    assert.deepEqual(
+      [...APPLIANCE_PREFILL_FIELD_NAMES, ...APPLIANCE_EXCLUDED_FIELD_NAMES].sort(),
+      [...APPLIANCE_FIELD_NAMES].sort(),
+    );
+  });
+});
+
+describe("filledPrefillFields", () => {
+  it("counts nothing on a row with no platform values", () => {
+    // A fresh row: every copyable column null, except security_features, which
+    // is NOT NULL DEFAULT '{}'.
+    const row: Record<string, unknown> = {};
+    for (const name of APPLIANCE_PREFILL_FIELD_NAMES) row[name] = null;
+    row.security_features = [];
+    assert.deepEqual(filledPrefillFields(row), []);
+  });
+
+  it("counts the copyable fields a real row carries", () => {
+    // The management fixture fills 28 of the 30 — sfp_addon and dimensions_in
+    // are null on it — which is exactly the "X of 30 copyable" label the offer
+    // shows so the editor copies from a filled row of the right chassis.
+    const filled = filledPrefillFields(managementRow());
+    assert.equal(filled.length, 28);
+    assert.ok(!filled.includes("sfp_addon"));
+    assert.ok(!filled.includes("dimensions_in"));
+    assert.ok(filled.includes("power_wattage"));
+    assert.ok(filled.includes("gbe_10_ports")); // 0 is a value, not an absence
+  });
+
+  it("does not count an empty text[] as filled, but counts a non-empty one", () => {
+    assert.ok(!filledPrefillFields({ security_features: [] }).includes("security_features"));
+    assert.ok(
+      filledPrefillFields({ security_features: ["SEV"] }).includes("security_features"),
+    );
+  });
+
+  it("does not count whitespace-only text as filled", () => {
+    assert.deepEqual(filledPrefillFields({ cooling: "   " }), []);
+    assert.deepEqual(filledPrefillFields({ cooling: "6 x 80x38mm" }), ["cooling"]);
+  });
+
+  it("counts a zero warranty_years, which is a value and not an absence", () => {
+    assert.deepEqual(filledPrefillFields({ warranty_years: 0 }), ["warranty_years"]);
+  });
+
+  it("returns nothing for no row", () => {
+    assert.deepEqual(filledPrefillFields(null), []);
+  });
+});
+
+describe("prefillInitialValues — the overlay", () => {
+  it("carries EVERY copyable field from the source and NOTHING else", () => {
+    // Blank base = the create form. Only the 30 copyable fields take the
+    // source's value; every excluded field stays at its base default ("").
+    const base = initialValuesFromRow(null);
+    const source = managementRow();
+    const result = prefillInitialValues(base, source);
+    const sourceStrings = initialValuesFromRow(source);
+
+    for (const name of APPLIANCE_PREFILL_FIELD_NAMES) {
+      assert.equal(
+        result[name],
+        sourceStrings[name],
+        `${name} should carry the source's value`,
+      );
+    }
+    for (const name of APPLIANCE_EXCLUDED_FIELD_NAMES) {
+      assert.equal(result[name], "", `${name} is excluded and must stay blank`);
+    }
+  });
+
+  it("never copies the primary key, so it cannot retarget the save", () => {
+    const result = prefillInitialValues(initialValuesFromRow(null), managementRow());
+    assert.equal(result.id, "");
+  });
+
+  it("overlays onto an existing row's own values on the edit form", () => {
+    // Edit base = the row being edited. The source's copyable fields overwrite
+    // that row's; its excluded fields (its own CPU, drives, id) are untouched.
+    const target = workstationRow({
+      id: "VX5-SW20-200",
+      cpu_model: "Intel Core i9-14900K",
+      power_wattage: "1× 1000W",
+    });
+    const source = managementRow({ power_wattage: "2× 800W" });
+    const result = prefillInitialValues(initialValuesFromRow(target), source);
+
+    assert.equal(result.power_wattage, "2× 800W", "copyable field takes the source value");
+    assert.equal(result.id, "VX5-SW20-200", "id is the target's, never the source's");
+    assert.equal(result.cpu_model, "Intel Core i9-14900K", "excluded field keeps the target's value");
+  });
+
+  it("returns the base unchanged when there is no source", () => {
+    const base = initialValuesFromRow(managementRow());
+    assert.deepEqual(prefillInitialValues(base, null), base);
   });
 });

@@ -4,6 +4,117 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-07-29 — Datasheet build step 7b: the seven appliance rows are seeded by a reviewed import
+
+Right after the prefill (below) landed, Andy pushed back on the whole premise: all seven rows are
+already fully transcribed in the build-step-6 entry reference, so even a 2 + 5 prefill still means
+hand-typing every per-SKU field seven times. He asked to seed instead. We took ADR 0097 §8's own
+named escape hatch — a reviewed import — keeping the validation the no-seed rule was protecting, and
+(with his explicit sign-off) dropping only attribution on this first seed.
+
+### Work done
+
+- **[`scripts/seed-appliance-specs.mts`](../scripts/seed-appliance-specs.mts)** — the seven rows
+  transcribed from [`datasheets/datasheet-phase2-step6-entry-reference.md`](../datasheets/datasheet-phase2-step6-entry-reference.md)
+  Part B as typed objects. Every row is parsed through `parseApplianceForm` (the same zod the form
+  and the round-trip use) **before** any write; the script refuses to write if any row fails.
+- **Dry-run by default; `--write` guarded.** `--write` inserts only into an empty table (reads the
+  count first, aborts otherwise) in one atomic insert, so it cannot double-insert or clobber a
+  half-entered table. Ran dry-run first (all 7 parse clean, 36–43/62 fields set per row), then
+  `--write`.
+- **`service_role` write, attribution waived for the seed** (Andy, 2026-07-29): the stamp trigger
+  records `updated_by = null` on all seven; the next form edit stamps a real editor.
+- **Open-value calls, all editable later through the form:** V250/V255 `raid_level_display` blank
+  (sheet self-contradiction §2b-viii; `raid_support` carries the RAID-5 prose);
+  `battery_raid`/`os_redundancy` blank on the four server rows (already inside
+  `raid_support`/`os_drive_desc`); V260/V265 `raid_level_display` = `1`; the reference's proposed
+  `model_name` on all seven. Sheet typos transcribed verbatim (V255 `6C/24T`, V700-weight note n/a
+  here), recorded in each row's `notes`.
+
+### Verification
+
+- `scripts/seed-appliance-specs.mts` dry-run: all 7 parse clean through the form schema.
+- `scripts/roundtrip-appliance-specs.mts` after the write: **7 rows, every row 62/62 fields
+  preserved, coverage OK**, sheet groups V250 and V260 paired and V150/SW10/SW20 solo — exactly the
+  reference's §4 acceptance.
+
+### Detours & fixes
+
+- **Attribution is structurally impossible with what's in `.env.local`.** The stamp trigger sets
+  `updated_by := auth.uid()` unconditionally, and `.env.local` has only the anon and `service_role`
+  keys — no admin email/password — so a `service_role` write is the only option available, and it
+  yields `updated_by = null`. Surfaced this before writing; Andy waived attribution for the first
+  seed, which unblocked it. Real attribution would need a sign-in (email/password) the environment
+  does not carry.
+
+### Decisions captured
+
+- [`0104-appliance-specs-seeded-by-reviewed-import.md`](./decisions/0104-appliance-specs-seeded-by-reviewed-import.md)
+  — revisits ADR 0097 §8 on its own named condition; keeps validation, waives attribution for the
+  seed; makes the 0103 prefill moot for *initial* entry (it stands for revisions).
+
+---
+
+## 2026-07-29 — Datasheet build step 7: the sibling prefill extends to `/admin/appliance-specs`
+
+ADR 0102 built the copy-from-sibling prefill on `/admin/specs` and its scope note excluded the
+appliance table, on the premise that "its seven rows are seven distinct chassis." Verified hardware
+facts collapsed that premise: V250/V255/V260/V265 are one chassis (4 config points — CPU, RAM, two
+drive sizes), SW20 is an SW10 plus a second GPU, and V150 shares the platform block. So most of an
+appliance row *is* shared across a chassis family, and the same mechanism applies. Extended it to
+both the create and edit forms so entry becomes 2 real rows plus 5 prefill-assisted, not 7 from
+scratch. No schema, no migration, no seed, no data entry — Andy types the rows through the form.
+
+### Work done
+
+- **`APPLIANCE_PREFILL_FIELD_NAMES` in [`appliance-specs/fields.ts`](../src/app/\(app\)/admin/appliance-specs/fields.ts)**
+  — an explicit allowlist of the 30 fields invariant across a chassis family (platform, power,
+  physical, environmental, regulatory, warranty). Same rationale as `DATASHEET_FIELD_NAMES`: a field
+  is copyable only if it is the same across siblings. The per-SKU and per-archetype fields are
+  excluded — compute (the CPU/RAM separating the four V-siblings), both drive strings and the
+  storage block (sizes vary), `raid_level_display`, `display_ports`, the whole SW block
+  (`gpu_*`, `camera_matrix`, `max_bandwidth_mbps`, `monitor_support`, `front_io`, `rear_io`),
+  `revision_date`, `notes`, and identity.
+- **`filledPrefillFields` and `prefillInitialValues`** in the same file — the label counter and the
+  pure overlay, extracted as named functions (0102 inlined the overlay in the page) so the boundary
+  is unit-testable without React.
+- **[`_components/appliance-prefill.tsx`](../src/app/\(app\)/admin/appliance-specs/_components/appliance-prefill.tsx)**
+  — the banner and offer, mirroring `datasheet-prefill.tsx` but parameterised on `basePath` /
+  `discardHref` / `saveLabel` so one component serves both `/new` and `/[sku]`. Server component,
+  no client bundle.
+- **Prefill on BOTH routes.** `/new` is now the primary surface (the table is empty, all rows are
+  created there). Both pages read every *other* appliance row as a candidate source — cross-sheet-
+  group, because a chassis family spans sheet groups — selecting only `id`, `family_type` and the 30
+  copyable columns. Each candidate is labelled with its archetype and copyable count
+  (*"VX5-V250-MGM — management — 28 of 30 copyable"*). Save goes through the unchanged
+  `createApplianceSpec` / `updateApplianceSpec` action.
+- **Loud banner + remount key + fail-soft source query**, all carried from 0102: the banner names
+  the source, count, "Nothing is saved yet" and a discard link; the form is keyed on the prefill
+  source; a failed source read logs and drops the offer rather than failing the page.
+- **Tests** appended to [`appliance-specs/schema.test.ts`](../src/app/\(app\)/admin/appliance-specs/schema.test.ts):
+  the copy-set boundary (30 names, all real fields, no dupes, excludes `id`, and — the load-bearing
+  one — the copy set and an explicit excluded set are disjoint and together cover every form field);
+  `filledPrefillFields`; and the overlay (only allowlisted fields carry from the source, `id` never,
+  excluded fields keep their base value, null source is a no-op).
+
+### Verification
+
+- `npm test` — 442 pass, 0 fail.
+- `npx tsc --noEmit` clean; `eslint` clean on all changed files; `npm run build` compiles, all three
+  `/admin/appliance-specs` routes present.
+- Acceptance (`scripts/roundtrip-appliance-specs.mts`, expect 7 rows) runs after the rows land — no
+  rows were created by *this* task. **(Superseded same day: the rows were seeded by a reviewed
+  import rather than hand-entered — see the 7b entry above and ADR 0104. The prefill stands for
+  revisions.)**
+
+### Decisions captured
+
+- [`0103-appliance-sibling-prefill-create-and-edit.md`](./decisions/0103-appliance-sibling-prefill-create-and-edit.md)
+  — extends 0102's mechanism to the create form and this table; records the corrected chassis
+  premise; reads on 0102 without superseding it.
+
+---
+
 ## 2026-07-28 — Datasheet Phase 2 build step 6: the sibling prefill — 21 hand edits become 7 plus 14 copies
 
 Andy asked whether the transcribed data could be seeded into `product_specs` instead of typed. It

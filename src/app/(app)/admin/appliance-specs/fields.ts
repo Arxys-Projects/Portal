@@ -471,3 +471,141 @@ export function initialValuesFromRow(
 ): Record<string, string> {
   return initialValuesFromRowForFields(APPLIANCE_FIELD_NAMES, row);
 }
+
+// ---------------------------------------------------------------------------
+// The sibling prefill's copy set (ADR 0103, which reads on ADR 0102)
+//
+// ADR 0102 built the copy-from-sibling prefill on /admin/specs and its scope
+// note excluded this table, on the premise that "its seven rows are seven
+// distinct chassis". Verified hardware facts corrected that premise: V250 /
+// V255 / V260 / V265 are ONE chassis differing only in CPU, RAM and the two
+// drive sizes; SW20 differs from SW10 only in a second GPU, bandwidth, monitor
+// count, display ports and camera matrix; V150 shares the platform block but has
+// its own power and cooling. So most of a row IS shared across a chassis family,
+// and this constant is that shared block.
+//
+// The boundary is the load-bearing part, exactly as it is one table over. This
+// is an ALLOWLIST, not a denylist: a field is in the copy set ONLY if it is
+// invariant across the siblings of a chassis family. Everything else is
+// hand-entered because it varies between siblings or by archetype —
+//   identity     id, model_name, product_group, family_type, sheet_group
+//   compute      cpu_model, cores_threads, cpu_cache, cpu_base_ghz,
+//                cpu_turbo_ghz, ram_spec
+//   storage      storage_summary, os_drive_desc, db_drive_desc (sizes vary,
+//                e.g. the V255 OS drive is 960GB not 480GB), drive_bays,
+//                raid_level_display
+//   ports        display_ports (differs SW10/SW20; excluding it costs one
+//                re-typed line on the management rows — the conservative call)
+//   SW block     max_bandwidth_mbps, monitor_support, the gpu_* fields,
+//                front_io, rear_io, camera_matrix
+//   meta         revision_date, notes
+// — and copying any of those from a neighbour would overwrite a real difference
+// with the wrong value, the same failure the product_specs boundary guards
+// against (ADR 0092, one layer up). updated_at / updated_by are trigger-owned
+// and are not form fields at all.
+//
+// Not every existing row is a valid source for a given target: an SW10
+// workstation and a V250 management server are different chassis, so copying one
+// onto the other copies the wrong platform block. The prefill does NOT decide
+// that — it labels each candidate with its archetype and its copyable count and
+// leaves the choice, and the review-before-Save, to the admin (ADR 0103).
+// ---------------------------------------------------------------------------
+
+/**
+ * The 30 fields invariant across the siblings of a chassis family — the
+ * platform, power, physical, environmental, regulatory and warranty block.
+ *
+ * Read by the sibling prefill on the create and edit pages. A literal list
+ * rather than a filter over APPLIANCE_SECTIONS: the copy set cuts across
+ * sections (it takes `raid_support` from Availability & RAID but not
+ * `raid_level_display` beside it, and the port counts but not `display_ports`),
+ * so section membership cannot express it. The tests assert every name here is a
+ * real field, that `id` is absent, and that this set plus the excluded set is
+ * exactly the full field list — so no column is silently ungoverned.
+ */
+export const APPLIANCE_PREFILL_FIELD_NAMES: readonly string[] = [
+  // OS & storage (platform, not per-capacity)
+  "os_edition",
+  // Availability & RAID (the prose and posture, not the configured level)
+  "raid_support",
+  "battery_raid",
+  "os_redundancy",
+  "hotswap_power",
+  // Networking & management (port counts, not display_ports)
+  "network",
+  "gbe_1_ports",
+  "gbe_10_ports",
+  "sfp_addon",
+  "remote_mgmt",
+  // Form factor & power
+  "form_factor",
+  "rack_units",
+  "power_wattage",
+  "power_redundancy",
+  "power_max_consumption",
+  "power_ac_input",
+  "power_dc_input",
+  "cooling",
+  // Physical
+  "dimensions_mm",
+  "dimensions_in",
+  "shipping_weight",
+  // Warranty
+  "warranty_years",
+  "warranty_terms",
+  // Environmental
+  "operating_temp",
+  "storage_temp",
+  "humidity",
+  // Regulatory & security
+  "regulatory_safety",
+  "regulatory_emissions",
+  "ndaa_text",
+  "security_features",
+];
+
+/**
+ * Field names in APPLIANCE_PREFILL_FIELD_NAMES that carry a value on this row.
+ *
+ * Labels each candidate on the prefill control, so the editor copies from a
+ * filled row rather than discovering afterwards that they copied 30 blanks. An
+ * empty `text[]` counts as unfilled: `security_features` is NOT NULL DEFAULT
+ * '{}', so treating `{}` as filled would report every fresh row as carrying a
+ * value before anything was entered.
+ */
+export function filledPrefillFields(
+  row: Record<string, unknown> | null,
+): string[] {
+  if (!row) return [];
+  return APPLIANCE_PREFILL_FIELD_NAMES.filter((name) => {
+    const value = row[name];
+    if (value === null || value === undefined) return false;
+    if (Array.isArray(value)) return value.length > 0;
+    if (typeof value === "string") return value.trim() !== "";
+    return true;
+  });
+}
+
+/**
+ * Overlay a source row's copyable fields onto a base value set.
+ *
+ * `base` is the target's own display strings — all blank on the create form, the
+ * row's own values on the edit form. The return copies EXACTLY the
+ * APPLIANCE_PREFILL_FIELD_NAMES from the source over it and touches nothing
+ * else; every excluded field keeps its base value. `id` is not in the copy set,
+ * so a prefill can never retarget the save. A null source returns `base`
+ * unchanged.
+ */
+export function prefillInitialValues(
+  base: Record<string, string>,
+  sourceRow: Record<string, unknown> | null,
+): Record<string, string> {
+  if (!sourceRow) return base;
+  const sourceValues = initialValuesFromRow(sourceRow);
+  return {
+    ...base,
+    ...Object.fromEntries(
+      APPLIANCE_PREFILL_FIELD_NAMES.map((name) => [name, sourceValues[name] ?? ""]),
+    ),
+  };
+}

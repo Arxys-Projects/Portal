@@ -9,26 +9,34 @@ import { requireAdminOrInternal } from "@/lib/auth/require-admin-or-internal";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { productGroupToFamilySlug } from "@/lib/price-book/families";
 import {
-  initialValuesFromRow,
-  sheetGroupWarnings,
   APPLIANCE_FIELD_NAMES,
+  APPLIANCE_PREFILL_FIELD_NAMES,
+  filledPrefillFields,
+  initialValuesFromRow,
+  prefillInitialValues,
+  sheetGroupWarnings,
   type SheetGroupRow,
 } from "../fields";
 import { updateApplianceSpec } from "../actions";
 import { ApplianceSpecForm } from "../_components/appliance-spec-form";
+import {
+  AppliancePrefillActiveBanner,
+  AppliancePrefillOffer,
+  type PrefillSource,
+} from "../_components/appliance-prefill";
 
 export default async function EditApplianceSpecPage({
   params,
   searchParams,
 }: {
   params: Promise<{ sku: string }>;
-  searchParams: Promise<{ created?: string }>;
+  searchParams: Promise<{ created?: string; prefillFrom?: string }>;
 }) {
   const gate = await requireAdminOrInternal();
   if (!gate.ok || !gate.isAdmin) notFound();
 
   const { sku } = await params;
-  const { created } = await searchParams;
+  const { created, prefillFrom } = await searchParams;
 
   const supabase = await createSupabaseServerClient();
   const { data: row, error } = await supabase
@@ -64,6 +72,39 @@ export default async function EditApplianceSpecPage({
   const groupRows = (groupData ?? []) as SheetGroupRow[];
   const groupWarnings = sheetGroupWarnings(sheetGroup, groupRows);
   const siblings = groupRows.filter((r) => r.id !== sku);
+
+  // Every OTHER appliance row is a candidate prefill source, cross-sheet-group
+  // included: a chassis family spans sheet groups (V250 in group V250 is a valid
+  // source for V260 in group V260, because the chassis is shared), so this is a
+  // separate, wider read than the sheet-group panel above. Only the id, the
+  // archetype (for the label) and the 30 copyable columns — a source's per-SKU
+  // fields are none of this page's business. A failure here logs and drops the
+  // offer rather than failing an edit (ADR 0103, mirroring ADR 0102).
+  const { data: sourceData, error: sourceError } = await supabase
+    .from("appliance_specs")
+    .select(["id", "family_type", ...APPLIANCE_PREFILL_FIELD_NAMES].join(", "))
+    .order("id");
+  if (sourceError) console.error("[load appliance prefill sources]", sourceError);
+
+  const sourceRows = ((sourceData ?? []) as unknown as Record<string, unknown>[])
+    .filter((r) => r.id !== sku);
+  const sources: PrefillSource[] = sourceRows.map((r) => ({
+    sku: String(r.id),
+    familyType: (r.family_type as string | null) ?? null,
+    filledCount: filledPrefillFields(r).length,
+  }));
+
+  // Only a real other row is honoured: an unknown or self-referential
+  // ?prefillFrom is ignored rather than 404'd, since the page is still usable
+  // without it.
+  const prefillSource = prefillFrom
+    ? (sourceRows.find((r) => r.id === prefillFrom) ?? null)
+    : null;
+
+  const initialValues = prefillInitialValues(
+    initialValuesFromRow(row),
+    prefillSource,
+  );
 
   const familySlug = productGroupToFamilySlug(String(row.product_group ?? ""));
 
@@ -113,11 +154,31 @@ export default async function EditApplianceSpecPage({
         ) : null}
       </div>
 
+      <div className="mt-4">
+        {prefillSource ? (
+          <AppliancePrefillActiveBanner
+            fromSku={String(prefillSource.id)}
+            copiedCount={filledPrefillFields(prefillSource).length}
+            discardHref={`/admin/appliance-specs/${encodeURIComponent(sku)}`}
+            saveLabel={`Save ${sku}`}
+          />
+        ) : (
+          <AppliancePrefillOffer
+            basePath={`/admin/appliance-specs/${encodeURIComponent(sku)}`}
+            sources={sources}
+          />
+        )}
+      </div>
+
       <div className="mt-5">
         <ApplianceSpecForm
+          // Remount when the prefill source changes: every field but the live
+          // ones is uncontrolled, so React would otherwise keep the previously
+          // rendered defaultValue and the copied values would not appear.
+          key={prefillSource ? `prefill:${String(prefillSource.id)}` : "saved"}
           mode="edit"
           action={updateApplianceSpec}
-          initialValues={initialValuesFromRow(row)}
+          initialValues={initialValues}
           skuLabel={sku}
         />
       </div>
