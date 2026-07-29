@@ -4,6 +4,17 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-07-29 — Partner Pipeline: higher-contrast expand chevrons
+
+### Work done
+
+- In `partner-group-view.tsx`, replaced the thin outline chevrons (stroke-only
+  `<polyline>`) on both the company-row and deal-row expand toggles with solid
+  filled triangle arrows — fixes low contrast/thin lines without needing
+  separate stroke-width tuning per size tier.
+- Company chevron: 18px → 26px. Deal-row chevron: 15px → 19px.
+- Company name font bumped `text-sm` → 17px (~21% larger) for visibility.
+
 ## 2026-07-29 — Datasheet build step 7b: the seven appliance rows are seeded by a reviewed import
 
 Right after the prefill (below) landed, Andy pushed back on the whole premise: all seven rows are
