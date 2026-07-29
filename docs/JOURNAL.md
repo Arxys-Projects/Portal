@@ -4,6 +4,159 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-07-28 — Datasheet Phase 2 build step 6: the sibling prefill — 21 hand edits become 7 plus 14 copies
+
+Andy asked whether the transcribed data could be seeded into `product_specs` instead of typed. It
+could — on the rack side only one field is genuinely blocked — but seeding is the practice ADR 0096
+exists to end and ADR 0097 decision 5 closed the same morning, and it would leave `updated_by`
+null with no audit actor on all 21 rows. Andy chose the mitigation ADR 0097 §8 had already named:
+a copy-from-sibling prefill. Built and verified.
+
+### Work done
+
+- **[`_components/datasheet-prefill.tsx`](../src/app/\(app\)/admin/specs/_components/datasheet-prefill.tsx)**
+  — the offer and the active-prefill banner. A server component: it renders links and counts, holds
+  no state, ships no client bundle.
+- **The prefill is a GET, and that is the whole safety argument.** The control links to
+  `?prefillFrom=<sibling>`; the page re-renders with the sibling's datasheet values as the form's
+  `defaultValue`s and the editor saves through the same action, zod parse and RLS policy as any
+  other edit. Following the link writes nothing, so "not a second write path" is a property of the
+  mechanism rather than a comment — and the audit row records the admin who pressed Save.
+- **`DATASHEET_FIELD_NAMES` in [`fields.ts`](../src/app/\(app\)/admin/specs/fields.ts) — the copy
+  set, defined as *the columns a factsheet supplies*.** That origin is what makes it safe: a
+  factsheet describes a chassis, so all 22 are per-chassis. The per-capacity fields
+  (`storage_raw_tb`, `hdd_count`, `raid_level_display`, `max_cameras`, `max_cameras_h265`,
+  `drive_bays`, `model_name`) are excluded, because copying one from a neighbour would publish one
+  sibling's net-usable figure on another's page — ADR 0092's failure mode re-entering through the
+  preview built to catch it. The other 43 are excluded too: they are already correct, so copying
+  them buys nothing.
+- **Each sibling is labelled with how many of the 22 it holds** (*"VX5-V400-128 — 22 of 22
+  filled"*), so the source is visible rather than guessed. A row with nothing filled says so and
+  stays clickable — copying blanks is useless, not an error.
+- **The prefilled state is announced loudly.** A prefilled form shows values the database does not
+  have, which is the one confusing state this introduces: the banner names the source, the count,
+  *"Nothing is saved yet"*, and a discard link.
+- **Scope held narrow on purpose**: edit form only, `/admin/specs` only. Not the create form (a new
+  SKU has no sibling worth trusting) and not `/admin/appliance-specs` — its seven rows are seven
+  distinct chassis, and the two pairs that *do* share a sheet differ in exactly the CPU/RAM fields
+  a prefill would copy wrongly. A failed sibling query logs and drops the offer rather than failing
+  the edit.
+- **V400's `revision_date`**: Andy's call — leave the three rows blank until the `05/12/2025`
+  convention is confirmed. Reference document updated in three places; every other V400 value is
+  entered normally.
+
+### Verification
+
+| Gate | Result |
+|---|---|
+| `npm test` | **426 pass / 0 fail** (was 416; +10 on the copy-set boundary) |
+| `tsc --noEmit` / eslint on changed files / `next build` | clean |
+| Sibling resolution + overlay vs the live 21 rows (read-only) | **21/21** — exactly 2 siblings each, `id` preserved, capacity fields untouched, only the 22 datasheet fields overlay |
+
+The boundary tests are the ones that matter: `DATASHEET_FIELD_NAMES` is 22, names only real fields,
+has no duplicates, excludes `id` (the update's WHERE clause), and excludes an explicit
+per-capacity denylist. `filledDatasheetFields` treats an empty `text[]` as unfilled — otherwise
+`security_features`, being `NOT NULL DEFAULT '{}'`, would report all 21 rows as filled before
+anything was entered.
+
+### Detours & fixes
+
+- **`.overrideTypes<…>()` on the sibling select did not type through**, producing seven TS2339s on
+  `.id` — the generic resolved against the string-literal column list rather than the row shape.
+  Switched to the pattern the index page already uses (a plain cast after the query), which also
+  keeps the two pages consistent.
+- **The form needed a remount `key`.** Every field but the live eleven is uncontrolled, so React
+  reused the previously rendered `defaultValue` and the copied values did not appear. Keying the
+  `<SpecForm>` on the prefill source fixes it — at the cost of discarding unsaved edits in the
+  other 43 fields, which is recorded as an accepted negative in the ADR rather than hidden.
+
+### Decisions captured
+
+- [`0102-datasheet-sibling-prefill-not-a-seed.md`](./decisions/0102-datasheet-sibling-prefill-not-a-seed.md)
+  — why the prefill rather than a seed (provenance, not just principle: a migration or
+  `service_role` write stamps a null `updated_by`), the GET-not-a-write mechanism, the copy-set
+  boundary and why it is the load-bearing part, and the three options not taken. Answers ADR 0096's
+  revisit condition without superseding it or ADR 0097 decision 5.
+
+---
+
+## 2026-07-28 — Datasheet Phase 2 build step 6 prep: the transcription reference for 28 hand-entered rows
+
+Build step 6 is Andy typing 28 rows of factsheet data through two admin forms. This session
+produced the sheet he reads from — and nothing else. **No data was entered, by form, script, API
+or SQL.** Both tables were read to confirm the starting state and not written to.
+
+### Work done
+
+- **[`datasheets/datasheet-phase2-step6-entry-reference.md`](../datasheets/datasheet-phase2-step6-entry-reference.md)**
+  — one section per SKU, every value with the sheet block it came from. Part A covers the 22
+  additive `product_specs` columns as **7 chassis value-sets** (the sheets are per-model, not
+  per-capacity, so each set is typed three times — this is the "21 hand edits, 7 distinct
+  value-sets" the design costed). Part B covers all 62 fields on each of the 7 `appliance_specs`
+  rows, including both camera matrices reproduced in the row editor's five-column shape rather
+  than flattened to prose.
+- **All twelve sheets re-fetched and text-extracted**, not read from the Phase 2 kickoff notes.
+  The two local copies Andy supplied (V800, V400) were diffed against the arxys.com URLs and are
+  **byte-identical**, so the fetched set is authoritative for all twelve.
+- **Found the V150 factsheet the kickoff session could not.** `families.ts` carries no V150
+  datasheet URL — the V150 sits inside the V100 family as a tier section, and the V100 sheet is
+  titled *V100/150* — so the kickoff recorded the ACM sheets as unverified.
+  `Arxys-VideoX-Factsheet-V150-ACM-V5.pdf` exists and returns 200. `VX5-V150-ACM` is now sourced
+  from its own dedicated 2-page sheet, not inferred from the V100.
+- **Read-only state check before writing anything**: `product_specs` 21 rows with all 22 additive
+  columns null; `appliance_specs` 0 rows. Exactly what build step 5 left behind.
+- **Both known trap fields verified against the sheets, not assumed.** The SW10/SW20 matrix column
+  header does read "FPS" while holding codec values, and `@15fps` is in the footnote above the
+  table — so `fps: 15` on all eight matrix rows comes from prose, not the column. The
+  two-CPU-variant `sheet_group` model holds: the V250 sheet renders V250/V255 as per-variant lines
+  inside shared blocks, and the ACM sheet does the same for its two variants.
+
+### Detours & fixes
+
+- **The `VX5-V265-ACM` SKU has no V265 column on any sheet.** The ACM factsheet is titled
+  *V5 V260/V270* and its second variant is printed throughout as **V270**. Almost certainly the
+  same box under a stale model number, but "almost certainly" is not a factsheet, so every
+  V265-only value in the reference is marked `⚠ from the sheet's V270 column` and the mapping is
+  an open question rather than a silent substitution.
+- **Six sheet defects found while transcribing**, all recorded and transcribed as printed rather
+  than corrected: the V700 sheet prints the V800's *"W/ 36x HDDs = 72k/167lbs"* weight on a 24-bay
+  chassis (and the V800's dimensions); the V250 sheet says both *"Hardware RAID 5 Fault Tolerance"*
+  (p2) and *"HW RAID Mirrored SSDs"* (p1); the V150 calls its single PSU *"hot-plug redundant"*
+  while p1 says *"Single Power Supply"*; the V255 CPU line reads `6C/24T` and `65W TD12`; the SW10
+  hero bullet says 8GB RAM where its own RAM block says 16GB; the SW20 lists 8x Mini DP with only
+  4x adapters.
+- **Two schema-vs-sheet mismatches worth knowing before the override retirement.** The V150 sheet
+  shows **one** 480GB OS SSD while `families.ts` `skuExtraData` publishes `ssdStorage: "2x 480GB"`
+  — and that override is slated to retire by reading `os_drive_desc`. Separately,
+  `appliance_specs.power_dc_input`'s field hint says "only the V250 sheet prints a DC line"; the
+  V260 and V150 sheets print it too (as do the V100/V200 rack sheets). Neither blocks entry;
+  both would have become wrong data silently.
+- **Ten fields have no column and no home.** `max_doors` (V150 100 doors, V260 500 doors) and the
+  certified-platform list (Lenel OnGuard, Genetec, Avigilon Unity, Milestone XProtect, Keyscan
+  Aurora) are on all three ACM sheets. ADR 0097 §1 deferred them deliberately; the reference puts
+  them in each row's `notes` so the data is not lost waiting for the ACM phase.
+
+### Decisions captured
+
+- [`0101-factsheet-transcription-conventions.md`](./decisions/0101-factsheet-transcription-conventions.md)
+  — the five conventions that make 28 hand-entered rows consistent (the Power Specifications
+  four-way split; `regulatory_emissions` stays blank because no sheet separates safety from
+  emissions; the ten-item `security_features` split and its one deliberate V400 normalisation;
+  `rev:` footers as MM/DD/YYYY with seven of twelve sheets getting no date; unlabelled GHz pairs
+  as base-then-boost), plus the standing rule that an absent value is entered blank and never
+  inferred from marketing copy, a sibling sheet, or a drive count. Four sheet-level questions are
+  recorded as open rather than guessed.
+
+### Still Andy's call before entry finishes
+
+1. `VX5-V265-ACM` ↔ the sheet's V270 column.
+2. V400's `rev: 05/12/2025` — May 12 or 5 December (the only ambiguous date; the other four dated
+   sheets read as October either way).
+3. `VX5-V250-MGM`'s `raid_level_display` — the sheet says RAID 5 and mirrored.
+4. Whether `regulatory_emissions` stays blank on all 28 rows or duplicates the combined line.
+
+---
+
 ## 2026-07-28 — Datasheet Phase 2 build step 5: `/admin/appliance-specs` — the second surface on the pattern
 
 Build step 3 applied `appliance_specs` (64 columns) to production and left it **empty and

@@ -2,6 +2,8 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { parseSpecForm, specFormSchema, specInputFromFormData } from "./schema";
 import {
+  DATASHEET_FIELD_NAMES,
+  filledDatasheetFields,
   initialValuesFromRow,
   SPEC_FIELD_NAMES,
   specRuleViolations,
@@ -564,5 +566,83 @@ describe("initialValuesFromRow", () => {
     const values = initialValuesFromRow(null);
     assert.equal(Object.keys(values).length, 65);
     assert.ok(Object.values(values).every((v) => v === ""));
+  });
+});
+
+// The sibling prefill's copy set (ADR 0102). These tests guard a boundary, not a
+// convenience: the prefill overwrites whatever it names with a NEIGHBOURING
+// row's value, so a capacity input leaking into this list would publish one
+// sibling's net-usable figure on another's page — silently, and through the
+// preview that is supposed to catch exactly that.
+describe("DATASHEET_FIELD_NAMES", () => {
+  it("is the 22 columns the additive migration added", () => {
+    assert.equal(DATASHEET_FIELD_NAMES.length, 22);
+  });
+
+  it("names only real fields on this form", () => {
+    const unknown = DATASHEET_FIELD_NAMES.filter(
+      (name) => !SPEC_FIELD_NAMES.includes(name),
+    );
+    assert.deepEqual(unknown, []);
+  });
+
+  it("has no duplicates", () => {
+    assert.equal(new Set(DATASHEET_FIELD_NAMES).size, DATASHEET_FIELD_NAMES.length);
+  });
+
+  it("excludes the primary key, so a prefill cannot retarget the save", () => {
+    assert.ok(!DATASHEET_FIELD_NAMES.includes("id"));
+  });
+
+  it("excludes every per-capacity field", () => {
+    // These differ between the three capacity SKUs of a family. The first four
+    // feed usableCapacityTb(); model_name carries the TB figure in its text.
+    for (const name of [
+      "storage_raw_tb",
+      "hdd_count",
+      "raid_level_display",
+      "raid_level_alt_display",
+      "drive_bays",
+      "max_cameras",
+      "max_cameras_h265",
+      "model_name",
+    ]) {
+      assert.ok(
+        !DATASHEET_FIELD_NAMES.includes(name),
+        `${name} is per-capacity and must never be copied between siblings`,
+      );
+    }
+  });
+});
+
+describe("filledDatasheetFields", () => {
+  it("counts nothing on a row with no datasheet values", () => {
+    // The 21 live rows as build step 5 left them: every additive column null,
+    // except security_features, which is NOT NULL DEFAULT '{}'.
+    const row = { ...validRow(), security_features: [] };
+    for (const name of DATASHEET_FIELD_NAMES) {
+      if (name !== "security_features") (row as Record<string, unknown>)[name] = null;
+    }
+    assert.deepEqual(filledDatasheetFields(row), []);
+  });
+
+  it("does not count an empty text[] as filled", () => {
+    assert.ok(!filledDatasheetFields({ security_features: [] }).includes("security_features"));
+    assert.ok(
+      filledDatasheetFields({ security_features: ["SEV"] }).includes("security_features"),
+    );
+  });
+
+  it("does not count whitespace-only text as filled", () => {
+    assert.deepEqual(filledDatasheetFields({ cooling: "   " }), []);
+    assert.deepEqual(filledDatasheetFields({ cooling: "6 x 80x38mm" }), ["cooling"]);
+  });
+
+  it("counts a zero warranty_years, which is a value and not an absence", () => {
+    assert.deepEqual(filledDatasheetFields({ warranty_years: 0 }), ["warranty_years"]);
+  });
+
+  it("returns nothing for no row", () => {
+    assert.deepEqual(filledDatasheetFields(null), []);
   });
 });

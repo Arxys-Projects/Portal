@@ -447,6 +447,93 @@ function leadingDigits(value: string | null | undefined): number | null {
   return match ? Number(match[1]) : null;
 }
 
+// ---------------------------------------------------------------------------
+// The datasheet columns, and why they are a named set (ADR 0102)
+//
+// These 22 are exactly the columns migration 20260729000002 added: the ones a
+// factsheet supplies. That origin is what makes them a coherent group rather
+// than an arbitrary slice — a factsheet describes a CHASSIS, so every value in
+// this set is identical across the three capacity SKUs of a family. One V400
+// sheet covers the 128, 160 and 192.
+//
+// The other 43 fields are deliberately NOT here, and the boundary matters more
+// than the convenience does. `storage_raw_tb`, `hdd_count`, `max_cameras`,
+// `max_cameras_h265` and `model_name` all differ per capacity, and copying them
+// between siblings would overwrite correct data with a neighbour's — publishing
+// a wrong net-usable figure through exactly the path ADR 0092 exists to close.
+// The rest (`cpu_model`, `network`, `os`, `warranty` …) happen to match across
+// siblings today, but they are populated and correct, so copying them buys
+// nothing and risks clobbering a legitimate future difference.
+//
+// So: this list is the copy set BECAUSE it is the factsheet set, not because
+// those columns are currently empty. When a sheet is revised, these are the
+// columns that change together, for all three siblings at once — which is the
+// same reason the prefill stays useful after build step 6 is done.
+// ---------------------------------------------------------------------------
+
+/**
+ * The 22 columns a factsheet supplies — per-chassis, not per-capacity.
+ *
+ * Read by the sibling prefill on the edit page. It is a literal list rather
+ * than a filter over SPEC_SECTIONS because five of the 22 live in older
+ * sections (`warranty_years`/`warranty_terms` in *Software & support*,
+ * `remote_mgmt`/`display_ports` in *Networking & power*, `os_drive_desc` in
+ * *Storage & RAID*), so section membership cannot express the set. The tests
+ * assert every name here is a real field and that no capacity input leaks in.
+ */
+export const DATASHEET_FIELD_NAMES: readonly string[] = [
+  // Power & cooling
+  "power_wattage",
+  "power_redundancy",
+  "power_max_consumption",
+  "power_ac_input",
+  "power_dc_input",
+  "cooling",
+  // Physical
+  "dimensions_mm",
+  "dimensions_in",
+  "shipping_weight",
+  // Environmental
+  "operating_temp",
+  "storage_temp",
+  "humidity",
+  // Regulatory & security
+  "regulatory_safety",
+  "regulatory_emissions",
+  "ndaa_text",
+  "security_features",
+  // Datasheet meta
+  "revision_date",
+  // Placed into pre-existing sections by design §5
+  "warranty_years",
+  "warranty_terms",
+  "remote_mgmt",
+  "os_drive_desc",
+  "display_ports",
+];
+
+/**
+ * Field names in DATASHEET_FIELD_NAMES that carry a value on this row.
+ *
+ * Used to label each sibling on the prefill control, so the editor can see
+ * which neighbour is worth copying from rather than guessing. An empty `text[]`
+ * counts as unfilled: `security_features` is NOT NULL DEFAULT '{}', so every
+ * row has one, and treating `{}` as filled would report all 21 rows as having
+ * a value before anything was entered.
+ */
+export function filledDatasheetFields(
+  row: Record<string, unknown> | null,
+): string[] {
+  if (!row) return [];
+  return DATASHEET_FIELD_NAMES.filter((name) => {
+    const value = row[name];
+    if (value === null || value === undefined) return false;
+    if (Array.isArray(value)) return value.length > 0;
+    if (typeof value === "string") return value.trim() !== "";
+    return true;
+  });
+}
+
 /** Every field, flattened — the schema builder and the form both walk this. */
 export const SPEC_FIELDS: SpecField[] = flattenSpecFields(SPEC_SECTIONS);
 

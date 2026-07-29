@@ -8,23 +8,38 @@ import { notFound } from "next/navigation";
 import { requireAdminOrInternal } from "@/lib/auth/require-admin-or-internal";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { productGroupToFamilySlug } from "@/lib/price-book/families";
-import { initialValuesFromRow, SPEC_FIELD_NAMES } from "../fields";
+import {
+  DATASHEET_FIELD_NAMES,
+  filledDatasheetFields,
+  initialValuesFromRow,
+  SPEC_FIELD_NAMES,
+} from "../fields";
 import { updateSpec } from "../actions";
 import { SpecForm } from "../_components/spec-form";
 import type { CapacityInputs } from "../_components/net-usable-preview";
+import {
+  PrefillActiveBanner,
+  PrefillOffer,
+  type PrefillSibling,
+} from "../_components/datasheet-prefill";
+
+/** The family segment of a SKU: VX5-V400-160 -> "V400". */
+function groupOf(sku: string): string {
+  return sku.split("-")[1] ?? "";
+}
 
 export default async function EditSpecPage({
   params,
   searchParams,
 }: {
   params: Promise<{ sku: string }>;
-  searchParams: Promise<{ created?: string }>;
+  searchParams: Promise<{ created?: string; prefillFrom?: string }>;
 }) {
   const gate = await requireAdminOrInternal();
   if (!gate.ok || !gate.isAdmin) notFound();
 
   const { sku } = await params;
-  const { created } = await searchParams;
+  const { created, prefillFrom } = await searchParams;
 
   const supabase = await createSupabaseServerClient();
   const { data: row, error } = await supabase
@@ -46,6 +61,57 @@ export default async function EditSpecPage({
     );
   }
   if (!row) notFound();
+
+  // The family's other capacity SKUs, for the datasheet prefill (ADR 0102).
+  //
+  // Read through the same RLS-scoped client, and read ONLY the datasheet columns
+  // plus the id — a sibling's capacity inputs are none of this page's business
+  // and selecting them would make it possible to widen the copy set by accident
+  // later. The group filter runs in JS rather than as a LIKE: 21 rows is nothing
+  // to fetch, and it avoids escaping a user-supplied segment into a pattern.
+  //
+  // A failure here is not fatal: the prefill is a convenience, so the page logs
+  // and renders without the offer rather than failing an edit the admin came to
+  // make.
+  const { data: familyData, error: familyError } = await supabase
+    .from("product_specs")
+    .select(["id", ...DATASHEET_FIELD_NAMES].join(", "))
+    .order("id");
+  if (familyError) console.error("[load prefill siblings]", familyError);
+
+  const familyRows = (familyData ?? []) as unknown as Record<string, unknown>[];
+  const group = groupOf(sku);
+  const siblingRows = familyRows.filter(
+    (r) => typeof r.id === "string" && r.id !== sku && groupOf(r.id) === group,
+  );
+  const siblings: PrefillSibling[] = siblingRows.map((r) => ({
+    sku: String(r.id),
+    filledCount: filledDatasheetFields(r).length,
+  }));
+
+  // A prefill overlays the source row's datasheet columns onto this row's
+  // values, so the form renders them as its defaults and the editor saves them
+  // through the ordinary action. Only a real sibling is honoured: an unknown or
+  // cross-family ?prefillFrom is ignored rather than 404'd, since the page is
+  // still perfectly usable without it.
+  const prefillSource = prefillFrom
+    ? (siblingRows.find((r) => r.id === prefillFrom) ?? null)
+    : null;
+
+  const baseValues = initialValuesFromRow(row);
+  const prefillValues = prefillSource
+    ? initialValuesFromRow(prefillSource)
+    : null;
+  const initialValues = prefillValues
+    ? {
+        ...baseValues,
+        // Exactly the 22, never `id` — which is the WHERE clause of the update
+        // and is not in DATASHEET_FIELD_NAMES, so this cannot retarget the save.
+        ...Object.fromEntries(
+          DATASHEET_FIELD_NAMES.map((name) => [name, prefillValues[name] ?? ""]),
+        ),
+      }
+    : baseValues;
 
   const savedCapacity: CapacityInputs = {
     storage_raw_tb: row.storage_raw_tb as number | null,
@@ -88,11 +154,27 @@ export default async function EditSpecPage({
         </p>
       ) : null}
 
+      <div className="mt-4">
+        {prefillSource ? (
+          <PrefillActiveBanner
+            fromSku={String(prefillSource.id)}
+            copiedCount={filledDatasheetFields(prefillSource).length}
+            sku={sku}
+          />
+        ) : (
+          <PrefillOffer sku={sku} siblings={siblings} />
+        )}
+      </div>
+
       <div className="mt-5">
         <SpecForm
+          // Remount when the prefill source changes: every field but the live
+          // eleven is uncontrolled, so React would otherwise keep the previously
+          // rendered defaultValue and the copied values would not appear.
+          key={prefillSource ? `prefill:${String(prefillSource.id)}` : "saved"}
           mode="edit"
           action={updateSpec}
-          initialValues={initialValuesFromRow(row)}
+          initialValues={initialValues}
           savedCapacity={savedCapacity}
           skuLabel={sku}
         />
