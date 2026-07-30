@@ -1,0 +1,1011 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="./image-slot.js"></script>
+<style>
+  body { margin: 0; background: #6f7378; font-family: Montserrat, sans-serif; }
+  a { color: #054A91; text-decoration: none; }
+  a:hover { color: #E09A28; }
+</style>
+</helmet>
+
+<section style="display:flex;flex-direction:column;gap:52px;padding:64px 72px">
+  <div style="display:flex;flex-direction:column;gap:10px;max-width:1100px">
+    <div style="font:700 11px/1 Montserrat,sans-serif;letter-spacing:.22em;text-transform:uppercase;color:#FCB23E">Turn 2 · Mockups</div>
+    <div style="font:600 34px/1.15 Poppins,sans-serif;color:#fff">Ledger for VideoX servers · Rail for Workstations</div>
+    <div style="font:400 15px/1.65 Montserrat,sans-serif;color:#d3d6da;max-width:860px;text-wrap:pretty">Full color, real copy, real specs, both render targets in mind. Navy <span style="color:#9fc3e8">#054A91</span> carries structure, gold <span style="color:#FCB23E">#FCB23E</span> is reserved for the warranty promise and section marks only — never decoration. Product and rear-panel photo slots are live drop targets: drag a photo onto any of them and it sticks. <a href="#2a">2a</a> V800 · <a href="#2b">2b</a> V250/V255 · <a href="#2c">2c</a> SW10.</div>
+  </div>
+
+  <div style="display:flex;flex-wrap:wrap;gap:56px;align-items:flex-start">
+
+    <!-- ================= 2a — V800 LEDGER ================= -->
+    <div id="2a" style="display:flex;flex-direction:column;gap:16px">
+      <div style="display:flex;align-items:baseline;gap:14px">
+        <div style="font:700 12px/1 Montserrat,sans-serif;letter-spacing:.14em;color:#1b1d20;background:#FCB23E;padding:7px 11px;border-radius:3px">2a</div>
+        <div style="font:600 22px/1 Poppins,sans-serif;color:#fff">V800 · Video + Management template</div>
+      </div>
+      <div style="display:flex;gap:24px">
+
+        <!-- V800 PAGE 1 -->
+        <div data-screen-label="2a V800 P1" style="width:816px;height:1056px;background:#fff;box-shadow:0 18px 44px rgba(0,0,0,.3);padding:44px 48px 30px;box-sizing:border-box;display:flex;flex-direction:column;gap:14px;color:#23272B">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <img src="assets/arxys-logo.png" alt="Arxys" style="width:128px;height:auto;display:block">
+            <div style="text-align:right">
+              <div style="font:700 9px/1 Montserrat,sans-serif;letter-spacing:.34em;color:#054A91">VIDEOX V5</div>
+              <div style="font:500 9px/1.5 Montserrat,sans-serif;color:#5F6B76;margin-top:6px">Enterprise Server for Video Surveillance &amp; Video Analytics</div>
+            </div>
+          </div>
+          <div style="height:2.5px;background:#054A91"></div>
+          <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:20px">
+            <div>
+              <div style="font:600 56px/.92 Poppins,sans-serif;color:#054A91;letter-spacing:-.015em">V800</div>
+              <div style="font:600 16px/1.25 Montserrat,sans-serif;letter-spacing:.06em;color:#5F6B76;margin-top:10px;text-transform:uppercase">36 Bay · 4U Rack · V5 Video Server</div>
+            </div>
+            <div style="display:flex;gap:6px">
+              <sc-for list="{{ badgesVideo }}" as="b" hint-placeholder-count="4"><div style="border:1px solid #DCE1E6;padding:6px 9px;font:700 7.5px/1 Montserrat,sans-serif;letter-spacing:.1em;color:#054A91;white-space:nowrap;flex:0 0 auto">{{ b }}</div></sc-for>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid #DCE1E6;border-bottom:1px solid #DCE1E6">
+            <sc-for list="{{ headlineV800 }}" as="h" hint-placeholder-count="4">
+              <div style="padding:11px 0;display:flex;flex-direction:column;gap:5px">
+                <div style="font:700 8px/1 Montserrat,sans-serif;letter-spacing:.13em;color:#5F6B76">{{ h.k }}</div>
+                <div style="font:600 14px/1 Poppins,sans-serif;color:#23272B">{{ h.v }}</div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="display:flex;align-items:baseline;justify-content:space-between">
+              <div style="font:700 10.5px/1 Montserrat,sans-serif;letter-spacing:.15em;color:#054A91">WHERE THE V800 SITS IN THE VIDEOX NVR LINE</div>
+              <div style="font:500 8px/1 Montserrat,sans-serif;color:#5F6B76">Drive bays · max camera streams</div>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px">
+              <sc-for list="{{ ladderV800 }}" as="m" hint-placeholder-count="7">
+                <div style="border:1px solid #DCE1E6;background:#fff;display:flex;flex-direction:column">
+                  <sc-if value="{{ m.active }}" hint-placeholder-val="{{ false }}"><div style="height:3px;background:#FCB23E"></div></sc-if>
+                  <div style="padding:6px 4px 7px;display:flex;flex-direction:column;gap:2px;align-items:center;text-align:center">
+                    <div style="font:600 11px/1 Poppins,sans-serif;color:#054A91">{{ m.name }}</div>
+                    <div style="font:500 7.5px/1.2 Montserrat,sans-serif;color:#5F6B76">{{ m.bays }}</div>
+                    <div style="font:600 8.5px/1 Montserrat,sans-serif;color:#23272B">{{ m.streams }}</div>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1.08fr 1fr;gap:30px">
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div style="font:700 10.5px/1 Montserrat,sans-serif;letter-spacing:.15em;color:#054A91">RECOMMENDED USAGE</div>
+              <div style="font:400 10.5px/1.6 Montserrat,sans-serif;color:#3D444B;text-wrap:pretty">Designed for campus-wide deployments with centralized management, this solution delivers critical protection, high performance, and top-tier security. It supports high camera density with exceptional reliability, for robust, scalable surveillance across large environments.</div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div style="font:700 10.5px/1 Montserrat,sans-serif;letter-spacing:.15em;color:#054A91">KEY ATTRIBUTES</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px 16px">
+                <sc-for list="{{ attrsV800 }}" as="a" hint-placeholder-count="10">
+                  <div style="display:flex;gap:6px;align-items:flex-start">
+                    <div style="width:3px;height:3px;background:#FCB23E;flex:0 0 auto;margin-top:5px"></div>
+                    <div style="font:400 9px/1.45 Montserrat,sans-serif;color:#3D444B">{{ a }}</div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+          <div style="height:158px;background:#F5F7F9;position:relative">
+            <image-slot id="v800-front" shape="rect" fit="contain" placeholder="V800 front 3/4 — product photography"></image-slot>
+          </div>
+          <div style="background:#FFF8EC;border-top:1px solid #F2DDB6;border-bottom:1px solid #F2DDB6;padding:13px 16px;display:flex;align-items:center;gap:16px">
+            <div data-seal="warranty-5yr-v800" style="width:72px;height:72px;flex:0 0 auto;border-radius:50%;border:1px dashed #E0C795;background:#fff;display:flex;align-items:center;justify-content:center"><div style="font:700 6.5px/1 Montserrat,sans-serif;letter-spacing:.1em;color:#8A6A1F;white-space:nowrap">5 YR SEAL</div></div>
+            <div style="display:flex;flex-direction:column;gap:5px">
+              <div style="font:600 13px/1.2 Poppins,sans-serif;color:#054A91">5-Year NBD Advanced Parts Warranty</div>
+              <div style="font:400 9.5px/1.55 Montserrat,sans-serif;color:#3D444B;max-width:none">5 Years, Next Business Day, Advanced Parts Replacement warranty ensures uptime continuity. Secure remote management &amp; advanced support delivers rapid response &amp; uptime.</div>
+            </div>
+          </div>
+          <div style="font:700 10.5px/1 Montserrat,sans-serif;letter-spacing:.15em;color:#054A91">VIDEOX ENTERPRISE FEATURES</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px 30px;flex:1;align-content:start">
+            <sc-for list="{{ featuresVideo }}" as="f" hint-placeholder-count="4">
+              <div style="display:flex;gap:11px">
+                <div style="width:22px;height:22px;border:1px solid #054A91;flex:0 0 auto;display:flex;align-items:center;justify-content:center"><div style="width:8px;height:8px;background:#FCB23E"></div></div>
+                <div style="display:flex;flex-direction:column;gap:5px">
+                  <div style="font:600 10.5px/1.3 Poppins,sans-serif;color:#054A91">{{ f.t }}</div>
+                  <div style="font:400 9.5px/1.55 Montserrat,sans-serif;color:#3D444B">{{ f.b }}</div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="border-top:1px solid #DCE1E6;padding-top:11px;display:flex;align-items:center;gap:20px">
+            <div style="font:700 7.5px/1.4 Montserrat,sans-serif;letter-spacing:.16em;color:#054A91;flex:0 0 auto">VALIDATED<br>WITH</div>
+            <div style="display:flex;gap:22px;flex-wrap:wrap;align-items:center">
+              <sc-for list="{{ vmsList }}" as="v" hint-placeholder-count="6"><div style="font:600 14px/1 Poppins,sans-serif;color:#23272B">{{ v }}</div></sc-for>
+            </div>
+          </div>
+          <div style="border-top:1px solid #DCE1E6;padding-top:9px;display:flex;justify-content:space-between;align-items:center">
+            <div style="font:400 7.5px/1.5 Montserrat,sans-serif;color:#5F6B76">Arxys · 1810 Gillespie Way, Suite 108, El Cajon, CA 92020 · 619.258.7800 · arxys.com<br>VMS licensing and support is not included and is provided by the security partner or customer.</div>
+            <div style="font:600 7.5px/1 Montserrat,sans-serif;letter-spacing:.14em;color:#5F6B76">1 / 2</div>
+          </div>
+        </div>
+
+        <!-- V800 PAGE 2 -->
+        <div data-screen-label="2a V800 P2" style="width:816px;height:1056px;background:#fff;box-shadow:0 18px 44px rgba(0,0,0,.3);padding:44px 48px 30px;box-sizing:border-box;display:flex;flex-direction:column;gap:13px;color:#23272B">
+          <div style="display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2.5px solid #054A91;padding-bottom:9px">
+            <div style="display:flex;align-items:baseline;gap:10px">
+              <div style="font:600 19px/1 Poppins,sans-serif;color:#054A91">V800</div>
+              <div style="font:700 12px/1 Montserrat,sans-serif;letter-spacing:.12em;color:#5F6B76;text-transform:uppercase">Technical Specifications</div>
+            </div>
+            <div style="font:700 9.5px/1 Montserrat,sans-serif;letter-spacing:.24em;color:#054A91">VIDEOX V5</div>
+          </div>
+          <div style="display:flex;align-items:baseline;justify-content:space-between">
+            <div style="font:700 10.5px/1 Montserrat,sans-serif;letter-spacing:.15em;color:#054A91">MAXIMUM VIDEO STREAM RATE</div>
+            <div style="font:500 8px/1 Montserrat,sans-serif;color:#5F6B76">4,000 Mbit/s · 864 TB raw · 720 TB usable</div>
+          </div>
+          <div style="border:1px solid #DCE1E6">
+            <div style="display:grid;grid-template-columns:1.15fr .7fr .95fr 1.2fr;background:#F5F7F9;border-bottom:1px solid #DCE1E6">
+              <sc-for list="{{ vsrHead }}" as="h" hint-placeholder-count="4"><div style="padding:7px 13px;font:700 8.5px/1 Montserrat,sans-serif;letter-spacing:.11em;color:#054A91">{{ h }}</div></sc-for>
+            </div>
+            <sc-for list="{{ matrixV800 }}" as="r" hint-placeholder-count="2">
+              <div style="display:grid;grid-template-columns:1.15fr .7fr .95fr 1.2fr;border-bottom:1px solid #EDF0F3;align-items:center">
+                <div style="padding:7px 13px;font:500 9px/1 Montserrat,sans-serif;color:#23272B">{{ r.res }}</div>
+                <div style="padding:7px 13px;font:400 9px/1 Montserrat,sans-serif;color:#3D444B">{{ r.codec }}</div>
+                <div style="padding:7px 13px;font:600 13px/1 Poppins,sans-serif;color:#054A91">{{ r.cams }}</div>
+                <div style="padding:7px 13px;font:400 9px/1.3 Montserrat,sans-serif;color:#3D444B">{{ r.note }}</div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="background:#F5F7F9;border-left:2px solid #FCB23E;padding:7px 12px;display:flex;flex-wrap:wrap;gap:2px 14px;align-items:baseline">
+            <div style="font:700 6.5px/1.4 Montserrat,sans-serif;letter-spacing:.14em;color:#054A91">VSR PARAMETERS</div>
+            <sc-for list="{{ vsrParams }}" as="p" hint-placeholder-count="6">
+              <div style="display:flex;gap:4px;align-items:baseline">
+                <div style="font:700 7px/1.4 Montserrat,sans-serif;letter-spacing:.1em;color:#5F6B76">{{ p.k }}</div>
+                <div style="font:500 8px/1.4 Montserrat,sans-serif;color:#23272B">{{ p.v }}</div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="font:400 8.5px/1.5 Montserrat,sans-serif;color:#4A5560">Max VSR is <strong style="font-weight:600;color:#23272B">camera streams, not cameras</strong> — a multisensor device presents several streams. If a recording parameter changes, revise the calculation. Validated for Avigilon, Milestone, Hanwha/NXWitness and Genetec; other platforms vary.</div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="font:700 10.5px/1 Montserrat,sans-serif;letter-spacing:.15em;color:#054A91">ORDERABLE CONFIGURATIONS</div>
+            <div style="border:1px solid #DCE1E6">
+              <div style="display:grid;grid-template-columns:1.05fr 1.6fr .75fr .95fr;background:#F5F7F9;border-bottom:1px solid #DCE1E6">
+                <sc-for list="{{ skuHead }}" as="h" hint-placeholder-count="4"><div style="padding:6px 12px;font:700 8.5px/1 Montserrat,sans-serif;letter-spacing:.11em;color:#054A91">{{ h }}</div></sc-for>
+              </div>
+              <sc-for list="{{ skuV800 }}" as="s" hint-placeholder-count="3">
+                <div style="display:grid;grid-template-columns:1.05fr 1.6fr .75fr .95fr;border-bottom:1px solid #EDF0F3">
+                  <div style="padding:6px 12px;font:600 9px/1.3 Montserrat,sans-serif;color:#054A91">{{ s.pn }}</div>
+                  <div style="padding:6px 12px;font:400 8.5px/1.3 Montserrat,sans-serif;color:#3D444B">{{ s.drives }}</div>
+                  <div style="padding:6px 12px;font:500 8.5px/1.3 Montserrat,sans-serif;color:#3D444B">{{ s.raw }}</div>
+                  <div style="padding:6px 12px;font:600 9px/1.3 Montserrat,sans-serif;color:#23272B">{{ s.usable }}</div>
+                </div>
+              </sc-for>
+            </div>
+            <div style="font:400 8px/1.5 Montserrat,sans-serif;color:#4A5560">Three drive capacities per NVR — same chassis and performance, different retention. Usable capacity is RAID 60, excluding the mirrored OS SSD pair.</div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:26px;flex:1;align-content:start">
+            <div style="display:flex;flex-direction:column;gap:0">
+              <div style="font:700 10.5px/1 Montserrat,sans-serif;letter-spacing:.15em;color:#054A91;border-bottom:1px solid #054A91;padding-bottom:7px;margin-bottom:8px">HARDWARE INFORMATION</div>
+              <sc-for list="{{ hwV800 }}" as="r" hint-placeholder-count="12">
+                <div style="display:grid;grid-template-columns:82px 1fr;gap:10px;padding:5px 0;border-bottom:1px solid #F1F4F6">
+                  <div style="font:600 8.5px/1.35 Montserrat,sans-serif;color:#5F6B76">{{ r.k }}</div>
+                  <div style="font:400 9px/1.5 Montserrat,sans-serif;color:#23272B">{{ r.v }}</div>
+                </div>
+              </sc-for>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:0">
+              <div style="font:700 10.5px/1 Montserrat,sans-serif;letter-spacing:.15em;color:#054A91;border-bottom:1px solid #054A91;padding-bottom:7px;margin-bottom:8px">REGULATORY &amp; ENVIRONMENTAL</div>
+              <sc-for list="{{ envV800 }}" as="r" hint-placeholder-count="12">
+                <div style="display:grid;grid-template-columns:82px 1fr;gap:10px;padding:5px 0;border-bottom:1px solid #F1F4F6">
+                  <div style="font:600 8.5px/1.35 Montserrat,sans-serif;color:#5F6B76">{{ r.k }}</div>
+                  <div style="font:400 9px/1.5 Montserrat,sans-serif;color:#23272B">{{ r.v }}</div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1.1fr 1fr;gap:24px;align-items:start">
+            <div style="display:flex;flex-direction:column;gap:7px">
+              <div style="font:700 10.5px/1 Montserrat,sans-serif;letter-spacing:.15em;color:#054A91">REAR I/O PANEL</div>
+              <div style="height:84px;border:1px solid #DCE1E6;background:#fff">
+                <image-slot id="v800-rear" shape="rect" fit="contain" placeholder="Rear I/O photography — slot held"></image-slot>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <div style="font:700 10.5px/1 Montserrat,sans-serif;letter-spacing:.15em;color:#054A91">GENERAL INFORMATION</div>
+              <div style="font:400 8px/1.55 Montserrat,sans-serif;color:#3D444B">Systems ship with Microsoft Windows pre-installed without media and not set up; the installer is responsible for setup, VMS installation, and configuration of users, cameras and databases. VMS installers are included but not installed. Milestone and Avigilon best practice is SQL Standard above 300 cameras — optional, not included. Client View application on server is not supported; a dedicated Client View workstation is required.</div>
+            </div>
+          </div>
+          <div style="border-top:1px solid #DCE1E6;padding-top:9px;display:flex;justify-content:space-between;align-items:center">
+            <div style="font:400 7.5px/1.5 Montserrat,sans-serif;color:#5F6B76">Arxys · 1810 Gillespie Way, Suite 108, El Cajon, CA 92020 · 619.258.7800 · arxys.com<br>For more information visit arxys.com/videox-appliances · rev 10/01/2025</div>
+            <div style="font:600 7.5px/1 Montserrat,sans-serif;letter-spacing:.14em;color:#5F6B76">2 / 2</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= 2d — V400 TEMPLATE TEST ================= -->
+    <div id="2d" style="display:flex;flex-direction:column;gap:16px">
+      <div style="display:flex;align-items:baseline;gap:14px">
+        <div style="font:700 12px/1 Montserrat,sans-serif;letter-spacing:.14em;color:#1b1d20;background:#FCB23E;padding:7px 11px;border-radius:3px">2d</div>
+        <div style="font:600 22px/1 Poppins,sans-serif;color:#fff">V400 · template test — 8 bay, RAID 6</div>
+      </div>
+      <div style="display:flex;gap:24px">
+
+        <!-- V400 PAGE 1 -->
+        <div data-screen-label="2d V400 P1" style="width:816px;height:1056px;background:#fff;box-shadow:0 18px 44px rgba(0,0,0,.3);padding:44px 48px 30px;box-sizing:border-box;display:flex;flex-direction:column;gap:14px;color:#23272B">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <img src="assets/arxys-logo.png" alt="Arxys" style="width:128px;height:auto;display:block">
+            <div style="text-align:right">
+              <div style="font:700 9px/1 Montserrat,sans-serif;letter-spacing:.34em;color:#054A91">VIDEOX V5</div>
+              <div style="font:500 9px/1.5 Montserrat,sans-serif;color:#5F6B76;margin-top:6px">Enterprise Server for Video Surveillance &amp; Video Analytics</div>
+            </div>
+          </div>
+          <div style="height:2.5px;background:#054A91"></div>
+          <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:20px">
+            <div>
+              <div style="font:600 56px/.92 Poppins,sans-serif;color:#054A91;letter-spacing:-.015em">V400</div>
+              <div style="font:600 16px/1.25 Montserrat,sans-serif;letter-spacing:.06em;color:#5F6B76;margin-top:10px;text-transform:uppercase" >8 Bay · 2U Rack · V5 Video Server</div>
+            </div>
+            <div style="display:flex;gap:6px">
+              <sc-for list="{{ badgesVideo }}" as="b" hint-placeholder-count="4"><div style="border:1px solid #DCE1E6;padding:6px 9px;font:700 7.5px/1 Montserrat,sans-serif;letter-spacing:.1em;color:#054A91;white-space:nowrap;flex:0 0 auto">{{ b }}</div></sc-for>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid #DCE1E6;border-bottom:1px solid #DCE1E6">
+            <sc-for list="{{ headlineV400 }}" as="h" hint-placeholder-count="4">
+              <div style="padding:11px 0;display:flex;flex-direction:column;gap:5px">
+                <div style="font:700 8px/1 Montserrat,sans-serif;letter-spacing:.13em;color:#5F6B76">{{ h.k }}</div>
+                <div style="font:600 14px/1 Poppins,sans-serif;color:#23272B">{{ h.v }}</div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="display:flex;align-items:baseline;justify-content:space-between">
+              <div style="font:700 10.5px/1 Montserrat,sans-serif;letter-spacing:.15em;color:#054A91">WHERE THE V400 SITS IN THE VIDEOX NVR LINE</div>
+              <div style="font:500 8px/1 Montserrat,sans-serif;color:#5F6B76">Drive bays · max camera streams</div>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px">
+              <sc-for list="{{ ladderV400 }}" as="m" hint-placeholder-count="7">
+                <div style="border:1px solid #DCE1E6;background:#fff;display:flex;flex-direction:column">
+                  <sc-if value="{{ m.active }}" hint-placeholder-val="{{ false }}"><div style="height:3px;background:#FCB23E"></div></sc-if>
+                  <div style="padding:6px 4px 7px;display:flex;flex-direction:column;gap:2px;align-items:center;text-align:center">
+                    <div style="font:600 11px/1 Poppins,sans-serif;color:#054A91">{{ m.name }}</div>
+                    <div style="font:500 7.5px/1.2 Montserrat,sans-serif;color:#5F6B76">{{ m.bays }}</div>
+                    <div style="font:600 8.5px/1 Montserrat,sans-serif;color:#23272B">{{ m.streams }}</div>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1.08fr 1fr;gap:30px">
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div style="font:700 10.5px/1 Montserrat,sans-serif;letter-spacing:.15em;color:#054A91">RECOMMENDED USAGE</div>
+              <div style="font:400 10.5px/1.6 Montserrat,sans-serif;color:#3D444B;text-wrap:pretty">Designed for medium to medium-large deployments with modest camera counts, this solution delivers strong security and reliable performance. It balances efficient video protection with scalable storage options, making it ideal for organizations with steady but manageable surveillance needs.</div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div style="font:700 10.5px/1 Montserrat,sans-serif;letter-spacing:.15em;color:#054A91">KEY ATTRIBUTES</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px 16px">
+                <sc-for list="{{ attrsV400 }}" as="a" hint-placeholder-count="10">
+                  <div style="display:flex;gap:6px;align-items:flex-start">
+                    <div style="width:3px;height:3px;background:#FCB23E;flex:0 0 auto;margin-top:5px"></div>
+                    <div style="font:400 9px/1.45 Montserrat,sans-serif;color:#3D444B">{{ a }}</div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+          <div style="height:158px;background:#F5F7F9;position:relative">
+            <image-slot id="v400-front" shape="rect" fit="contain" placeholder="V400 front 3/4 — product photography"></image-slot>
+          </div>
+          <div style="background:#FFF8EC;border-top:1px solid #F2DDB6;border-bottom:1px solid #F2DDB6;padding:13px 16px;display:flex;align-items:center;gap:16px">
+            <div data-seal="warranty-5yr-v400" style="width:72px;height:72px;flex:0 0 auto;border-radius:50%;border:1px dashed #E0C795;background:#fff;display:flex;align-items:center;justify-content:center"><div style="font:700 6.5px/1 Montserrat,sans-serif;letter-spacing:.1em;color:#8A6A1F;white-space:nowrap">5 YR SEAL</div></div>
+            <div style="display:flex;flex-direction:column;gap:5px">
+              <div style="font:600 13px/1.2 Poppins,sans-serif;color:#054A91">5-Year NBD Advanced Parts Warranty</div>
+              <div style="font:400 9.5px/1.55 Montserrat,sans-serif;color:#3D444B;max-width:none">5 Years, Next Business Day, Advanced Parts Replacement warranty ensures uptime continuity. Secure remote management &amp; advanced support delivers rapid response &amp; uptime.</div>
+            </div>
+          </div>
+          <div style="font:700 10.5px/1 Montserrat,sans-serif;letter-spacing:.15em;color:#054A91">VIDEOX ENTERPRISE FEATURES</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px 30px;flex:1;align-content:start">
+            <sc-for list="{{ featuresVideo }}" as="f" hint-placeholder-count="4">
+              <div style="display:flex;gap:11px">
+                <div style="width:22px;height:22px;border:1px solid #054A91;flex:0 0 auto;display:flex;align-items:center;justify-content:center"><div style="width:8px;height:8px;background:#FCB23E"></div></div>
+                <div style="display:flex;flex-direction:column;gap:5px">
+                  <div style="font:600 10.5px/1.3 Poppins,sans-serif;color:#054A91">{{ f.t }}</div>
+                  <div style="font:400 9.5px/1.55 Montserrat,sans-serif;color:#3D444B">{{ f.b }}</div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="border-top:1px solid #DCE1E6;padding-top:11px;display:flex;align-items:center;gap:20px">
+            <div style="font:700 7.5px/1.4 Montserrat,sans-serif;letter-spacing:.16em;color:#054A91;flex:0 0 auto">VALIDATED<br>WITH</div>
+            <div style="display:flex;gap:22px;flex-wrap:wrap;align-items:center">
+              <sc-for list="{{ vmsList }}" as="v" hint-placeholder-count="6"><div style="font:600 14px/1 Poppins,sans-serif;color:#23272B">{{ v }}</div></sc-for>
+            </div>
+          </div>
+          <div style="border-top:1px solid #DCE1E6;padding-top:9px;display:flex;justify-content:space-between;align-items:center">
+            <div style="font:400 7.5px/1.5 Montserrat,sans-serif;color:#5F6B76">Arxys · 1810 Gillespie Way, Suite 108, El Cajon, CA 92020 · 619.258.7800 · arxys.com<br>VMS licensing and support is not included and is provided by the security partner or customer.</div>
+            <div style="font:600 7.5px/1 Montserrat,sans-serif;letter-spacing:.14em;color:#5F6B76">1 / 2</div>
+          </div>
+        </div>
+
+        <!-- V400 PAGE 2 -->
+        <div data-screen-label="2d V400 P2" style="width:816px;height:1056px;background:#fff;box-shadow:0 18px 44px rgba(0,0,0,.3);padding:44px 48px 30px;box-sizing:border-box;display:flex;flex-direction:column;gap:13px;color:#23272B">
+          <div style="display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2.5px solid #054A91;padding-bottom:9px">
+            <div style="display:flex;align-items:baseline;gap:10px">
+              <div style="font:600 19px/1 Poppins,sans-serif;color:#054A91">V400</div>
+              <div style="font:700 12px/1 Montserrat,sans-serif;letter-spacing:.12em;color:#5F6B76;text-transform:uppercase">Technical Specifications</div>
+            </div>
+            <div style="font:700 9.5px/1 Montserrat,sans-serif;letter-spacing:.24em;color:#054A91">VIDEOX V5</div>
+          </div>
+          <div style="display:flex;align-items:baseline;justify-content:space-between">
+            <div style="font:700 10.5px/1 Montserrat,sans-serif;letter-spacing:.15em;color:#054A91">MAXIMUM VIDEO STREAM RATE</div>
+            <div style="font:500 8px/1 Montserrat,sans-serif;color:#5F6B76">2,000 Mbit/s · 192 TB raw · 144 TB usable</div>
+          </div>
+          <div style="border:1px solid #DCE1E6">
+            <div style="display:grid;grid-template-columns:1.15fr .7fr .95fr 1.2fr;background:#F5F7F9;border-bottom:1px solid #DCE1E6">
+              <sc-for list="{{ vsrHead }}" as="h" hint-placeholder-count="4"><div style="padding:7px 13px;font:700 8.5px/1 Montserrat,sans-serif;letter-spacing:.11em;color:#054A91">{{ h }}</div></sc-for>
+            </div>
+            <sc-for list="{{ matrixV400 }}" as="r" hint-placeholder-count="2">
+              <div style="display:grid;grid-template-columns:1.15fr .7fr .95fr 1.2fr;border-bottom:1px solid #EDF0F3;align-items:center">
+                <div style="padding:7px 13px;font:500 9px/1 Montserrat,sans-serif;color:#23272B">{{ r.res }}</div>
+                <div style="padding:7px 13px;font:400 9px/1 Montserrat,sans-serif;color:#3D444B">{{ r.codec }}</div>
+                <div style="padding:7px 13px;font:600 13px/1 Poppins,sans-serif;color:#054A91">{{ r.cams }}</div>
+                <div style="padding:7px 13px;font:400 9px/1.3 Montserrat,sans-serif;color:#3D444B">{{ r.note }}</div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="background:#F5F7F9;border-left:2px solid #FCB23E;padding:7px 12px;display:flex;flex-wrap:wrap;gap:2px 14px;align-items:baseline">
+            <div style="font:700 6.5px/1.4 Montserrat,sans-serif;letter-spacing:.14em;color:#054A91">VSR PARAMETERS</div>
+            <sc-for list="{{ vsrParams }}" as="p" hint-placeholder-count="6">
+              <div style="display:flex;gap:4px;align-items:baseline">
+                <div style="font:700 7px/1.4 Montserrat,sans-serif;letter-spacing:.1em;color:#5F6B76">{{ p.k }}</div>
+                <div style="font:500 8px/1.4 Montserrat,sans-serif;color:#23272B">{{ p.v }}</div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="font:400 8.5px/1.5 Montserrat,sans-serif;color:#4A5560">Max VSR is <strong style="font-weight:600;color:#23272B">camera streams, not cameras</strong> — a multisensor device presents several streams. If a recording parameter changes, revise the calculation. Validated for Avigilon, Milestone, Hanwha/NXWitness and Genetec; other platforms vary.</div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="font:700 10.5px/1 Montserrat,sans-serif;letter-spacing:.15em;color:#054A91" >ORDERABLE CONFIGURATIONS</div>
+            <div style="border:1px solid #DCE1E6">
+              <div style="display:grid;grid-template-columns:1.05fr 1.6fr .75fr .95fr;background:#F5F7F9;border-bottom:1px solid #DCE1E6">
+                <sc-for list="{{ skuHeadV400 }}" as="h" hint-placeholder-count="4"><div style="padding:6px 12px;font:700 8.5px/1 Montserrat,sans-serif;letter-spacing:.11em;color:#054A91">{{ h }}</div></sc-for>
+              </div>
+              <sc-for list="{{ skuV400 }}" as="s" hint-placeholder-count="3">
+                <div style="display:grid;grid-template-columns:1.05fr 1.6fr .75fr .95fr;border-bottom:1px solid #EDF0F3">
+                  <div style="padding:6px 12px;font:600 9px/1.3 Montserrat,sans-serif;color:#054A91">{{ s.pn }}</div>
+                  <div style="padding:6px 12px;font:400 8.5px/1.3 Montserrat,sans-serif;color:#3D444B">{{ s.drives }}</div>
+                  <div style="padding:6px 12px;font:500 8.5px/1.3 Montserrat,sans-serif;color:#3D444B">{{ s.raw }}</div>
+                  <div style="padding:6px 12px;font:600 9px/1.3 Montserrat,sans-serif;color:#23272B">{{ s.usable }}</div>
+                </div>
+              </sc-for>
+            </div>
+            <div style="font:400 8px/1.5 Montserrat,sans-serif;color:#4A5560">Three drive capacities per NVR — same chassis and performance, different retention. Usable capacity is RAID 6, excluding the mirrored OS SSD pair.</div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:26px;flex:1;align-content:start">
+            <div style="display:flex;flex-direction:column;gap:0">
+              <div style="font:700 10.5px/1 Montserrat,sans-serif;letter-spacing:.15em;color:#054A91;border-bottom:1px solid #054A91;padding-bottom:7px;margin-bottom:8px">HARDWARE INFORMATION</div>
+              <sc-for list="{{ hwV400 }}" as="r" hint-placeholder-count="12">
+                <div style="display:grid;grid-template-columns:82px 1fr;gap:10px;padding:5px 0;border-bottom:1px solid #F1F4F6">
+                  <div style="font:600 8.5px/1.35 Montserrat,sans-serif;color:#5F6B76">{{ r.k }}</div>
+                  <div style="font:400 9px/1.5 Montserrat,sans-serif;color:#23272B">{{ r.v }}</div>
+                </div>
+              </sc-for>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:0">
+              <div style="font:700 10.5px/1 Montserrat,sans-serif;letter-spacing:.15em;color:#054A91;border-bottom:1px solid #054A91;padding-bottom:7px;margin-bottom:8px">REGULATORY &amp; ENVIRONMENTAL</div>
+              <sc-for list="{{ envV400 }}" as="r" hint-placeholder-count="12">
+                <div style="display:grid;grid-template-columns:82px 1fr;gap:10px;padding:5px 0;border-bottom:1px solid #F1F4F6">
+                  <div style="font:600 8.5px/1.35 Montserrat,sans-serif;color:#5F6B76">{{ r.k }}</div>
+                  <div style="font:400 9px/1.5 Montserrat,sans-serif;color:#23272B">{{ r.v }}</div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1.1fr 1fr;gap:24px;align-items:start">
+            <div style="display:flex;flex-direction:column;gap:7px">
+              <div style="font:700 10.5px/1 Montserrat,sans-serif;letter-spacing:.15em;color:#054A91">REAR I/O PANEL</div>
+              <div style="height:84px;border:1px solid #DCE1E6;background:#fff">
+                <image-slot id="v400-rear" shape="rect" fit="contain" placeholder="Rear I/O photography — slot held"></image-slot>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <div style="font:700 10.5px/1 Montserrat,sans-serif;letter-spacing:.15em;color:#054A91">GENERAL INFORMATION</div>
+              <div style="font:400 8px/1.55 Montserrat,sans-serif;color:#3D444B">Systems ship with Microsoft Windows pre-installed without media and not set up; the installer is responsible for setup, VMS installation, and configuration of users, cameras and databases. VMS installers are included but not installed. Milestone and Avigilon best practice is SQL Standard above 300 cameras — optional, not included. Client View application on server is not supported; a dedicated Client View workstation is required.</div>
+            </div>
+          </div>
+          <div style="border-top:1px solid #DCE1E6;padding-top:9px;display:flex;justify-content:space-between;align-items:center">
+            <div style="font:400 7.5px/1.5 Montserrat,sans-serif;color:#5F6B76">Arxys · 1810 Gillespie Way, Suite 108, El Cajon, CA 92020 · 619.258.7800 · arxys.com<br>For more information visit arxys.com/videox-appliances · rev 10/01/2025</div>
+            <div style="font:600 7.5px/1 Montserrat,sans-serif;letter-spacing:.14em;color:#5F6B76">2 / 2</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    
+    <!-- ================= 2b — V250 LEDGER ================= -->
+    <div id="2b" style="display:flex;flex-direction:column;gap:16px">
+      <div style="display:flex;align-items:baseline;gap:14px">
+        <div style="font:700 12px/1 Montserrat,sans-serif;letter-spacing:.14em;color:#1b1d20;background:#FCB23E;padding:7px 11px;border-radius:3px">2b</div>
+        <div style="font:600 22px/1 Poppins,sans-serif;color:#fff">V250 / V255 · same template, thinner specs</div>
+      </div>
+      <div style="display:flex;gap:24px">
+
+        <!-- V250 PAGE 1 -->
+        <div data-screen-label="2b V250 P1" style="width:816px;height:1056px;background:#fff;box-shadow:0 18px 44px rgba(0,0,0,.3);padding:44px 48px 30px;box-sizing:border-box;display:flex;flex-direction:column;gap:14px;color:#23272B">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <img src="assets/arxys-logo.png" alt="Arxys" style="width:128px;height:auto;display:block">
+            <div style="text-align:right">
+              <div style="font:700 9px/1 Montserrat,sans-serif;letter-spacing:.34em;color:#054A91">VIDEOX V5</div>
+              <div style="font:500 9px/1.5 Montserrat,sans-serif;color:#5F6B76;margin-top:6px">Enterprise Server for Video Surveillance</div>
+            </div>
+          </div>
+          <div style="height:2.5px;background:#054A91"></div>
+          <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:20px">
+            <div>
+              <div style="font:600 56px/.92 Poppins,sans-serif;color:#054A91;letter-spacing:-.015em">V250<span style="color:#B9C2CB">/</span>V255</div>
+              <div style="font:600 16px/1.25 Montserrat,sans-serif;letter-spacing:.06em;color:#5F6B76;margin-top:10px;text-transform:uppercase">4 Bay · 1U Rack · Management / Directory Server</div>
+            </div>
+            <div style="display:flex;gap:6px">
+              <sc-for list="{{ badgesVideo }}" as="b" hint-placeholder-count="4"><div style="border:1px solid #DCE1E6;padding:6px 9px;font:700 7.5px/1 Montserrat,sans-serif;letter-spacing:.1em;color:#054A91;white-space:nowrap;flex:0 0 auto">{{ b }}</div></sc-for>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid #DCE1E6;border-bottom:1px solid #DCE1E6">
+            <sc-for list="{{ headlineV250 }}" as="h" hint-placeholder-count="4">
+              <div style="padding:11px 0;display:flex;flex-direction:column;gap:5px">
+                <div style="font:700 8px/1 Montserrat,sans-serif;letter-spacing:.13em;color:#5F6B76">{{ h.k }}</div>
+                <div style="font:600 14px/1 Poppins,sans-serif;color:#23272B">{{ h.v }}</div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="display:flex;align-items:baseline;justify-content:space-between">
+              <div style="font:700 10.5px/1 Montserrat,sans-serif;letter-spacing:.15em;color:#054A91">WHERE THE V250 SITS IN THE MANAGEMENT &amp; ACCESS CONTROL LINE</div>
+              <div style="font:500 8px/1 Montserrat,sans-serif;color:#5F6B76">Role · capacity</div>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:3px">
+              <sc-for list="{{ ladderV250 }}" as="m" hint-placeholder-count="5">
+                <div style="border:1px solid #DCE1E6;background:#fff;display:flex;flex-direction:column">
+                  <sc-if value="{{ m.active }}" hint-placeholder-val="{{ false }}"><div style="height:3px;background:#FCB23E"></div></sc-if>
+                  <div style="padding:6px 4px 7px;display:flex;flex-direction:column;gap:2px;align-items:center;text-align:center">
+                    <div style="font:600 11px/1 Poppins,sans-serif;color:#054A91">{{ m.name }}</div>
+                    <div style="font:500 7.5px/1.2 Montserrat,sans-serif;color:#5F6B76">{{ m.bays }}</div>
+                    <div style="font:600 8.5px/1 Montserrat,sans-serif;color:#23272B">{{ m.streams }}</div>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1.08fr 1fr;gap:30px">
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div style="font:700 10.5px/1 Montserrat,sans-serif;letter-spacing:.15em;color:#054A91">RECOMMENDED USAGE</div>
+              <div style="font:400 10.5px/1.6 Montserrat,sans-serif;color:#3D444B;text-wrap:pretty">Optimized for video surveillance management and directory server roles in larger distributed environments. Excellent balance of performance and value to right-size your projects: the V250 manages up to 250 cameras, and the V255 covers deployments above 250.</div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div style="font:700 10.5px/1 Montserrat,sans-serif;letter-spacing:.15em;color:#054A91">KEY ATTRIBUTES</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px 16px">
+                <sc-for list="{{ attrsV250 }}" as="a" hint-placeholder-count="9">
+                  <div style="display:flex;gap:6px;align-items:flex-start">
+                    <div style="width:3px;height:3px;background:#FCB23E;flex:0 0 auto;margin-top:5px"></div>
+                    <div style="font:400 9px/1.45 Montserrat,sans-serif;color:#3D444B">{{ a }}</div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+          <div style="height:158px;background:#F5F7F9;position:relative">
+            <image-slot id="v250-front" shape="rect" fit="contain" placeholder="V250 front 3/4 — 1U product photography"></image-slot>
+          </div>
+          <div style="background:#FFF8EC;border-top:1px solid #F2DDB6;border-bottom:1px solid #F2DDB6;padding:13px 16px;display:flex;align-items:center;gap:16px">
+            <div data-seal="warranty-5yr-v250" style="width:72px;height:72px;flex:0 0 auto;border-radius:50%;border:1px dashed #E0C795;background:#fff;display:flex;align-items:center;justify-content:center"><div style="font:700 6.5px/1 Montserrat,sans-serif;letter-spacing:.1em;color:#8A6A1F;white-space:nowrap">5 YR SEAL</div></div>
+            <div style="display:flex;flex-direction:column;gap:5px">
+              <div style="font:600 13px/1.2 Poppins,sans-serif;color:#054A91">5-Year NBD Advanced Parts Warranty</div>
+              <div style="font:400 9.5px/1.55 Montserrat,sans-serif;color:#3D444B;max-width:none">5 Years, Next Business Day, Advanced Parts Replacement warranty ensures uptime continuity. Secure remote management &amp; advanced Level 2 support delivers rapid response &amp; uptime.</div>
+            </div>
+          </div>
+          <div style="font:700 10.5px/1 Montserrat,sans-serif;letter-spacing:.15em;color:#054A91">VIDEOX ENTERPRISE FEATURES</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px 30px;flex:1;align-content:start">
+            <sc-for list="{{ featuresMgmt }}" as="f" hint-placeholder-count="4">
+              <div style="display:flex;gap:11px">
+                <div style="width:22px;height:22px;border:1px solid #054A91;flex:0 0 auto;display:flex;align-items:center;justify-content:center"><div style="width:8px;height:8px;background:#FCB23E"></div></div>
+                <div style="display:flex;flex-direction:column;gap:5px">
+                  <div style="font:600 10.5px/1.3 Poppins,sans-serif;color:#054A91">{{ f.t }}</div>
+                  <div style="font:400 9.5px/1.55 Montserrat,sans-serif;color:#3D444B">{{ f.b }}</div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="border-top:1px solid #DCE1E6;padding-top:11px;display:flex;align-items:center;gap:20px">
+            <div style="font:700 7.5px/1.4 Montserrat,sans-serif;letter-spacing:.16em;color:#054A91;flex:0 0 auto">VALIDATED<br>WITH</div>
+            <div style="display:flex;gap:22px;flex-wrap:wrap;align-items:center">
+              <sc-for list="{{ vmsList }}" as="v" hint-placeholder-count="6"><div style="font:600 14px/1 Poppins,sans-serif;color:#23272B">{{ v }}</div></sc-for>
+            </div>
+          </div>
+          <div style="border-top:1px solid #DCE1E6;padding-top:9px;display:flex;justify-content:space-between;align-items:center">
+            <div style="font:400 7.5px/1.5 Montserrat,sans-serif;color:#5F6B76">Arxys · 1810 Gillespie Way, Suite 108, El Cajon, CA 92020 · 619.258.7800 · arxys.com<br>VMS licensing and support is not included and is provided by the security partner or customer.</div>
+            <div style="font:600 7.5px/1 Montserrat,sans-serif;letter-spacing:.14em;color:#5F6B76">1 / 2</div>
+          </div>
+        </div>
+
+        <!-- V250 PAGE 2 -->
+        <div data-screen-label="2b V250 P2" style="width:816px;height:1056px;background:#fff;box-shadow:0 18px 44px rgba(0,0,0,.3);padding:44px 48px 30px;box-sizing:border-box;display:flex;flex-direction:column;gap:13px;color:#23272B">
+          <div style="display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2.5px solid #054A91;padding-bottom:9px">
+            <div style="display:flex;align-items:baseline;gap:10px">
+              <div style="font:600 19px/1 Poppins,sans-serif;color:#054A91">V250 / V255</div>
+              <div style="font:700 12px/1 Montserrat,sans-serif;letter-spacing:.12em;color:#5F6B76;text-transform:uppercase">Technical Specifications</div>
+            </div>
+            <div style="font:700 9.5px/1 Montserrat,sans-serif;letter-spacing:.24em;color:#054A91">VIDEOX V5</div>
+          </div>
+          <div style="display:flex;align-items:baseline;justify-content:space-between">
+            <div style="font:700 10.5px/1 Montserrat,sans-serif;letter-spacing:.15em;color:#054A91">MANAGEMENT CAPACITY</div>
+            <div style="font:500 8px/1 Montserrat,sans-serif;color:#5F6B76">V250 ≤ 250 cameras · V255 250+ · 1,000 Mbit/s</div>
+          </div>
+          <div style="border:1px solid #DCE1E6">
+            <div style="display:grid;grid-template-columns:1.2fr .8fr .8fr 1fr;background:#F5F7F9;border-bottom:1px solid #DCE1E6">
+              <sc-for list="{{ mgmtHead }}" as="h" hint-placeholder-count="4"><div style="padding:7px 13px;font:700 8.5px/1 Montserrat,sans-serif;letter-spacing:.11em;color:#054A91">{{ h }}</div></sc-for>
+            </div>
+            <sc-for list="{{ matrixV250 }}" as="r" hint-placeholder-count="4">
+              <div style="display:grid;grid-template-columns:1.2fr .8fr .8fr 1fr;border-bottom:1px solid #EDF0F3">
+                <div style="padding:7px 13px;font:500 9px/1 Montserrat,sans-serif;color:#23272B">{{ r.role }}</div>
+                <div style="padding:7px 13px;font:600 9px/1 Montserrat,sans-serif;color:#054A91">{{ r.cams }}</div>
+                <div style="padding:7px 13px;font:400 9px/1 Montserrat,sans-serif;color:#3D444B">{{ r.rec }}</div>
+                <div style="padding:7px 13px;font:400 9px/1 Montserrat,sans-serif;color:#3D444B">{{ r.note }}</div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="font:400 7.5px/1.5 Montserrat,sans-serif;color:#5F6B76">Management and directory server roles only — no video recording. The V250 is sized for deployments up to 250 cameras under management; the V255 covers anything above that. Counts are approximations and always VMS dependant. Windows Server IoT for Storage Workgroup EULA and Microsoft conditions should be respected at all times by the end user.</div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="font:700 10.5px/1 Montserrat,sans-serif;letter-spacing:.15em;color:#054A91">ORDERABLE CONFIGURATIONS</div>
+            <div style="border:1px solid #DCE1E6">
+              <div style="display:grid;grid-template-columns:1.05fr .55fr 1.75fr .95fr;background:#F5F7F9;border-bottom:1px solid #DCE1E6">
+                <sc-for list="{{ skuHeadV250 }}" as="h" hint-placeholder-count="4"><div style="padding:6px 12px;font:700 8.5px/1 Montserrat,sans-serif;letter-spacing:.11em;color:#054A91">{{ h }}</div></sc-for>
+              </div>
+              <sc-for list="{{ skuV250 }}" as="s" hint-placeholder-count="2">
+                <div style="display:grid;grid-template-columns:1.05fr .55fr 1.75fr .95fr;border-bottom:1px solid #EDF0F3">
+                  <div style="padding:6px 12px;font:600 9px/1.3 Montserrat,sans-serif;color:#054A91">{{ s.pn }}</div>
+                  <div style="padding:6px 12px;font:600 9px/1.3 Montserrat,sans-serif;color:#23272B">{{ s.model }}</div>
+                  <div style="padding:6px 12px;font:400 8.5px/1.3 Montserrat,sans-serif;color:#3D444B">{{ s.drives }}</div>
+                  <div style="padding:6px 12px;font:600 9px/1.3 Montserrat,sans-serif;color:#23272B">{{ s.cams }}</div>
+                </div>
+              </sc-for>
+            </div>
+            <div style="font:400 7.5px/1.5 Montserrat,sans-serif;color:#5F6B76">V250 and V255 share one chassis and one spec sheet — the difference is CPU tier, memory and SSD capacity, sized to the number of cameras under management.</div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:26px;flex:1;align-content:start">
+            <div style="display:flex;flex-direction:column;gap:0">
+              <div style="font:700 10.5px/1 Montserrat,sans-serif;letter-spacing:.15em;color:#054A91;border-bottom:1px solid #054A91;padding-bottom:7px;margin-bottom:8px">HARDWARE INFORMATION</div>
+              <sc-for list="{{ hwV250 }}" as="r" hint-placeholder-count="10">
+                <div style="display:grid;grid-template-columns:82px 1fr;gap:10px;padding:5px 0;border-bottom:1px solid #F1F4F6">
+                  <div style="font:600 8.5px/1.35 Montserrat,sans-serif;color:#5F6B76">{{ r.k }}</div>
+                  <div style="font:400 9px/1.5 Montserrat,sans-serif;color:#23272B">{{ r.v }}</div>
+                </div>
+              </sc-for>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:0">
+              <div style="font:700 10.5px/1 Montserrat,sans-serif;letter-spacing:.15em;color:#054A91;border-bottom:1px solid #054A91;padding-bottom:7px;margin-bottom:8px">REGULATORY &amp; ENVIRONMENTAL</div>
+              <sc-for list="{{ envV250 }}" as="r" hint-placeholder-count="11">
+                <div style="display:grid;grid-template-columns:82px 1fr;gap:10px;padding:5px 0;border-bottom:1px solid #F1F4F6">
+                  <div style="font:600 8.5px/1.35 Montserrat,sans-serif;color:#5F6B76">{{ r.k }}</div>
+                  <div style="font:400 9px/1.5 Montserrat,sans-serif;color:#23272B">{{ r.v }}</div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1.1fr 1fr;gap:24px;align-items:start">
+            <div style="display:flex;flex-direction:column;gap:7px">
+              <div style="font:700 10.5px/1 Montserrat,sans-serif;letter-spacing:.15em;color:#054A91">REAR I/O PANEL</div>
+              <div style="height:84px;border:1px solid #DCE1E6;background:#fff">
+                <image-slot id="v250-rear" shape="rect" fit="contain" placeholder="Rear I/O photography — slot held"></image-slot>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <div style="font:700 10.5px/1 Montserrat,sans-serif;letter-spacing:.15em;color:#054A91">GENERAL INFORMATION</div>
+              <div style="font:400 8px/1.55 Montserrat,sans-serif;color:#3D444B">Systems ship with Microsoft Windows pre-installed without media and not set up; the installer is responsible for setup, VMS installation, and configuration of users, cameras and databases. VMS installers are included but not installed. Client View application on server is not recommended; run it on a Client View workstation.</div>
+            </div>
+          </div>
+          <div style="border-top:1px solid #DCE1E6;padding-top:9px;display:flex;justify-content:space-between;align-items:center">
+            <div style="font:400 7.5px/1.5 Montserrat,sans-serif;color:#5F6B76">Arxys · 1810 Gillespie Way, Suite 108, El Cajon, CA 92020 · 619.258.7800 · arxys.com<br>For more information visit arxys.com/videox-appliances</div>
+            <div style="font:600 7.5px/1 Montserrat,sans-serif;letter-spacing:.14em;color:#5F6B76">2 / 2</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= 2c — SW10 RAIL ================= -->
+    <div id="2c" style="display:flex;flex-direction:column;gap:16px">
+      <div style="display:flex;align-items:baseline;gap:14px">
+        <div style="font:700 12px/1 Montserrat,sans-serif;letter-spacing:.14em;color:#1b1d20;background:#FCB23E;padding:7px 11px;border-radius:3px">2c</div>
+        <div style="font:600 22px/1 Poppins,sans-serif;color:#fff">SW10 · Workstation template (Rail)</div>
+      </div>
+      <div data-screen-label="2c SW10" style="width:816px;height:1056px;background:#fff;box-shadow:0 18px 44px rgba(0,0,0,.3);box-sizing:border-box;display:flex;overflow:hidden;color:#23272B">
+        <div style="width:214px;flex:0 0 auto;background:#F5F7F9;border-right:1px solid #DCE1E6;padding:44px 22px 30px;display:flex;flex-direction:column;gap:18px">
+          <img src="assets/arxys-logo.png" alt="Arxys" style="width:120px;height:auto;display:block">
+          <div>
+            <div style="font:700 9.5px/1 Montserrat,sans-serif;letter-spacing:.24em;color:#054A91">VIDEOX V5</div>
+            <div style="font:600 42px/.95 Poppins,sans-serif;color:#054A91;margin-top:9px;letter-spacing:-.015em">SW10</div>
+            <div style="font:600 9px/1.5 Montserrat,sans-serif;letter-spacing:.09em;color:#5F6B76;margin-top:8px;text-transform:uppercase">Performance Tower<br>Security Workstation</div>
+            <div style="font:600 9px/1 Montserrat,sans-serif;color:#054A91;margin-top:9px;padding-top:8px;border-top:1px solid #DCE1E6">VX5-SW10-100</div>
+          </div>
+          <div style="height:1px;background:#DCE1E6"></div>
+          <div style="display:flex;flex-direction:column;gap:7px">
+            <div style="font:700 9.5px/1 Montserrat,sans-serif;letter-spacing:.14em;color:#054A91">KEY ATTRIBUTES</div>
+            <sc-for list="{{ attrsSW10 }}" as="a" hint-placeholder-count="6">
+              <div style="display:flex;gap:6px;align-items:flex-start">
+                <div style="width:3px;height:3px;background:#FCB23E;flex:0 0 auto;margin-top:5px"></div>
+                <div style="font:400 8.5px/1.45 Montserrat,sans-serif;color:#3D444B">{{ a }}</div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="height:1px;background:#DCE1E6"></div>
+          <div style="background:#FFF8EC;border:1px solid #F2DDB6;padding:12px 11px;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center">
+            <div data-seal="warranty-3yr-sw10" style="width:62px;height:62px;flex:0 0 auto;border-radius:50%;border:1px dashed #E0C795;background:#fff;display:flex;align-items:center;justify-content:center"><div style="font:700 6px/1 Montserrat,sans-serif;letter-spacing:.1em;color:#8A6A1F;white-space:nowrap">3 YR SEAL</div></div>
+            <div style="font:600 9.5px/1.3 Poppins,sans-serif;color:#054A91">3-Year NBD Warranty</div>
+            <div style="font:400 8px/1.55 Montserrat,sans-serif;color:#3D444B">3 Years Advanced Warranty with NBD Advanced Parts Replacement of Field Replaceable Units. Optional 5-year upgrade must be purchased with the unit.</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:5px">
+            <div style="font:700 9.5px/1 Montserrat,sans-serif;letter-spacing:.14em;color:#054A91">COMPLIANCE</div>
+            <sc-for list="{{ badgesSW }}" as="b" hint-placeholder-count="3"><div style="background:#fff;border:1px solid #DCE1E6;padding:5px 8px;font:700 7px/1 Montserrat,sans-serif;letter-spacing:.1em;color:#054A91;white-space:nowrap">{{ b }}</div></sc-for>
+          </div>
+          <div style="flex:1"></div>
+          <div style="font:400 7px/1.6 Montserrat,sans-serif;color:#5F6B76">Arxys · 1810 Gillespie Way<br>Suite 108, El Cajon, CA 92020<br>619.258.7800 · arxys.com</div>
+        </div>
+        <div style="flex:1;padding:44px 44px 30px;display:flex;flex-direction:column;gap:13px;min-width:0">
+          <div>
+            <div style="font:600 20px/1.35 Poppins,sans-serif;color:#054A91;text-wrap:pretty">Client View workstation for high-density, multi-monitor monitoring</div>
+            <div style="height:2.5px;background:#FCB23E;width:56px;margin-top:11px"></div>
+          </div>
+          <div style="font:400 10.5px/1.6 Montserrat,sans-serif;color:#3D444B;text-wrap:pretty">Purpose-built Client View workstation for VMS operators running high camera counts across multiple monitors. GPU-accelerated decode keeps live view fluid at 4MP and 8MP without loading the recording server, and every unit is pre-tested, pre-loaded and burn-in verified before it ships.</div>
+          <div style="height:110px;background:#F5F7F9;position:relative;margin-right:-44px">
+            <image-slot id="sw10-front" shape="rect" fit="contain" placeholder="SW10 tower — product photography"></image-slot>
+          </div>
+          <div style="display:flex;align-items:baseline;justify-content:space-between">
+            <div style="font:700 10.5px/1 Montserrat,sans-serif;letter-spacing:.15em;color:#054A91">CAMERA STREAM MATRIX</div>
+            <div style="font:500 8px/1 Montserrat,sans-serif;color:#5F6B76">Ceiling: 125 Mbit/s · 4 monitors</div>
+          </div>
+          <div style="border:1px solid #DCE1E6">
+            <div style="display:grid;grid-template-columns:1fr .8fr .8fr 1fr;background:#F5F7F9;border-bottom:1px solid #DCE1E6">
+              <sc-for list="{{ matrixHead }}" as="h" hint-placeholder-count="4"><div style="padding:7px 12px;font:700 8.5px/1 Montserrat,sans-serif;letter-spacing:.11em;color:#054A91">{{ h }}</div></sc-for>
+            </div>
+            <sc-for list="{{ matrixSW10 }}" as="r" hint-placeholder-count="4">
+              <div style="display:grid;grid-template-columns:1fr .8fr .8fr 1fr;border-bottom:1px solid #EDF0F3">
+                <div style="padding:7px 12px;font:500 9px/1 Montserrat,sans-serif;color:#23272B">{{ r.res }}</div>
+                <div style="padding:7px 12px;font:400 9px/1 Montserrat,sans-serif;color:#3D444B">{{ r.codec }}</div>
+                <div style="padding:7px 12px;font:600 9px/1 Montserrat,sans-serif;color:#054A91">{{ r.cams }}</div>
+                <div style="padding:7px 12px;font:400 9px/1 Montserrat,sans-serif;color:#3D444B">{{ r.bw }}</div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="font:400 7.5px/1.5 Montserrat,sans-serif;color:#5F6B76">Counts are camera streams, not cameras — a multisensor or multi-head device presents several streams to the VMS. Counts are approximations within the limits of maximum supported bandwidth and always VMS dependant. Testing performed with 4 monitors at 15fps; connecting additional monitors may reduce total counts. A VMS may require monitors be load balanced across GPUs, or all monitors on one GPU.</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;flex:1;align-content:start">
+            <div style="display:flex;flex-direction:column">
+              <div style="font:700 10.5px/1 Montserrat,sans-serif;letter-spacing:.15em;color:#054A91;border-bottom:1px solid #054A91;padding-bottom:7px;margin-bottom:7px">HARDWARE</div>
+              <sc-for list="{{ hwSW10 }}" as="r" hint-placeholder-count="11">
+                <div style="display:grid;grid-template-columns:66px 1fr;gap:9px;padding:3px 0;border-bottom:1px solid #F1F4F6">
+                  <div style="font:600 8px/1.35 Montserrat,sans-serif;color:#5F6B76">{{ r.k }}</div>
+                  <div style="font:400 8.5px/1.45 Montserrat,sans-serif;color:#23272B">{{ r.v }}</div>
+                </div>
+              </sc-for>
+            </div>
+            <div style="display:flex;flex-direction:column">
+              <div style="font:700 10.5px/1 Montserrat,sans-serif;letter-spacing:.15em;color:#054A91;border-bottom:1px solid #054A91;padding-bottom:7px;margin-bottom:7px">PERFORMANCE &amp; ENVIRONMENTAL</div>
+              <sc-for list="{{ envSW10 }}" as="r" hint-placeholder-count="11">
+                <div style="display:grid;grid-template-columns:66px 1fr;gap:9px;padding:3px 0;border-bottom:1px solid #F1F4F6">
+                  <div style="font:600 8px/1.35 Montserrat,sans-serif;color:#5F6B76">{{ r.k }}</div>
+                  <div style="font:400 8.5px/1.45 Montserrat,sans-serif;color:#23272B">{{ r.v }}</div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="border-top:1px solid #DCE1E6;padding-top:8px;display:flex;justify-content:space-between;align-items:center">
+            <div style="font:400 7px/1.5 Montserrat,sans-serif;color:#5F6B76">VMS licensing and support is not included and is provided by the security partner or customer.<br>For more information visit arxys.com/videox-appliances</div>
+            <div style="font:600 7.5px/1 Montserrat,sans-serif;letter-spacing:.14em;color:#5F6B76">1 / 1</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div style="max-width:1100px;display:flex;flex-direction:column;gap:14px;border-top:1px solid #8a8e93;padding-top:28px">
+    <div style="font:600 16px/1.3 Poppins,sans-serif;color:#fff">Notes on this pass</div>
+    <div style="font:400 13px/1.7 Montserrat,sans-serif;color:#c3c7cb;max-width:860px;text-wrap:pretty">The <strong style="color:#fff;font-weight:600">warranty band</strong> sits directly under the product photo on page 1, on a gold-tinted band rather than a boxed callout — it reads as part of the sheet, not an ad. The seal itself is a <strong style="color:#fff;font-weight:600">held circular slot</strong> — hairline ring, muted label, nothing drawn that pretends to be the brand mark — sized for the 5-year circle graphic on the product page. Same held-blank logic as the rear-panel decision. The copy on arxys.com is an AVIF, which drops out of PDF and PNG export, so it needs a local PNG before build. On the workstation the same slot is rebuilt at 3 years inside the rail, since a rail sheet has no full-width band to give it — that one needs a matching 3-year graphic, which may not exist yet.</div>
+    <div style="font:400 13px/1.7 Montserrat,sans-serif;color:#c3c7cb;max-width:860px;text-wrap:pretty">Two things need real data before build: the <strong style="color:#fff;font-weight:600">V800 camera-count rows</strong> are illustrative — the existing V800 sheet has no matrix, only the 325-stream / 4,000 Mbit/s ceiling, so those per-resolution rows need to come from the Price Book. And the <strong style="color:#fff;font-weight:600">SW10 usage paragraph</strong> is the one piece of copy I had to compose, because the existing workstation sheet doesn't have one — worth a marketing pass or a pointer to existing copy I can swap in.</div>
+    <div style="font:400 13px/1.7 Montserrat,sans-serif;color:#aeb3b9;max-width:860px">Gold is load-bearing here: warranty band, section marks, attribute bullets, the workstation's rule. Navy carries every heading, rule and label. That split is what keeps the sheet from looking like the gold-banner Illustrator version while still reading as Arxys.</div>
+  </div>
+</section>
+
+
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      badgesVideo: ['NDAA', 'CE / UKCA', 'FCC / UL / RCM'],
+      badgesSW: ['NDAA', 'CE / FCC', 'ENERGY STAR'],
+      mgmtHead: ['ROLE', 'CAMERAS', 'RECORDING', 'NOTES'],
+
+      headlineV800: [
+        { k: 'THROUGHPUT', v: '4,000 Mbit/s' },
+        { k: 'MAX STORAGE', v: '864 TB' },
+        { k: 'DRIVE BAYS', v: '36' },
+        { k: 'MAX CAMERA STREAMS', v: '325' }
+      ],
+      attrsV800: [
+        'Windows Server 2022 or 2025',
+        'AMD EPYC 9005 Zen5 CPU',
+        '32GB RAM Registered ECC',
+        'Mirrored, hot-swap OS SSDs',
+        'RAID 60 data protection',
+        'Quad 10Gb Ethernet',
+        'N+1 hot-swap power & cooling',
+        'TCG 2.0 cybersecurity w/ TPM'
+      ],
+      featuresVideo: [
+        { t: 'Lower deployment costs — hardware accelerated H.265', b: 'V5 micro-architecture acceleration delivers up to 2.3× H.265 stream processing per server, and 30–50% storage and bandwidth savings versus H.264 — fewer servers, higher camera density, longer retention, same budget.' },
+        { t: 'Flexible & scalable tier-1 enterprise storage', b: 'Scale to petabytes of tier-1 capacity and tailor retention per project. Enterprise-class HDDs and SSDs throughout, for tier-1 availability and performance.' },
+        { t: 'High data availability', b: 'RAID 6/60 redundancy tolerates up to 6 hard drive failures depending on model and configuration, with hardware XOR, CacheVault protection and patrol read repairs.' },
+        { t: 'Strengthen cybersecurity', b: 'A built-in TPM 2.0 module supports hardware Root of Trust authentication and data encryption. All VideoX are fully NDAA compliant.' }
+      ],
+      vsrHead: ['RESOLUTION', 'CODEC', 'CAMERA STREAMS', 'VS. 4MP BASELINE'],
+      vmsList: ['Milestone', 'Genetec', 'Avigilon', 'Hanwha WAVE', 'NX Witness', 'Exacq'],
+
+      headlineV400: [
+        { k: 'THROUGHPUT', v: '2,000 Mbit/s' },
+        { k: 'MAX STORAGE', v: '192 TB' },
+        { k: 'DRIVE BAYS', v: '8' },
+        { k: 'MAX CAMERA STREAMS', v: '200' }
+      ],
+      attrsV400: [
+        'Windows Server 2022 or 2025',
+        'AMD EPYC 9005 Zen5 CPU',
+        '16GB RAM Registered ECC',
+        'RAID 6 data protection',
+        'Mirrored, hot-swap OS SSDs',
+        'Quad 10Gb Ethernet ports',
+        'N+1 hot-swap power & cooling',
+        'TCG 2.0 cybersecurity w/ TPM'
+      ],
+      ladderV400: [
+        { name: 'V100', bays: '2 bay · 1U', streams: '25' },
+        { name: 'V200', bays: '4 bay · 1U', streams: '100' },
+        { name: 'V400', bays: '8 bay · 2U', streams: '200', active: true },
+        { name: 'V500', bays: '12 bay · 2U', streams: '275' },
+        { name: 'V600', bays: '16 bay · 3U', streams: '275' },
+        { name: 'V700', bays: '24 bay · 4U', streams: '325' },
+        { name: 'V800', bays: '36 bay · 4U', streams: '325' }
+      ],
+      matrixV400: [
+        { res: '4MP · 2560×1440 (16:9)', codec: 'H.265-20', cams: '200', note: 'Baseline VSR' },
+        { res: '8MP · 3840×2160', codec: 'H.265-20', cams: '110', note: '−45% — 2× the pixels per frame' }
+      ],
+      skuHeadV400: ['PART NUMBER', 'DRIVE CONFIGURATION', 'RAW', 'USABLE · RAID 6'],
+      skuV400: [
+        { pn: 'VX5-V400-128', drives: '8 × 16TB enterprise HDD', raw: '128 TB', usable: '96 TB' },
+        { pn: 'VX5-V400-160', drives: '8 × 20TB enterprise HDD', raw: '160 TB', usable: '120 TB' },
+        { pn: 'VX5-V400-192', drives: '8 × 24TB enterprise HDD', raw: '192 TB', usable: '144 TB' }
+      ],
+      hwV400: [
+        { k: 'CPU', v: '5th Gen Zen5 AMD EPYC™ 9115, 4.1GHz, 16C / 32T, 64MB cache, 125W TDP' },
+        { k: 'Acceleration', v: 'Chiplet microarchitecture · AMD Infinity Architecture & Guard · CXL 2.0 · native 512-bit data paths · H.265 math acceleration' },
+        { k: 'RAM', v: '16GB ECC Registered DDR5 (minimum)' },
+        { k: 'Operating system', v: 'Microsoft Windows Server Standard 2022 or 2025 (LTSC)' },
+        { k: 'VMS / OS drive', v: 'Mirrored 480GB Enterprise 3D TLC flash SSD SATA3, dedicated for OS/VMS, hot-swap' },
+        { k: 'Hard drives', v: 'Up to 8× Enterprise class 7200 RPM 3.5" HDD, 2.5M MTBF, 600k duty cycle, certified 24/7, tool-less hot-swap' },
+        { k: 'Storage capacity', v: 'Up to 192TB raw capacity' },
+        { k: 'RAID', v: 'Hardware RAID 6 double fault tolerance w/ HW XOR engine, CacheVault protection, patrol read repairs' },
+        { k: 'Network', v: '4× Enterprise 10Gb Eth RJ45 + 1Gb IPMI (2× 10Gb SFP+ or 2× 25Gb SFP28 upgrade available)' },
+        { k: 'Display', v: 'VGA — Client View applications not supported on server' },
+        { k: 'Encryption', v: 'TPM 2.0 (FIPS, CC-TCG certified) · Silicon Root of Trust · data-at-rest encryption with SEDs · AMD SEV/SME' },
+        { k: 'Management', v: 'Out of Band (OOB) remote management: IPMI system management, KVM console redirection' }
+      ],
+      envV400: [
+        { k: 'Form factor', v: 'Standard 19" rackmount w/ rails, 2U height' },
+        { k: 'Power', v: '800W 1+1 redundant PSU, PMBus 1.2, 80+ Platinum · 100–240V, 10–5A, 50-60Hz' },
+        { k: 'Max draw', v: '800W, up to 80% efficient (Platinum), hot-plug redundant' },
+        { k: 'Cooling', v: '3× 80×25mm PWM low-power-consumption hot-swap fans' },
+        { k: 'Dimensions', v: '430mm (w) × 680mm (d) × 88mm (h)' },
+        { k: 'Weight', v: 'Ship weight w/ 8 HDDs = 38kg / 83lbs' },
+        { k: 'Operating temp', v: '10–30°C / 41–86°F' },
+        { k: 'Storage temp', v: '−40–65°C / −40–149°F' },
+        { k: 'Humidity', v: '10–90% relative humidity, non-condensing' },
+        { k: 'Safety', v: 'CE (class A), UKCA, FCC, RCM, UL' },
+        { k: 'Trade', v: 'NDAA compliant, no disclosures' }
+      ],
+
+      ladderV800: [
+        { name: 'V100', bays: '2 bay · 1U', streams: '25' },
+        { name: 'V200', bays: '4 bay · 1U', streams: '100' },
+        { name: 'V400', bays: '8 bay · 2U', streams: '200' },
+        { name: 'V500', bays: '12 bay · 2U', streams: '275' },
+        { name: 'V600', bays: '16 bay · 3U', streams: '275' },
+        { name: 'V700', bays: '24 bay · 4U', streams: '325' },
+        { name: 'V800', bays: '36 bay · 4U', streams: '325', active: true }
+      ],
+      ladderV250: [
+        { name: 'V150', bays: 'Access control', streams: 'ACM' },
+        { name: 'V250', bays: 'Management', streams: '\u2264 250 cameras', active: true },
+        { name: 'V255', bays: 'Management', streams: '250+ cameras' },
+        { name: 'V260', bays: 'Access control', streams: 'ACM' },
+        { name: 'V265', bays: 'Access control', streams: 'ACM' }
+      ],
+      skuHead: ['PART NUMBER', 'DRIVE CONFIGURATION', 'RAW', 'USABLE · RAID 60'],
+      skuV800: [
+        { pn: 'VX5-V800-576', drives: '36 × 16TB enterprise HDD', raw: '576 TB', usable: '480 TB' },
+        { pn: 'VX5-V800-720', drives: '36 × 20TB enterprise HDD', raw: '720 TB', usable: '600 TB' },
+        { pn: 'VX5-V800-864', drives: '36 × 24TB enterprise HDD', raw: '864 TB', usable: '720 TB' }
+      ],
+      skuHeadV250: ['PART NUMBER', 'MODEL', 'CONFIGURATION', 'CAMERAS MANAGED'],
+      skuV250: [
+        { pn: 'VX5-V250-MGM', model: 'V250', drives: 'Base CPU & RAM, 2x 480GB SSDs', cams: 'Up to 250' },
+        { pn: 'VX5-V255-MGM', model: 'V255', drives: 'Upgraded CPU & RAM, 2x 960GB SSDs', cams: '250 and above' }
+      ],
+      vsrParams: [
+        { k: 'RESOLUTION', v: '4MP · 2560×1440' },
+        { k: 'FRAME RATE', v: '15 fps' },
+        { k: 'CODEC', v: 'H.265-20 (Good) · ~3.2 Mbit/s' },
+        { k: 'RECORDING', v: 'On motion, VMD + metadata' },
+        { k: 'MOTION ACTIVITY', v: '75% average per day' },
+        { k: 'RETENTION', v: '30 days' }
+      ],
+      matrixV800: [
+        { res: '4MP · 2560×1440 (16:9)', codec: 'H.265-20', cams: '325', note: 'Baseline VSR' },
+        { res: '8MP · 3840×2160', codec: 'H.265-20', cams: '179', note: '−45% — 2× the pixels per frame' }
+      ],
+      hwV800: [
+        { k: 'CPU', v: '5th Gen Zen5 AMD EPYC™ 9135, 4.3GHz max all-core turbo, 16C / 32T, 64MB cache, 200W TDP' },
+        { k: 'Acceleration', v: 'Chiplet microarchitecture · AMD Infinity Architecture & Guard · CXL 2.0 · native 512-bit data paths · H.265 math acceleration' },
+        { k: 'RAM', v: '32GB ECC Registered DDR5 (minimum)' },
+        { k: 'Operating system', v: 'Microsoft Windows Server Standard 2022 or 2025 (LTSC)' },
+        { k: 'VMS / OS drive', v: 'Mirrored 480GB Enterprise 3D TLC flash SSD, dedicated for OS/VMS, hot-swap' },
+        { k: 'Hard drives', v: 'Up to 36× Enterprise class 7200 RPM 3.5" HDD, 2.5M MTBF, 600k duty cycle, certified 24/7, tool-less hot-swap' },
+        { k: 'Storage capacity', v: 'Up to 864TB raw capacity' },
+        { k: 'RAID', v: 'Hardware RAID 6 double fault tolerance w/ HW XOR engine, CacheVault protection, patrol read repairs' },
+        { k: 'Network', v: '4× Enterprise 10Gb Eth RJ45 + 1Gb IPMI (2× 10Gb SFP+ or 2× 25Gb SFP28 upgrade available)' },
+        { k: 'Display', v: 'VGA — Client View applications not supported on server' },
+        { k: 'Encryption', v: 'TPM 2.0 (FIPS, CC-TCG certified) · Silicon Root of Trust · data-at-rest encryption with SEDs · AMD SEV/SME' },
+        { k: 'Management', v: 'Out of Band (OOB) remote management: IPMI system management, KVM console redirection' }
+      ],
+      envV800: [
+        { k: 'Form factor', v: 'Standard 19" rackmount w/ rails, 4U height' },
+        { k: 'Power', v: '1200W 1+1 redundant PSU, PMBus 1.2, 80+ Platinum · 100–127VAC 10A 50-60Hz (800W) · 200–240VAC 8A 50-60Hz (1200W)' },
+        { k: 'Max draw', v: '1200W, up to 80% efficient (Platinum), hot-plug redundant' },
+        { k: 'Cooling', v: '6× 80×38mm PWM low-power-consumption hot-swap fans' },
+        { k: 'Dimensions', v: '430mm (w) × 680mm (d) × 175mm (h)' },
+        { k: 'Weight', v: 'Ship weight w/ 36 HDDs = 72kg / 167lbs' },
+        { k: 'Operating temp', v: '10–30°C / 41–86°F' },
+        { k: 'Storage temp', v: '−40–65°C / −40–149°F' },
+        { k: 'Humidity', v: '10–90% relative humidity, non-condensing' },
+        { k: 'Safety', v: 'CE (class A), UKCA, FCC, RCM, UL' },
+        { k: 'Trade', v: 'NDAA compliant, no disclosures' }
+      ],
+
+      headlineV250: [
+        { k: 'THROUGHPUT', v: '1,000 Mbit/s' },
+        { k: 'CAMERAS MANAGED', v: '250 / 250+' },
+        { k: 'DRIVE BAYS', v: '4' },
+        { k: 'FORM FACTOR', v: '1U Rack' }
+      ],
+      attrsV250: [
+        'Windows Server 2022 or 2025',
+        'AMD EPYC 4005 Zen5 CPU',
+        '16–32GB DDR5 DRAM',
+        'Optimized for management',
+        '2× mirrored, hot-swap DB SSDs',
+        '2× mirrored, hot-swap OS SSDs',
+        'Hardware RAID mirrored SSDs',
+        'Dual 10Gb Ethernet ports',
+        'N+1 hot-swap power & cooling',
+        'TCG 2.0 cybersecurity w/ TPM'
+      ],
+      featuresMgmt: [
+        { t: 'Purpose-built for management & directory roles', b: 'Keeps directory and database work off the recording servers, where it would otherwise compete with video for I/O.' },
+        { t: 'Enterprise SSD database performance', b: '2× mirrored hot-swap enterprise SSDs dedicated to the database, separate from the mirrored OS pair, on hardware RAID with CacheVault protection.' },
+        { t: 'High data availability', b: 'RAID-configured redundancy with N+1 hot-swap power, cooling and drives throughout for a resilient, continuously available system.' },
+        { t: 'Strengthen cybersecurity', b: 'A built-in TPM 2.0 module supports hardware Root of Trust authentication and data encryption. All VideoX are fully NDAA compliant.' }
+      ],
+      matrixV250: [
+        { role: 'V250 management server', cams: 'Up to 250', rec: 'None', note: 'Directory + management only' },
+        { role: 'V255 management server', cams: '250 and above', rec: 'None', note: 'For deployments over 250 cameras' },
+        { role: 'Management w/ failover', cams: 'Per model', rec: 'None', note: 'Requires 2× servers + VMS failover licensing' },
+        { role: 'Client View on server', cams: '—', rec: 'None', note: 'Not recommended — use a workstation' }
+      ],
+      hwV250: [
+        { k: 'CPU', v: '5th Gen Zen5 AMD EPYC · V250 = 4245, 6C/12T, 3.9/5.1GHz, 32MB cache, 65W TDP · V255 = 4465, 6C/24T, 3.4/5.4GHz, 64MB cache' },
+        { k: 'Acceleration', v: 'Chiplet microarchitecture · AMD Infinity Architecture & Guard · CXL 2.0 · native 512-bit data paths · H.265 math acceleration' },
+        { k: 'RAM', v: 'V250 = 16GB DDR5 (minimum) · V255 = 32GB DDR5 (minimum)' },
+        { k: 'Operating system', v: 'Microsoft Windows Server Workgroup 2022 or 2025 (LTSC)' },
+        { k: 'VMS / OS drive', v: '2× mirrored Enterprise 3D TLC flash SSD, hot-swap, dedicated for OS/VMS · V250 = 2× 480GB · V255 = 2× 960GB' },
+        { k: 'Storage capacity', v: 'Not applicable — no video recording volume' },
+        { k: 'RAID', v: 'Hardware RAID 5 fault tolerance w/ HW XOR engine, CacheVault protection, patrol read repairs' },
+        { k: 'Network', v: '2× Enterprise 10Gb Eth RJ45 ports + 1Gb IPMI' },
+        { k: 'Display', v: 'VGA — Client View applications not supported on server' },
+        { k: 'Encryption', v: 'TPM 2.0 (FIPS, CC-TCG certified) · Silicon Root of Trust · data-at-rest encryption with SEDs · AMD SEV/SME' },
+        { k: 'Management', v: 'Out of Band (OOB) remote management: IPMI system management, KVM console redirection' }
+      ],
+      envV250: [
+        { k: 'Form factor', v: 'Standard 19" rackmount w/ rails, 1U height' },
+        { k: 'Power', v: '800W 1+1 redundant PSU · AC 100–240V, 10–5A, 50-60Hz · DC 240Vdc, 4A' },
+        { k: 'Max draw', v: '800W, up to 80% efficient (Platinum), hot-plug redundant' },
+        { k: 'Cooling', v: '5× 40×40×56mm fans (29,700 RPM)' },
+        { k: 'Dimensions', v: '438mm (w) × 710mm (d) × 44mm (h)' },
+        { k: 'Weight', v: 'Ship weight w/ 4 SSDs = 24kg / 40lbs' },
+        { k: 'Operating temp', v: '10–30°C / 41–86°F' },
+        { k: 'Storage temp', v: '−40–65°C / −40–149°F' },
+        { k: 'Humidity', v: '10–80% relative humidity, non-condensing' },
+        { k: 'Safety', v: 'CE (class A), UKCA, FCC, RCM, UL' },
+        { k: 'Trade', v: 'NDAA compliant, no disclosures' }
+      ],
+
+      attrsSW10: [
+        'Up to 125 Mbit/s decode bandwidth',
+        '1× Nvidia A1000 GPU, 8GB GDDR6 ECC',
+        'AMD Ryzen 7 9700X, 8C/16T, 5.5GHz',
+        '16GB DDR5 RAM',
+        '2× 10Gb Ethernet connectivity',
+        'Up to 4 monitors supported',
+        'Windows 11 IoT Enterprise (LTSC)'
+      ],
+      matrixSW10: [
+        { res: '4MP (2592×1944)', codec: 'H.264', cams: '28', bw: '125 Mbit/s' },
+        { res: '4MP (2592×1944)', codec: 'H.265', cams: '48', bw: '125 Mbit/s' },
+        { res: '8MP (3840×2160)', codec: 'H.265', cams: '32', bw: '125 Mbit/s' },
+        { res: '8MP (3840×2160)', codec: 'H.264', cams: '16', bw: '108 Mbit/s' }
+      ],
+      hwSW10: [
+        { k: 'Form factor', v: 'Performance tower with enhanced cooling, EPEAT Bronze certified' },
+        { k: 'CPU', v: 'AMD Ryzen 7 9700X · 8C/16T · 3.8/5.5GHz · 32MB cache' },
+        { k: 'GPU', v: '1× Nvidia A1000, 8GB GDDR6 w/ ECC, 128-bit, 192 GB/s, 1× encode / 2× decode, 2307 CUDA, 72 Tensor, 18 RT' },
+        { k: 'RAM', v: '16GB DDR5' },
+        { k: 'OS', v: 'Microsoft Windows 11 IoT Enterprise (LTSC)' },
+        { k: 'VMS / OS drive', v: 'Dedicated 480GB Enterprise 3D TLC flash NVMe SSD' },
+        { k: 'Hard drives', v: 'Optional upgrade: 1× Enterprise class 7200 RPM SATA 6Gb/s 3.5" HDD, 2.5M MTBF, 600k duty cycle, certified 24/7' },
+        { k: 'Network', v: '2× 10Gb Ethernet RJ45 (10/5/2.5/1 Gbps / 100 Mbps)' },
+        { k: 'Display', v: '4× Mini DP from GPU with 4× Mini DP → DP adapters included · Radeon graphics: 1× USB-C w/ DP output, 1× HDMI' },
+        { k: 'Front I/O', v: '2× USB 3.2 Gen 2×2 Type-C, 2× USB 3.0, HD audio' },
+        { k: 'Rear I/O', v: '3× USB 3.2 Gen 2 Type-A, 4× USB 3.2 Gen 1, 4× USB 2.0/1.1' }
+      ],
+      envSW10: [
+        { k: 'Bandwidth', v: '125 Mbit/s maximum for video decoding and display — VMS and configuration dependant' },
+        { k: 'Monitors', v: 'Up to 4 monitors (not included) — VMS and configuration dependant' },
+        { k: 'Power', v: 'Up to 850W Gold ATX power supply, 100–240VAC, 9–4.5A, 50-60Hz' },
+        { k: 'Max draw', v: '850W, up to 80% efficient (Gold)' },
+        { k: 'Dimensions', v: '470 × 230 × 518.5mm · 18.5" × 9.6" × 20.3"' },
+        { k: 'Weight', v: 'Gross weight 9.6kg / 24.5lbs' },
+        { k: 'Operating temp', v: '10–35°C' },
+        { k: 'Humidity', v: '20–90% relative humidity, non-condensing' },
+        { k: 'Safety', v: 'BSMI, CE, FCC (Class B), Energy Star' },
+        { k: 'Trade', v: 'NDAA compliant, no disclosures' }
+      ],
+
+      wfBadges: ['NDAA', 'CE / UKCA', 'UL / FCC', 'MADE IN USA'],
+      attrs: [1, 2, 3, 4, 5],
+      para5: ['100%', '100%', '100%', '100%', '58%'],
+      para4: ['100%', '100%', '100%', '72%'],
+      chips: ['THROUGHPUT', 'RAW STORAGE', 'DRIVE BAYS', 'FORM FACTOR', 'WARRANTY'],
+      features: [
+        'Lower deployment costs — hardware accelerated H.265',
+        'Flexible & scalable tier-1 enterprise storage',
+        'High data availability',
+        'Strengthen cybersecurity',
+        'Advanced support',
+        'Remote management'
+      ],
+      matrixHead: ['RESOLUTION', 'CODEC', 'CAMERA STREAMS', 'BANDWIDTH'],
+      matrixRows: [1, 2, 3, 4, 5],
+      hwRows: ['CPU', 'Hardware acceleration', 'RAM', 'Operating system', 'VMS / OS drive', 'Hard drives', 'RAID', 'Network', 'Encryption & key mgmt'],
+      envRows: ['Form factor', 'Power specifications', 'Cooling', 'Dimensions', 'Weight', 'Operating temperature', 'Safety & emissions'],
+      wsBadges: ['NDAA', 'CE / FCC', 'ENERGY STAR'],
+      wsChips: ['MAX BANDWIDTH', 'MONITOR SUPPORT', 'WARRANTY'],
+      wsAttrs: [1, 2, 3, 4, 5, 6],
+      wsMatrixRows: [1, 2, 3, 4],
+      para3: ['100%', '100%', '68%'],
+      wsHwRows: ['Form factor', 'CPU', 'GPU', 'RAM', 'Operating system', 'VMS / OS drive', 'Hard drives', 'Network', 'Display ports', 'Front I/O', 'Rear I/O'],
+      wsEnvRows: ['Power specifications', 'Max consumption', 'Dimensions', 'Weight', 'Warranty', 'Operating temperature', 'Humidity', 'Safety & emissions', 'Trade compliance']
+    };
+  }
+}
+
+</script>
+</body>
+</html>

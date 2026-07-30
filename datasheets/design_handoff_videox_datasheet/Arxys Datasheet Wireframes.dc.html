@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Arxys Datasheet Wireframes</title><script src="support.js"></script></head>
+<body><x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="./image-slot.js"></script>
+<style>
+  body { margin: 0; background: #6f7378; font-family: Montserrat, sans-serif; }
+  a { color: #054A91; text-decoration: none; }
+  a:hover { color: #E09A28; }
+</style>
+</helmet>
+
+<section style="display:flex;flex-direction:column;gap:56px;padding:64px 72px;border-top:none">
+  <div style="display:flex;flex-direction:column;gap:10px;max-width:1100px">
+    <div style="font:700 11px/1 Montserrat,sans-serif;letter-spacing:.22em;text-transform:uppercase;color:#FCB23E">Turn 1 · Wireframes</div>
+    <div style="font:600 34px/1.15 Poppins,sans-serif;color:#fff">Two-page datasheet — three structural directions</div>
+    <div style="font:400 15px/1.65 Montserrat,sans-serif;color:#d3d6da;max-width:820px;text-wrap:pretty">Structure only: no color, no photography, no final type. Each direction shows the Video + Management page 1 and page 2 at US Letter. Content pacing is real — the recommended-usage paragraph, five key attributes, five feature blocks, the camera-count matrix, the three spec sections, and the compliance strip are all present at true length so the density is judgeable. Referenced in chat as <a href="#1a">1a</a>, <a href="#1b">1b</a>, <a href="#1c">1c</a>.</div>
+  </div>
+
+  <div style="display:flex;flex-wrap:wrap;gap:64px;align-items:flex-start">
+
+    <!-- ============ 1a LEDGER ============ -->
+    <div id="1a" style="display:flex;flex-direction:column;gap:18px">
+      <div style="display:flex;align-items:baseline;gap:14px">
+        <div style="font:700 12px/1 Montserrat,sans-serif;letter-spacing:.14em;color:#1b1d20;background:#FCB23E;padding:7px 11px;border-radius:3px">1a</div>
+        <div style="font:600 22px/1 Poppins,sans-serif;color:#fff">Ledger</div>
+        <div style="font:400 13px/1.5 Montserrat,sans-serif;color:#c3c7cb;max-width:340px">Derived from the Project Quote. Type-led, no banner. Rules and label/value rows carry the hierarchy.</div>
+      </div>
+      <div style="display:flex;gap:24px">
+
+        <!-- 1a page 1 -->
+        <div data-screen-label="1a P1" style="width:816px;height:1056px;background:#fff;box-shadow:0 18px 40px rgba(0,0,0,.28);padding:48px 52px;box-sizing:border-box;display:flex;flex-direction:column;gap:20px;position:relative">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div style="width:132px;height:34px;background:#e4e6e9;border:1px dashed #b9bdc2;display:flex;align-items:center;justify-content:center;font:600 8px/1 Montserrat,sans-serif;letter-spacing:.1em;color:#8d9297">LOGO</div>
+            <div style="text-align:right">
+              <div style="font:600 10px/1 Montserrat,sans-serif;letter-spacing:.3em;color:#9aa0a6">V I D E O X   V 5</div>
+              <div style="font:400 9px/1.6 Montserrat,sans-serif;color:#b3b8bd;margin-top:5px">Enterprise Server for Video Surveillance &amp; Video Analytics</div>
+            </div>
+          </div>
+          <div style="height:2px;background:#3c4046"></div>
+          <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:20px">
+            <div>
+              <div style="font:700 54px/.95 Poppins,sans-serif;color:#31353a">V800</div>
+              <div style="font:500 14px/1 Montserrat,sans-serif;letter-spacing:.06em;color:#7d8288;margin-top:8px">36 Bay · 4U Rack · V5 Video Server</div>
+            </div>
+            <div style="display:flex;gap:7px">
+              <sc-for list="{{ wfBadges }}" as="b" hint-placeholder-count="4"><div style="border:1px solid #c9ccd1;padding:6px 10px;font:600 8px/1 Montserrat,sans-serif;letter-spacing:.08em;color:#8d9297;border-radius:2px">{{ b }}</div></sc-for>
+            </div>
+          </div>
+          <div style="height:1px;background:#d8dbdf"></div>
+          <div style="display:grid;grid-template-columns:1.35fr 1fr;gap:34px">
+            <div style="display:flex;flex-direction:column;gap:9px">
+              <div style="font:700 9px/1 Montserrat,sans-serif;letter-spacing:.18em;color:#9aa0a6">RECOMMENDED USAGE</div>
+              <sc-for list="{{ para5 }}" as="w" hint-placeholder-count="5"><div style="height:8px;background:#e8eaed;width:{{ w }}"></div></sc-for>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:9px">
+              <div style="font:700 9px/1 Montserrat,sans-serif;letter-spacing:.18em;color:#9aa0a6">KEY ATTRIBUTES</div>
+              <sc-for list="{{ attrs }}" as="a" hint-placeholder-count="5"><div style="display:flex;gap:8px;align-items:center"><div style="width:4px;height:4px;background:#b9bdc2;flex:0 0 auto"></div><div style="height:8px;background:#e8eaed;flex:1"></div></div></sc-for>
+            </div>
+          </div>
+          <div style="height:196px;background:repeating-linear-gradient(45deg,#eceef1 0 6px,#f6f7f8 6px 12px);border:1px solid #d3d6da;display:flex;align-items:center;justify-content:center">
+            <div style="font:600 9px/1 Montserrat,sans-serif;letter-spacing:.14em;color:#9aa0a6">PRODUCT PHOTO — FRONT 3/4 · 816×196 SLOT</div>
+          </div>
+          <div style="font:700 9px/1 Montserrat,sans-serif;letter-spacing:.18em;color:#9aa0a6">VIDEOX ENTERPRISE FEATURES</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px 30px;flex:1;align-content:start">
+            <sc-for list="{{ features }}" as="f" hint-placeholder-count="6">
+              <div style="display:flex;flex-direction:column;gap:7px">
+                <div style="display:flex;gap:9px;align-items:center">
+                  <div style="width:22px;height:22px;border:1px solid #c9ccd1;flex:0 0 auto"></div>
+                  <div style="font:600 11px/1.3 Montserrat,sans-serif;color:#5a5f66">{{ f }}</div>
+                </div>
+                <div style="height:7px;background:#e8eaed"></div>
+                <div style="height:7px;background:#e8eaed"></div>
+                <div style="height:7px;background:#e8eaed;width:72%"></div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="height:1px;background:#d8dbdf"></div>
+          <div style="display:flex;justify-content:space-between;font:400 8px/1 Montserrat,sans-serif;color:#a8adb2">
+            <div>Arxys · 1810 Gillespie Way, Suite 108, El Cajon, CA 92020 · 619.258.7800 · arxys.com</div>
+            <div>1 of 2</div>
+          </div>
+        </div>
+
+        <!-- 1a page 2 -->
+        <div data-screen-label="1a P2" style="width:816px;height:1056px;background:#fff;box-shadow:0 18px 40px rgba(0,0,0,.28);padding:48px 52px;box-sizing:border-box;display:flex;flex-direction:column;gap:18px">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid #3c4046;padding-bottom:10px">
+            <div style="font:700 15px/1 Poppins,sans-serif;color:#31353a">V800 <span style="font:500 12px/1 Montserrat,sans-serif;color:#8d9297">· Technical Specifications</span></div>
+            <div style="font:600 9px/1 Montserrat,sans-serif;letter-spacing:.24em;color:#9aa0a6">V I D E O X   V 5</div>
+          </div>
+          <div style="font:700 9px/1 Montserrat,sans-serif;letter-spacing:.18em;color:#9aa0a6">CAMERA COUNT MATRIX — 4,000 MB/S</div>
+          <div style="border:1px solid #d3d6da">
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;background:#f1f3f5;border-bottom:1px solid #d3d6da">
+              <sc-for list="{{ matrixHead }}" as="h" hint-placeholder-count="4"><div style="padding:8px 12px;font:700 8px/1 Montserrat,sans-serif;letter-spacing:.1em;color:#7d8288">{{ h }}</div></sc-for>
+            </div>
+            <sc-for list="{{ matrixRows }}" as="r" hint-placeholder-count="5">
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;border-bottom:1px solid #eceef1">
+                <div style="padding:8px 12px"><div style="height:7px;background:#e8eaed;width:52%"></div></div>
+                <div style="padding:8px 12px"><div style="height:7px;background:#e8eaed;width:44%"></div></div>
+                <div style="padding:8px 12px"><div style="height:7px;background:#e8eaed;width:30%"></div></div>
+                <div style="padding:8px 12px"><div style="height:7px;background:#e8eaed;width:56%"></div></div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:26px;flex:1">
+            <div style="display:flex;flex-direction:column;gap:12px">
+              <div style="font:700 9px/1 Montserrat,sans-serif;letter-spacing:.18em;color:#9aa0a6;border-bottom:1px solid #d8dbdf;padding-bottom:6px">HARDWARE INFORMATION</div>
+              <sc-for list="{{ hwRows }}" as="r" hint-placeholder-count="9">
+                <div style="display:flex;flex-direction:column;gap:5px">
+                  <div style="font:600 9px/1 Montserrat,sans-serif;letter-spacing:.04em;color:#6b7076">{{ r }}</div>
+                  <div style="height:7px;background:#e8eaed"></div>
+                  <div style="height:7px;background:#e8eaed;width:64%"></div>
+                </div>
+              </sc-for>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:12px">
+              <div style="font:700 9px/1 Montserrat,sans-serif;letter-spacing:.18em;color:#9aa0a6;border-bottom:1px solid #d8dbdf;padding-bottom:6px">REGULATORY &amp; ENVIRONMENTAL</div>
+              <sc-for list="{{ envRows }}" as="r" hint-placeholder-count="7">
+                <div style="display:flex;flex-direction:column;gap:5px">
+                  <div style="font:600 9px/1 Montserrat,sans-serif;letter-spacing:.04em;color:#6b7076">{{ r }}</div>
+                  <div style="height:7px;background:#e8eaed;width:82%"></div>
+                </div>
+              </sc-for>
+              <div style="margin-top:6px;height:150px;border:1px solid #d3d6da;background:#fcfcfd;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px">
+                <div style="font:600 9px/1 Montserrat,sans-serif;letter-spacing:.14em;color:#b3b8bd">REAR I/O PANEL</div>
+                <div style="font:400 8px/1.5 Montserrat,sans-serif;color:#c3c7cb">held blank · hairline frame</div>
+              </div>
+            </div>
+          </div>
+          <div style="border-top:1px solid #d8dbdf;padding-top:10px;display:flex;flex-direction:column;gap:6px">
+            <div style="font:700 8px/1 Montserrat,sans-serif;letter-spacing:.16em;color:#9aa0a6">GENERAL INFORMATION</div>
+            <div style="height:6px;background:#eceef1"></div>
+            <div style="height:6px;background:#eceef1"></div>
+            <div style="height:6px;background:#eceef1;width:78%"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;font:400 8px/1 Montserrat,sans-serif;color:#a8adb2">
+            <div>Arxys · 1810 Gillespie Way, Suite 108, El Cajon, CA 92020 · 619.258.7800 · arxys.com</div>
+            <div>2 of 2</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ 1b BANNER ============ -->
+    <div id="1b" style="display:flex;flex-direction:column;gap:18px">
+      <div style="display:flex;align-items:baseline;gap:14px">
+        <div style="font:700 12px/1 Montserrat,sans-serif;letter-spacing:.14em;color:#1b1d20;background:#FCB23E;padding:7px 11px;border-radius:3px">1b</div>
+        <div style="font:600 22px/1 Poppins,sans-serif;color:#fff">Banner</div>
+        <div style="font:400 13px/1.5 Montserrat,sans-serif;color:#c3c7cb;max-width:340px">Closest to today's Illustrator sheets. Full-bleed hero band, product bleeding off the right edge, attribute chips beneath.</div>
+      </div>
+      <div style="display:flex;gap:24px">
+
+        <!-- 1b page 1 -->
+        <div data-screen-label="1b P1" style="width:816px;height:1056px;background:#fff;box-shadow:0 18px 40px rgba(0,0,0,.28);box-sizing:border-box;display:flex;flex-direction:column;overflow:hidden">
+          <div style="height:262px;background:#dfe2e6;position:relative;display:flex;align-items:center;padding:0 52px;flex:0 0 auto">
+            <div style="position:absolute;top:14px;left:52px;font:600 8px/1 Montserrat,sans-serif;letter-spacing:.12em;color:#9aa0a6">[ GOLD BAND ]</div>
+            <div style="flex:1;display:flex;flex-direction:column;gap:12px">
+              <div style="width:132px;height:32px;background:#cfd3d8;border:1px dashed #aeb3b9;display:flex;align-items:center;justify-content:center;font:600 8px/1 Montserrat,sans-serif;letter-spacing:.1em;color:#7d8288">LOGO</div>
+              <div style="font:700 60px/.92 Poppins,sans-serif;color:#4a4e54">V800</div>
+              <div style="font:500 13px/1.4 Montserrat,sans-serif;letter-spacing:.05em;color:#6b7076">36 Bay · 4U Rack<br>Enterprise Server for Video Surveillance &amp; Video Analytics</div>
+            </div>
+            <div style="width:330px;height:230px;margin-right:-70px;background:repeating-linear-gradient(45deg,#d5d8dd 0 6px,#e3e6ea 6px 12px);border:1px solid #c2c6cb;display:flex;align-items:center;justify-content:center;text-align:center;flex:0 0 auto">
+              <div style="font:600 9px/1.5 Montserrat,sans-serif;letter-spacing:.1em;color:#8d9297">PRODUCT PHOTO<br>BLEEDS RIGHT</div>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(5,1fr);border-bottom:1px solid #d8dbdf;flex:0 0 auto">
+            <sc-for list="{{ chips }}" as="c" hint-placeholder-count="5">
+              <div style="padding:14px 12px;border-right:1px solid #e8eaed;display:flex;flex-direction:column;gap:6px">
+                <div style="font:700 7px/1 Montserrat,sans-serif;letter-spacing:.12em;color:#a8adb2">{{ c }}</div>
+                <div style="height:9px;background:#e8eaed"></div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="padding:24px 52px 0;display:grid;grid-template-columns:1fr 1fr;gap:30px;flex:0 0 auto">
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div style="font:700 9px/1 Montserrat,sans-serif;letter-spacing:.18em;color:#9aa0a6">RECOMMENDED USAGE</div>
+              <sc-for list="{{ para4 }}" as="w" hint-placeholder-count="4"><div style="height:8px;background:#e8eaed;width:{{ w }}"></div></sc-for>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div style="font:700 9px/1 Montserrat,sans-serif;letter-spacing:.18em;color:#9aa0a6">DEPLOYMENT NOTES</div>
+              <sc-for list="{{ para4 }}" as="w" hint-placeholder-count="4"><div style="height:8px;background:#e8eaed;width:{{ w }}"></div></sc-for>
+            </div>
+          </div>
+          <div style="padding:26px 52px;display:flex;flex-direction:column;gap:14px;flex:1">
+            <div style="font:700 9px/1 Montserrat,sans-serif;letter-spacing:.18em;color:#9aa0a6">VIDEOX ENTERPRISE FEATURES</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:22px;flex:1;align-content:start">
+              <sc-for list="{{ features }}" as="f" hint-placeholder-count="6">
+                <div style="display:flex;flex-direction:column;gap:8px">
+                  <div style="width:30px;height:30px;border-radius:50%;border:1px solid #c9ccd1"></div>
+                  <div style="font:600 10px/1.35 Montserrat,sans-serif;color:#5a5f66">{{ f }}</div>
+                  <div style="height:6px;background:#e8eaed"></div>
+                  <div style="height:6px;background:#e8eaed"></div>
+                  <div style="height:6px;background:#e8eaed;width:64%"></div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="background:#f1f3f5;padding:14px 52px;display:flex;align-items:center;justify-content:space-between;flex:0 0 auto">
+            <div style="display:flex;gap:8px">
+              <sc-for list="{{ wfBadges }}" as="b" hint-placeholder-count="4"><div style="border:1px solid #c2c6cb;background:#fff;padding:6px 10px;font:600 8px/1 Montserrat,sans-serif;letter-spacing:.08em;color:#8d9297">{{ b }}</div></sc-for>
+            </div>
+            <div style="font:400 8px/1 Montserrat,sans-serif;color:#a8adb2">1 of 2</div>
+          </div>
+          <div style="padding:10px 52px;font:400 8px/1 Montserrat,sans-serif;color:#a8adb2;flex:0 0 auto">Arxys · 1810 Gillespie Way, Suite 108, El Cajon, CA 92020 · 619.258.7800 · arxys.com</div>
+        </div>
+
+        <!-- 1b page 2 -->
+        <div data-screen-label="1b P2" style="width:816px;height:1056px;background:#fff;box-shadow:0 18px 40px rgba(0,0,0,.28);padding:44px 52px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px">
+          <div style="display:flex;justify-content:space-between;align-items:baseline">
+            <div style="font:700 14px/1 Poppins,sans-serif;color:#31353a">V800 · Technical Specifications</div>
+            <div style="width:96px;height:24px;background:#e4e6e9;border:1px dashed #b9bdc2;display:flex;align-items:center;justify-content:center;font:600 7px/1 Montserrat,sans-serif;color:#8d9297">LOGO</div>
+          </div>
+          <div style="height:4px;background:#dfe2e6;position:relative"><div style="position:absolute;right:0;top:-13px;font:600 7px/1 Montserrat,sans-serif;letter-spacing:.1em;color:#b3b8bd">[GOLD RULE]</div></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:22px;flex:1">
+            <div style="display:flex;flex-direction:column;gap:11px">
+              <div style="font:700 8px/1 Montserrat,sans-serif;letter-spacing:.16em;color:#9aa0a6;border-bottom:1px solid #d8dbdf;padding-bottom:5px">HARDWARE</div>
+              <sc-for list="{{ hwRows }}" as="r" hint-placeholder-count="9">
+                <div style="display:flex;flex-direction:column;gap:4px">
+                  <div style="font:600 8px/1 Montserrat,sans-serif;color:#6b7076">{{ r }}</div>
+                  <div style="height:6px;background:#e8eaed"></div>
+                  <div style="height:6px;background:#e8eaed;width:70%"></div>
+                </div>
+              </sc-for>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:11px">
+              <div style="font:700 8px/1 Montserrat,sans-serif;letter-spacing:.16em;color:#9aa0a6;border-bottom:1px solid #d8dbdf;padding-bottom:5px">REGULATORY &amp; ENVIRONMENTAL</div>
+              <sc-for list="{{ envRows }}" as="r" hint-placeholder-count="7">
+                <div style="display:flex;flex-direction:column;gap:4px">
+                  <div style="font:600 8px/1 Montserrat,sans-serif;color:#6b7076">{{ r }}</div>
+                  <div style="height:6px;background:#e8eaed;width:88%"></div>
+                </div>
+              </sc-for>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:14px">
+              <div style="border:1px solid #d3d6da;padding:12px;display:flex;flex-direction:column;gap:8px">
+                <div style="font:700 8px/1 Montserrat,sans-serif;letter-spacing:.14em;color:#7d8288">CAMERA COUNT MATRIX</div>
+                <div style="font:400 7px/1 Montserrat,sans-serif;color:#a8adb2">4,000 Mb/s</div>
+                <sc-for list="{{ matrixRows }}" as="r" hint-placeholder-count="5">
+                  <div style="display:flex;gap:6px;align-items:center;border-top:1px solid #eceef1;padding-top:6px">
+                    <div style="height:6px;background:#e8eaed;flex:1.4"></div>
+                    <div style="height:6px;background:#e8eaed;flex:1"></div>
+                    <div style="height:6px;background:#dfe2e6;flex:.7"></div>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="height:120px;border:1px solid #d3d6da;background:#fcfcfd;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px">
+                <div style="font:600 8px/1 Montserrat,sans-serif;letter-spacing:.14em;color:#b3b8bd">REAR I/O PANEL</div>
+                <div style="font:400 7px/1 Montserrat,sans-serif;color:#c3c7cb">held blank</div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <div style="font:700 8px/1 Montserrat,sans-serif;letter-spacing:.14em;color:#9aa0a6">COMPLIANCE</div>
+                <sc-for list="{{ wfBadges }}" as="b" hint-placeholder-count="4"><div style="border:1px solid #d3d6da;padding:5px 8px;font:600 7px/1 Montserrat,sans-serif;letter-spacing:.06em;color:#8d9297">{{ b }}</div></sc-for>
+              </div>
+            </div>
+          </div>
+          <div style="border-top:1px solid #d8dbdf;padding-top:10px;display:flex;flex-direction:column;gap:5px">
+            <div style="font:700 8px/1 Montserrat,sans-serif;letter-spacing:.16em;color:#9aa0a6">GENERAL INFORMATION</div>
+            <div style="height:6px;background:#eceef1"></div>
+            <div style="height:6px;background:#eceef1"></div>
+            <div style="height:6px;background:#eceef1;width:64%"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;font:400 8px/1 Montserrat,sans-serif;color:#a8adb2">
+            <div>Arxys · 1810 Gillespie Way, Suite 108, El Cajon, CA 92020 · 619.258.7800 · arxys.com</div>
+            <div>2 of 2</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ 1c RAIL ============ -->
+    <div id="1c" style="display:flex;flex-direction:column;gap:18px">
+      <div style="display:flex;align-items:baseline;gap:14px">
+        <div style="font:700 12px/1 Montserrat,sans-serif;letter-spacing:.14em;color:#1b1d20;background:#FCB23E;padding:7px 11px;border-radius:3px">1c</div>
+        <div style="font:600 22px/1 Poppins,sans-serif;color:#fff">Rail</div>
+        <div style="font:400 13px/1.5 Montserrat,sans-serif;color:#c3c7cb;max-width:340px">A persistent left rail holds identity, model, attributes and badges on both pages. Content column stays a single clean measure.</div>
+      </div>
+      <div style="display:flex;gap:24px">
+
+        <!-- 1c page 1 -->
+        <div data-screen-label="1c P1" style="width:816px;height:1056px;background:#fff;box-shadow:0 18px 40px rgba(0,0,0,.28);box-sizing:border-box;display:flex;overflow:hidden">
+          <div style="width:212px;flex:0 0 auto;background:#f1f3f5;border-right:1px solid #dfe2e6;padding:44px 24px;display:flex;flex-direction:column;gap:22px">
+            <div style="width:120px;height:30px;background:#e4e6e9;border:1px dashed #b9bdc2;display:flex;align-items:center;justify-content:center;font:600 8px/1 Montserrat,sans-serif;letter-spacing:.1em;color:#8d9297">LOGO</div>
+            <div>
+              <div style="font:600 9px/1 Montserrat,sans-serif;letter-spacing:.22em;color:#a8adb2">VIDEOX V5</div>
+              <div style="font:700 40px/.95 Poppins,sans-serif;color:#4a4e54;margin-top:8px">V800</div>
+              <div style="font:500 10px/1.5 Montserrat,sans-serif;color:#7d8288;margin-top:8px">36 Bay · 4U Rack<br>Video &amp; Analytics Server</div>
+            </div>
+            <div style="height:1px;background:#dfe2e6"></div>
+            <div style="display:flex;flex-direction:column;gap:9px">
+              <div style="font:700 8px/1 Montserrat,sans-serif;letter-spacing:.16em;color:#9aa0a6">KEY ATTRIBUTES</div>
+              <sc-for list="{{ attrs }}" as="a" hint-placeholder-count="5"><div style="height:7px;background:#e4e6e9"></div></sc-for>
+            </div>
+            <div style="height:1px;background:#dfe2e6"></div>
+            <div style="display:flex;flex-direction:column;gap:7px">
+              <div style="font:700 8px/1 Montserrat,sans-serif;letter-spacing:.16em;color:#9aa0a6">COMPLIANCE</div>
+              <sc-for list="{{ wfBadges }}" as="b" hint-placeholder-count="4"><div style="background:#fff;border:1px solid #d3d6da;padding:5px 8px;font:600 7px/1 Montserrat,sans-serif;letter-spacing:.06em;color:#8d9297">{{ b }}</div></sc-for>
+            </div>
+            <div style="flex:1"></div>
+            <div style="font:400 7px/1.6 Montserrat,sans-serif;color:#b3b8bd">Arxys · 1810 Gillespie Way<br>Suite 108, El Cajon, CA 92020<br>619.258.7800 · arxys.com</div>
+          </div>
+          <div style="flex:1;padding:44px 44px 32px;display:flex;flex-direction:column;gap:20px">
+            <div>
+              <div style="font:600 17px/1.4 Poppins,sans-serif;color:#31353a">Enterprise Server for Video Surveillance &amp; Video Analytics</div>
+              <div style="height:2px;background:#dfe2e6;width:64px;margin-top:12px"></div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div style="font:700 9px/1 Montserrat,sans-serif;letter-spacing:.18em;color:#9aa0a6">RECOMMENDED USAGE</div>
+              <sc-for list="{{ para5 }}" as="w" hint-placeholder-count="5"><div style="height:8px;background:#e8eaed;width:{{ w }}"></div></sc-for>
+            </div>
+            <div style="height:170px;background:repeating-linear-gradient(45deg,#eceef1 0 6px,#f6f7f8 6px 12px);border:1px solid #d3d6da;display:flex;align-items:center;justify-content:center;margin-right:-44px">
+              <div style="font:600 9px/1 Montserrat,sans-serif;letter-spacing:.12em;color:#9aa0a6">PRODUCT PHOTO — BLEEDS RIGHT</div>
+            </div>
+            <div style="font:700 9px/1 Montserrat,sans-serif;letter-spacing:.18em;color:#9aa0a6">VIDEOX ENTERPRISE FEATURES</div>
+            <div style="display:flex;flex-direction:column;gap:14px;flex:1">
+              <sc-for list="{{ features }}" as="f" hint-placeholder-count="5">
+                <div style="display:flex;gap:14px;border-top:1px solid #eceef1;padding-top:12px">
+                  <div style="width:26px;height:26px;border:1px solid #c9ccd1;flex:0 0 auto"></div>
+                  <div style="flex:1;display:flex;flex-direction:column;gap:6px">
+                    <div style="font:600 11px/1.3 Montserrat,sans-serif;color:#5a5f66">{{ f }}</div>
+                    <div style="height:6px;background:#e8eaed"></div>
+                    <div style="height:6px;background:#e8eaed;width:84%"></div>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+            <div style="display:flex;justify-content:flex-end;font:400 8px/1 Montserrat,sans-serif;color:#a8adb2">1 of 2</div>
+          </div>
+        </div>
+
+        <!-- 1c page 2 -->
+        <div data-screen-label="1c P2" style="width:816px;height:1056px;background:#fff;box-shadow:0 18px 40px rgba(0,0,0,.28);box-sizing:border-box;display:flex;overflow:hidden">
+          <div style="width:212px;flex:0 0 auto;background:#f1f3f5;border-right:1px solid #dfe2e6;padding:44px 24px;display:flex;flex-direction:column;gap:20px">
+            <div style="width:120px;height:30px;background:#e4e6e9;border:1px dashed #b9bdc2;display:flex;align-items:center;justify-content:center;font:600 8px/1 Montserrat,sans-serif;letter-spacing:.1em;color:#8d9297">LOGO</div>
+            <div>
+              <div style="font:600 9px/1 Montserrat,sans-serif;letter-spacing:.22em;color:#a8adb2">VIDEOX V5</div>
+              <div style="font:700 32px/.95 Poppins,sans-serif;color:#4a4e54;margin-top:8px">V800</div>
+            </div>
+            <div style="height:1px;background:#dfe2e6"></div>
+            <div style="display:flex;flex-direction:column;gap:9px">
+              <div style="font:700 8px/1 Montserrat,sans-serif;letter-spacing:.16em;color:#9aa0a6">CAMERA COUNT MATRIX</div>
+              <div style="font:400 7px/1 Montserrat,sans-serif;color:#b3b8bd">4,000 Mb/s</div>
+              <sc-for list="{{ matrixRows }}" as="r" hint-placeholder-count="5">
+                <div style="display:flex;gap:5px;border-top:1px solid #e4e6e9;padding-top:7px">
+                  <div style="height:6px;background:#e4e6e9;flex:1.3"></div>
+                  <div style="height:6px;background:#e4e6e9;flex:.8"></div>
+                </div>
+              </sc-for>
+            </div>
+            <div style="flex:1"></div>
+            <div style="font:400 7px/1.6 Montserrat,sans-serif;color:#b3b8bd">Arxys · 1810 Gillespie Way<br>Suite 108, El Cajon, CA 92020<br>619.258.7800 · arxys.com</div>
+          </div>
+          <div style="flex:1;padding:44px 44px 32px;display:flex;flex-direction:column;gap:18px">
+            <div style="font:600 15px/1 Poppins,sans-serif;color:#31353a;border-bottom:2px solid #dfe2e6;padding-bottom:10px">Technical Specifications</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:22px;flex:1">
+              <div style="display:flex;flex-direction:column;gap:11px">
+                <div style="font:700 8px/1 Montserrat,sans-serif;letter-spacing:.16em;color:#9aa0a6">HARDWARE</div>
+                <sc-for list="{{ hwRows }}" as="r" hint-placeholder-count="9">
+                  <div style="display:grid;grid-template-columns:78px 1fr;gap:10px;border-top:1px solid #f1f3f5;padding-top:7px">
+                    <div style="font:600 8px/1.3 Montserrat,sans-serif;color:#7d8288">{{ r }}</div>
+                    <div style="display:flex;flex-direction:column;gap:4px"><div style="height:6px;background:#e8eaed"></div><div style="height:6px;background:#e8eaed;width:62%"></div></div>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:11px">
+                <div style="font:700 8px/1 Montserrat,sans-serif;letter-spacing:.16em;color:#9aa0a6">REGULATORY &amp; ENVIRONMENTAL</div>
+                <sc-for list="{{ envRows }}" as="r" hint-placeholder-count="7">
+                  <div style="display:grid;grid-template-columns:78px 1fr;gap:10px;border-top:1px solid #f1f3f5;padding-top:7px">
+                    <div style="font:600 8px/1.3 Montserrat,sans-serif;color:#7d8288">{{ r }}</div>
+                    <div style="height:6px;background:#e8eaed;width:84%"></div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+            <div style="height:184px;border:1px solid #d3d6da;background:#fcfcfd;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;margin-right:-44px">
+              <div style="font:600 9px/1 Montserrat,sans-serif;letter-spacing:.14em;color:#b3b8bd">REAR I/O PANEL — HELD BLANK</div>
+              <div style="font:400 8px/1 Montserrat,sans-serif;color:#c3c7cb">full-measure slot, hairline frame, no fallback content</div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:5px">
+              <div style="font:700 8px/1 Montserrat,sans-serif;letter-spacing:.16em;color:#9aa0a6">GENERAL INFORMATION</div>
+              <div style="height:6px;background:#eceef1"></div>
+              <div style="height:6px;background:#eceef1;width:88%"></div>
+            </div>
+            <div style="display:flex;justify-content:flex-end;font:400 8px/1 Montserrat,sans-serif;color:#a8adb2">2 of 2</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Workstation mode -->
+  <div style="display:flex;flex-direction:column;gap:26px;border-top:1px solid #8a8e93;padding-top:36px">
+    <div style="max-width:1100px;display:flex;flex-direction:column;gap:10px">
+      <div style="font:600 22px/1.3 Poppins,sans-serif;color:#fff">Workstation mode — SW10, one page</div>
+      <div style="font:400 14px/1.65 Montserrat,sans-serif;color:#d3d6da;max-width:860px;text-wrap:pretty">Same three directions, the simpler layout. No feature-icon block: the sheet goes hero → key attributes → camera-count matrix → spec grid, and the matrix moves up to become the centerpiece since on a workstation it <em>is</em> the product claim. Everything else — header, rail, footer, badge treatment — is inherited unchanged from its page-1 sibling above. That inheritance is the actual test of whether a direction is a system or just a nice page.</div>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:32px;align-items:flex-start">
+
+      <!-- 1a-W -->
+      <div id="1a-W" style="display:flex;flex-direction:column;gap:14px">
+        <div style="display:flex;align-items:baseline;gap:12px">
+          <div style="font:700 11px/1 Montserrat,sans-serif;letter-spacing:.12em;color:#1b1d20;background:#FCB23E;padding:6px 10px;border-radius:3px">1a-W</div>
+          <div style="font:600 17px/1 Poppins,sans-serif;color:#fff">Ledger</div>
+        </div>
+        <div data-screen-label="1a Workstation" style="width:816px;height:1056px;background:#fff;box-shadow:0 18px 40px rgba(0,0,0,.28);padding:48px 52px;box-sizing:border-box;display:flex;flex-direction:column;gap:20px">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div style="width:132px;height:34px;background:#e4e6e9;border:1px dashed #b9bdc2;display:flex;align-items:center;justify-content:center;font:600 8px/1 Montserrat,sans-serif;letter-spacing:.1em;color:#8d9297">LOGO</div>
+            <div style="text-align:right">
+              <div style="font:600 10px/1 Montserrat,sans-serif;letter-spacing:.3em;color:#9aa0a6">V I D E O X   V 5</div>
+              <div style="font:400 9px/1.6 Montserrat,sans-serif;color:#b3b8bd;margin-top:5px">V5 Security Workstation</div>
+            </div>
+          </div>
+          <div style="height:2px;background:#3c4046"></div>
+          <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:20px">
+            <div>
+              <div style="font:700 54px/.95 Poppins,sans-serif;color:#31353a">SW10</div>
+              <div style="font:500 14px/1 Montserrat,sans-serif;letter-spacing:.06em;color:#7d8288;margin-top:8px">Performance Tower · Client View Workstation</div>
+            </div>
+            <div style="display:flex;gap:7px">
+              <sc-for list="{{ wsBadges }}" as="b" hint-placeholder-count="3"><div style="border:1px solid #c9ccd1;padding:6px 10px;font:600 8px/1 Montserrat,sans-serif;letter-spacing:.08em;color:#8d9297;border-radius:2px">{{ b }}</div></sc-for>
+            </div>
+          </div>
+          <div style="height:1px;background:#d8dbdf"></div>
+          <div style="display:grid;grid-template-columns:1.35fr 1fr;gap:34px">
+            <div style="display:flex;flex-direction:column;gap:9px">
+              <div style="font:700 9px/1 Montserrat,sans-serif;letter-spacing:.18em;color:#9aa0a6">RECOMMENDED USAGE</div>
+              <sc-for list="{{ para4 }}" as="w" hint-placeholder-count="4"><div style="height:8px;background:#e8eaed;width:{{ w }}"></div></sc-for>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:9px">
+              <div style="font:700 9px/1 Montserrat,sans-serif;letter-spacing:.18em;color:#9aa0a6">KEY ATTRIBUTES</div>
+              <sc-for list="{{ wsAttrs }}" as="a" hint-placeholder-count="6"><div style="display:flex;gap:8px;align-items:center"><div style="width:4px;height:4px;background:#b9bdc2;flex:0 0 auto"></div><div style="height:8px;background:#e8eaed;flex:1"></div></div></sc-for>
+            </div>
+          </div>
+          <div style="height:180px;background:repeating-linear-gradient(45deg,#eceef1 0 6px,#f6f7f8 6px 12px);border:1px solid #d3d6da;display:flex;align-items:center;justify-content:center">
+            <div style="font:600 9px/1 Montserrat,sans-serif;letter-spacing:.14em;color:#9aa0a6">PRODUCT PHOTO — TOWER, FRONT 3/4</div>
+          </div>
+          <div style="font:700 9px/1 Montserrat,sans-serif;letter-spacing:.18em;color:#9aa0a6">CAMERA COUNT MATRIX — 125 MB/S</div>
+          <div style="border:1px solid #d3d6da">
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;background:#f1f3f5;border-bottom:1px solid #d3d6da">
+              <sc-for list="{{ matrixHead }}" as="h" hint-placeholder-count="4"><div style="padding:8px 12px;font:700 8px/1 Montserrat,sans-serif;letter-spacing:.1em;color:#7d8288">{{ h }}</div></sc-for>
+            </div>
+            <sc-for list="{{ wsMatrixRows }}" as="r" hint-placeholder-count="4">
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;border-bottom:1px solid #eceef1">
+                <div style="padding:8px 12px"><div style="height:7px;background:#e8eaed;width:40%"></div></div>
+                <div style="padding:8px 12px"><div style="height:7px;background:#e8eaed;width:46%"></div></div>
+                <div style="padding:8px 12px"><div style="height:7px;background:#e8eaed;width:24%"></div></div>
+                <div style="padding:8px 12px"><div style="height:7px;background:#e8eaed;width:52%"></div></div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:26px;flex:1;align-content:start">
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <div style="font:700 9px/1 Montserrat,sans-serif;letter-spacing:.18em;color:#9aa0a6;border-bottom:1px solid #d8dbdf;padding-bottom:6px">HARDWARE INFORMATION</div>
+              <sc-for list="{{ wsHwRows }}" as="r" hint-placeholder-count="8">
+                <div style="display:grid;grid-template-columns:76px 1fr;gap:10px">
+                  <div style="font:600 8px/1.3 Montserrat,sans-serif;color:#7d8288">{{ r }}</div>
+                  <div style="height:7px;background:#e8eaed;margin-top:2px"></div>
+                </div>
+              </sc-for>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <div style="font:700 9px/1 Montserrat,sans-serif;letter-spacing:.18em;color:#9aa0a6;border-bottom:1px solid #d8dbdf;padding-bottom:6px">REGULATORY &amp; ENVIRONMENTAL</div>
+              <sc-for list="{{ wsEnvRows }}" as="r" hint-placeholder-count="8">
+                <div style="display:grid;grid-template-columns:76px 1fr;gap:10px">
+                  <div style="font:600 8px/1.3 Montserrat,sans-serif;color:#7d8288">{{ r }}</div>
+                  <div style="height:7px;background:#e8eaed;width:82%;margin-top:2px"></div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="border-top:1px solid #d8dbdf;padding-top:8px;display:flex;justify-content:space-between;font:400 8px/1 Montserrat,sans-serif;color:#a8adb2">
+            <div>Arxys · 1810 Gillespie Way, Suite 108, El Cajon, CA 92020 · 619.258.7800 · arxys.com</div>
+            <div>1 of 1</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 1b-W -->
+      <div id="1b-W" style="display:flex;flex-direction:column;gap:14px">
+        <div style="display:flex;align-items:baseline;gap:12px">
+          <div style="font:700 11px/1 Montserrat,sans-serif;letter-spacing:.12em;color:#1b1d20;background:#FCB23E;padding:6px 10px;border-radius:3px">1b-W</div>
+          <div style="font:600 17px/1 Poppins,sans-serif;color:#fff">Banner</div>
+        </div>
+        <div data-screen-label="1b Workstation" style="width:816px;height:1056px;background:#fff;box-shadow:0 18px 40px rgba(0,0,0,.28);box-sizing:border-box;display:flex;flex-direction:column;overflow:hidden">
+          <div style="height:248px;background:#dfe2e6;position:relative;display:flex;align-items:center;padding:0 52px;flex:0 0 auto">
+            <div style="position:absolute;top:14px;left:52px;font:600 8px/1 Montserrat,sans-serif;letter-spacing:.12em;color:#9aa0a6">[ GOLD BAND ]</div>
+            <div style="flex:1;display:flex;flex-direction:column;gap:12px">
+              <div style="width:132px;height:32px;background:#cfd3d8;border:1px dashed #aeb3b9;display:flex;align-items:center;justify-content:center;font:600 8px/1 Montserrat,sans-serif;letter-spacing:.1em;color:#7d8288">LOGO</div>
+              <div style="font:700 58px/.92 Poppins,sans-serif;color:#4a4e54">SW10</div>
+              <div style="font:500 13px/1.4 Montserrat,sans-serif;letter-spacing:.05em;color:#6b7076">Performance Tower<br>V5 Security Workstation</div>
+            </div>
+            <div style="width:250px;height:218px;margin-right:-52px;background:repeating-linear-gradient(45deg,#d5d8dd 0 6px,#e3e6ea 6px 12px);border:1px solid #c2c6cb;display:flex;align-items:center;justify-content:center;text-align:center;flex:0 0 auto">
+              <div style="font:600 9px/1.5 Montserrat,sans-serif;letter-spacing:.1em;color:#8d9297">TOWER PHOTO<br>BLEEDS RIGHT</div>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);border-bottom:1px solid #d8dbdf;flex:0 0 auto">
+            <sc-for list="{{ wsChips }}" as="c" hint-placeholder-count="3">
+              <div style="padding:14px 16px;border-right:1px solid #e8eaed;display:flex;flex-direction:column;gap:6px">
+                <div style="font:700 7px/1 Montserrat,sans-serif;letter-spacing:.12em;color:#a8adb2">{{ c }}</div>
+                <div style="height:9px;background:#e8eaed"></div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="padding:22px 52px 0;display:flex;flex-direction:column;gap:8px;flex:0 0 auto">
+            <div style="font:700 9px/1 Montserrat,sans-serif;letter-spacing:.18em;color:#9aa0a6">RECOMMENDED USAGE</div>
+            <sc-for list="{{ para3 }}" as="w" hint-placeholder-count="3"><div style="height:8px;background:#e8eaed;width:{{ w }}"></div></sc-for>
+          </div>
+          <div style="padding:22px 52px 0;display:flex;flex-direction:column;gap:10px;flex:0 0 auto">
+            <div style="font:700 9px/1 Montserrat,sans-serif;letter-spacing:.18em;color:#9aa0a6">CAMERA COUNT MATRIX — 125 MB/S</div>
+            <div style="border:1px solid #d3d6da">
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;background:#f1f3f5;border-bottom:1px solid #d3d6da">
+                <sc-for list="{{ matrixHead }}" as="h" hint-placeholder-count="4"><div style="padding:8px 14px;font:700 8px/1 Montserrat,sans-serif;letter-spacing:.1em;color:#7d8288">{{ h }}</div></sc-for>
+              </div>
+              <sc-for list="{{ wsMatrixRows }}" as="r" hint-placeholder-count="4">
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;border-bottom:1px solid #eceef1">
+                  <div style="padding:9px 14px"><div style="height:7px;background:#e8eaed;width:40%"></div></div>
+                  <div style="padding:9px 14px"><div style="height:7px;background:#e8eaed;width:46%"></div></div>
+                  <div style="padding:9px 14px"><div style="height:7px;background:#e8eaed;width:24%"></div></div>
+                  <div style="padding:9px 14px"><div style="height:7px;background:#e8eaed;width:52%"></div></div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="padding:22px 52px;display:grid;grid-template-columns:1fr 1fr;gap:26px;flex:1;align-content:start">
+            <div style="display:flex;flex-direction:column;gap:9px">
+              <div style="font:700 8px/1 Montserrat,sans-serif;letter-spacing:.16em;color:#9aa0a6;border-bottom:1px solid #d8dbdf;padding-bottom:5px">HARDWARE</div>
+              <sc-for list="{{ wsHwRows }}" as="r" hint-placeholder-count="8">
+                <div style="display:grid;grid-template-columns:72px 1fr;gap:9px">
+                  <div style="font:600 8px/1.3 Montserrat,sans-serif;color:#7d8288">{{ r }}</div>
+                  <div style="height:6px;background:#e8eaed;margin-top:2px"></div>
+                </div>
+              </sc-for>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:9px">
+              <div style="font:700 8px/1 Montserrat,sans-serif;letter-spacing:.16em;color:#9aa0a6;border-bottom:1px solid #d8dbdf;padding-bottom:5px">REGULATORY &amp; ENVIRONMENTAL</div>
+              <sc-for list="{{ wsEnvRows }}" as="r" hint-placeholder-count="8">
+                <div style="display:grid;grid-template-columns:72px 1fr;gap:9px">
+                  <div style="font:600 8px/1.3 Montserrat,sans-serif;color:#7d8288">{{ r }}</div>
+                  <div style="height:6px;background:#e8eaed;width:80%;margin-top:2px"></div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="background:#f1f3f5;padding:13px 52px;display:flex;align-items:center;justify-content:space-between;flex:0 0 auto">
+            <div style="display:flex;gap:8px">
+              <sc-for list="{{ wsBadges }}" as="b" hint-placeholder-count="3"><div style="border:1px solid #c2c6cb;background:#fff;padding:6px 10px;font:600 8px/1 Montserrat,sans-serif;letter-spacing:.08em;color:#8d9297">{{ b }}</div></sc-for>
+            </div>
+            <div style="font:400 8px/1 Montserrat,sans-serif;color:#a8adb2">1 of 1</div>
+          </div>
+          <div style="padding:9px 52px;font:400 8px/1 Montserrat,sans-serif;color:#a8adb2;flex:0 0 auto">Arxys · 1810 Gillespie Way, Suite 108, El Cajon, CA 92020 · 619.258.7800 · arxys.com</div>
+        </div>
+      </div>
+
+      <!-- 1c-W -->
+      <div id="1c-W" style="display:flex;flex-direction:column;gap:14px">
+        <div style="display:flex;align-items:baseline;gap:12px">
+          <div style="font:700 11px/1 Montserrat,sans-serif;letter-spacing:.12em;color:#1b1d20;background:#FCB23E;padding:6px 10px;border-radius:3px">1c-W</div>
+          <div style="font:600 17px/1 Poppins,sans-serif;color:#fff">Rail</div>
+        </div>
+        <div data-screen-label="1c Workstation" style="width:816px;height:1056px;background:#fff;box-shadow:0 18px 40px rgba(0,0,0,.28);box-sizing:border-box;display:flex;overflow:hidden">
+          <div style="width:212px;flex:0 0 auto;background:#f1f3f5;border-right:1px solid #dfe2e6;padding:44px 24px;display:flex;flex-direction:column;gap:20px">
+            <div style="width:120px;height:30px;background:#e4e6e9;border:1px dashed #b9bdc2;display:flex;align-items:center;justify-content:center;font:600 8px/1 Montserrat,sans-serif;letter-spacing:.1em;color:#8d9297">LOGO</div>
+            <div>
+              <div style="font:600 9px/1 Montserrat,sans-serif;letter-spacing:.22em;color:#a8adb2">VIDEOX V5</div>
+              <div style="font:700 40px/.95 Poppins,sans-serif;color:#4a4e54;margin-top:8px">SW10</div>
+              <div style="font:500 10px/1.5 Montserrat,sans-serif;color:#7d8288;margin-top:8px">Performance Tower<br>Security Workstation</div>
+            </div>
+            <div style="height:1px;background:#dfe2e6"></div>
+            <div style="display:flex;flex-direction:column;gap:9px">
+              <div style="font:700 8px/1 Montserrat,sans-serif;letter-spacing:.16em;color:#9aa0a6">KEY ATTRIBUTES</div>
+              <sc-for list="{{ wsAttrs }}" as="a" hint-placeholder-count="6"><div style="height:7px;background:#e4e6e9"></div></sc-for>
+            </div>
+            <div style="height:1px;background:#dfe2e6"></div>
+            <div style="display:flex;flex-direction:column;gap:7px">
+              <div style="font:700 8px/1 Montserrat,sans-serif;letter-spacing:.16em;color:#9aa0a6">COMPLIANCE</div>
+              <sc-for list="{{ wsBadges }}" as="b" hint-placeholder-count="3"><div style="background:#fff;border:1px solid #d3d6da;padding:5px 8px;font:600 7px/1 Montserrat,sans-serif;letter-spacing:.06em;color:#8d9297">{{ b }}</div></sc-for>
+            </div>
+            <div style="flex:1"></div>
+            <div style="font:400 7px/1.6 Montserrat,sans-serif;color:#b3b8bd">Arxys · 1810 Gillespie Way<br>Suite 108, El Cajon, CA 92020<br>619.258.7800 · arxys.com</div>
+          </div>
+          <div style="flex:1;padding:44px 44px 32px;display:flex;flex-direction:column;gap:18px">
+            <div>
+              <div style="font:600 17px/1.4 Poppins,sans-serif;color:#31353a">Client View Workstation for High-Density Multi-Monitor Monitoring</div>
+              <div style="height:2px;background:#dfe2e6;width:64px;margin-top:12px"></div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div style="font:700 9px/1 Montserrat,sans-serif;letter-spacing:.18em;color:#9aa0a6">RECOMMENDED USAGE</div>
+              <sc-for list="{{ para4 }}" as="w" hint-placeholder-count="4"><div style="height:8px;background:#e8eaed;width:{{ w }}"></div></sc-for>
+            </div>
+            <div style="height:158px;background:repeating-linear-gradient(45deg,#eceef1 0 6px,#f6f7f8 6px 12px);border:1px solid #d3d6da;display:flex;align-items:center;justify-content:center;margin-right:-44px">
+              <div style="font:600 9px/1 Montserrat,sans-serif;letter-spacing:.12em;color:#9aa0a6">TOWER PHOTO — BLEEDS RIGHT</div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <div style="font:700 9px/1 Montserrat,sans-serif;letter-spacing:.18em;color:#9aa0a6">CAMERA COUNT MATRIX — 125 MB/S</div>
+              <div style="border:1px solid #d3d6da">
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;background:#f1f3f5;border-bottom:1px solid #d3d6da">
+                  <sc-for list="{{ matrixHead }}" as="h" hint-placeholder-count="4"><div style="padding:7px 11px;font:700 7px/1 Montserrat,sans-serif;letter-spacing:.1em;color:#7d8288">{{ h }}</div></sc-for>
+                </div>
+                <sc-for list="{{ wsMatrixRows }}" as="r" hint-placeholder-count="4">
+                  <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;border-bottom:1px solid #eceef1">
+                    <div style="padding:8px 11px"><div style="height:6px;background:#e8eaed;width:42%"></div></div>
+                    <div style="padding:8px 11px"><div style="height:6px;background:#e8eaed;width:48%"></div></div>
+                    <div style="padding:8px 11px"><div style="height:6px;background:#e8eaed;width:26%"></div></div>
+                    <div style="padding:8px 11px"><div style="height:6px;background:#e8eaed;width:54%"></div></div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:22px;flex:1;align-content:start">
+              <div style="display:flex;flex-direction:column;gap:9px">
+                <div style="font:700 8px/1 Montserrat,sans-serif;letter-spacing:.16em;color:#9aa0a6">HARDWARE</div>
+                <sc-for list="{{ wsHwRows }}" as="r" hint-placeholder-count="8">
+                  <div style="display:grid;grid-template-columns:70px 1fr;gap:9px;border-top:1px solid #f1f3f5;padding-top:6px">
+                    <div style="font:600 8px/1.3 Montserrat,sans-serif;color:#7d8288">{{ r }}</div>
+                    <div style="height:6px;background:#e8eaed;margin-top:2px"></div>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:9px">
+                <div style="font:700 8px/1 Montserrat,sans-serif;letter-spacing:.16em;color:#9aa0a6">REGULATORY &amp; ENVIRONMENTAL</div>
+                <sc-for list="{{ wsEnvRows }}" as="r" hint-placeholder-count="8">
+                  <div style="display:grid;grid-template-columns:70px 1fr;gap:9px;border-top:1px solid #f1f3f5;padding-top:6px">
+                    <div style="font:600 8px/1.3 Montserrat,sans-serif;color:#7d8288">{{ r }}</div>
+                    <div style="height:6px;background:#e8eaed;width:80%;margin-top:2px"></div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+            <div style="display:flex;justify-content:flex-end;font:400 8px/1 Montserrat,sans-serif;color:#a8adb2">1 of 1</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div style="max-width:1100px;display:flex;flex-direction:column;gap:14px;padding-top:8px">
+      <div style="font:600 15px/1.3 Poppins,sans-serif;color:#fff">On the Management sheet</div>
+      <div style="font:400 13px/1.7 Montserrat,sans-serif;color:#c3c7cb;max-width:860px;text-wrap:pretty">V250/V255 uses the Video template unchanged — that's the brief's call and I'd keep it. A separate wireframe would be identical to 1a/1b/1c with fewer rows, which is exactly the point. The one thing worth watching is that the V250 has genuinely less to say: no storage capacity, four SSDs instead of thirty-six drives, a shorter feature list. Each direction absorbs that differently — Ledger and Rail just get shorter, Banner's fixed-height band and five-up chip strip start to look under-filled. If Banner is the direction you like, the chip strip should be built to take three or five items, not exactly five.</div>
+      <div style="font:400 13px/1.7 Montserrat,sans-serif;color:#aeb3b9;max-width:860px">Two calls I made where you said decide for me: the camera matrix leads page 2 on video sheets — it's the number integrators buy on, but it's a table, and tables read better on the technical page than under a hero. And the PDF drives layout; the portal page reflows from the same tokens, so there's one source of truth and the print sheet doesn't inherit screen habits.</div>
+    </div>
+  </div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      wfBadges: ['NDAA', 'CE / UKCA', 'UL / FCC', 'MADE IN USA'],
+      attrs: [1, 2, 3, 4, 5],
+      para5: ['100%', '100%', '100%', '100%', '58%'],
+      para4: ['100%', '100%', '100%', '72%'],
+      para3: ['100%', '100%', '68%'],
+      chips: ['THROUGHPUT', 'RAW STORAGE', 'DRIVE BAYS', 'FORM FACTOR', 'WARRANTY'],
+      features: [
+        'Lower deployment costs — hardware accelerated H.265',
+        'Flexible & scalable tier-1 enterprise storage',
+        'High data availability',
+        'Strengthen cybersecurity',
+        'Advanced support',
+        'Remote management'
+      ],
+      matrixHead: ['RESOLUTION', 'CODEC', 'CAMERA STREAMS', 'BANDWIDTH'],
+      matrixRows: [1, 2, 3, 4, 5],
+      hwRows: ['CPU', 'Hardware acceleration', 'RAM', 'Operating system', 'VMS / OS drive', 'Hard drives', 'RAID', 'Network', 'Encryption & key mgmt'],
+      envRows: ['Form factor', 'Power specifications', 'Cooling', 'Dimensions', 'Weight', 'Operating temperature', 'Safety & emissions'],
+      wsBadges: ['NDAA', 'CE / FCC', 'ENERGY STAR'],
+      wsChips: ['MAX BANDWIDTH', 'MONITOR SUPPORT', 'WARRANTY'],
+      wsAttrs: [1, 2, 3, 4, 5, 6],
+      wsMatrixRows: [1, 2, 3, 4],
+      wsHwRows: ['Form factor', 'CPU', 'GPU', 'RAM', 'Operating system', 'VMS / OS drive', 'Hard drives', 'Network', 'Display ports', 'Front I/O', 'Rear I/O'],
+      wsEnvRows: ['Power specifications', 'Max consumption', 'Dimensions', 'Weight', 'Warranty', 'Operating temperature', 'Humidity', 'Safety & emissions', 'Trade compliance']
+    };
+  }
+}
+</script>
+</body></html>

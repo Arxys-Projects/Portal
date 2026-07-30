@@ -354,6 +354,7 @@ Always use the alias in remote URLs: `git@github.com-arxys:Arxys-Projects/Portal
 | Run RLS regression suite | `node --env-file=.env.local --import tsx scripts/test-rls.ts` |
 | Round-trip live `product_specs` through the admin form's schema (read-only) | `node --env-file=.env.local --import tsx scripts/roundtrip-product-specs.mts` |
 | Round-trip live `appliance_specs` through its admin form's schema (read-only) | `node --env-file=.env.local --import tsx scripts/roundtrip-appliance-specs.mts` |
+| Render the datasheet layout mockup to a PDF (no DB, no network) | `node --import tsx scripts/render-datasheet-mockup.ts [outPath]` |
 | Create a new admin user | `node --env-file=.env.local --import tsx scripts/bootstrap-admin.ts --email ... --name ... --company ...` |
 | New migration | `supabase migration new <name>` (creates a timestamped empty SQL file) |
 | Apply pending migrations | `SUPABASE_DB_PASSWORD='...' supabase db push` |

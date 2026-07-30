@@ -4,6 +4,109 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-07-30 — Datasheet Phase 2: design handoff received, 3-page layout mocked up
+
+The Phase 2 visual design landed as a handoff bundle
+(`datasheets/design_handoff_videox_datasheet/`): a high-fidelity two-page "Ledger"
+template for V100–V800 and V250/V255, a one-page "Rail" template for SW10/SW20, exact
+color/type/geometry tokens, and 7 reference screenshots. The HTML in it is a design
+reference, not code to port — the target is `@react-pdf/renderer`, which has no CSS grid.
+
+### Work done
+
+- **`src/lib/datasheet/tokens.ts`** — the handoff's color, type and spacing tokens, plus
+  font registration and PNG loading. Measurements stay in the design's own CSS px and
+  pass through a `px()` helper (`× 0.75`) rather than being converted by hand, so the
+  template stays checkable against the handoff line by line.
+- **`src/lib/datasheet/types.ts`** — the content contract the template renders from,
+  deliberately *not* a `product_specs` row, so the spec-column mapping lands in one
+  adapter instead of being smeared through the layout.
+- **`src/lib/datasheet/DatasheetPdf.tsx`** — the Ledger template at three pages
+  (ADR 0105), flex-only. Derivations the design specifies are code, not data: 8MP
+  streams = `round(baseline × 0.55)`, part numbers as `VX5-{MODEL}-{RAW_TB}`, usable
+  capacity from the RAID level (the handoff's "single most important gotcha" — RAID 60
+  at 83.3% for V800, RAID 6 at 75% for V400, interpolated into both the column header
+  and the caption).
+- **`src/lib/datasheet/placeholder.ts` + `scripts/render-datasheet-mockup.ts`** — real
+  V800 figures from the handoff and from the build-step-6 entry reference §A7, rendered
+  to `datasheets/v800-3page-mockup.pdf` with no database and no network. Both are
+  scaffolding for review and get deleted when the spec-table adapter lands.
+- **Fonts committed** under `public/fonts/` (ADR 0106).
+- **Two held slots in the handoff turn out to be closeable**: the real 5-year warranty
+  seal already exists as a PNG at `public/price-book/5_year_warranty-circle-2.png`, so
+  the AVIF-does-not-survive-PDF-export problem the handoff flagged does not apply. It
+  needs an alpha channel though — see below.
+
+### Verification
+
+- `npx tsc --noEmit` and `npx eslint` clean.
+- Renders to exactly 3 pages, every footer on its own page, no clipping — checked by
+  rasterising all three at 110dpi and reading them.
+
+### Detours & fixes
+
+- **`Font.register()` ran and the renderer still said "Font family not registered:
+  Montserrat".** Root cause: tsx loads `.mts` as ESM and plain `.ts` as CJS (no
+  `"type": "module"` in package.json). A `.mts` entry point therefore got the ESM copy
+  of `@react-pdf/renderer` while `src/lib/datasheet/*.ts` got the CJS copy — two module
+  instances, two font stores, registration writing to the one the renderer never reads.
+  Fixed by making the render script `.ts` so the whole chain is CJS, which is the same
+  reason `src/lib/project-quote/render.test.ts` is a `.ts`. Cost: no top-level await.
+- **`--conditions=react-server` was the wrong fix for the `server-only` throw.** It gets
+  past the marker but hands React's RSC build to react-pdf's reconciler, which then dies
+  on `Cannot read properties of undefined (reading 'S')`. The repo's actual convention is
+  simpler and already established: template components carry no `server-only` import
+  (see `ProjectQuotePdf.tsx`), only the render entry point does.
+- **Page 1's footer landed on a page of its own.** The handoff specifies line heights of
+  0.92–1.0 on display type; react-pdf defaults to ~1.2, which added ~9px under the 56px
+  numeral alone and pushed the page over. Transcribing the line heights fixed it — they
+  are load-bearing on a design with zero slack, not polish.
+- **Page 3's "Operating system" label ran into its value.** The handoff's 82px label
+  column is sized for an 8.5px label; page 3 raises the spec type per ADR 0105, so the
+  column had to widen with it.
+
+### Open items this raised
+
+- **The warranty seal PNG has no alpha channel** (color type 2, RGB). It renders as a
+  white square on the cream warranty band. Needs a transparent-background export before
+  it can ship.
+- **Product and rear-panel photography still does not exist**, so both slots render held.
+- **Where image paths live is undecided.** Price Book heroes are `public/price-book/*.png`
+  referenced from `families.ts` — not Supabase storage, which today holds only partner
+  logos. A spec-table image column can hold either a public path or a storage key; that
+  choice should be made before the column is added.
+- The V800 per-resolution stream counts are the handoff's illustrative figures — only the
+  325-stream / 4,000 Mbit/s ceiling is published.
+
+### Layout revision, same session (Andy's review of the first render)
+
+Three pages approved — "it's got room and space" — with four changes, all made and
+re-rendered:
+
+- **The model ladder moved off page 1 to the top of page 2.** It is an ordering question,
+  and it was interrupting the page-1 pitch between the headline strip and the usage copy.
+- **Page 1's product photo grew 158px → 240px**, taking the space the ladder gave back.
+  This was the point of moving it — 158px was not enough for a real front-3/4 shot.
+- **The rear-panel frame shrank 320px → 200px.** The first draft had it at twice the
+  product photo, which put the emphasis on the less interesting image. It is now the
+  smaller of the two. An intermediate attempt to let the slot `flex: 1` into page 2's
+  slack was abandoned: it grew to ~370px and dominated the page — sizing an image by
+  leftover space optimises for the wrong thing.
+- **The AMD mark now rides every page footer** (`public/datasheet/amd-logo.png`, cropped
+  from the supplied 2400×2400 square to its 2280×620 content box so it is not mostly
+  transparent padding at footer size). Every VideoX server in scope runs an AMD EPYC part.
+
+General Information moved from page 3 to page 2 to balance the two, and page 3's spec rows
+took the room that freed as padding. ADR 0105 was rewritten to match rather than superseded
+— same decision, refined on review, before it had been built on.
+
+### Decisions captured
+
+- [`0105-datasheet-renders-at-three-pages.md`](./decisions/0105-datasheet-renders-at-three-pages.md)
+- [`0106-datasheet-fonts-committed-locally.md`](./decisions/0106-datasheet-fonts-committed-locally.md)
+
+---
+
 ## 2026-07-29 — Partner Pipeline: higher-contrast expand chevrons
 
 ### Work done

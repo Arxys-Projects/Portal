@@ -45,3 +45,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# datasheet design handoff — the unpacked folder is tracked, the zip is not
+datasheets/*.zip
