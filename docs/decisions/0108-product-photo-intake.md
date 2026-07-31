@@ -56,11 +56,22 @@ time with real transparency once the baked white background was pointed out; the
 remain RGB with a light-blue circuit-board background baked in, which is a design choice, not
 a defect.
 
-**Checking alpha needs more than `file`.** `file` reports the IHDR color type, which separates
-RGB from RGBA but cannot say whether an RGBA file's alpha channel is *used* — a channel that is
-255 everywhere passes a header check and still renders a hard rectangle. Neither ImageMagick
-nor PIL is installed on the machine this work was done on. The honest check inflates the IDAT
-stream and reads actual alpha values; `file` is a smoke test, not proof.
+**Checking alpha needs more than `file`, and more than a transparent-pixel count.** `file`
+reports the IHDR color type, which separates RGB from RGBA but cannot say whether an RGBA file's
+alpha channel is *used* — a channel that is 255 everywhere passes a header check and still
+renders a hard rectangle. Neither ImageMagick nor PIL is installed on the machine this work was
+done on, so the honest check inflates the IDAT stream and reads actual alpha values.
+
+Even a transparent-pixel *percentage* is not enough. Two rear drawings in the first batches both
+reported ~60% fully transparent and looked equivalent; their alpha *distributions* were not. A
+clean cutout is bimodal — nearly everything at alpha 0–31 or 224–255, with a thin antialiased
+band between. Artwork exported with semi-transparent linework instead smears a fifth of its
+pixels across alpha 32–127 and renders grey and soft. So the intake check is the histogram, and
+the arbiter is a render (`--model`), not a number.
+
+**Washed-out or inconsistent artwork lands anyway.** Opacity is the artwork owner's call, not a
+repo fix. It is recorded in the JOURNAL and raised, and the file ships — silently retouching it
+here would hide a decision someone else owns.
 
 ## Consequences
 

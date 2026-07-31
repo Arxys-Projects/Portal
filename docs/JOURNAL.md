@@ -33,6 +33,23 @@ seal for a version with a real alpha channel.
 - **Verified by rendering, not by inspection.** Both frames resolve and draw on pages 1 and 2.
   The mockup PDF goes 184 KB with held frames → 443 KB with the V400 pair, which is the images
   embedding as base64 data URIs.
+- **Second batch, same session: V600, V700, V800 fronts and V600, V700 rears.** Nine of the
+  ten frames for V400–V800 now exist. Three findings that mattered:
+  - **The V700/V800 heroes arrived twice and the second cut is different art**, not a
+    re-export — 58.8% of pixels differ between the two drops. Took the newer one. The first
+    drop also had V700 and V800 at byte-identical size, which the revision fixed; in the
+    second they differ from each other in 51.9% of pixels, so they are genuinely two chassis.
+  - **The V600/V700 rear drawings are semi-transparent, not cleanly cut out.** They pass every
+    header check — 720×200 RGBA, ~57–61% fully transparent — but the alpha *distribution* is
+    the tell. The V400 rear is bimodal (62% at alpha 0–31, 37% at 224–255, ~1,150 px in
+    between): a hard cutout. The V600/V700 rears put only ~8% at 224–255 and smear 18–22% of
+    all pixels across alpha 32–127, i.e. the linework itself renders at 12–50% opacity. On
+    page 2 they come out visibly grey and soft next to the crisp V400/V500 pair. Landed as-is
+    — they are legible and this is an artwork decision, not something to fix in the repo — but
+    the set is inconsistent across the product line until the linework is re-exported opaque.
+  - **No V800 rear panel exists yet.** V700 is 24-bay 4U and V800 is 36-bay 4U — different
+    chassis, so V700's rear is not a stand-in. Left as a held frame, which is exactly what
+    ADR 0107's null path is for. `--model v800` errors on it rather than rendering blank.
 - **`scripts/render-datasheet-mockup.ts` gained `--model` / `--front` / `--rear`.** Worth
   noting *why*, since it was not obvious: `V800_PLACEHOLDER` has `path: null` on both photo
   slots, so the script as it stood rendered empty held frames and could not show a new photo at
