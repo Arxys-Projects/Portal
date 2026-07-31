@@ -309,6 +309,9 @@ const s = StyleSheet.create({
     alignItems: "center",
   },
   footerText: { fontSize: px(7), lineHeight: 1.5, fontWeight: 400, color: C.muted },
+  // 2280 × 620 native, so 52 × 14 keeps the mark's aspect ratio exactly — the
+  // same figures the Ledger footer uses.
+  footerAmd: { width: px(52), height: px(14), marginHorizontal: px(16), objectFit: "contain" },
   pageNumber: {
     fontSize: px(7.5),
     lineHeight: 1,
@@ -419,6 +422,10 @@ function Rail({ data }: { data: RailContent }) {
 }
 
 function Content({ data }: { data: RailContent }) {
+  // The workstations run an AMD Ryzen part and AMD Radeon display outputs, so
+  // the mark rides the footer here exactly as it does on the server sheet
+  // rather than being called out in the spec grid.
+  const amd = loadPng("/datasheet/amd-logo.png");
   return (
     <View style={s.content}>
       <View>
@@ -470,13 +477,15 @@ function Content({ data }: { data: RailContent }) {
       </View>
 
       <View style={s.footer}>
-        <View>
+        <View style={{ flex: 1 }}>
           {data.footerNote.map((line) => (
             <Text key={line} style={s.footerText}>
               {line}
             </Text>
           ))}
         </View>
+        {/* eslint-disable-next-line jsx-a11y/alt-text */}
+        {amd ? <Image src={amd} style={s.footerAmd} /> : null}
         <Text style={s.pageNumber}>1 / 1</Text>
       </View>
     </View>

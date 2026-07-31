@@ -139,16 +139,17 @@ function buildContent(sw: Record<string, unknown>): RailContent {
       String(sw.os_edition).replace("Microsoft ", ""),
     ],
 
-    // The 3-year seal graphic DOES NOT EXIST — the handoff says one needs
-    // producing. sealPath stays null so the template holds a 62px circle. The
-    // repo's only seal asset reads FIVE YEAR; pointing at it would print a
-    // false warranty claim on a customer-facing document.
+    // The 3-year seal the handoff said needed producing now exists, so the
+    // held circle is retired for workstations. This path must stay pinned to
+    // the THREE-year mark: the 5-year seal sits next to it in the same folder
+    // and swapping them would print a false warranty claim on a
+    // customer-facing document.
     warranty: {
       years: Number(sw.warranty_years), // DB
       title: `${sw.warranty_years}-Year NBD Warranty`,
       // DB terms, plus the handoff's statement of the upgrade policy.
       body: `${clean(sw.warranty_terms)}. Optional 5-year upgrade must be purchased with the unit.`,
-      sealPath: null,
+      sealPath: Number(sw.warranty_years) === 3 ? "/price-book/3_year_warranty-circle.png" : null,
     },
 
     complianceHeading: "Compliance",
@@ -262,7 +263,10 @@ async function main(): Promise<void> {
   console.log(`Wrote ${out} — ${(buffer.length / 1024).toFixed(0)} KB, ${pages} page(s)`);
   console.log(`  spec source  : appliance_specs ${sw.id} (updated ${sw.updated_at})`);
   console.log(`  hero photo   : ${content.productPhoto.path ?? "HELD FRAME — none shot"}`);
-  console.log(`  seal         : HELD FRAME — ${content.warranty.years}yr, and no 3-year seal graphic exists`);
+  console.log(
+    `  seal         : ${content.warranty.sealPath ?? "HELD FRAME — no seal graphic for this term"}` +
+      ` (${content.warranty.years}-year warranty)`,
+  );
   console.log(`  matrix rows  : ${content.matrix.length}`);
   console.log(`  spec rows    : ${content.hardware.length} hardware / ${content.performance.length} performance`);
   if (pages !== 1) console.error(`  ⚠ OVERFLOW — the Rail template is specced at ONE page, this rendered ${pages}`);

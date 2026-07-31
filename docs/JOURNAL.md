@@ -38,6 +38,17 @@ for SW10 from live `appliance_specs`.
   the spec grid. Two intended differences: the reference's "Hard drives" row is absent
   (SW10 has no such column — see below), and the matrix rows are sorted deterministically by
   resolution then codec, where the design lists 8MP H.265 before 8MP H.264.
+- **The 3-year warranty seal arrived mid-session, so the held circle is retired.**
+  `public/price-book/3_year_warranty-circle.png` — 347×349 RGBA, the same dimensions and
+  treatment as the 5-year mark already sitting beside it. It renders on the cream warranty
+  card with no white box behind it, so its alpha is genuine. `sealPath` is now derived from
+  `warranty_years` rather than hardcoded: a 3-year term gets the 3-year file, any other term
+  falls back to the dashed held circle. Deliberately *not* a plain constant — the two seals
+  are adjacent files with near-identical names, and a sheet showing the wrong one is a false
+  warranty claim, not a cosmetic slip.
+- **The AMD mark now rides the Rail footer** at 52×14, as it does on the Ledger sheet. The
+  workstations run an AMD Ryzen part and AMD Radeon display outputs, so it belongs on the
+  sheet; the footer is where it costs no vertical budget.
 - **Spec VALUES all come from the row.** Authored copy is confined to the headline sentence,
   the matrix caption, the footer note, the compliance pill labels and the address, each
   marked AUTHORED in the script and all of it mockup-quality pending a marketing pass. The

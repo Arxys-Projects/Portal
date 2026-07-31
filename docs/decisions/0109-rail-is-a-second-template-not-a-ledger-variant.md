@@ -44,10 +44,14 @@ Three things are fixed by this ADR rather than left to the next editor:
    standing recommendation to spill. If a SKU stops fitting, that is a design call to raise, not an
    implementation detail to absorb. The render script counts pages in the emitted PDF and shouts
    when the count is not 1.
-2. **The 3-year warranty seal stays a held slot.** Workstations are 3-year with an optional 5-year
-   upgrade; the only seal graphic in the repo reads FIVE YEAR. `sealPath` is null and the template
-   draws the handoff's dashed 62px circle. Substituting the 5-year seal would print a false
-   warranty claim on a customer-facing document.
+2. **The warranty seal is chosen by term, never by convenience.** The handoff recorded that no
+   3-year seal graphic existed and held a dashed 62px circle for one. The graphic arrived the same
+   day as this template — `public/price-book/3_year_warranty-circle.png`, 347×349 RGBA, matching
+   its 5-year sibling in the same folder — so workstations now render the real mark and the held
+   circle survives only as the fallback when a term has no graphic. The two seals sit next to each
+   other under the same naming; pointing a 3-year sheet at the 5-year file would print a false
+   warranty claim on a customer-facing document, so the path is derived from `warranty_years`
+   rather than hardcoded.
 3. **Empty spec columns produce no row.** SW10 has empty `raid_support`, `cooling`, `remote_mgmt`,
    `storage_temp`, `regulatory_emissions` and `security_features`; its own `notes` column records
    that the source factsheet lacks those blocks. The template omits them rather than inventing a
