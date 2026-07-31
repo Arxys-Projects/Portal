@@ -59,6 +59,19 @@ reverse of last time. See below.
   which made it tempting to assume this one was equally benign. It is not. The code is
   committed and **held unpushed** until the migration is applied.
 
+### Applied
+
+Migration applied to production the same day via the dashboard SQL editor, and **verified
+before the code was pushed**, so the outage window above never opened. `product_specs` reads
+71 live columns and `appliance_specs` 68; both round-trips report every live column
+reachable (21 rows at 68/68 form fields, 7 rows at 65/65, sheet groups still pairing V250
+and V260).
+
+One false start worth recording: the apply was first attempted by running the `cat` command
+from the hand-off message in a terminal, which printed the migration and executed nothing.
+The round-trip caught it — it kept reporting 68 live columns — which is exactly the check
+being there for.
+
 ### Decisions captured
 
 - [`0107-datasheet-photos-are-public-paths.md`](./decisions/0107-datasheet-photos-are-public-paths.md)

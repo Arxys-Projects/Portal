@@ -1,8 +1,17 @@
 # Apply note — datasheet photo paths + usage paragraph (ADR 0107)
 
-> **STATUS: NOT YET APPLIED.** One stop-and-flag migration for Andy to apply via the
-> Supabase **dashboard SQL editor**. The agent holds no DDL credentials (2026-07-17 CLI 401);
-> the CLI never auto-applies these.
+> **APPLIED to production 2026-07-30** via the dashboard SQL editor, and verified before the
+> code was pushed — so the outage window described below never opened. `product_specs` reads
+> **71 live columns** (68 form fields + the 3 intentionally unsurfaced), `appliance_specs`
+> **68**; both round-trips report every live column reachable, with 21 rows at 68/68 and 7
+> rows at 65/65 form fields preserved, and the appliance sheet groups still pairing V250 and
+> V260. The rest of this note is kept as the record of what was applied and how to back it
+> out.
+>
+> Applied by hand via the Supabase **dashboard SQL editor**: the agent holds no DDL
+> credentials (2026-07-17 CLI 401), and `supabase db push` is not an option on this project —
+> several migrations were applied by hand and never recorded in the remote history, so a push
+> would try to re-run them.
 
 | | File |
 |---|---|
@@ -59,8 +68,10 @@ confirm they go green → then push/deploy the code.
    node --env-file=.env.local --import tsx scripts/roundtrip-product-specs.mts
    node --env-file=.env.local --import tsx scripts/roundtrip-appliance-specs.mts
    ```
-   Expect 21 rows at 71/71 and 7 rows at 70/70, with coverage OK on both. Coverage failing
-   after the apply means the migration did not run in full.
+   Coverage is the assertion that matters — "every live column is reachable". The per-row
+   figure counts *form fields*, not columns, so it stays 68/68 and 65/65; what changes at
+   apply time is the live-column count in the coverage header (68 → 71 and 65 → 68).
+   Coverage still failing after the apply means the migration did not run in full.
 3. **The audit picks the columns up with no write-path work.** Edit one row through the
    form, then check its audit row snapshots all the new columns. The 0096 triggers are
    row-level and `to_jsonb`-based, so this should hold automatically — the 0090 apply note
