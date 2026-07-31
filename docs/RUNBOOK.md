@@ -396,7 +396,12 @@ NVRs and the V250/V255 management servers. The SW workstations use a different t
 a single page with a 214px left rail), whose photo slot is **513×110 bleeding right by the 44px
 content padding, so a 557×110 source is correct there**. Establish which template a photo belongs
 to before judging its dimensions; `datasheets/design_handoff_videox_datasheet/README.md` is the
-authority on both.
+authority on both. A workstation photo is checked in its own frame with the Rail render script,
+which reads the path straight off the live row:
+
+```bash
+node --env-file=.env.local --import tsx scripts/render-rail-mockup.ts --model SW10
+```
 
 Genuinely off-size sources still render, but badly, and the fit is `contain` so the failure is
 silent — an undersized hero upscales to meet the measure (softening it) and then letterboxes,
@@ -417,6 +422,7 @@ is no error either way. Check the render against the right template, not just th
 | Round-trip live `appliance_specs` through its admin form's schema (read-only) | `node --env-file=.env.local --import tsx scripts/roundtrip-appliance-specs.mts` |
 | Render the datasheet layout mockup to a PDF (no DB, no network) | `node --import tsx scripts/render-datasheet-mockup.ts [outPath]` |
 | Same, with a model's photos in the two frames (asset check — copy stays V800) | `node --import tsx scripts/render-datasheet-mockup.ts --model v400` |
+| Render the Rail (workstation) datasheet from live `appliance_specs`, read-only | `node --env-file=.env.local --import tsx scripts/render-rail-mockup.ts --model SW10` |
 | Create a new admin user | `node --env-file=.env.local --import tsx scripts/bootstrap-admin.ts --email ... --name ... --company ...` |
 | New migration | `supabase migration new <name>` (creates a timestamped empty SQL file) |
 | Apply pending migrations | `SUPABASE_DB_PASSWORD='...' supabase db push` |

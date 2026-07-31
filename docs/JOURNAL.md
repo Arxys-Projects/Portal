@@ -4,6 +4,62 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-07-31 — The Rail template: the workstation datasheet, from live spec data
+
+The second of the handoff's two datasheet templates. "Rail" is the single-page workstation
+sheet — a 214px left rail carrying identity, attributes, warranty and compliance, with the
+pitch, the camera stream matrix and the spec grid in the content column beside it. Rendered
+for SW10 from live `appliance_specs`.
+
+### Work done
+
+- **`RailContent` + `RailDatasheetPdf`, a second template rather than a Ledger variant.**
+  [`rail-types.ts`](../src/lib/datasheet/rail-types.ts) and
+  [`RailDatasheetPdf.tsx`](../src/lib/datasheet/RailDatasheetPdf.tsx). Shares `tokens.ts`
+  (`px()`, `C`, `F`, `registerDatasheetFonts()`, `loadPng()`) with the Ledger sheet and
+  nothing else. `DatasheetContent` / `DatasheetPdf` are untouched; the suite is still 442
+  passing. Reasoning in [`0109`](./decisions/0109-rail-is-a-second-template-not-a-ledger-variant.md).
+- **Every `display: grid` in the handoff rebuilt as nested flex.** @react-pdf/renderer has no
+  CSS grid, so the four-column stream matrix (`1fr .8fr .8fr 1fr`), the two-column spec grid
+  and its `66px 1fr` label rows are flex rows with weighted children. Measurements stay in the
+  handoff's own CSS px and pass through `px()`, the convention Ledger set, so the file is
+  checkable against the handoff line by line.
+- **[`scripts/render-rail-mockup.ts`](../scripts/render-rail-mockup.ts)** — read-only
+  PostgREST GET against `appliance_specs`, `--model SW10|SW20`, output to gitignored
+  `staging/`. Plain `.ts` and not `.mts` for the CJS/ESM font-store reason its Ledger
+  neighbour documents. It counts `/Type /Page` in the emitted buffer and prints a loud
+  warning if the sheet is not exactly one page, because a silent spill to page 2 would
+  otherwise read as a successful render.
+- **One page, comfortably, for both live SKUs.** SW10 and SW20 each render at 1 page with
+  10 hardware / 10 performance spec rows. No design escalation needed — the open question
+  the brief flagged did not have to be asked.
+- **Checked against `screenshots/05-sw10-workstation.png`** at 1224px. Matches on rail
+  geometry, the bleeding 557×110 photo, matrix columns, warranty card, compliance pills and
+  the spec grid. Two intended differences: the reference's "Hard drives" row is absent
+  (SW10 has no such column — see below), and the matrix rows are sorted deterministically by
+  resolution then codec, where the design lists 8MP H.265 before 8MP H.264.
+- **Spec VALUES all come from the row.** Authored copy is confined to the headline sentence,
+  the matrix caption, the footer note, the compliance pill labels and the address, each
+  marked AUTHORED in the script and all of it mockup-quality pending a marketing pass. The
+  usage paragraph is the DB's `usage_paragraph`, not the handoff's composed one.
+
+### Detours & fixes
+
+- **Rail section headers rendered in sentence case on the first pass.** The handoff's HTML
+  writes "KEY ATTRIBUTES" as literal uppercase text, so there is no `text-transform` in the
+  source to transcribe and the `railHead` style shipped without one. Caught by comparing the
+  render to screenshot 05 rather than to the markup. Fixed with `textTransform: "uppercase"`;
+  worth remembering that a handoff written as literal caps hides a style rule.
+- **Not repeated from the previous session:** the SW10 mockup was first rendered through the
+  *Ledger* template, which required labelling half the sheet ADAPTED. That render is
+  scaffolding only; its data loading was reused here, its layout was not.
+
+### Decisions captured
+
+- [`0109-rail-is-a-second-template-not-a-ledger-variant.md`](./decisions/0109-rail-is-a-second-template-not-a-ledger-variant.md)
+
+---
+
 ## 2026-07-31 — First real product photography, and a transparent warranty seal
 
 The photography ADR 0107 was waiting on has started arriving. This entry covers the first
