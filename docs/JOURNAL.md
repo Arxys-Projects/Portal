@@ -4,6 +4,77 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-07-31 — First real product photography, and a transparent warranty seal
+
+The photography ADR 0107 was waiting on has started arriving. This entry covers the first
+batch (V400, V500 — front and rear each) plus a like-for-like swap of the Price Book warranty
+seal for a version with a real alpha channel.
+
+### Work done
+
+- **Warranty seal now has alpha.** `public/price-book/5_year_warranty-circle-2.png` was
+  521×524 RGB — color type 2, no alpha channel, so the gold seal shipped with a baked white
+  square. Replaced in place with a 347×349 RGBA version, 41.8% fully-transparent pixels and
+  3,730 partially-transparent (the antialiased rim). Filename and path unchanged, so both
+  consumers — the Price Book hero at [`page.tsx:140`](../src/app/(app)/price-book/page.tsx)
+  and `sealPath` in `src/lib/datasheet/placeholder.ts` — needed no edit. Both render it
+  `contain` into a ~square box (100×100 on the Price Book, `s.seal` on the datasheet band), so
+  going from 521px to 347px changes nothing about layout; verified in a test render that the
+  seal sits on the cream warranty band with no white box behind it.
+- **Four photos landed** in `public/datasheet/` as `v400-front.png`, `v400-rear.png`,
+  `v500-front.png`, `v500-rear.png`. Front heroes are 720×240, rear panels 720×200 — an exact
+  match for the template's `PhotoSlot` heights (`px(240)` on page 1, `px(200)` on page 2 at
+  the 720px measure), so both fill their frames without letterboxing.
+- **Verified by rendering, not by inspection.** A throwaway script wired the V400 pair into
+  `V800_PLACEHOLDER`'s `productPhoto` / `rearIo` and rendered all three pages. Both frames
+  resolve and draw; the PDF grew 227 KB → 453 KB, which is the images embedding as data URIs.
+  Script deleted afterwards.
+- **Intake convention written down** as [ADR 0108](./decisions/0108-product-photo-intake.md):
+  a gitignored `staging/product-photos/` drop-box, renamed into `public/datasheet/` as
+  `{model}-{front|rear}.png`. RUNBOOK §11a is the step-by-step. `/staging/` added to
+  `.gitignore`.
+- `product_specs` / `appliance_specs` were **not** touched — the paths go in through the admin
+  form, per ADR 0096. The files shipping is the engineering half; pasting the paths is the
+  form half.
+
+### Detours & fixes
+
+- **No image tooling on this machine.** Neither ImageMagick (`magick`/`identify`) nor PIL is
+  installed, so "does this file actually have alpha?" had no one-liner. `file` reports the
+  IHDR color type, which distinguishes RGB from RGBA — but not whether an RGBA file's alpha
+  channel is *used*, and a channel that is 255 everywhere is a false pass. Wrote a throwaway
+  pure-Python inspector that inflates the IDAT stream, undoes the per-scanline PNG filters
+  (including Paeth) and reports min/max alpha plus transparent-pixel counts. That is what
+  produced the 41.8% figure, and what confirmed the four product photos are genuinely RGB with
+  no channel to preserve rather than RGBA-with-dead-alpha.
+- **Test script had to live inside the repo.** Run from the scratchpad it died on
+  `Cannot find module 'react'` — Node resolves bare specifiers by walking up from the *script's*
+  directory, which outside the repo never reaches `node_modules`. Absolute import paths to
+  `src/lib/datasheet/*` did not help; the failure was `react` itself. Moved the script under
+  the (gitignored) `staging/` folder and it ran. Separately, `loadPng` resolves against
+  `process.cwd()`, so the command has to be issued from the repo root regardless.
+- **Two source pairs looked like duplicates.** `Videox-V400.png` and `Videox-V500.png` are
+  byte-identical in *size* (215,591 both; the rear pair likewise at 62,953), which read as an
+  export mistake. MD5s differ, so they are distinct files — the V400 and V500 are the same
+  2U chassis photographed the same way, and equal file size is a coincidence of near-identical
+  content. Kept as separate per-model files rather than one shared asset, which is the whole
+  point of the model-keyed naming in ADR 0108.
+
+### Observations for the photographer
+
+- The rear-panel line drawings carry a lot of white margin inside the 720×200 canvas, so under
+  `objectFit: contain` the drawing renders noticeably smaller than the frame it sits in.
+  Cropping tighter to the chassis would make it read larger with no template change.
+- The front heroes have a light-blue circuit-board background baked in, which renders as a
+  visible rectangle on the otherwise-white sheet. It reads as deliberate, but a transparent
+  version would sit on the page the way the warranty seal now does.
+
+### Decisions captured
+
+- [`0108-product-photo-intake.md`](./decisions/0108-product-photo-intake.md)
+
+---
+
 ## 2026-07-30 — Datasheet build step 9: photo paths + the usage paragraph become spec columns
 
 The two schema gaps the design handoff surfaced, closed. Six nullable columns, three per

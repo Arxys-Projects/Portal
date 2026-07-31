@@ -342,6 +342,45 @@ Add `~/.ssh/id_ed25519_arxys.pub` to your Arxys-Projects GitHub account at `http
 
 Always use the alias in remote URLs: `git@github.com-arxys:Arxys-Projects/Portal.git` (not plain `github.com:`). See [`decisions/0007-ssh-multi-account-github.md`](./decisions/0007-ssh-multi-account-github.md).
 
+## 11a. Adding product / rear-panel photos for the datasheet
+
+The datasheet reads its two photo frames from files under `public/`, not from Supabase storage
+([ADR 0107](./decisions/0107-datasheet-photos-are-public-paths.md)), so a new shot arrives by
+deploy. The intake convention is [ADR 0108](./decisions/0108-product-photo-intake.md).
+
+1. Drop the raw shots into `staging/product-photos/` (gitignored — create it if absent):
+   ```bash
+   mkdir -p staging/product-photos
+   ```
+2. Rename each into `public/datasheet/` as `{model}-front.png` or `{model}-rear.png`, model
+   lowercased:
+   ```bash
+   mv "staging/product-photos/Videox-V400.png" public/datasheet/v400-front.png
+   mv "staging/product-photos/V400 -rear.png"  public/datasheet/v400-rear.png
+   ```
+3. Confirm each is a PNG and check whether it carries a real alpha channel. Alpha is preserved
+   where the source has it and never manufactured where it does not:
+   ```bash
+   file public/datasheet/v400-*.png
+   ```
+   `8-bit/color RGBA` means an alpha channel is present; `RGB` means the background is baked
+   in. Both are acceptable — the frame is `objectFit: contain` on a white page.
+4. Optional visual check — render the three-page mockup and look at the page-1 hero and the
+   page-2 rear I/O panel:
+   ```bash
+   node --import tsx scripts/render-datasheet-mockup.ts
+   ```
+5. Paste the path into the admin form's **Datasheet content → Product photo path** /
+   **Rear I/O photo path** fields, as `/datasheet/v400-front.png`. The form is the only
+   supported write path for these columns — never `UPDATE product_specs` / `appliance_specs`
+   directly. The form warns on a URL, a missing leading slash, or a non-`.png` extension.
+6. Commit the files and deploy. A path saved before the file ships renders an empty frame,
+   indistinguishable from "not shot yet".
+
+Design targets: the page-1 hero frame is 720×240 at the sheet's full measure, the rear I/O
+frame 720×200. Sources at those pixel dimensions fill the frame exactly. Tighter cropping
+helps — surplus whitespace baked into the canvas shrinks the drawing inside a `contain` fit.
+
 ## 12. Day-to-day commands
 
 | Task | Command |

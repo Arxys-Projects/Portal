@@ -1,0 +1,70 @@
+# 0108 — Product photo intake: a gitignored drop-box and a model-keyed filename
+
+- **Status**: Accepted
+- **Date**: 2026-07-31
+
+## Context
+
+[ADR 0107](./0107-datasheet-photos-are-public-paths.md) chose public paths over Supabase
+storage for the datasheet's two photo frames, and closed with "revisit when real product and
+rear-panel photography lands." The first batch has landed: front heroes and rear-panel line
+drawings for the V400 and V500.
+
+That batch exposes a step 0107 left unspecified. The columns hold a path, and the admin form
+is the only write path for them (ADR 0096) — but nothing said where the *file* comes from or
+what it is called. The shots arrive named for the photographer's convenience
+(`Videox-V400.png`, `V400 -rear.png` — mixed case, a stray space, a product prefix), which is
+not a name anyone can guess when typing a path into a form field.
+
+There is also no way for the form to tell a not-yet-shot frame from a typo: the loader
+catches, returns null, and renders an empty frame either way (0107's stated negative). So the
+filename has to be derivable from the model without looking anything up.
+
+## Options considered
+
+- **Reference the shots where they land** (`~/Downloads`, a shared drive). Zero moves, but
+  the render path reads `public/` on disk, so this cannot work at all — it only looks like it
+  works on the machine that has the file.
+- **Keep the photographer's filenames, tracked as-is.** No rename step. But the path in the
+  form becomes unguessable per-SKU trivia, and a stray space in a URL path is a latent bug.
+- **Gitignored `staging/` drop-box, renamed into `public/datasheet/` as
+  `{model}-{front|rear}.png`.** One mechanical step per batch, and the path is derivable from
+  the model. Costs a `.gitignore` line and a convention someone has to know.
+- **Switch to Supabase storage now**, as 0107 flagged. Correct eventually; premature at a
+  batch of four, and it would land an upload control before there is a trickle to justify it.
+
+## Decision
+
+Raw shots are dropped into `staging/product-photos/`, which is gitignored. They are renamed
+into `public/datasheet/` as **`{model}-front.png`** and **`{model}-rear.png`**, model
+lowercased (`v400-front.png`). The path pasted into the admin form is that name under
+`/datasheet/`.
+
+`public/datasheet/` — not `public/price-book/` — because these are datasheet assets. The
+Price Book heroes stay where they are and stay referenced by `families.ts`; several of them
+are shared across models (`1u-chassis-hero.png` serves three), which is exactly the ambiguity
+a model-keyed name is meant to remove.
+
+**The staging folder is a drop-box, never a source.** Nothing under `staging/` is tracked and
+nothing reads from it, so a file left there is inert rather than half-wired.
+
+**Alpha is preserved, not manufactured.** Each file is checked for a real alpha channel after
+it lands. Where the source has none — as all four of this batch do, being RGB with a baked
+background — that is recorded and left alone. Compositing a fake transparency would be a
+retouch decision disguised as a file operation.
+
+## Consequences
+
+**Positive:** the form path is derivable from the model, with no per-SKU lookup. Adding a
+model is a copy and a rename. `public/datasheet/` reads as an inventory of what has actually
+been shot.
+
+**Negative:** still a deploy per batch — 0107's negative, unchanged. The convention lives
+only in this ADR and the RUNBOOK, so a rename done by hand can silently diverge from it. Two
+photo directories now exist under `public/` with different naming rules, and the Price Book /
+datasheet split is the only thing that explains which is which.
+
+**When to revisit:** when photography arrives as a trickle rather than a batch, or when
+someone outside engineering needs to add a shot. That is the trigger 0107 already named for
+switching to storage keys and an upload control — the columns do not change, and this intake
+convention becomes the thing the upload control replaces.

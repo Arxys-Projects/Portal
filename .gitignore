@@ -48,3 +48,7 @@ next-env.d.ts
 
 # datasheet design handoff — the unpacked folder is tracked, the zip is not
 datasheets/*.zip
+
+# photo intake drop-box — raw shots land here and are renamed into public/datasheet/
+# (ADR 0108). Nothing here is ever the asset the app reads, so nothing here is tracked.
+/staging/
