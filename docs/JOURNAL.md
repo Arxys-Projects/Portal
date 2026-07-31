@@ -68,20 +68,24 @@ seal for a version with a real alpha channel.
     anyone reviewing a V100 datasheet who does not know that.
   - Still missing: **rear panels for the 1U and 2U-value models** (V100/V150/V200 and the
     V250–V265 appliances). Nothing for those frames yet, so they stay null.
-- **Fourth batch: the Security Workstations hero**, landed as `sw-front.png` — one shot for the
-  whole SW family (SW10, SW20, SW25, SW30, SW35), named for `families.ts`'s `slug: "sw"` and the
-  Price Book's existing `sw-hero.png` rather than a five-model filename.
-  - **It is the first off-size asset: 557×110, where every other hero is 720×240.** Under the
-    frame's `contain` fit that upscales 1.29× to meet the 720 measure — so it softens — and then
-    letterboxes to 720×142, leaving 98px of dead space split above and below. Because this hero
-    has a baked light-blue background like the others, the band visibly stops short of the frame
-    edges instead of filling it, with white gaps top and bottom. It reads as unfinished next to
-    the rack heroes.
-  - **A tower is also the wrong subject for a 3:1 frame.** Even re-exported at 720×240 the
-    chassis is portrait-shaped, so it will read small in a wide landscape band. The rack units
-    suit that frame; this does not. Worth deciding deliberately rather than discovering later.
-  - Landed as-is — legible, and re-cropping is the artwork owner's call, not a repo fix. RUNBOOK
-    §11a now states the off-size consequence, since `contain` fails silently.
+- **Fourth batch: the Security Workstations hero**, landed as `sw-front.png` — one shot for SW10
+  and SW20, named for `families.ts`'s `slug: "sw"` and the Price Book's existing `sw-hero.png`
+  rather than a model list.
+  - **RETRACTED, and worth reading as a lesson: this asset is not off-size.** It was first
+    recorded here as "the first off-size asset, 557×110 where every other hero is 720×240", with
+    a recommendation to re-export at 720×240. That was wrong, and the error was mine, not the
+    artwork's. The design handoff in `datasheets/design_handoff_videox_datasheet/README.md`
+    defines **two** templates: "Ledger" for the V100–V800 NVRs and V250/V255 (720×240 hero) and
+    **"Rail" for the SW workstations — a single page with a 214px left rail and a photo slot of
+    513×110 that bleeds right by the 44px content padding**. Render width is therefore
+    `816 − 214 − 1 − 44 − 44 = 513`, plus the 44px bleed = **557**. The supplied image is
+    557×110: pixel-exact for the slot it was drawn for.
+  - **The real defect was evaluating an asset against the wrong template.** It letterboxed and
+    looked unfinished because it was rendered in the Ledger 720×240 frame, which is not its
+    frame. Nothing about the file needs changing. Had the recommendation gone out, a correct
+    asset would have been re-cropped to fit the wrong layout.
+  - Standing lesson: before judging a photo's dimensions, establish which template it belongs to.
+    The handoff README is the authority, and it was in the repo the whole time.
 - **`scripts/render-datasheet-mockup.ts` gained `--model` / `--front` / `--rear`.** Worth
   noting *why*, since it was not obvious: `V800_PLACEHOLDER` has `path: null` on both photo
   slots, so the script as it stood rendered empty held frames and could not show a new photo at

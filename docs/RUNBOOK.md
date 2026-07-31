@@ -391,10 +391,17 @@ Design targets: the page-1 hero frame is 720×240 at the sheet's full measure, t
 frame 720×200. Sources at those pixel dimensions fill the frame exactly. Tighter cropping
 helps — surplus whitespace baked into the canvas shrinks the drawing inside a `contain` fit.
 
-Off-size sources still render, but badly, and the fit is `contain` so the failure is silent.
-A 557×110 hero upscales 1.29× to meet the 720 measure (softening it) and then letterboxes,
-leaving 98px of dead space split above and below — enough that a hero with a baked background
-stops reaching the frame edges and reads as unfinished. Check the render, not just the file.
+**Those targets are the Ledger template's** — the two-column server sheet used by the V100–V800
+NVRs and the V250/V255 management servers. The SW workstations use a different template ("Rail",
+a single page with a 214px left rail), whose photo slot is **513×110 bleeding right by the 44px
+content padding, so a 557×110 source is correct there**. Establish which template a photo belongs
+to before judging its dimensions; `datasheets/design_handoff_videox_datasheet/README.md` is the
+authority on both.
+
+Genuinely off-size sources still render, but badly, and the fit is `contain` so the failure is
+silent — an undersized hero upscales to meet the measure (softening it) and then letterboxes,
+and a hero with a baked background stops reaching the frame edges and reads as unfinished. There
+is no error either way. Check the render against the right template, not just the file.
 
 ## 12. Day-to-day commands
 
