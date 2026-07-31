@@ -626,8 +626,12 @@ function PageTwo({ data }: { data: DatasheetContent }) {
             </Text>
           ))}
         </View>
+        {/* Keyed on resolution AND codec: a sheet may list both H.264 and H.265
+            at the same resolution (every SW workstation matrix does), and
+            resolution alone then collides — react-pdf warns that duplicate keys
+            may duplicate or omit children. */}
         {data.vsrRows.map((row) => (
-          <View key={row.resolution} style={s.tableRow}>
+          <View key={`${row.resolution}·${row.codec}`} style={s.tableRow}>
             <Text style={[s.tableCell, { flex: vsr[0] }]}>{row.resolution}</Text>
             <Text style={[s.tableCell, { flex: vsr[1] }]}>{row.codec}</Text>
             <View style={[s.tableCell, { flex: vsr[2] }]}>

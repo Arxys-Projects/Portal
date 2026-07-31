@@ -58,9 +58,10 @@ one model keeps the `{model}-front.png` form. The pair naming is a signal in its
 reader seeing two models in a filename knows to expect it in more than one row.
 
 Where a whole *family* shares one shot and the family already has a name, that name is used
-instead of a model list: the Security Workstations hero is `sw-front.png`, serving SW10, SW20,
-SW25, SW30 and SW35, matching `families.ts`'s `slug: "sw"` and the Price Book's `sw-hero.png`.
-`sw10-sw20-sw25-sw30-sw35-front.png` is the alternative, and it is not one.
+instead of a model list: the Security Workstations hero is `sw-front.png`, matching
+`families.ts`'s `slug: "sw"` and the Price Book's `sw-hero.png`. It serves **SW10 and SW20** —
+the family's only live models. SW25, SW30 and SW35 appear in older test fixtures but were EOL'd
+from the Price Book and have no `appliance_specs` rows, so they are not part of this mapping.
 
 **The staging folder is a drop-box, never a source.** Nothing under `staging/` is tracked and
 nothing reads from it, so a file left there is inert rather than half-wired.

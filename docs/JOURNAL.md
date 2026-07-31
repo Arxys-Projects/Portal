@@ -98,6 +98,43 @@ seal for a version with a real alpha channel.
   form, per ADR 0096. The files shipping is the engineering half; pasting the paths is the
   form half.
 
+### An SW10 mockup, and what it exposed in the template
+
+Rendered a three-page SW10 Security Workstation sheet to see the new hero in a real context.
+Spec values are read live from `appliance_specs` (`VX5-SW10-100`, read-only `SELECT`) so nothing
+numeric on the page could be invented; the prose is hand-authored and marked as such in the
+script, which stays in gitignored `staging/` precisely so it does not become a second
+`placeholder.ts` competing with the database as a content source.
+
+It surfaced four things worth keeping:
+
+- **The VSR table's React key was `row.resolution`, which collides.** Every SW camera matrix
+  lists H.264 *and* H.265 at the same resolution, so SW10 produced two `4MP` rows and two `8MP`
+  rows, and react-pdf warned that duplicate keys "may cause children to be duplicated and/or
+  omitted". All four rows happened to render, so this was latent rather than visible — and it
+  would have hit the real spec-table adapter, not just a mockup. **Fixed**: the key is now
+  resolution and codec.
+- **The page-1 header has no wrap or shrink guard.** A descriptor much longer than the V800's
+  "36 Bay · 4U Rack · V5 Video Server", plus a fourth compliance badge, and the descriptor text
+  runs underneath the badges. Worked around in the mockup by shortening both. Not fixed in the
+  template — the right fix depends on which should win, and that is a design call.
+- **There is no 3-year warranty seal.** The SW10 carries a 3-year warranty and the only seal
+  asset reads "FIVE YEAR", so `sealPath` is null and the sheet prints a "3 YR SEAL" held frame.
+  Using the 5-year seal would put a false warranty claim on a customer-facing document. A 3-year
+  seal is a real asset gap.
+- **Confirmed visually how badly the 557×110 hero letterboxes.** On a full page the short blue
+  band and the white gap beneath it are obvious, in a way the pixel arithmetic understated.
+
+The sheet is also NVR-shaped in ways a workstation is not: no drive bays, no RAID, no recording
+ceiling, and one orderable SKU rather than three drive capacities. The mockup re-purposes those
+sections (headline stats become bandwidth/streams/GPU/monitors; the orderable table's RAW and
+USABLE columns carry bandwidth and stream ceiling) and marks each as adapted. A workstation
+variant of the template is the real answer, which is a decision for whoever owns the layout.
+
+**Correction to the same-day entry above:** `sw-front.png` serves **SW10 and SW20 only**, not the
+five models first recorded. SW25/SW30/SW35 survive in test fixtures but were EOL'd from the Price
+Book and have no `appliance_specs` rows. ADR 0108 corrected.
+
 ### Detours & fixes
 
 - **No image tooling on this machine.** Neither ImageMagick (`magick`/`identify`) nor PIL is
