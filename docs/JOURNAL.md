@@ -4,6 +4,42 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-07-31 — Rear-panel photography for the 1U chassis
+
+### Work done
+
+- **`public/datasheet/v200-v250-rear.png`** — the 1U rear panel, landed through the ADR 0108
+  intake: dropped into the gitignored `staging/product-photos/`, renamed on the way into
+  `public/datasheet/`. 720×200 RGBA, the same canvas as every other rear drawing.
+- **It serves five models, and the filename names two of them**: **V200, V250, V255, V260,
+  V265**. That is the shared-asset naming ADR 0108 settled on, and the same shape as
+  `v100-v200-front.png`. **V100 and V150 are deliberately NOT on this list** — the front hero
+  is shared by all seven, the rear panel by only these five, so the two mappings are not
+  interchangeable and V100 keeps its rear-photo gap.
+- Alpha histogram check: **86.3% at 0–31, 12.0% at 224–255, 1.7% in the middle** — bimodal, a
+  clean cutout, not the smeared semi-transparent linework ADR 0108 describes.
+- No `next.config.ts` change needed. `outputFileTracingIncludes` for `/api/datasheet/*` is the
+  glob `public/datasheet/**/*.png`, so a new PNG is traced without an edit — worth confirming
+  rather than assuming, because an untraced datasheet PNG fails *silently* as a held frame.
+- Verified by render, which ADR 0108 names as the arbiter over any number: the V250 and V200
+  sheets were rendered with the path wired in, both still 3/3 pages, real image in the frame.
+
+### Detours & fixes
+
+- **The chassis renders as a thin band with a lot of air around it, and that is correct.** Its
+  content box is 440×46 in the 720×200 canvas against the V800's 467×188 — 46/188 is almost
+  exactly 1U/4U, so the rear drawings are all to one physical scale and a 1U genuinely is that
+  thin beside a 4U. Filling the frame would mean re-cropping or rescaling the artwork, which
+  ADR 0108 puts with whoever owns it rather than with the repo. Left as delivered and raised.
+- **The path is not written here.** `rear_io_photo_path` is a spec column, so the admin form is
+  its only write path (ADR 0096) — the asset ships, the five rows are typed in.
+
+### Decisions captured
+
+None — [ADR 0108](./decisions/0108-product-photo-intake.md) already covers this intake.
+
+---
+
 ## 2026-07-31 — The V250 / V255 management datasheet
 
 ### Work done
