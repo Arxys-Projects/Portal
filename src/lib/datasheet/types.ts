@@ -65,7 +65,15 @@ export type DatasheetContent = {
   usage: string;
   attributes: string[];
   productPhoto: ImageSlot;
-  warranty: { years: number; title: string; body: string; sealPath: string | null };
+  /**
+   * null when the spec row has no `warranty_years`, in which case the band is
+   * omitted entirely. The V100 rows are in that state today. A term must never
+   * be inferred — not from the legacy free-text `warranty` column ("5yr NBD,
+   * Advanced Replacement"), not from a sibling model — because the seal graphic
+   * is chosen by term and the wrong seal is a false warranty claim on a
+   * customer-facing document, not a cosmetic slip.
+   */
+  warranty: { years: number; title: string; body: string; sealPath: string | null } | null;
   featuresHeading: string;
   features: FeatureBlock[];
   vmsValidated: string[];

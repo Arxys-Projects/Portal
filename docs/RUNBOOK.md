@@ -368,18 +368,18 @@ deploy. The intake convention is [ADR 0108](./decisions/0108-product-photo-intak
    smoke test only: it cannot tell a *used* alpha channel from one that is opaque everywhere,
    which passes the header check and still renders a hard rectangle. If that distinction
    matters, render and look (step 4).
-4. Visual check — render the three pages with the new photos substituted into the two frames,
-   then open the PDF and look at the page-1 hero and the page-2 rear I/O panel:
+4. Visual check — render the sheet and look at the page-1 hero and the page-2 rear I/O panel:
    ```bash
-   node --import tsx scripts/render-datasheet-mockup.ts --model v400
+   node --env-file=.env.local --import tsx scripts/render-datasheet.ts --model V400
    ```
-   This writes `staging/v400-photo-check.pdf` — gitignored, because everything except the two
-   photos is V800 placeholder copy, so it is an asset check, not a V400 datasheet, and the
-   figures on it are wrong for any other purpose. Without `--model` the script renders empty
-   held frames to the tracked `datasheets/v800-3page-mockup.pdf` design handoff, which is what
-   the placeholder's null photo slots mean.
-   A path that does not exist under `public/` is a hard error rather than a silently empty
-   frame; run it from the repo root, since `loadPng` resolves against the working directory.
+   This writes `staging/v400-datasheet.pdf` (gitignored) and is a **real V400 datasheet**: it
+   uses the same adapters, copy and template the portal's download route uses, so what you
+   see is what a partner would get. It reports the page count against what the template is
+   specced at, and names any spec gaps.
+   Note the ordering, which changed with ADR 0110: the script reads the photo path **off the
+   live row**, so the frame stays held until step 5 has saved the path. Do step 5, then
+   re-run this to see the photo land. Run it from the repo root, since `loadPng` resolves
+   against the working directory.
 5. Paste the path into the admin form's **Datasheet content → Product photo path** /
    **Rear I/O photo path** fields, as `/datasheet/v400-front.png`. The form is the only
    supported write path for these columns — never `UPDATE product_specs` / `appliance_specs`
@@ -400,13 +400,52 @@ authority on both. A workstation photo is checked in its own frame with the Rail
 which reads the path straight off the live row:
 
 ```bash
-node --env-file=.env.local --import tsx scripts/render-rail-mockup.ts --model SW10
+node --env-file=.env.local --import tsx scripts/render-datasheet.ts --model SW10
 ```
 
 Genuinely off-size sources still render, but badly, and the fit is `contain` so the failure is
 silent — an undersized hero upscales to meet the measure (softening it) and then letterboxes,
 and a hero with a baked background stops reaching the frame edges and reads as unfinished. There
 is no error either way. Check the render against the right template, not just the file.
+
+## 11b. Generating a datasheet from the portal
+
+Datasheets are generated on demand from the live spec tables — there is no snapshot, so a
+download always states today's specs ([ADR 0110](./decisions/0110-datasheet-generation-in-the-portal.md)).
+
+1. Sign in as an admin or an internal partner and open **Admin → Datasheets**
+   (`/admin/datasheets`). Access is admin-and-internal for now; the intent is to widen it to
+   every signed-in partner once the authored copy has had a marketing pass, which is a
+   one-line change in `src/lib/datasheet/guard.ts`.
+2. Click **Download PDF** on a model. That is `GET /api/datasheet/{model}` — **one sheet per
+   model, not per SKU**: `/api/datasheet/V400` renders one sheet whose ordering table lists
+   VX5-V400-128, -160 and -192. A part number is not a valid path segment.
+3. Read the two coloured boxes on a card before sending the PDF anywhere:
+   - **Red, "needs fixing before sending to a customer"** — the PDF comes out defective.
+     Today the only such check is a `usage_paragraph` over 324 characters, which pushes the
+     footer onto a fourth page. Shorten it in **Admin → Product Specs**.
+   - **Amber, "renders with gaps"** — blank spec columns that are honestly left off the
+     sheet. Fill them in through the spec form; never `UPDATE` the table directly.
+4. Five of the fourteen models have no sheet and say so on their own card: the three ACM rows
+   (V150/V260/V265) because no template was ever designed for the access control line, and
+   V250/V255 because their template is designed but not built.
+
+To render the same sheets locally, byte-for-byte what the route produces:
+
+```bash
+node --env-file=.env.local --import tsx scripts/render-datasheet.ts --all
+```
+
+That writes every sheet into `staging/` and checks each against its specced page count —
+Ledger 3, Rail 1, both with little slack. Run it after changing anything on a page, because
+an overflow is silent in a PDF reader.
+
+**If a deployed sheet renders held frames or dashed warranty circles where the local render
+shows real images, the asset trace is the cause, not the data.** Every datasheet asset is read
+off disk through `process.cwd()`, which `@vercel/nft` cannot trace, so `next.config.ts` lists
+them explicitly under `outputFileTracingIncludes` for `/api/datasheet/*`. Adding an asset in a
+new directory means adding it there too. The PNG failure mode is silent — `loadPng` catches
+and returns null — while a missing font fails the render outright.
 
 ## 12. Day-to-day commands
 
@@ -420,9 +459,8 @@ is no error either way. Check the render against the right template, not just th
 | Run RLS regression suite | `node --env-file=.env.local --import tsx scripts/test-rls.ts` |
 | Round-trip live `product_specs` through the admin form's schema (read-only) | `node --env-file=.env.local --import tsx scripts/roundtrip-product-specs.mts` |
 | Round-trip live `appliance_specs` through its admin form's schema (read-only) | `node --env-file=.env.local --import tsx scripts/roundtrip-appliance-specs.mts` |
-| Render the datasheet layout mockup to a PDF (no DB, no network) | `node --import tsx scripts/render-datasheet-mockup.ts [outPath]` |
-| Same, with a model's photos in the two frames (asset check — copy stays V800) | `node --import tsx scripts/render-datasheet-mockup.ts --model v400` |
-| Render the Rail (workstation) datasheet from live `appliance_specs`, read-only | `node --env-file=.env.local --import tsx scripts/render-rail-mockup.ts --model SW10` |
+| Render one datasheet from live spec data, read-only (any model, either template) | `node --env-file=.env.local --import tsx scripts/render-datasheet.ts --model V800` |
+| Render every datasheet and check each against its specced page count | `node --env-file=.env.local --import tsx scripts/render-datasheet.ts --all` |
 | Create a new admin user | `node --env-file=.env.local --import tsx scripts/bootstrap-admin.ts --email ... --name ... --company ...` |
 | New migration | `supabase migration new <name>` (creates a timestamped empty SQL file) |
 | Apply pending migrations | `SUPABASE_DB_PASSWORD='...' supabase db push` |

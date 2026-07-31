@@ -28,6 +28,10 @@ const ITEMS: Array<{
   // admin-only treatment: these rows feed the datasheets and, once the Price
   // Book overrides retire, its strings for those SKUs.
   { label: "Appliance Specs", href: "/admin/appliance-specs", adminOnly: true },
+  // ADR 0110 — NOT adminOnly. This surface only reads the spec tables and hands
+  // back a PDF; datasheets are marketing collateral whose eventual home is the
+  // Price Book, so internal users get them too.
+  { label: "Datasheets", href: "/admin/datasheets" },
 ];
 
 export default function AdminNav({

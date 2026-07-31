@@ -4,6 +4,94 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-07-31 — Datasheets generate inside the portal
+
+### Work done
+
+Both templates rendered correctly before this session and neither was reachable from the
+running app; the only way to get a sheet was a local script against a dev machine. Now there
+is an adapter layer, a route and an admin surface.
+
+- **Two adapters in `src/lib/datasheet/`.** `from-product-specs.ts` is new and was the
+  largest piece — `product_specs` rows to `DatasheetContent`, grouping a model's three SKUs
+  into the rows of its ordering table. `from-appliance-specs.ts` is `buildContent()` lifted
+  out of `scripts/render-rail-mockup.ts` unchanged in behavior; the script now imports it, so
+  there is one mapping instead of two that can drift. Both take already-fetched rows and
+  return content, so the fetch stays outside and they are testable with no network.
+- **97 unit tests** where `src/lib/datasheet/` had zero. Suite is 539 passing, up from 442.
+  The Ledger adapter is tested against V800 (RAID 60, 36 bays) *and* V400 (RAID 6, 8 bays),
+  because the handoff's single most important gotcha is that the RAID level is a template
+  variable and it was originally caught only by testing a second model. Both models'
+  orderable rows match the handoff's published table exactly — 480/600/720 TB and
+  96/120/144 TB.
+- **`GET /api/datasheet/{model}`.** Model in, PDF out, template chosen by family. A model
+  that exists but has no template answers 409 with its reason rather than a bare 404.
+- **`/admin/datasheets`.** One card per model with a Download button. The five models that
+  cannot render are listed with a full sentence each, and spec gaps are named in words.
+- **Authored copy moved to `src/lib/datasheet/copy.ts`** and out of the render scripts, where
+  it was marked AUTHORED and had never been marketing-reviewed.
+- **`outputFileTracingIncludes` for the datasheet route.** This is the first route to
+  register local TTFs, and every asset is read via `process.cwd()`, so nothing was traceable.
+  Verified by inspecting the emitted trace manifest: all 5 fonts, both warranty seals and all
+  14 datasheet PNGs land in the function bundle.
+- **Deleted `src/lib/datasheet/placeholder.ts` and `scripts/render-datasheet-mockup.ts`**,
+  as both headers asked once a real adapter existed. Replaced by
+  `scripts/render-datasheet.ts`, which renders any model — or `--all` — through the same
+  adapters the route uses, so a review render cannot disagree with a download.
+- Nothing in this session writes to either spec table. The admin form remains the only write
+  path (ADR 0096).
+
+### Detours & fixes
+
+- **The V700 rendered a fourth page, and the page-count check is the only reason anyone
+  knew.** Root cause was not the spec grid, which is the same size as the V800's: its
+  `usage_paragraph` was 369 characters against the V800's 272. Page 1's only flexible child
+  is the feature grid and it sits at its content minimum, so a taller usage column pushes the
+  footer off — the handoff's "Known constraints" §2 exactly as written. Isolated by rendering
+  V700 with the paragraph emptied (3 pages), with the attributes emptied (still 4) and with a
+  feature block dropped (still 4). Binary-searched the spill point to **324 characters** at
+  ADR 0105's 240px photo. Shrinking the photo to 210px also fixed it with ~80 characters of
+  headroom, but the call was to **shorten the copy instead** and keep the photo at 240px; the
+  V700 paragraph is now 256 characters. Because the V600 sits at 310 with only 14 characters
+  of room, `ledgerWarnings()` now measures the length and the picker reports an over-long
+  paragraph in red as a defect, distinct from the amber "renders with gaps" list.
+- **`flex: 1` on the page-1 photo did not fix the overflow.** Tried first, on the theory that
+  the slack could pool in the hero frame the way page 2's rear slot absorbs its own.
+  @react-pdf/renderer paginates rather than shrinking a flex child, so V700 still rendered 4
+  pages. Reverted. This is a slightly different finding from ADR 0105's, which rejected a
+  flexible slot because it grew too large — here it simply does not work.
+- **The canonical-row rule was half wrong on first writing.** The header claimed the
+  highest-capacity SKU "carries the fuller transcription in every observed case". A sweep of
+  all 21 rows showed the opposite for `sfp_addon`: in all six models that have it, the
+  *lowest* SKU holds "Optional - 2x 10Gb SFP+ ... available" and the higher two are truncated
+  to a bare "Optional", which rendered as a dangling "· Optional" on the Network row. Fixed
+  with a **prefix extension** — a value that is a strict prefix of a sibling's is extended to
+  the longer one, which can only add more of the same sentence and can never substitute a
+  contradicting fact the way "longest wins" would. The two differently-*worded* network
+  strings are correctly left alone, since neither prefixes the other.
+- **Two composed values leaked negatives and shouting**, both caught by reading the rendered
+  V800 pages rather than by a test. `os_redundancy` is the string `"NO"` on the V100, which
+  composed into "1x NVMe, NO, dedicated for OS/VMS"; and `os_edition` is transcribed
+  "Windows Server 2022 OR 2025 LTSC", where the uppercase OR reads as emphasis on a
+  customer-facing sheet. Negatives are now dropped from composed values and a standalone OR
+  is lowercased for display, leaving the column itself as the source factsheet has it.
+- **`DatasheetContent.warranty` had to become nullable.** The V100's `warranty_years` is
+  null, and its legacy free-text `warranty` column reads "5yr NBD, Advanced Replacement" —
+  parsing a term out of that to choose a seal is how a false warranty claim reaches a
+  customer. The band is omitted entirely instead, which is ADR 0109 §3's "an empty column
+  produces no row" applied to a block. This surfaced one type error in an untracked
+  `staging/` scratch file from the abandoned SW10-through-Ledger experiment; fixed
+  null-safely rather than deleted.
+- **A test was wrong, not the code.** "A V400 sheet carries no stray V800 references" failed
+  because the model ladder legitimately names all seven models — showing where the SKU sits
+  in the line is the ladder's whole job. Scoped the assertion to exclude the ladder.
+
+### Decisions captured
+
+- [`0110-datasheet-generation-in-the-portal.md`](./decisions/0110-datasheet-generation-in-the-portal.md)
+
+---
+
 ## 2026-07-31 — The Rail template: the workstation datasheet, from live spec data
 
 The second of the handoff's two datasheet templates. "Rail" is the single-page workstation

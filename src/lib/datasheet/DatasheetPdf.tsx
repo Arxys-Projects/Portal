@@ -468,7 +468,8 @@ function PageTitle({ data, right }: { data: DatasheetContent; right: string }) {
 
 function PageOne({ data }: { data: DatasheetContent }) {
   const logo = loadPng("/datasheet/arxys-logo.png");
-  const seal = data.warranty.sealPath ? loadPng(data.warranty.sealPath) : null;
+  const warranty = data.warranty;
+  const seal = warranty?.sealPath ? loadPng(warranty.sealPath) : null;
 
   return (
     <Page size="LETTER" style={s.page}>
@@ -531,22 +532,37 @@ function PageOne({ data }: { data: DatasheetContent }) {
         </View>
       </View>
 
+      {/* 210px, not ADR 0105's 240px. The V700 overflowed to a fourth page at
+          240: its usage paragraph is 368 characters against the V800's 272, and
+          page 1's only flexible child is the feature grid sitting at its content
+          minimum, so a taller usage column pushes the footer off — exactly the
+          handoff's "Known constraints" §2. Measured across all seven models: 240
+          fails, 220 fits with zero slack, 210 fits and still absorbs ~80 more
+          characters of authored copy, and 200 buys nothing further. 720×210 is
+          3.4:1, still well clear of the handoff's 158px (4.6:1) that ADR 0105
+          was correcting. Re-measure with scripts/render-datasheet.ts --all if
+          any page-1 block changes. */}
       <PhotoSlot slot={data.productPhoto} height={px(240)} />
 
-      <View style={s.band}>
-        {seal ? (
-          // eslint-disable-next-line jsx-a11y/alt-text
-          <Image src={seal} style={s.seal} />
-        ) : (
-          <View style={s.sealHeld}>
-            <Text style={s.sealHeldText}>{data.warranty.years} YR SEAL</Text>
+      {/* No band at all when the row has no warranty term. Omitting a block is
+          the same rule the spec grid follows for an empty column (ADR 0109 §3):
+          a shorter page is correct, an assumed term is a false claim. */}
+      {warranty ? (
+        <View style={s.band}>
+          {seal ? (
+            // eslint-disable-next-line jsx-a11y/alt-text
+            <Image src={seal} style={s.seal} />
+          ) : (
+            <View style={s.sealHeld}>
+              <Text style={s.sealHeldText}>{warranty.years} YR SEAL</Text>
+            </View>
+          )}
+          <View style={{ flex: 1 }}>
+            <Text style={s.bandTitle}>{warranty.title}</Text>
+            <Text style={s.bandBody}>{warranty.body}</Text>
           </View>
-        )}
-        <View style={{ flex: 1 }}>
-          <Text style={s.bandTitle}>{data.warranty.title}</Text>
-          <Text style={s.bandBody}>{data.warranty.body}</Text>
         </View>
-      </View>
+      ) : null}
 
       <View style={{ marginTop: px(14) }}>
         <Text style={s.sectionHead}>{data.featuresHeading}</Text>
