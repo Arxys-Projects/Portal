@@ -120,7 +120,10 @@ of them — not even the two logos whose public paths are string literals. Witho
 the PNGs would fail *silently*: `loadPng()` catches and returns null, so an untraced photo
 renders a held frame indistinguishable from "not shot yet" and an untraced seal renders the
 dashed circle on a sheet that should carry the real mark. The entry is added and the emitted
-trace manifest verified to contain all five fonts, both seals and all 14 datasheet PNGs.
+trace manifest verified to contain all five fonts, both seals and all 14 datasheet PNGs —
+then confirmed on the deployed production function, where a downloaded sheet renders the real
+chassis photo and the real warranty seal rather than a held frame and a dashed circle. The
+manifest check alone would not have proved this, because the PNG failure mode is silent.
 
 **When to revisit:** when the copy has had a marketing pass — at which point the gate widens
 to all signed-in partners and the picker moves next to the Price Book, and the argument for

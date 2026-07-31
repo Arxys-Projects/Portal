@@ -32,8 +32,10 @@ is an adapter layer, a route and an admin surface.
   it was marked AUTHORED and had never been marketing-reviewed.
 - **`outputFileTracingIncludes` for the datasheet route.** This is the first route to
   register local TTFs, and every asset is read via `process.cwd()`, so nothing was traceable.
-  Verified by inspecting the emitted trace manifest: all 5 fonts, both warranty seals and all
-  14 datasheet PNGs land in the function bundle.
+  Verified twice: the emitted trace manifest carries all 5 fonts, both warranty seals and all
+  14 datasheet PNGs, and a download from the deployed production function renders the real
+  photo and seal. The second check is the one that counts — an untraced PNG fails silently as
+  a held frame, so the manifest alone could not have proved it.
 - **Deleted `src/lib/datasheet/placeholder.ts` and `scripts/render-datasheet-mockup.ts`**,
   as both headers asked once a real adapter existed. Replaced by
   `scripts/render-datasheet.ts`, which renders any model — or `--all` — through the same
