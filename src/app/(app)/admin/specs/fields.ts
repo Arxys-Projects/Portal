@@ -17,8 +17,9 @@
 // No zod, no React, no server-only imports — this module is bundled into the
 // client form, so it must stay pure data.
 //
-// The 43 fields here are the 42 live columns minus `product_sku`, plus
-// `raid_level_alt_display` (new in migration 20260727000001).
+// The 68 fields here are the live columns minus `product_sku`, `updated_at`
+// and `updated_by` — 43 original, plus the 22 of migration 20260729000002 and
+// the 3 of 20260730000001 (photos + usage paragraph, ADR 0107).
 //
 // product_sku is DELIBERATELY NOT SURFACED: null in all 21 rows, the Phase 0
 // audit found it dead, and its own migration comment calls it "reserved for
@@ -33,6 +34,7 @@
 import {
   flattenSpecFields,
   initialValuesFromRow as initialValuesFromRowForFields,
+  photoPathWarnings,
   type SpecField,
   type SpecRuleViolation,
   type SpecSection,
@@ -280,6 +282,32 @@ export const SPEC_SECTIONS: SpecSection[] = [
     ],
   },
   {
+    title: "Datasheet content",
+    fields: [
+      {
+        name: "usage_paragraph",
+        label: "Recommended usage",
+        kind: "textarea-optional",
+        maxLength: 2000,
+        hint: "The page-1 paragraph: who this SKU is for and where it fits. Prose, not bullets — it sets beside the key attributes. Roughly 40–60 words; the datasheet gives it a fixed column and longer copy pushes the page.",
+      },
+      {
+        name: "product_photo_path",
+        label: "Product photo path",
+        kind: "text-optional",
+        maxLength: 200,
+        hint: "Path under public/, starting with a slash — e.g. /price-book/v700-v800-hero.png. Leave blank until a photo exists; the sheet holds the frame empty rather than dropping the section.",
+      },
+      {
+        name: "rear_io_photo_path",
+        label: "Rear I/O photo path",
+        kind: "text-optional",
+        maxLength: 200,
+        hint: "Path under public/, starting with a slash. Rear-panel photography does not exist for any SKU yet — blank is the expected value.",
+      },
+    ],
+  },
+  {
     title: "Datasheet meta",
     fields: [
       {
@@ -313,6 +341,8 @@ export const SPEC_SECTIONS: SpecSection[] = [
 
 /** The subset of a spec row the rules and warnings read. */
 export type SpecRuleValues = {
+  product_photo_path?: string | null;
+  rear_io_photo_path?: string | null;
   drive_bays?: number | null;
   hdd_count?: number | null;
   raid_level_display?: string | null;
@@ -437,6 +467,8 @@ export function specWarnings(values: SpecRuleValues): string[] {
     );
   }
 
+  warnings.push(...photoPathWarnings(values as Record<string, unknown>));
+
   return warnings;
 }
 
@@ -472,7 +504,7 @@ function leadingDigits(value: string | null | undefined): number | null {
 // ---------------------------------------------------------------------------
 
 /**
- * The 22 columns a factsheet supplies — per-chassis, not per-capacity.
+ * The 25 columns a factsheet supplies — per-chassis, not per-capacity.
  *
  * Read by the sibling prefill on the edit page. It is a literal list rather
  * than a filter over SPEC_SECTIONS because five of the 22 live in older
@@ -482,6 +514,14 @@ function leadingDigits(value: string | null | undefined): number | null {
  * assert every name here is a real field and that no capacity input leaks in.
  */
 export const DATASHEET_FIELD_NAMES: readonly string[] = [
+  // Datasheet content — all three copy here, unlike one table over. These
+  // siblings are the SAME model at three drive capacities (VX5-V400-128 / -160
+  // / -192), so the photos and the usage prose are identical by construction;
+  // on appliance_specs a "sibling" is a different model sharing a chassis, and
+  // only the front photo survives that.
+  "usage_paragraph",
+  "product_photo_path",
+  "rear_io_photo_path",
   // Power & cooling
   "power_wattage",
   "power_redundancy",

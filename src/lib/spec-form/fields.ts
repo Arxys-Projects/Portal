@@ -266,3 +266,50 @@ export function specInputFromFormData(
   }
   return input;
 }
+
+/**
+ * Warn about a datasheet photo path that will not resolve.
+ *
+ * Both spec tables carry `product_photo_path` / `rear_io_photo_path` holding a
+ * path under `public/` (ADR 0107). A path that is merely *wrong* fails in the
+ * quietest possible way: the loader catches the read, returns null, and the
+ * datasheet holds an empty frame — which is exactly what it does when no photo
+ * exists at all. Nothing distinguishes "not shot yet" from "typo", so the form
+ * has to say it at entry time.
+ *
+ * It WARNS rather than refuses, matching how both tables treat everything else
+ * that is unfinished rather than illegal: nothing here can prove a file exists
+ * (the form runs in the browser, the file lives on the server's disk), so a
+ * refusal would be guessing with a hard stop.
+ *
+ * Shared by both forms so the same column cannot behave differently depending
+ * on which archetype the editor happens to be on.
+ */
+export function photoPathWarnings(values: Record<string, unknown>): string[] {
+  const warnings: string[] = [];
+  const labels: Record<string, string> = {
+    product_photo_path: "Product photo path",
+    rear_io_photo_path: "Rear I/O photo path",
+  };
+  for (const [name, label] of Object.entries(labels)) {
+    const raw = values[name];
+    if (typeof raw !== "string") continue;
+    const path = raw.trim();
+    if (path === "") continue;
+    if (/^https?:\/\//i.test(path)) {
+      warnings.push(
+        `${label} is a URL. The datasheet reads files from public/ on disk at render time and never fetches over the network — use a path like /price-book/v700-v800-hero.png.`,
+      );
+    } else if (!path.startsWith("/")) {
+      warnings.push(
+        `${label} does not start with "/". Paths are resolved under public/, so it needs a leading slash — e.g. /price-book/v700-v800-hero.png.`,
+      );
+    }
+    if (path !== "" && !/\.png$/i.test(path)) {
+      warnings.push(
+        `${label} does not end in .png. The PDF asset loader reads PNG only — a JPEG or AVIF will silently render as an empty frame.`,
+      );
+    }
+  }
+  return warnings;
+}

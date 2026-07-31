@@ -12,9 +12,11 @@
 // client form, imported by the node test runner, and imported by the round-trip
 // script.
 //
-// 62 fields = the table's 64 columns minus `updated_at` / `updated_by`, which
-// MUST stay absent: the appliance_specs_stamp_updated BEFORE trigger maintains
-// both, and an action writing them would fight the trigger.
+// 65 fields = the table's 67 columns (64 at creation, plus the 3 of migration
+// 20260730000001 — photos + usage paragraph, ADR 0107) minus `updated_at` /
+// `updated_by`, which MUST stay absent: the appliance_specs_stamp_updated
+// BEFORE trigger maintains both, and an action writing them would fight the
+// trigger.
 //
 // WHAT THIS FORM DOES NOT HAVE, deliberately: a net-usable preview. Nothing
 // computes from an appliance row — there is no storage_raw_tb and no
@@ -28,6 +30,7 @@
 import {
   flattenSpecFields,
   initialValuesFromRow as initialValuesFromRowForFields,
+  photoPathWarnings,
   type SpecField,
   type SpecSection,
 } from "@/lib/spec-form";
@@ -341,6 +344,32 @@ export const APPLIANCE_SECTIONS: SpecSection[] = [
     ],
   },
   {
+    title: "Datasheet content",
+    fields: [
+      {
+        name: "usage_paragraph",
+        label: "Recommended usage",
+        kind: "textarea-optional",
+        maxLength: 2000,
+        hint: "The page-1 paragraph: who this SKU is for and where it fits. Prose, not bullets. Roughly 40–60 words; the datasheet gives it a fixed column and longer copy pushes the page.",
+      },
+      {
+        name: "product_photo_path",
+        label: "Product photo path",
+        kind: "text-optional",
+        maxLength: 200,
+        hint: "Path under public/, starting with a slash — e.g. /price-book/sw-hero.png. Leave blank until a photo exists; the sheet holds the frame empty rather than dropping the section.",
+      },
+      {
+        name: "rear_io_photo_path",
+        label: "Rear I/O photo path",
+        kind: "text-optional",
+        maxLength: 200,
+        hint: "Path under public/, starting with a slash. Rear-panel photography does not exist for any SKU yet — blank is the expected value.",
+      },
+    ],
+  },
+  {
     title: "Meta",
     fields: [
       {
@@ -387,6 +416,9 @@ function isSet(value: unknown): boolean {
 /** Things worth a second look that still save (design §4e). */
 export function applianceWarnings(values: ApplianceRuleValues): string[] {
   const warnings: string[] = [];
+  // Checked before the family_type early return: a photo path is wrong the same
+  // way on every archetype, and the archetype is blank on a half-filled new row.
+  warnings.push(...photoPathWarnings(values));
   const familyType = values.family_type ?? null;
   if (familyType == null) return warnings;
 
@@ -499,6 +531,8 @@ export function initialValuesFromRow(
 //   SW block     max_bandwidth_mbps, monitor_support, the gpu_* fields,
 //                front_io, rear_io, camera_matrix
 //   meta         revision_date, notes
+//   datasheet    rear_io_photo_path (the SW20's extra GPU changes the rear
+//                panel), usage_paragraph (per-model prose)
 // — and copying any of those from a neighbour would overwrite a real difference
 // with the wrong value, the same failure the product_specs boundary guards
 // against (ADR 0092, one layer up). updated_at / updated_by are trigger-owned
@@ -512,8 +546,9 @@ export function initialValuesFromRow(
 // ---------------------------------------------------------------------------
 
 /**
- * The 30 fields invariant across the siblings of a chassis family — the
- * platform, power, physical, environmental, regulatory and warranty block.
+ * The 31 fields invariant across the siblings of a chassis family — the
+ * platform, power, physical, environmental, regulatory and warranty block,
+ * plus the front-3/4 product photo.
  *
  * Read by the sibling prefill on the create and edit pages. A literal list
  * rather than a filter over APPLIANCE_SECTIONS: the copy set cuts across
@@ -562,6 +597,14 @@ export const APPLIANCE_PREFILL_FIELD_NAMES: readonly string[] = [
   "regulatory_emissions",
   "ndaa_text",
   "security_features",
+  // Datasheet content — the front-3/4 photo only. V250/V255 are one chassis and
+  // SW20 is an SW10 with a second GPU, so the front of the box is the same
+  // picture. The REAR is not: that second GPU changes the rear panel's display
+  // outputs, which is exactly the "overwrite a real difference with a
+  // neighbour's value" failure this boundary exists to prevent. And the usage
+  // paragraph is per-model prose — V250 and V255 sit at different capacity
+  // tiers, which is the whole reason both exist.
+  "product_photo_path",
 ];
 
 /**

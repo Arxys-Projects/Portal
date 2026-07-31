@@ -91,8 +91,8 @@ function expectFieldError(input: unknown, field: string) {
 }
 
 describe("specFormSchema — field coverage", () => {
-  it("validates exactly the 65 fields the form renders", () => {
-    assert.equal(SPEC_FIELD_NAMES.length, 65);
+  it("validates exactly the 68 fields the form renders", () => {
+    assert.equal(SPEC_FIELD_NAMES.length, 68);
     const shapeKeys = Object.keys(specFormSchema.shape).sort();
     assert.deepEqual(shapeKeys, [...SPEC_FIELD_NAMES].sort());
   });
@@ -559,12 +559,12 @@ describe("initialValuesFromRow", () => {
     assert.equal(values.storage_raw_tb, "192");
     assert.equal(values.notes, "");
     assert.equal(values.raid_level_alt_display, "");
-    assert.equal(Object.keys(values).length, 65);
+    assert.equal(Object.keys(values).length, 68);
   });
 
   it("produces a blank set for the create form", () => {
     const values = initialValuesFromRow(null);
-    assert.equal(Object.keys(values).length, 65);
+    assert.equal(Object.keys(values).length, 68);
     assert.ok(Object.values(values).every((v) => v === ""));
   });
 });
@@ -575,8 +575,8 @@ describe("initialValuesFromRow", () => {
 // sibling's net-usable figure on another's page — silently, and through the
 // preview that is supposed to catch exactly that.
 describe("DATASHEET_FIELD_NAMES", () => {
-  it("is the 22 columns the additive migration added", () => {
-    assert.equal(DATASHEET_FIELD_NAMES.length, 22);
+  it("is the 25 columns the two additive migrations added", () => {
+    assert.equal(DATASHEET_FIELD_NAMES.length, 25);
   });
 
   it("names only real fields on this form", () => {

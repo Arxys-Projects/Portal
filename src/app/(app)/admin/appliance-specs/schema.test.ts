@@ -155,12 +155,12 @@ function expectFieldError(input: unknown, field: string) {
 }
 
 describe("applianceFormSchema — field coverage", () => {
-  it("validates exactly the 62 fields the form renders", () => {
+  it("validates exactly the 65 fields the form renders", () => {
     // 64 columns minus updated_at / updated_by. A column added to the table
     // without a field here is unreachable through the only supported write path
     // — the failure mode ADR 0096 exists to end, and the round-trip script's
     // COVERS check is the live half of this assertion.
-    assert.equal(APPLIANCE_FIELD_NAMES.length, 62);
+    assert.equal(APPLIANCE_FIELD_NAMES.length, 65);
     assert.deepEqual(
       Object.keys(applianceFormSchema.shape).sort(),
       [...APPLIANCE_FIELD_NAMES].sort(),
@@ -531,11 +531,15 @@ const APPLIANCE_EXCLUDED_FIELD_NAMES = [
   // meta — per SKU
   "revision_date",
   "notes",
+  // datasheet content — the rear panel differs where the front does not
+  // (SW20 = SW10 + a second GPU), and the usage paragraph is per-model prose
+  "rear_io_photo_path",
+  "usage_paragraph",
 ];
 
 describe("APPLIANCE_PREFILL_FIELD_NAMES — the copy-set boundary", () => {
-  it("holds the 30 chassis-and-platform fields", () => {
-    assert.equal(APPLIANCE_PREFILL_FIELD_NAMES.length, 30);
+  it("holds the 31 chassis-and-platform fields", () => {
+    assert.equal(APPLIANCE_PREFILL_FIELD_NAMES.length, 31);
   });
 
   it("names only real fields on this form", () => {

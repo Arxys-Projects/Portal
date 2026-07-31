@@ -4,6 +4,67 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-07-30 — Datasheet build step 9: photo paths + the usage paragraph become spec columns
+
+The two schema gaps the design handoff surfaced, closed. Six nullable columns, three per
+spec table, plus the form wiring that makes them reachable. **The migration is written and
+NOT applied** — and this one has to be applied *before* the code deploys, which is the
+reverse of last time. See below.
+
+### Work done
+
+- **[`20260730000001_datasheet_media_and_usage.sql`](../supabase/migrations/20260730000001_datasheet_media_and_usage.sql)**
+  — `product_photo_path`, `rear_io_photo_path`, `usage_paragraph` on both `product_specs`
+  and `appliance_specs`. Additive, nullable, no values seeded. Paired rollback and
+  [apply note](./apply-notes/0107-datasheet-media-and-usage.md) written alongside.
+- **Photo paths are paths under `public/`, not Supabase storage keys** (ADR 0107). The
+  premise going in was that product imagery lived in storage; it does not — the Price Book
+  heroes are files in `public/price-book/` referenced from `families.ts`, and storage holds
+  only partner logos. Paths reuse those files and the loader that already reads them, and
+  keep PDF rendering free of a network call. The column is plain text, so a storage key can
+  replace a path later with no schema change.
+- **Both admin forms gain a "Datasheet content" section**, so the columns are reachable
+  through the only supported write path (ADR 0096's stated negative).
+- **`photoPathWarnings` in the shared kit** — warns on a URL, a missing leading slash, or a
+  non-`.png` extension. A wrong path fails in the quietest possible way (loader catches,
+  frame renders empty, indistinguishable from "not shot yet"), and nothing in a browser can
+  prove a file exists on the server's disk, so it warns rather than refuses. Shared so the
+  same column cannot behave differently on the two forms.
+- **The prefill boundary was decided per table**, because "sibling" means different things:
+  on `product_specs` a sibling is the same model at another capacity, so all three columns
+  copy; on `appliance_specs` it is a different model on the same chassis, so only the front
+  photo copies. `rear_io_photo_path` is excluded there specifically because **SW20 is an
+  SW10 plus a second GPU, which changes the rear panel** — copying it would overwrite a real
+  difference, the exact failure that boundary exists to prevent.
+- `greatFor` in `families.ts` is left alone. It still serves the Price Book; `usage_paragraph`
+  is per-SKU where `greatFor` is per-family, so a cutover is a separate, reviewable step on a
+  live customer-facing surface.
+
+### Verification
+
+- `npm test` — **442 pass, 0 fail** after updating the field-count assertions (product 65 →
+  68, appliance 62 → 65) and both prefill counts (22 → 25, 30 → 31).
+- `npx tsc --noEmit` clean.
+- `scripts/roundtrip-product-specs.mts` against production, read-only: PARSES and PRESERVES
+  green on all 21 rows at 68/68, COVERAGE failing on exactly the three new fields — the
+  expected pre-apply state, quoted in the apply note.
+
+### Detours & fixes
+
+- **The deploy window is an outage this time, and the round-trip is what proved it.** The
+  admin actions write the full parsed field set (`.insert(values)` / `.update(payload)`), so
+  a deployed form that knows a column the database lacks fails **every** save on
+  `/admin/specs` and `/admin/appliance-specs` — not just saves touching the new fields. ADR
+  0090 shipped through the mirror-image window safely (columns first, form two steps later),
+  which made it tempting to assume this one was equally benign. It is not. The code is
+  committed and **held unpushed** until the migration is applied.
+
+### Decisions captured
+
+- [`0107-datasheet-photos-are-public-paths.md`](./decisions/0107-datasheet-photos-are-public-paths.md)
+
+---
+
 ## 2026-07-30 — Datasheet Phase 2: design handoff received, 3-page layout mocked up
 
 The Phase 2 visual design landed as a handoff bundle
