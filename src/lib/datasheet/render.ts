@@ -82,9 +82,15 @@ export function renderRailDatasheet(data: RailContent): Promise<DatasheetRenderR
 }
 
 /**
- * Suggested download filename. The model is enough to identify the sheet —
- * there is one sheet per model, not per SKU.
+ * Suggested download filename, from a catalogue entry's `displayName`.
+ *
+ * There is one sheet per MODEL for an NVR or a workstation and one per SHEET
+ * GROUP for the management servers, so the name can be "V800" or "V250 / V255".
+ * The separator is folded to a hyphen because a forward slash is a path
+ * separator on every platform this file lands on — Safari and Finder both
+ * silently rewrite it, and a browser that does not would write to a directory
+ * that does not exist.
  */
-export function datasheetFilename(model: string): string {
-  return `Arxys ${model} Datasheet.pdf`;
+export function datasheetFilename(displayName: string): string {
+  return `Arxys ${displayName.replace(/\s*\/\s*/g, "-")} Datasheet.pdf`;
 }

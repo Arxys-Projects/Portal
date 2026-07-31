@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { findCatalogueEntry } from "@/lib/datasheet/catalogue";
 import { buildRailContent, type ApplianceSpecRow } from "@/lib/datasheet/from-appliance-specs";
+import { buildManagementContent } from "@/lib/datasheet/from-management-specs";
 import { buildLedgerContent } from "@/lib/datasheet/from-product-specs";
 import { requireDatasheetAccess } from "@/lib/datasheet/guard";
 import { loadDatasheetSpecData } from "@/lib/datasheet/load";
@@ -65,16 +66,23 @@ export async function GET(_request: Request, { params }: { params: Promise<{ mod
     });
   }
 
+  // Which ADAPTER to use is not the same question as which template. Both the
+  // NVR sheet and the management sheet render through Ledger (ADR 0111); they
+  // read different tables to get there, which is what `source` records.
   let result: DatasheetRenderResult;
   try {
-    if (entry.template === "ledger") {
-      result = await renderLedgerDatasheet(buildLedgerContent(model, data.productRows));
-    } else {
-      const row = data.applianceRows.find((r) => r.product_group === model) as
+    if (entry.template === "rail") {
+      const row = data.applianceRows.find((r) => r.product_group === entry.model) as
         | ApplianceSpecRow
         | undefined;
-      if (!row) return new NextResponse(`No such model: ${model}`, { status: 404 });
+      if (!row) return new NextResponse(`No such model: ${entry.model}`, { status: 404 });
       result = await renderRailDatasheet(buildRailContent(row));
+    } else if (entry.source === "appliance_specs") {
+      result = await renderLedgerDatasheet(
+        buildManagementContent(entry.model, data.applianceRows),
+      );
+    } else {
+      result = await renderLedgerDatasheet(buildLedgerContent(entry.model, data.productRows));
     }
   } catch (err) {
     console.error(`[datasheet render ${model}]`, err);
@@ -96,7 +104,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ mod
     status: 200,
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename="${datasheetFilename(model)}"`,
+      "Content-Disposition": `attachment; filename="${datasheetFilename(entry.displayName)}"`,
       "Content-Length": String(result.buffer.length),
       // Specs change through the admin form and the sheet is always current, so
       // a cached copy would be exactly the drift on-demand rendering avoids.

@@ -182,6 +182,106 @@ export function warrantyBody(years: number, terms: string | null): string {
   return `${stated} Secure remote management & advanced support delivers rapid response & uptime.`;
 }
 
+// ── Management (V250 / V255) ─────────────────────────────────────────────
+//
+// The management sheet renders through the Ledger template (ADR 0111) but it
+// sells a different machine, so almost none of the Ledger copy above carries
+// over. Everything here states the same thing the four blocks it feeds state:
+// this server manages and it does not record.
+
+export const MANAGEMENT_PRODUCT_CLASS = "Enterprise Server for Video Surveillance";
+
+export const MANAGEMENT_USAGE_HEADING = "Recommended usage";
+export const MANAGEMENT_FEATURES_HEADING = "VideoX enterprise features";
+
+/** The verb is supplied by the adapter, which knows how many variants the sheet covers. */
+export const MANAGEMENT_LADDER_HEADING_SUFFIX = "in the management & access control line";
+export const MANAGEMENT_LADDER_CAPTION = "Role · capacity";
+
+/**
+ * The four page-1 feature blocks.
+ *
+ * A separate list from LEDGER_FEATURES rather than a filtered one. Two of the
+ * NVR blocks are false here and would have had to be excepted anyway: this
+ * machine has no video storage to scale to petabytes, and its H.265
+ * acceleration sells nothing because it decodes no streams. The two that do
+ * carry over — availability and cybersecurity — are restated against the SSD
+ * pairs this chassis actually has rather than the HDD array it does not.
+ */
+export const MANAGEMENT_FEATURES: FeatureBlock[] = [
+  {
+    title: "Purpose-built for management & directory roles",
+    body: "Keeps directory and database work off the recording servers, where it would otherwise compete with video for I/O.",
+  },
+  {
+    title: "Enterprise SSD database performance",
+    body: "Mirrored hot-swap enterprise SSDs dedicated to the database, separate from the mirrored OS pair, on hardware RAID with CacheVault protection.",
+  },
+  {
+    title: "High data availability",
+    body: "RAID-configured redundancy with N+1 hot-swap power, cooling and drives throughout, for a resilient, continuously available system.",
+  },
+  {
+    title: "Strengthen cybersecurity",
+    body: "A built-in TPM 2.0 module supports hardware Root of Trust authentication and data encryption. All VideoX are fully NDAA compliant.",
+  },
+];
+
+export const MANAGEMENT_CAPACITY_HEADING = "Management capacity";
+
+/**
+ * The two capacity rows that are true of the sheet rather than of a SKU.
+ *
+ * They sit under the per-variant rows the adapter derives. Both are authored
+ * because neither is a column: a failover pair is a deployment topology, and
+ * "do not run Client View on the server" is a support position. Their Cameras
+ * cells are deliberately not numbers — "Per model" defers to the rows above it
+ * rather than restating a figure that would then have two places to be wrong.
+ */
+export const MANAGEMENT_CAPACITY_EXTRA_ROWS = [
+  {
+    role: "Management w/ failover",
+    cameras: "Per model",
+    recording: "None",
+    notes: "Requires 2× servers + VMS failover licensing",
+  },
+  {
+    role: "Client View on server",
+    cameras: "—",
+    recording: "None",
+    notes: "Not recommended — use a workstation",
+  },
+];
+
+export const MANAGEMENT_CAPACITY_CAPTION =
+  "Management and directory server roles only — no video recording. Counts are approximations and always VMS dependant. Windows Server IoT for Storage Workgroup EULA and Microsoft conditions should be respected at all times by the end user.";
+
+/**
+ * The ordering caption. `variants` is the count of SKUs on the sheet, so a
+ * third CPU tier added to the group does not leave the caption saying "two".
+ */
+export function managementOrderableCaption(variants: number): string {
+  const share =
+    variants === 2
+      ? "V250 and V255 share one chassis and one spec sheet"
+      : `All ${variants} variants share one chassis and one spec sheet`;
+  return `${share} — the difference is CPU tier, memory and SSD capacity, sized to the number of cameras under management.`;
+}
+
+export const MANAGEMENT_GENERAL_INFO =
+  "Systems ship with Microsoft Windows pre-installed without media and not set up; the installer is responsible for setup, VMS installation, and configuration of users, cameras and databases. VMS installers are included but not installed. Client View application on server is not recommended; run it on a Client View workstation.";
+
+/** The held-frame text. `model` is the sheet's own name, e.g. "V250 / V255". */
+export function managementPhotoPlaceholder(model: string, rackUnits: string | null): string {
+  return rackUnits
+    ? `${model} front 3/4 — ${rackUnits} product photography`
+    : `${model} front 3/4 — product photography`;
+}
+
+export function managementRearPlaceholder(model: string): string {
+  return `${model} rear I/O panel — product photography`;
+}
+
 // ── Rail (workstation) ───────────────────────────────────────────────────
 
 /**

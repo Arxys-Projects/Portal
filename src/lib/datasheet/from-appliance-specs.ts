@@ -40,6 +40,8 @@ export type ApplianceSpecRow = {
   model_name: string | null;
   product_group: string;
   family_type: string | null;
+  /** Groups the SKUs that render on ONE sheet: V250 and V255 are both "V250". */
+  sheet_group: string;
   cpu_model: string | null;
   cores_threads: string | null;
   cpu_cache: string | null;
@@ -84,7 +86,25 @@ export type ApplianceSpecRow = {
   camera_matrix: CameraMatrixRow[] | null;
   remote_mgmt: string | null;
   product_photo_path: string | null;
+  rear_io_photo_path: string | null;
   usage_paragraph: string | null;
+  /** Cameras under management — a FLOOR ("250 and above"). Management rows only. */
+  cameras_managed_min: number | null;
+  /** Cameras under management — a CEILING ("up to 250"). Management rows only. */
+  cameras_managed_max: number | null;
+  db_drive_desc: string | null;
+  storage_summary: string | null;
+  drive_bays: number | null;
+  raid_level_display: string | null;
+  battery_raid: string | null;
+  os_redundancy: string | null;
+  hotswap_power: string | null;
+  power_dc_input: string | null;
+  power_redundancy: string | null;
+  rack_units: string | null;
+  gbe_1_ports: number | null;
+  sfp_addon: string | null;
+  revision_date: string | null;
   /** Not rendered — reported by the mockup script so a review names its source row. */
   updated_at?: string | null;
 };

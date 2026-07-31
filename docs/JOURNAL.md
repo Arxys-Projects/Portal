@@ -4,6 +4,87 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-07-31 — The V250 / V255 management datasheet
+
+### Work done
+
+ADR 0110 shipped with five of fourteen models unrenderable and kept two different reasons
+apart: the ACM line has no template *designed*, the management servers have one designed but
+not *built*. This builds the management one, so that reason is gone and only the ACM one is
+left — which is the revisit condition 0110 named for itself.
+
+- **`src/lib/datasheet/from-management-specs.ts`**, a third adapter. One sheet per
+  `sheet_group`, not per SKU: V250 and V255 both carry `sheet_group = 'V250'` and render as
+  one sheet titled "V250 / V255" whose ordering table has a row each.
+- **The management sheet renders through LEDGER**, not a template of its own — the opposite
+  call to ADR 0109 and for a consistent reason, written up in
+  [`0111`](./decisions/0111-management-is-a-ledger-variant.md). `DatasheetContent.performance`
+  became a discriminated union (`vsr` with its parameter strip, `capacity` without) and
+  `orderable` now carries its own columns and weights, so `DatasheetPdf.tsx` never asks which
+  kind of sheet it is drawing.
+- **`variantValue()` composes the two SKUs instead of picking one.** A shared value is stated
+  once; a differing one becomes "5th Gen Zen5 AMD EPYC · V250 = 4245, 6C/12T · V255 = 4465,
+  12C/24T", with the shared leading words hoisted out. Deliberately *not* the NVR
+  canonical-row rule: there a sibling difference is transcription noise, here it is the
+  product.
+- **Two new columns, `cameras_managed_min` / `cameras_managed_max`**, plus a Management
+  capacity section on the appliance form and two new archetype warnings. Migration
+  `20260731000001` — **not yet applied**, see
+  [the apply note](./apply-notes/0111-management-cameras-managed.md), and the order matters:
+  migration first, code second.
+- **One catalogue entry per SHEET rather than per row**, with `displayName` and `aliases`, so
+  V255 resolves to the V250 sheet instead of 404ing and the picker shows one card, not two.
+- **59 new unit tests** (546 → 605), run against *both* states of the data: production's
+  nulls and the figures once entered.
+- All ten renderable sheets re-measured at their specced page counts; the seven NVR sheets
+  and both workstation sheets are byte-comparable in content to before.
+
+### Detours & fixes
+
+- **The two headline figures on the design mockup are not on the real factsheet.** The
+  mockup shows 1,000 Mbit/s of throughput and "250 / 250+" cameras managed. The phase-2
+  transcription of all twelve V5 sheets records `max_bandwidth_mbps` as *"not found on any
+  server sheet"* and transcribes no camera count for either variant, so both figures are the
+  designer's illustration. They are now spec columns that ship **empty** — not authored in
+  `copy.ts` (whose header already forbids numbers) and not seeded in the migration (0104's
+  reviewed-import precedent transcribed a real sheet; there is nothing here to transcribe).
+  The sheet prints an em dash in all four places and the picker names the gap.
+- **Fixing the hero row pushed the footer onto a fourth page.** The management descriptor is
+  twelve characters longer than the widest NVR one and cannot fit beside the compliance
+  pills; the first build had it running into the NDAA pill with zero gap. Giving the hero a
+  gutter made it wrap — correctly, and the way the handoff's own V250 render does — and the
+  extra line immediately overflowed the page, because page 1's only flexible child is the
+  feature grid and it sits at its content minimum. Paid for out of the photo frame, the same
+  lever ADR 0110 used for the V700's long paragraph: `PAGE1_PHOTO_HEIGHT` is now 240 for a
+  one-line descriptor and **210** for a two-line one, both binary-searched.
+- **`storage_summary` is literally `"NA"` on these rows** and printed raw it reads as a
+  missing value rather than the deliberate "there is no recording volume" the sheet means.
+  Expanded on display; the column keeps what the factsheet says.
+- **The RAID row said CacheVault twice.** The NVR adapter appends "CacheVault battery
+  protection" when `battery_raid` is set, and this sheet's `raid_support` prose already names
+  it. Guarded.
+- **`os_drive_desc` labels its own variants in place** — it ends "… — V250 = 2x 480GB" — so
+  the naive composition printed "V250 = V250 = 2x 480GB". `variantValue()` now skips the
+  label when the tail already carries it.
+- **Deviated from the mockup on one point, on purpose.** The handoff bars only the V250 in
+  the model ladder. On a sheet titled "V250 / V255" that reads as though the V255 belongs
+  somewhere else, so both cells are barred.
+- **Two data defects surfaced, neither fixed here** (the form is the only write path):
+  `raid_level_display` is `1` on the V250 and blank on the V255 though they are one chassis
+  — the new cross-variant check in the picker caught it — and `gbe_10_ports` is `0` while
+  `network` reads "2x (Two) Enterprise 10Gb Eth RJ45 ports", which looks like the port counts
+  are swapped and costs page 1 its Ethernet attribute bullet.
+- **`staging/render-sw10-mockup.ts` was moved out of the repo.** A gitignored, self-declared
+  throwaway that hand-assembled a `DatasheetContent`; the union broke it, and it has been
+  superseded by `scripts/render-datasheet.ts --model SW10` since ADR 0110. It was inside the
+  tsconfig include set, so leaving it would have broken `npm run build`.
+
+### Decisions captured
+
+- [`0111-management-is-a-ledger-variant.md`](./decisions/0111-management-is-a-ledger-variant.md)
+
+---
+
 ## 2026-07-31 — Datasheets generate inside the portal
 
 ### Work done

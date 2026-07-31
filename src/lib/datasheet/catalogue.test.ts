@@ -43,16 +43,21 @@ function appliance(
   productGroup: string,
   familyType: string,
   modelName: string,
+  extra: Partial<ApplianceSpecRow> = {},
 ): ApplianceSpecRow {
   return {
     id: `VX5-${productGroup}-X`,
     product_group: productGroup,
+    // Every row here is its own sheet except the two management variants, which
+    // the callers below override to share one.
+    sheet_group: productGroup,
     family_type: familyType,
     model_name: modelName,
     warranty_years: 3,
     usage_paragraph: "Prose.",
     product_photo_path: "/datasheet/sw-front.png",
     camera_matrix: [{ resolution: "4MP", codec: "H.265", cameras: 48, fps: 15, bandwidth_mbps: 125 }],
+    ...extra,
   } as unknown as ApplianceSpecRow;
 }
 
@@ -66,8 +71,17 @@ const APPLIANCE_ROWS = [
   appliance("SW10", "workstation", "VideoX V5 SW10 Security Workstation"),
   appliance("SW20", "workstation", "VideoX V5 SW20 Security Workstation"),
   appliance("V150", "acm", "VideoX V5 V150 ACM"),
-  appliance("V250", "management", "VideoX V5 V250 Management Server"),
-  appliance("V255", "management", "VideoX V5 V255 Management Server"),
+  appliance("V250", "management", "VideoX V5 V250 Management Server", {
+    sheet_group: "V250",
+    rack_units: "1U",
+    cameras_managed_max: 250,
+  }),
+  // The row that proves the grouping: its own group is V255, its SHEET is V250.
+  appliance("V255", "management", "VideoX V5 V255 Management Server", {
+    sheet_group: "V250",
+    rack_units: "1U",
+    cameras_managed_min: 250,
+  }),
   appliance("V260", "acm", "VideoX V5 V260 ACM"),
   appliance("V265", "acm", "VideoX V5 V265 ACM"),
 ];
@@ -75,10 +89,26 @@ const APPLIANCE_ROWS = [
 const CATALOGUE = datasheetCatalogue(PRODUCT_ROWS, APPLIANCE_ROWS);
 
 describe("datasheetCatalogue", () => {
-  it("has one entry per model, not one per SKU", () => {
-    // 9 product_specs rows across 3 models + 7 appliance rows = 10 entries.
-    assert.equal(CATALOGUE.length, 10);
+  it("has one entry per SHEET, not one per SKU", () => {
+    // 9 product_specs rows across 3 models = 3 entries, plus 7 appliance rows
+    // across 6 sheet groups (V250 and V255 share one) = 9 entries.
+    assert.equal(CATALOGUE.length, 9);
     assert.equal(CATALOGUE.filter((e) => e.model === "V400").length, 1);
+  });
+
+  it("collapses the two management variants into one V250 / V255 sheet", () => {
+    const entries = CATALOGUE.filter((e) => e.displayName.includes("V255"));
+    assert.equal(entries.length, 1, "V255 must not also have a sheet of its own");
+    const sheet = entries[0];
+    assert.equal(sheet.model, "V250", "the sheet group is the URL segment");
+    assert.equal(sheet.displayName, "V250 / V255");
+    assert.deepEqual(sheet.aliases, ["V255"]);
+    assert.deepEqual(sheet.skus, ["VX5-V250-X", "VX5-V255-X"]);
+  });
+
+  it("renders the management sheet through Ledger, not a template of its own", () => {
+    assert.equal(findCatalogueEntry(CATALOGUE, "V250")!.template, "ledger");
+    assert.equal(findCatalogueEntry(CATALOGUE, "V250")!.source, "appliance_specs");
   });
 
   it("lists the three SKUs that make up an NVR sheet's ordering table", () => {
@@ -107,11 +137,8 @@ describe("datasheetCatalogue", () => {
 describe("models with no datasheet are LISTED, with a reason in words", () => {
   const unavailable = CATALOGUE.filter((e) => e.template === null);
 
-  it("is the three ACM rows and the two management rows — five, none omitted", () => {
-    assert.deepEqual(
-      unavailable.map((e) => e.model).sort(),
-      ["V150", "V250", "V255", "V260", "V265"],
-    );
+  it("is the three ACM rows and nothing else — the management sheet now builds", () => {
+    assert.deepEqual(unavailable.map((e) => e.model).sort(), ["V150", "V260", "V265"]);
   });
 
   it("never leaves a reason empty — an unavailable sheet always explains itself", () => {
@@ -123,18 +150,14 @@ describe("models with no datasheet are LISTED, with a reason in words", () => {
     }
   });
 
-  it("gives ACM and management DIFFERENT reasons — they are not the same problem", () => {
+  it("states the ACM reason as never-designed, which is not the management one", () => {
     const acm = findCatalogueEntry(CATALOGUE, "V150")!.unavailableReason!;
-    const mgmt = findCatalogueEntry(CATALOGUE, "V250")!.unavailableReason!;
-    assert.notEqual(acm, mgmt);
-    // ACM: nothing was ever designed.
     assert.match(acm, /no datasheet template has been designed/i);
-    // Management: designed, not built.
-    assert.match(mgmt, /designed but not yet built/i);
-  });
-
-  it("lists V255 separately, so a shared sheet_group cannot hide it", () => {
-    assert.ok(findCatalogueEntry(CATALOGUE, "V255"));
+    // ADR 0110 carried a second, different reason for the management servers —
+    // designed but not built. ADR 0111 built them, so it is gone.
+    for (const entry of unavailable) {
+      assert.doesNotMatch(entry.unavailableReason!, /designed but not yet built/i);
+    }
   });
 
   it("carries no gap list for a model that cannot render at all", () => {
@@ -146,6 +169,13 @@ describe("findCatalogueEntry", () => {
   it("is case- and whitespace-insensitive, since the model arrives from a URL", () => {
     assert.equal(findCatalogueEntry(CATALOGUE, "v800")!.model, "V800");
     assert.equal(findCatalogueEntry(CATALOGUE, "  sw10 ")!.model, "SW10");
+  });
+
+  it("resolves a variant that shares a sheet to the sheet that covers it", () => {
+    // Without the alias, a real product answers 404 because its sibling happens
+    // to name the sheet.
+    assert.equal(findCatalogueEntry(CATALOGUE, "V255")!.model, "V250");
+    assert.equal(findCatalogueEntry(CATALOGUE, "v255")!.displayName, "V250 / V255");
   });
 
   it("returns undefined for a model in neither table", () => {

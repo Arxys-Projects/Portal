@@ -5,13 +5,16 @@
 // only reads and hands back a PDF, and the gate matches the route's
 // (requireDatasheetAccess, ADR 0110).
 //
-// THE MODELS WITH NO SHEET ARE ON THIS PAGE. Five of the fourteen entries cannot
-// be generated — three ACM rows because no template was ever designed for them,
-// and the two management servers because their designed template is not built.
-// Omitting them would read as "these products do not exist"; each one states its
-// own reason in a full sentence. Same for a sheet that renders with gaps: the
-// missing columns are named, so the person who can fill them in through the spec
-// form can see what to fill in.
+// THE MODELS WITH NO SHEET ARE ON THIS PAGE. Three ACM rows cannot be generated,
+// because no template was ever designed for them. Omitting them would read as
+// "these products do not exist"; each one states its own reason in a full
+// sentence. Same for a sheet that renders with gaps: the missing columns are
+// named, so the person who can fill them in through the spec form can see what
+// to fill in.
+//
+// ONE CARD PER SHEET, NOT PER SKU. V250 and V255 share one sheet and get one
+// card titled "V250 / V255", the same way an NVR's three drive capacities do —
+// the SKU line under the card is what tells a reader their model is covered.
 
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -35,7 +38,7 @@ function SheetCard({ entry }: { entry: CatalogueEntry }) {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex flex-wrap items-baseline gap-2">
-            <h3 className="text-lg font-bold text-ink">{entry.model}</h3>
+            <h3 className="text-lg font-bold text-ink">{entry.displayName}</h3>
             <span className="text-sm text-ink-soft">{entry.description}</span>
           </div>
           <p className="mt-1 text-xs text-ink-soft">
@@ -74,7 +77,9 @@ function SheetCard({ entry }: { entry: CatalogueEntry }) {
           "why is there no separate V400-160 datasheet". */}
       {entry.skus.length > 1 ? (
         <p className="mt-3 text-xs text-ink-soft">
-          One sheet covers all {entry.skus.length} capacities:{" "}
+          {entry.aliases.length > 0
+            ? `One sheet covers all ${entry.skus.length} variants: `
+            : `One sheet covers all ${entry.skus.length} capacities: `}
           <span className="font-mono">{entry.skus.join(" · ")}</span>
         </p>
       ) : null}

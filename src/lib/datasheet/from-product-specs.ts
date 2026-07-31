@@ -40,11 +40,13 @@
 
 import { usableCapacityTb } from "../capacity-utils";
 import * as copy from "./copy";
+import { PAGE1_PHOTO_HEIGHT } from "./tokens";
 import { clean, isYes, joinParts, specRow, thousands } from "./spec-text";
 import type {
   DatasheetContent,
   LadderCell,
   OrderableRow,
+  OrderableTable,
   SpecRow,
   VsrRow,
 } from "./types";
@@ -265,6 +267,32 @@ export function orderableRows(rows: ProductSpecRow[]): OrderableRow[] {
       usable: usable != null ? `${thousands(Math.round(usable))} TB` : "—",
     };
   });
+}
+
+/**
+ * The NVR ordering table: three drive capacities of one chassis.
+ *
+ * The columns are data rather than markup because the management sheet orders
+ * by CPU/RAM tier instead and needs different ones (see `OrderableTable`). The
+ * RAID level is interpolated into the last column's header — the handoff calls
+ * it "a template variable, not a constant" and the single most important gotcha
+ * in the design.
+ */
+export function ledgerOrderableTable(
+  rows: ProductSpecRow[],
+  raidLevel: string,
+  caption: string,
+): OrderableTable {
+  return {
+    columns: [
+      { header: "Part Number", flex: 1.05, emphasis: "partNumber" },
+      { header: "Drive Configuration", flex: 1.6 },
+      { header: "Raw", flex: 0.75 },
+      { header: `Usable · ${raidLevel}`, flex: 0.95, emphasis: "strong" },
+    ],
+    rows: orderableRows(rows).map((r) => [r.partNumber, r.driveConfig, r.raw, r.usable]),
+    caption,
+  };
 }
 
 /** The two VSR rows. H.265 only — the handoff is explicit that Ledger does not split codecs. */
@@ -490,6 +518,8 @@ export function buildLedgerContent(model: string, allRows: ProductSpecRow[]): Da
       path: spec.product_photo_path || null,
       placeholder: copy.ledgerPhotoPlaceholder(model, spec.rack_units),
     },
+    // Every NVR descriptor fits the hero row on one line beside the pills.
+    productPhotoHeight: PAGE1_PHOTO_HEIGHT.oneLineDescriptor,
 
     warranty: warrantyBlock(spec),
 
@@ -497,22 +527,28 @@ export function buildLedgerContent(model: string, allRows: ProductSpecRow[]): Da
     features: copy.LEDGER_FEATURES,
     vmsValidated: copy.VMS_VALIDATED,
 
-    // Literal 2 of 3, also fully derived: "4,000 Mbit/s · 864 TB raw · 720 TB usable".
-    ceilingLine: joinParts([
-      bandwidth != null ? `${thousands(bandwidth)} Mbit/s` : null,
-      maxRawTb != null ? `${thousands(maxRawTb)} TB raw` : null,
-      maxUsableTb != null ? `${thousands(Math.round(maxUsableTb))} TB usable` : null,
-    ]),
-    vsrRows: vsrRows(spec.max_cameras_h265),
-    vsrParameters: copy.LEDGER_VSR_PARAMETERS,
-    vsrCaption: copy.LEDGER_VSR_CAPTION,
+    performance: {
+      kind: "vsr",
+      heading: "Maximum Video Stream Rate",
+      // Literal 2 of 3, also fully derived: "4,000 Mbit/s · 864 TB raw · 720 TB usable".
+      ceilingLine: joinParts([
+        bandwidth != null ? `${thousands(bandwidth)} Mbit/s` : null,
+        maxRawTb != null ? `${thousands(maxRawTb)} TB raw` : null,
+        maxUsableTb != null ? `${thousands(Math.round(maxUsableTb))} TB usable` : null,
+      ]),
+      rows: vsrRows(spec.max_cameras_h265),
+      parameters: copy.LEDGER_VSR_PARAMETERS,
+      caption: copy.LEDGER_VSR_CAPTION,
+    },
 
-    // Literal 3 of 3 — appears in the column header AND the caption.
-    raidLevel: raid,
-    orderableRows: orderableRows(rows),
-    orderableCaption: copy.ledgerOrderableCaption(
+    // Literal 3 of 3 — the RAID level appears in the column header AND the caption.
+    orderable: ledgerOrderableTable(
+      rows,
       raid,
-      spec.raid_level_alt_display ? raidLabel(spec.raid_level_alt_display) : null,
+      copy.ledgerOrderableCaption(
+        raid,
+        spec.raid_level_alt_display ? raidLabel(spec.raid_level_alt_display) : null,
+      ),
     ),
 
     hardware: hardwareRows(spec, maxRawTb),

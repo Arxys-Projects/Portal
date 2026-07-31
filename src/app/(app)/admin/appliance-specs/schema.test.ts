@@ -155,12 +155,12 @@ function expectFieldError(input: unknown, field: string) {
 }
 
 describe("applianceFormSchema — field coverage", () => {
-  it("validates exactly the 65 fields the form renders", () => {
-    // 64 columns minus updated_at / updated_by. A column added to the table
+  it("validates exactly the 67 fields the form renders", () => {
+    // 66 columns minus updated_at / updated_by. A column added to the table
     // without a field here is unreachable through the only supported write path
     // — the failure mode ADR 0096 exists to end, and the round-trip script's
     // COVERS check is the live half of this assertion.
-    assert.equal(APPLIANCE_FIELD_NAMES.length, 65);
+    assert.equal(APPLIANCE_FIELD_NAMES.length, 67);
     assert.deepEqual(
       Object.keys(applianceFormSchema.shape).sort(),
       [...APPLIANCE_FIELD_NAMES].sort(),
@@ -411,12 +411,31 @@ describe("applianceWarnings — archetype mismatches (design §4e)", () => {
     // the values are there. Naming them is the point.
     const warnings = warn({
       family_type: "management",
+      cameras_managed_max: 250,
       gpu_model: "RTX A4000",
       camera_matrix: SW10_MATRIX,
     });
     assert.equal(warnings.length, 1);
     assert.match(warnings[0], /GPU model, Camera matrix are filled on a management row/);
     assert.match(warnings[0], /still be saved/);
+  });
+
+  it("flags a management row with no cameras-managed bound, naming what goes blank", () => {
+    const warnings = warn({ family_type: "management" });
+    assert.equal(warnings.length, 1);
+    assert.match(warnings[0], /no cameras-managed bound/);
+    assert.match(warnings[0], /headline strip/);
+  });
+
+  it("accepts either bound alone — a ceiling or a floor is a complete answer", () => {
+    assert.deepEqual(warn({ family_type: "management", cameras_managed_max: 250 }), []);
+    assert.deepEqual(warn({ family_type: "management", cameras_managed_min: 250 }), []);
+  });
+
+  it("flags a cameras-managed bound on an ACM row, which is sized by doors", () => {
+    const warnings = warn({ family_type: "acm", cameras_managed_max: 250 });
+    assert.equal(warnings.length, 1);
+    assert.match(warnings[0], /sized by doors/);
   });
 
   it("stays silent while the archetype has not been picked yet", () => {
@@ -427,7 +446,9 @@ describe("applianceWarnings — archetype mismatches (design §4e)", () => {
     // One definition, two callers: the action passes the parsed row, the form
     // passes coerced live strings. They must agree, or the form would promise
     // something the save does not repeat.
-    const parsed = expectOk(managementRow({ gpu_model: "RTX A4000" }));
+    const parsed = expectOk(
+      managementRow({ gpu_model: "RTX A4000", cameras_managed_max: "250" }),
+    );
     assert.equal(warn(parsed as ApplianceRuleValues).length, 1);
   });
 });
@@ -506,6 +527,9 @@ const APPLIANCE_EXCLUDED_FIELD_NAMES = [
   "cpu_base_ghz",
   "cpu_turbo_ghz",
   "ram_spec",
+  // management capacity — the whole point of the V250/V255 split
+  "cameras_managed_min",
+  "cameras_managed_max",
   // storage — sizes vary per SKU (V255 OS is 960GB not 480GB)
   "storage_summary",
   "os_drive_desc",

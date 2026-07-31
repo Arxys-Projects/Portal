@@ -184,6 +184,28 @@ export const APPLIANCE_SECTIONS: SpecSection[] = [
     ],
   },
   {
+    title: "Management capacity",
+    note:
+      "Management and directory servers only — how many cameras the variant is sized to manage. " +
+      "This is NOT camera streams: a stream count is an NVR figure and lives on product_specs. " +
+      "Leave both blank on workstations (their capacity is the camera matrix) and on the ACM line " +
+      "(which is sized by doors, not cameras).",
+    fields: [
+      {
+        name: "cameras_managed_min",
+        label: "Cameras managed — from",
+        kind: "int-optional",
+        hint: "Fill this when the sheet states a floor: the V255 is '250 and above', so from = 250 and 'to' stays blank.",
+      },
+      {
+        name: "cameras_managed_max",
+        label: "Cameras managed — to",
+        kind: "int-optional",
+        hint: "Fill this when the sheet states a ceiling: the V250 is 'up to 250', so to = 250 and 'from' stays blank. Set both to the same number for an exact figure.",
+      },
+    ],
+  },
+  {
     title: "Availability & RAID",
     fields: [
       {
@@ -439,6 +461,30 @@ export function applianceWarnings(values: ApplianceRuleValues): string[] {
       );
     }
     return warnings;
+  }
+
+  // A management sheet's defining figure is how many cameras the variant is
+  // sized for, and it prints in four places on the rendered page. Absent, the
+  // headline strip shows an em dash and the capacity table's own row says
+  // nothing — so this is worth naming here as well as in the datasheet picker.
+  if (
+    familyType === "management" &&
+    !isSet(values.cameras_managed_min) &&
+    !isSet(values.cameras_managed_max)
+  ) {
+    warnings.push(
+      "This management row states no cameras-managed bound. The datasheet prints that figure in its headline strip, its model ladder, its capacity table and its ordering table — all four read an em dash until one of the two fields is filled.",
+    );
+  }
+  // The ACM line is sized by doors rather than cameras, so a bound here is
+  // probably the wrong measure rather than the right one in the wrong row.
+  if (
+    familyType === "acm" &&
+    (isSet(values.cameras_managed_min) || isSet(values.cameras_managed_max))
+  ) {
+    warnings.push(
+      "Cameras managed is filled on an ACM row. Access control appliances are sized by doors and certified platforms, not by cameras under management — it will be saved as entered.",
+    );
   }
 
   // Non-workstation: the workstation-only columns should all be blank. They are

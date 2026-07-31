@@ -418,17 +418,24 @@ download always states today's specs ([ADR 0110](./decisions/0110-datasheet-gene
    every signed-in partner once the authored copy has had a marketing pass, which is a
    one-line change in `src/lib/datasheet/guard.ts`.
 2. Click **Download PDF** on a model. That is `GET /api/datasheet/{model}` — **one sheet per
-   model, not per SKU**: `/api/datasheet/V400` renders one sheet whose ordering table lists
-   VX5-V400-128, -160 and -192. A part number is not a valid path segment.
+   SHEET, not per SKU**: `/api/datasheet/V400` renders one sheet whose ordering table lists
+   VX5-V400-128, -160 and -192, and `/api/datasheet/V250` renders the "V250 / V255" sheet
+   covering both management variants. `/api/datasheet/V255` resolves to that same sheet. A
+   part number is not a valid path segment.
 3. Read the two coloured boxes on a card before sending the PDF anywhere:
    - **Red, "needs fixing before sending to a customer"** — the PDF comes out defective.
      Today the only such check is a `usage_paragraph` over 324 characters, which pushes the
      footer onto a fourth page. Shorten it in **Admin → Product Specs**.
    - **Amber, "renders with gaps"** — blank spec columns that are honestly left off the
      sheet. Fill them in through the spec form; never `UPDATE` the table directly.
-4. Five of the fourteen models have no sheet and say so on their own card: the three ACM rows
-   (V150/V260/V265) because no template was ever designed for the access control line, and
-   V250/V255 because their template is designed but not built.
+4. Three of the fourteen models have no sheet and say so on their own card: the ACM rows
+   V150, V260 and V265, because no template was ever designed for the access control line.
+5. The **V250 / V255** sheet renders, but prints an em dash for throughput and cameras
+   managed until those figures are entered on **Admin → Appliance Specs** — neither is on the
+   source factsheet, so nothing is assumed. Fill *Cameras managed — to* on the V250 (a
+   ceiling) and *Cameras managed — from* on the V255 (a floor); see
+   [ADR 0111](./decisions/0111-management-is-a-ledger-variant.md). This needs migration
+   `20260731000001` applied first — [apply note](./apply-notes/0111-management-cameras-managed.md).
 
 To render the same sheets locally, byte-for-byte what the route produces:
 

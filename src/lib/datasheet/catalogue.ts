@@ -6,9 +6,8 @@
 // the admin picker (to show the whole range, including the models with no sheet).
 //
 // A MODEL WITH NO SHEET IS LISTED, NOT OMITTED. Silently dropping the three ACM
-// rows and the two management rows from the picker would read as "these products
-// do not exist"; the honest surface says they exist and explains what is missing.
-// The two reasons are genuinely different and are not collapsed into one:
+// rows from the picker would read as "these products do not exist"; the honest
+// surface says they exist and explains what is missing.
 //
 //   ACM (V150, V260, V265) — no template has been DESIGNED. The design handoff
 //   puts the ACM line explicitly out of scope: the ACM names appear in the V250
@@ -17,16 +16,20 @@
 //   Ledger would produce a video server sheet wearing access-control figures,
 //   which is the exact failure ADR 0109 was written about.
 //
-//   Management (V250, V255) — the template IS designed (handoff screenshots 03
-//   and 04) but is not BUILT. It needs section shapes Ledger does not have: a
-//   Management Capacity table in place of the VSR table with different columns
-//   and no parameter strip, an orderable table of Part Number / Model /
-//   Configuration / Cameras Managed, and merged two-SKU spec values. Its
-//   throughput and cameras-managed figures are also not in appliance_specs, so
-//   they would have to be authored rather than read. Deferred deliberately —
-//   ADR 0110.
+// ADR 0110 deferred the management servers here too, for a different reason —
+// designed but not built. ADR 0111 builds them, so that half is gone and only
+// the ACM reason remains, exactly as 0110 said would happen.
+//
+// ONE ENTRY PER SHEET, NOT PER ROW. The NVRs already worked this way (three SKUs
+// of a model are the rows of one sheet's ordering table), and the management
+// rows now do too: V250 and V255 share `sheet_group = 'V250'` and render as one
+// "V250 / V255" sheet. So V255 has no entry of its own — it is an ALIAS on the
+// V250 entry, which keeps a search or a URL for "V255" landing on the sheet that
+// actually covers it instead of 404ing. Every other appliance row is its own
+// sheet group and so its own entry.
 
 import type { ApplianceSpecRow } from "./from-appliance-specs";
+import { managementGaps, managementWarnings } from "./from-management-specs";
 import {
   groupByModel,
   ledgerGaps,
@@ -37,8 +40,24 @@ import {
 export type DatasheetTemplate = "ledger" | "rail";
 
 export type CatalogueEntry = {
-  /** The model the sheet is for, e.g. "V800" or "SW10". One sheet per model. */
+  /**
+   * The key the sheet is addressed by — the model for an NVR or workstation
+   * ("V800", "SW10"), the sheet group for a multi-SKU sheet ("V250"). This is
+   * the URL segment, so it stays a bare alphanumeric.
+   */
   model: string;
+  /**
+   * How the sheet names itself: "V800", or "V250 / V255" where one sheet covers
+   * two SKUs. Used for the picker card and the download filename, never as a
+   * lookup key.
+   */
+  displayName: string;
+  /**
+   * Other model keys that resolve to this sheet — ["V255"] on the V250 entry.
+   * Without them a URL or a search for a real product answers 404 because its
+   * sibling happens to name the sheet.
+   */
+  aliases: string[];
   /** Which spec table the sheet reads. */
   source: "product_specs" | "appliance_specs";
   /** How the sheet is described in the picker, e.g. "8 bay · 2U NVR". */
@@ -66,17 +85,19 @@ const ACM_REASON =
   "certified platform lists — is drawn anywhere. Rendering it through the video server " +
   "template would produce a sheet with the wrong sections.";
 
-const MANAGEMENT_REASON =
-  "The management server sheet is designed but not yet built. It needs a Management " +
-  "Capacity table in place of the video stream rate table, a differently-shaped ordering " +
-  "table, and merged V250/V255 spec values — and its throughput and cameras-managed " +
-  "figures are not in the spec table yet.";
-
-/** Why a non-workstation appliance family has no sheet. */
+/** Why an appliance family that is neither workstation nor management has no sheet. */
 function applianceUnavailableReason(familyType: string | null): string {
   if (familyType === "acm") return ACM_REASON;
-  if (familyType === "management") return MANAGEMENT_REASON;
   return `No template covers family type "${familyType ?? "unset"}".`;
+}
+
+/** Which builder a renderable appliance sheet goes through. */
+export type ApplianceSheetKind = "rail" | "management";
+
+function sheetKind(familyType: string | null): ApplianceSheetKind | null {
+  if (familyType === "workstation") return "rail";
+  if (familyType === "management") return "management";
+  return null;
 }
 
 /**
@@ -101,6 +122,8 @@ export function datasheetCatalogue(
     const spec = rows[rows.length - 1];
     entries.push({
       model,
+      displayName: model,
+      aliases: [],
       source: "product_specs",
       description: [
         spec.drive_bays ? `${spec.drive_bays} bay` : null,
@@ -117,27 +140,51 @@ export function datasheetCatalogue(
     });
   }
 
-  // One entry per product_group. Two management rows share a sheet_group, but
-  // they are listed separately here because neither renders — collapsing them
-  // would hide V255 from the picker entirely.
-  const appliances = [...applianceRows].sort((a, b) =>
+  // ONE ENTRY PER SHEET GROUP. Iterating rows would give V250 and V255 an entry
+  // each and two identical downloads of the same sheet; iterating groups gives
+  // one entry naming both. The group is keyed by its first row's product_group
+  // so the URL segment stays what it always was.
+  const bySheet = new Map<string, ApplianceSpecRow[]>();
+  for (const row of [...applianceRows].sort((a, b) =>
     a.product_group.localeCompare(b.product_group),
-  );
-  for (const row of appliances) {
-    const isWorkstation = row.family_type === "workstation";
+  )) {
+    const list = bySheet.get(row.sheet_group);
+    if (list) list.push(row);
+    else bySheet.set(row.sheet_group, [row]);
+  }
+
+  for (const [group, rows] of [...bySheet.entries()].sort((a, b) => a[0].localeCompare(b[0]))) {
+    const first = rows[0];
+    const kind = sheetKind(first.family_type);
+    const groups = rows.map((r) => r.product_group);
     entries.push({
-      model: row.product_group,
+      // The sheet group is the address, but a group whose rows do not include it
+      // would be unreachable, so fall back to the first row's own group.
+      model: groups.includes(group) ? group : groups[0],
+      displayName: groups.join(" / "),
+      aliases: groups.filter((g) => g !== (groups.includes(group) ? group : groups[0])),
       source: "appliance_specs",
       description:
-        row.model_name?.replace(/^VideoX V5\s+/, "").replace(`${row.product_group} `, "") ??
-        (row.family_type ?? "appliance"),
-      template: isWorkstation ? "rail" : null,
-      unavailableReason: isWorkstation ? null : applianceUnavailableReason(row.family_type),
-      gaps: isWorkstation ? railGaps(row) : [],
-      // Rail has no equivalent length constraint: its usage paragraph sits in a
-      // content column with the photo below it, not beside the attributes.
-      warnings: [],
-      skus: [row.id],
+        kind === "management"
+          ? `${rows.length === 1 ? "Management" : `${rows.length} variants`} · ${
+              first.rack_units ?? "rack"
+            } management / directory server`
+          : first.model_name?.replace(/^VideoX V5\s+/, "").replace(`${first.product_group} `, "") ??
+            (first.family_type ?? "appliance"),
+      // Management renders through LEDGER, not a template of its own (ADR 0111).
+      template: kind === null ? null : kind === "rail" ? "rail" : "ledger",
+      unavailableReason: kind === null ? applianceUnavailableReason(first.family_type) : null,
+      gaps:
+        kind === "management"
+          ? managementGaps(group, applianceRows)
+          : kind === "rail"
+            ? railGaps(first)
+            : [],
+      // Rail has no length constraint of its own: its usage paragraph sits in a
+      // content column with the photo below it, not beside the attributes. The
+      // management sheet reuses Ledger's page 1, so it reuses Ledger's limit.
+      warnings: kind === "management" ? managementWarnings(group, applianceRows) : [],
+      skus: rows.map((r) => r.id),
     });
   }
 
@@ -156,11 +203,20 @@ export function railGaps(row: ApplianceSpecRow): string[] {
   return gaps;
 }
 
-/** Look up one model. Returns undefined for a model that is not in either table. */
+/**
+ * Look up one model. Returns undefined for a model that is not in either table.
+ *
+ * Aliases are matched after the primary keys, never interleaved: a model that
+ * names a sheet must win over one that merely appears on it, so a future group
+ * whose alias collides with another sheet's name cannot hijack it.
+ */
 export function findCatalogueEntry(
   catalogue: CatalogueEntry[],
   model: string,
 ): CatalogueEntry | undefined {
   const wanted = model.trim().toUpperCase();
-  return catalogue.find((e) => e.model.toUpperCase() === wanted);
+  return (
+    catalogue.find((e) => e.model.toUpperCase() === wanted) ??
+    catalogue.find((e) => e.aliases.some((a) => a.toUpperCase() === wanted))
+  );
 }

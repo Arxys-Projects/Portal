@@ -360,7 +360,11 @@ describe("buildLedgerContent — V800", () => {
   });
 
   it("derives the page-2 ceiling line", () => {
-    assert.equal(content.ceilingLine, "4,000 Mbit/s · 864 TB raw · 720 TB usable");
+    assert.equal(content.performance.ceilingLine, "4,000 Mbit/s · 864 TB raw · 720 TB usable");
+  });
+
+  it("builds a VSR performance section, not the management capacity one", () => {
+    assert.equal(content.performance.kind, "vsr");
   });
 
   it("fills the headline strip from the model's maximum, thousands-separated", () => {
@@ -373,18 +377,27 @@ describe("buildLedgerContent — V800", () => {
   });
 
   it("carries the RAID level into the ordering header variable and the caption", () => {
-    assert.equal(content.raidLevel, "RAID 60");
-    assert.match(content.orderableCaption, /RAID 60/);
+    assert.equal(content.orderable.columns[3].header, "Usable · RAID 60");
+    assert.match(content.orderable.caption, /RAID 60/);
+  });
+
+  it("orders by drive capacity: Part Number / Drive Configuration / Raw / Usable", () => {
+    assert.deepEqual(
+      content.orderable.columns.map((c) => c.header),
+      ["Part Number", "Drive Configuration", "Raw", "Usable · RAID 60"],
+    );
   });
 
   it("says camera STREAMS, never cameras, in the VSR caption", () => {
-    assert.match(content.vsrCaption, /camera streams, not cameras/);
+    assert.match(content.performance.caption, /camera streams, not cameras/);
   });
 
   it("keeps the VSR parameter strip — it is what makes the count defensible", () => {
-    assert.equal(content.vsrParameters.length, 6);
+    assert.equal(content.performance.kind, "vsr");
+    if (content.performance.kind !== "vsr") return;
+    assert.equal(content.performance.parameters.length, 6);
     assert.deepEqual(
-      content.vsrParameters.map((p) => p.label),
+      content.performance.parameters.map((p) => p.label),
       ["Resolution", "Frame rate", "Codec", "Recording", "Motion activity", "Retention"],
     );
   });
@@ -431,14 +444,14 @@ describe("buildLedgerContent — V400 (the second model, which is the point)", (
   const content = buildLedgerContent("V400", ALL_ROWS);
 
   it("has RAID 6, not the V800's RAID 60", () => {
-    assert.equal(content.raidLevel, "RAID 6");
-    assert.match(content.orderableCaption, /RAID 6,/);
+    assert.equal(content.orderable.columns[3].header, "Usable · RAID 6");
+    assert.match(content.orderable.caption, /RAID 6,/);
     assert.ok(content.attributes.includes("RAID 6 data protection"));
   });
 
   it("has its own descriptor, ceiling and headline", () => {
     assert.equal(content.descriptor, "8 Bay · 2U Rack · V5 Video Server");
-    assert.equal(content.ceilingLine, "2,000 Mbit/s · 192 TB raw · 144 TB usable");
+    assert.equal(content.performance.ceilingLine, "2,000 Mbit/s · 192 TB raw · 144 TB usable");
     assert.equal(content.headline[3].value, "200");
   });
 
@@ -500,8 +513,8 @@ describe("buildLedgerContent — V100, the incomplete row", () => {
   });
 
   it("states the JBOD alternative the raid_level_alt_display column holds", () => {
-    assert.equal(content.raidLevel, "RAID 1");
-    assert.match(content.orderableCaption, /JBOD/);
+    assert.equal(content.orderable.columns[3].header, "Usable · RAID 1");
+    assert.match(content.orderable.caption, /JBOD/);
   });
 
   it("omits the revision date rather than implying today's", () => {

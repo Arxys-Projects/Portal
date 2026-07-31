@@ -43,6 +43,7 @@ import { registerDatasheetFonts } from "../src/lib/datasheet/tokens";
 import { datasheetCatalogue, findCatalogueEntry } from "../src/lib/datasheet/catalogue";
 import { buildLedgerContent } from "../src/lib/datasheet/from-product-specs";
 import { buildRailContent } from "../src/lib/datasheet/from-appliance-specs";
+import { buildManagementContent } from "../src/lib/datasheet/from-management-specs";
 import type { ProductSpecRow } from "../src/lib/datasheet/from-product-specs";
 import type { ApplianceSpecRow } from "../src/lib/datasheet/from-appliance-specs";
 
@@ -117,14 +118,20 @@ async function renderOne(
     return true;
   }
 
+  // Same branching as the route: the template says how it is drawn, `source`
+  // says which adapter fills it. Management and NVR sheets share Ledger.
   let element;
-  if (entry.template === "ledger") {
+  if (entry.template === "rail") {
+    const row = data.applianceRows.find((r) => r.product_group === entry.model)!;
+    element = createElement(RailDatasheetPdf, { data: buildRailContent(row) });
+  } else if (entry.source === "appliance_specs") {
+    element = createElement(DatasheetPdf, {
+      data: buildManagementContent(entry.model, data.applianceRows),
+    });
+  } else {
     element = createElement(DatasheetPdf, {
       data: buildLedgerContent(entry.model, data.productRows),
     });
-  } else {
-    const row = data.applianceRows.find((r) => r.product_group === entry.model)!;
-    element = createElement(RailDatasheetPdf, { data: buildRailContent(row) });
   }
 
   const out = resolve(outPath ?? `staging/${entry.model.toLowerCase()}-datasheet.pdf`);

@@ -2,7 +2,17 @@ import { Document, Image, Page, StyleSheet, Text, View } from "@react-pdf/render
 import { C, F, loadPng, px, registerDatasheetFonts } from "./tokens";
 import type { DatasheetContent, ImageSlot, SpecRow } from "./types";
 
-// The "Ledger" datasheet template — VideoX servers and management appliances.
+// The "Ledger" datasheet template — VideoX NVRs and management servers.
+//
+// TWO SHEETS, ONE TEMPLATE (ADR 0111). The V250/V255 management sheet renders
+// through this file. It shares page 1, page 3 and every styling rule with the
+// NVR sheet, and differs in exactly two page-2 blocks, both of which arrive as
+// data: `performance` is a discriminated union (a Max Video Stream Rate table
+// plus its parameter strip, or a Management Capacity table with no strip), and
+// `orderable` carries its own columns and weights. Nothing else in here asks
+// which kind of sheet it is rendering — that is the test of whether this was
+// the right call, and the reason a fix to the warranty band or the ladder does
+// not have to be made twice.
 //
 // No `import "server-only"` here, matching ProjectQuotePdf.tsx: the marker
 // throws under plain Node, which would put this template out of reach of both
@@ -76,6 +86,7 @@ const s = StyleSheet.create({
     letterSpacing: px(56) * -0.015,
     color: C.navy,
   },
+  modelSeparator: { color: C.separator },
   descriptor: {
     fontSize: px(16), lineHeight: 1.25,
     fontWeight: 600,
@@ -86,7 +97,11 @@ const s = StyleSheet.create({
     // the gap the handoff draws has to be put back explicitly.
     marginTop: px(18),
   },
-  pills: { flexDirection: "row", alignItems: "center" },
+  heroLeft: { flex: 1, paddingRight: px(20) },
+  // No shrink: the pills keep their measure and the descriptor gives way, which
+  // is the handoff's rule for this row ("nowrap and no flex shrink") — without
+  // it "CE / UKCA" breaks mid-string the moment the descriptor gets long.
+  pills: { flexDirection: "row", alignItems: "center", flexShrink: 0 },
   pill: {
     borderWidth: 1,
     borderColor: C.hairline,
@@ -320,6 +335,10 @@ const s = StyleSheet.create({
     paddingHorizontal: px(13),
   },
   streamCount: { fontFamily: F.display, fontSize: px(13), lineHeight: 1, fontWeight: 600, color: C.navy },
+  // The capacity table's counterpart to streamCount. Navy and bold for the same
+  // reason, but left at the 9px table size: its cells are phrases ("250 and
+  // above"), and a phrase set at the numeral's 13px wraps the column.
+  capacityCell: { fontWeight: 700, color: C.navy },
   partNumber: { fontWeight: 600, color: C.navy },
   usableCell: { fontWeight: 700, color: C.ink },
   tableCaption: { fontSize: px(8.5), lineHeight: 1.5, color: C.caption, marginTop: px(7) },
@@ -450,6 +469,31 @@ function SpecList({ rows }: { rows: SpecRow[] }) {
   );
 }
 
+/**
+ * The 56px hero numeral.
+ *
+ * A sheet covering two SKUs is titled "V250 / V255", and the handoff sets that
+ * separator in `#B9C2CB` — the one place the separator token is used, and only
+ * at display size, because at 3.4:1 it would fail AA as text. Here it is a
+ * glyph between two model names rather than text carrying meaning: the names
+ * either side are navy at 8.6:1 and reading the "/" is not required to
+ * understand them. A single-model sheet never enters this branch.
+ */
+function ModelNumeral({ model }: { model: string }) {
+  const parts = model.split("/").map((p) => p.trim());
+  if (parts.length === 1) return <Text style={s.modelNumeral}>{model}</Text>;
+  return (
+    <Text style={s.modelNumeral}>
+      {parts.map((part, i) => (
+        <Text key={part}>
+          {i > 0 ? <Text style={s.modelSeparator}>/</Text> : null}
+          {part}
+        </Text>
+      ))}
+    </Text>
+  );
+}
+
 function PageTitle({ data, right }: { data: DatasheetContent; right: string }) {
   return (
     <View style={s.titleRow}>
@@ -484,8 +528,13 @@ function PageOne({ data }: { data: DatasheetContent }) {
       <View style={s.headerRule} />
 
       <View style={s.hero}>
-        <View>
-          <Text style={s.modelNumeral}>{data.model}</Text>
+        {/* flex + a gutter, so a long descriptor WRAPS instead of running into
+            the pills. "4 Bay · 1U Rack · Management / Directory Server" is 22
+            characters longer than "36 Bay · 4U Rack · V5 Video Server" and sat
+            hard against the NDAA pill with no gap at all; the handoff's own
+            V250 render wraps it onto two lines. */}
+        <View style={s.heroLeft}>
+          <ModelNumeral model={data.model} />
           <Text style={s.descriptor}>{data.descriptor}</Text>
         </View>
         {/* nowrap + no shrink: without it "CE / UKCA" splits across two lines
@@ -532,17 +581,11 @@ function PageOne({ data }: { data: DatasheetContent }) {
         </View>
       </View>
 
-      {/* 210px, not ADR 0105's 240px. The V700 overflowed to a fourth page at
-          240: its usage paragraph is 368 characters against the V800's 272, and
-          page 1's only flexible child is the feature grid sitting at its content
-          minimum, so a taller usage column pushes the footer off — exactly the
-          handoff's "Known constraints" §2. Measured across all seven models: 240
-          fails, 220 fits with zero slack, 210 fits and still absorbs ~80 more
-          characters of authored copy, and 200 buys nothing further. 720×210 is
-          3.4:1, still well clear of the handoff's 158px (4.6:1) that ADR 0105
-          was correcting. Re-measure with scripts/render-datasheet.ts --all if
-          any page-1 block changes. */}
-      <PhotoSlot slot={data.productPhoto} height={px(240)} />
+      {/* The height is per sheet and measured, not a constant — page 1's only
+          flexible child is the feature grid and it sits at its content minimum,
+          so it absorbs nothing and the frame is the only block that can pay for
+          an extra line anywhere above it. See PAGE1_PHOTO_HEIGHT. */}
+      <PhotoSlot slot={data.productPhoto} height={px(data.productPhotoHeight)} />
 
       {/* No band at all when the row has no warranty term. Omitting a block is
           the same rule the spec grid follows for an empty column (ADR 0109 §3):
@@ -598,10 +641,14 @@ function PageOne({ data }: { data: DatasheetContent }) {
 }
 
 function PageTwo({ data }: { data: DatasheetContent }) {
-  // Column weights from the handoff: VSR 1.15 / .7 / .95 / 1.2,
-  // orderable 1.05 / 1.6 / .75 / .95.
+  // Column weights from the handoff: VSR 1.15 / .7 / .95 / 1.2. The Management
+  // Capacity table's four columns are Role / Cameras / Recording / Notes, and
+  // Notes carries a full clause so it takes the slack the VSR comparison
+  // column takes on the other sheet.
   const vsr = [1.15, 0.7, 0.95, 1.2];
-  const ord = [1.05, 1.6, 0.75, 0.95];
+  const cap = [1.35, 0.85, 0.7, 1.6];
+  const perf = data.performance;
+  const ord = data.orderable.columns;
 
   return (
     <Page size="LETTER" style={s.page}>
@@ -630,70 +677,106 @@ function PageTwo({ data }: { data: DatasheetContent }) {
       </View>
 
       <View style={[s.sectionRow, { marginTop: px(20) }]}>
-        <Text style={s.sectionHead}>Maximum Video Stream Rate</Text>
-        <Text style={s.sectionCaption}>{data.ceilingLine}</Text>
+        <Text style={s.sectionHead}>{perf.heading}</Text>
+        <Text style={s.sectionCaption}>{perf.ceilingLine}</Text>
       </View>
 
-      <View style={s.table}>
-        <View style={s.tableHead}>
-          {["Resolution", "Codec", "Camera Streams", "vs. 4MP Baseline"].map((h, i) => (
-            <Text key={h} style={[s.tableHeadCell, { flex: vsr[i] }]}>
-              {h}
-            </Text>
+      {perf.kind === "vsr" ? (
+        <>
+          <View style={s.table}>
+            <View style={s.tableHead}>
+              {["Resolution", "Codec", "Camera Streams", "vs. 4MP Baseline"].map((h, i) => (
+                <Text key={h} style={[s.tableHeadCell, { flex: vsr[i] }]}>
+                  {h}
+                </Text>
+              ))}
+            </View>
+            {/* Keyed on resolution AND codec: a sheet may list both H.264 and
+                H.265 at the same resolution (every SW workstation matrix does),
+                and resolution alone then collides — react-pdf warns that
+                duplicate keys may duplicate or omit children. */}
+            {perf.rows.map((row) => (
+              <View key={`${row.resolution}·${row.codec}`} style={s.tableRow}>
+                <Text style={[s.tableCell, { flex: vsr[0] }]}>{row.resolution}</Text>
+                <Text style={[s.tableCell, { flex: vsr[1] }]}>{row.codec}</Text>
+                <View style={[s.tableCell, { flex: vsr[2] }]}>
+                  <Text style={s.streamCount}>{row.streams}</Text>
+                </View>
+                <Text style={[s.tableCell, { flex: vsr[3] }]}>{row.comparison}</Text>
+              </View>
+            ))}
+          </View>
+
+          <View style={s.paramStrip}>
+            <View style={s.paramItem}>
+              <Text style={[s.paramLabel, { color: C.goldDark }]}>VSR Parameters</Text>
+            </View>
+            {perf.parameters.map((param) => (
+              <View key={param.label} style={s.paramItem}>
+                <Text style={s.paramLabel}>{param.label}</Text>
+                <Text style={s.paramValue}>{param.value}</Text>
+              </View>
+            ))}
+          </View>
+        </>
+      ) : (
+        // No parameter strip. The strip states the recording parameters a stream
+        // count was measured against, and this machine records nothing — so it
+        // is absent rather than empty, which is the same rule the warranty band
+        // follows for a row with no term.
+        <View style={s.table}>
+          <View style={s.tableHead}>
+            {["Role", "Cameras", "Recording", "Notes"].map((h, i) => (
+              <Text key={h} style={[s.tableHeadCell, { flex: cap[i] }]}>
+                {h}
+              </Text>
+            ))}
+          </View>
+          {perf.rows.map((row) => (
+            <View key={row.role} style={s.tableRow}>
+              <Text style={[s.tableCell, { flex: cap[0] }]}>{row.role}</Text>
+              {/* The figure a reader came for, so it takes the navy weight the
+                  VSR table gives its stream count — at table size, not the
+                  13px display size, because these are phrases and not numerals. */}
+              <Text style={[s.tableCell, s.capacityCell, { flex: cap[1] }]}>{row.cameras}</Text>
+              <Text style={[s.tableCell, { flex: cap[2] }]}>{row.recording}</Text>
+              <Text style={[s.tableCell, { flex: cap[3] }]}>{row.notes}</Text>
+            </View>
           ))}
         </View>
-        {/* Keyed on resolution AND codec: a sheet may list both H.264 and H.265
-            at the same resolution (every SW workstation matrix does), and
-            resolution alone then collides — react-pdf warns that duplicate keys
-            may duplicate or omit children. */}
-        {data.vsrRows.map((row) => (
-          <View key={`${row.resolution}·${row.codec}`} style={s.tableRow}>
-            <Text style={[s.tableCell, { flex: vsr[0] }]}>{row.resolution}</Text>
-            <Text style={[s.tableCell, { flex: vsr[1] }]}>{row.codec}</Text>
-            <View style={[s.tableCell, { flex: vsr[2] }]}>
-              <Text style={s.streamCount}>{row.streams}</Text>
-            </View>
-            <Text style={[s.tableCell, { flex: vsr[3] }]}>{row.comparison}</Text>
-          </View>
-        ))}
-      </View>
+      )}
 
-      <View style={s.paramStrip}>
-        <View style={s.paramItem}>
-          <Text style={[s.paramLabel, { color: C.goldDark }]}>VSR Parameters</Text>
-        </View>
-        {data.vsrParameters.map((param) => (
-          <View key={param.label} style={s.paramItem}>
-            <Text style={s.paramLabel}>{param.label}</Text>
-            <Text style={s.paramValue}>{param.value}</Text>
-          </View>
-        ))}
-      </View>
-
-      <Text style={s.tableCaption}>{data.vsrCaption}</Text>
+      <Text style={s.tableCaption}>{perf.caption}</Text>
 
       <View style={{ marginTop: px(30) }}>
         <Text style={s.sectionHead}>Orderable configurations</Text>
         <View style={s.table}>
           <View style={s.tableHead}>
-            {["Part Number", "Drive Configuration", "Raw", `Usable · ${data.raidLevel}`].map(
-              (h, i) => (
-                <Text key={h} style={[s.tableHeadCell, { flex: ord[i] }]}>
-                  {h}
-                </Text>
-              ),
-            )}
+            {ord.map((col) => (
+              <Text key={col.header} style={[s.tableHeadCell, { flex: col.flex }]}>
+                {col.header}
+              </Text>
+            ))}
           </View>
-          {data.orderableRows.map((row) => (
-            <View key={row.partNumber} style={s.tableRow}>
-              <Text style={[s.tableCell, s.partNumber, { flex: ord[0] }]}>{row.partNumber}</Text>
-              <Text style={[s.tableCell, { flex: ord[1] }]}>{row.driveConfig}</Text>
-              <Text style={[s.tableCell, { flex: ord[2] }]}>{row.raw}</Text>
-              <Text style={[s.tableCell, s.usableCell, { flex: ord[3] }]}>{row.usable}</Text>
+          {data.orderable.rows.map((row) => (
+            <View key={row[0]} style={s.tableRow}>
+              {row.map((cell, i) => (
+                <Text
+                  key={ord[i]?.header ?? i}
+                  style={[
+                    s.tableCell,
+                    ord[i]?.emphasis === "partNumber" ? s.partNumber : {},
+                    ord[i]?.emphasis === "strong" ? s.usableCell : {},
+                    { flex: ord[i]?.flex ?? 1 },
+                  ]}
+                >
+                  {cell}
+                </Text>
+              ))}
             </View>
           ))}
         </View>
-        <Text style={s.tableCaption}>{data.orderableCaption}</Text>
+        <Text style={s.tableCaption}>{data.orderable.caption}</Text>
       </View>
 
       {/* The handoff's rear slot was 84px tall — roughly 4.4:1 for a chassis

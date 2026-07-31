@@ -35,6 +35,35 @@ export const C = {
   tableRule: "#EDF0F3", // table row dividers
   specRule: "#F1F4F6", // spec row dividers
   wash: "#F5F7F9", // table header rows, photo slot background
+  // The "/" between the two model names on a sheet that covers two SKUs
+  // ("V250/V255"). DISPLAY SIZE ONLY — 3.4:1, the one run the handoff's own
+  // contrast sweep records as failing AA, and it passes review because it is a
+  // 56px separator glyph rather than text carrying meaning.
+  separator: "#B9C2CB",
+} as const;
+
+/**
+ * Page-1 product photo heights, in handoff pixels. Both values are BINARY
+ * SEARCHED against the real template, not chosen — page 1 has zero slack and
+ * the photo is its only adjustable block.
+ *
+ * `oneLineDescriptor` — every NVR sheet. Their descriptors ("36 Bay · 4U Rack ·
+ * V5 Video Server") fit the hero row beside the compliance pills on one line.
+ * 720 × 240 is 3:1, comfortably clear of the handoff's 158px (4.6:1) that ADR
+ * 0105 was correcting.
+ *
+ * `twoLineDescriptor` — the management sheet. "4 Bay · 1U Rack · Management /
+ * Directory Server" is 12 characters longer than the widest NVR descriptor and
+ * cannot fit beside the pills, so it wraps, and the second line pushes the
+ * footer onto a fourth page at 240. The handoff's own V250 reference render
+ * wraps it the same way. The frame gives the line back.
+ *
+ * Re-measure with `scripts/render-datasheet.ts --all` if any page-1 block
+ * changes size. These are properties of the layout, not of the data.
+ */
+export const PAGE1_PHOTO_HEIGHT = {
+  oneLineDescriptor: 240,
+  twoLineDescriptor: 210,
 } as const;
 
 // The accessibility constraint the handoff calls out as a fixed defect: the

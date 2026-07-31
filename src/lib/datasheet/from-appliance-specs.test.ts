@@ -17,6 +17,9 @@ const SW10: ApplianceSpecRow = {
   model_name: "VideoX V5 SW10 Security Workstation",
   product_group: "SW10",
   family_type: "workstation",
+  // A single-SKU sheet groups to itself. SW10 and SW20 are different chassis, so
+  // unlike V250/V255 they never share one.
+  sheet_group: "SW10",
   cpu_model: "AMD Ryzen 7 9700X",
   cores_threads: "8C/16T",
   cpu_cache: "40MB Cache",
@@ -67,8 +70,26 @@ const SW10: ApplianceSpecRow = {
   ],
   remote_mgmt: null,
   product_photo_path: "/datasheet/sw-front.png",
+  rear_io_photo_path: null,
   usage_paragraph:
     "Powerhouse security workstations engineered for high performance and maximum bandwidth.",
+  // The management and server columns, all null on a workstation — a tower has
+  // no array, no cameras under management and no DC input.
+  cameras_managed_min: null,
+  cameras_managed_max: null,
+  db_drive_desc: null,
+  storage_summary: null,
+  drive_bays: null,
+  raid_level_display: null,
+  battery_raid: null,
+  os_redundancy: null,
+  hotswap_power: null,
+  power_dc_input: null,
+  power_redundancy: null,
+  rack_units: null,
+  gbe_1_ports: null,
+  sfp_addon: null,
+  revision_date: null,
 };
 
 describe("streamMatrix", () => {
