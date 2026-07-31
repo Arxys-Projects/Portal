@@ -364,12 +364,22 @@ deploy. The intake convention is [ADR 0108](./decisions/0108-product-photo-intak
    file public/datasheet/v400-*.png
    ```
    `8-bit/color RGBA` means an alpha channel is present; `RGB` means the background is baked
-   in. Both are acceptable — the frame is `objectFit: contain` on a white page.
-4. Optional visual check — render the three-page mockup and look at the page-1 hero and the
-   page-2 rear I/O panel:
+   in. Both are acceptable — the frame is `objectFit: contain` on a white page. Note this is a
+   smoke test only: it cannot tell a *used* alpha channel from one that is opaque everywhere,
+   which passes the header check and still renders a hard rectangle. If that distinction
+   matters, render and look (step 4).
+4. Visual check — render the three pages with the new photos substituted into the two frames,
+   then open the PDF and look at the page-1 hero and the page-2 rear I/O panel:
    ```bash
-   node --import tsx scripts/render-datasheet-mockup.ts
+   node --import tsx scripts/render-datasheet-mockup.ts --model v400
    ```
+   This writes `staging/v400-photo-check.pdf` — gitignored, because everything except the two
+   photos is V800 placeholder copy, so it is an asset check, not a V400 datasheet, and the
+   figures on it are wrong for any other purpose. Without `--model` the script renders empty
+   held frames to the tracked `datasheets/v800-3page-mockup.pdf` design handoff, which is what
+   the placeholder's null photo slots mean.
+   A path that does not exist under `public/` is a hard error rather than a silently empty
+   frame; run it from the repo root, since `loadPng` resolves against the working directory.
 5. Paste the path into the admin form's **Datasheet content → Product photo path** /
    **Rear I/O photo path** fields, as `/datasheet/v400-front.png`. The form is the only
    supported write path for these columns — never `UPDATE product_specs` / `appliance_specs`
@@ -394,6 +404,7 @@ helps — surplus whitespace baked into the canvas shrinks the drawing inside a 
 | Round-trip live `product_specs` through the admin form's schema (read-only) | `node --env-file=.env.local --import tsx scripts/roundtrip-product-specs.mts` |
 | Round-trip live `appliance_specs` through its admin form's schema (read-only) | `node --env-file=.env.local --import tsx scripts/roundtrip-appliance-specs.mts` |
 | Render the datasheet layout mockup to a PDF (no DB, no network) | `node --import tsx scripts/render-datasheet-mockup.ts [outPath]` |
+| Same, with a model's photos in the two frames (asset check — copy stays V800) | `node --import tsx scripts/render-datasheet-mockup.ts --model v400` |
 | Create a new admin user | `node --env-file=.env.local --import tsx scripts/bootstrap-admin.ts --email ... --name ... --company ...` |
 | New migration | `supabase migration new <name>` (creates a timestamped empty SQL file) |
 | Apply pending migrations | `SUPABASE_DB_PASSWORD='...' supabase db push` |

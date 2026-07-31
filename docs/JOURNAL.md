@@ -25,10 +25,22 @@ seal for a version with a real alpha channel.
   `v500-front.png`, `v500-rear.png`. Front heroes are 720×240, rear panels 720×200 — an exact
   match for the template's `PhotoSlot` heights (`px(240)` on page 1, `px(200)` on page 2 at
   the 720px measure), so both fill their frames without letterboxing.
-- **Verified by rendering, not by inspection.** A throwaway script wired the V400 pair into
-  `V800_PLACEHOLDER`'s `productPhoto` / `rearIo` and rendered all three pages. Both frames
-  resolve and draw; the PDF grew 227 KB → 453 KB, which is the images embedding as data URIs.
-  Script deleted afterwards.
+- **Rear panels revised mid-session to transparent.** The first cut of the two rear-panel line
+  drawings was RGB with a baked white background; once that was pointed out they came back as
+  720×200 RGBA, 61.1% fully-transparent pixels and 3,954 partial. Same filenames, replaced in
+  place through the same staging path, re-verified and re-rendered. The front heroes were left
+  as-is — their light-blue circuit-board background is a design choice, not an oversight.
+- **Verified by rendering, not by inspection.** Both frames resolve and draw on pages 1 and 2.
+  The mockup PDF goes 184 KB with held frames → 443 KB with the V400 pair, which is the images
+  embedding as base64 data URIs.
+- **`scripts/render-datasheet-mockup.ts` gained `--model` / `--front` / `--rear`.** Worth
+  noting *why*, since it was not obvious: `V800_PLACEHOLDER` has `path: null` on both photo
+  slots, so the script as it stood rendered empty held frames and could not show a new photo at
+  all. It now substitutes `/datasheet/{model}-front.png` and `-rear.png` into the two slots,
+  leaving every other field as V800 copy — an asset check, not a V400 datasheet. It also
+  **fails loudly on a path that does not exist** under `public/`, because `loadPng` catches its
+  own read error and returns null, making a typo indistinguishable from "not shot yet" — the
+  exact failure mode ADR 0107 flagged as quiet.
 - **Intake convention written down** as [ADR 0108](./decisions/0108-product-photo-intake.md):
   a gitignored `staging/product-photos/` drop-box, renamed into `public/datasheet/` as
   `{model}-{front|rear}.png`. RUNBOOK §11a is the step-by-step. `/staging/` added to
@@ -53,21 +65,29 @@ seal for a version with a real alpha channel.
   `src/lib/datasheet/*` did not help; the failure was `react` itself. Moved the script under
   the (gitignored) `staging/` folder and it ran. Separately, `loadPng` resolves against
   `process.cwd()`, so the command has to be issued from the repo root regardless.
-- **Two source pairs looked like duplicates.** `Videox-V400.png` and `Videox-V500.png` are
-  byte-identical in *size* (215,591 both; the rear pair likewise at 62,953), which read as an
-  export mistake. MD5s differ, so they are distinct files — the V400 and V500 are the same
-  2U chassis photographed the same way, and equal file size is a coincidence of near-identical
-  content. Kept as separate per-model files rather than one shared asset, which is the whole
-  point of the model-keyed naming in ADR 0108.
+- **Every source pair looked like a duplicate.** Within each pair the V400 and V500 files are
+  identical in *size* — 215,591 for both heroes, 62,953 for both original rears, 50,277 for
+  both transparent rears — which read as an export mistake three times over. MD5s differ every
+  time (`cmp` puts the first difference at byte 810, i.e. metadata). They are genuinely distinct
+  files: the V400 and V500 are the same 2U chassis shot the same way, so equal compressed size
+  is a coincidence of near-identical content. Kept as separate per-model files rather than one
+  shared asset, which is the whole point of the model-keyed naming in ADR 0108.
+- **A stated figure was wrong and is corrected here.** The "227 KB" baseline first quoted for
+  the photo-less mockup was read off a PDF rendered *before* the seal swap. Re-measured after
+  it, the baseline is 184 KB — the ~38 KB gap is the seal itself getting smaller (128,898 bytes
+  RGB → 93,577 RGBA). The comparison that means anything is 184 KB → 443 KB, both with the new
+  seal.
 
 ### Observations for the photographer
 
-- The rear-panel line drawings carry a lot of white margin inside the 720×200 canvas, so under
-  `objectFit: contain` the drawing renders noticeably smaller than the frame it sits in.
-  Cropping tighter to the chassis would make it read larger with no template change.
+- **Resolved:** the rear-panel white background, now transparent (see above).
+- The rear-panel drawings still carry a lot of margin inside the 720×200 canvas — transparent
+  now rather than white, but geometrically unchanged, so under `objectFit: contain` the drawing
+  renders noticeably smaller than the frame it sits in. Cropping tighter to the chassis would
+  make it read larger with no template change.
 - The front heroes have a light-blue circuit-board background baked in, which renders as a
-  visible rectangle on the otherwise-white sheet. It reads as deliberate, but a transparent
-  version would sit on the page the way the warranty seal now does.
+  visible rectangle on the otherwise-white sheet. Left as-is deliberately — flagging it only so
+  the choice is on the record.
 
 ### Decisions captured
 

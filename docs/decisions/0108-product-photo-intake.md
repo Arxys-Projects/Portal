@@ -49,9 +49,18 @@ a model-keyed name is meant to remove.
 nothing reads from it, so a file left there is inert rather than half-wired.
 
 **Alpha is preserved, not manufactured.** Each file is checked for a real alpha channel after
-it lands. Where the source has none — as all four of this batch do, being RGB with a baked
-background — that is recorded and left alone. Compositing a fake transparency would be a
-retouch decision disguised as a file operation.
+it lands. Where the source has none, that is recorded and left alone — compositing a fake
+transparency would be a retouch decision disguised as a file operation, and it belongs with
+whoever owns the artwork. In this first batch the rear-panel line drawings came back a second
+time with real transparency once the baked white background was pointed out; the front heroes
+remain RGB with a light-blue circuit-board background baked in, which is a design choice, not
+a defect.
+
+**Checking alpha needs more than `file`.** `file` reports the IHDR color type, which separates
+RGB from RGBA but cannot say whether an RGBA file's alpha channel is *used* — a channel that is
+255 everywhere passes a header check and still renders a hard rectangle. Neither ImageMagick
+nor PIL is installed on the machine this work was done on. The honest check inflates the IDAT
+stream and reads actual alpha values; `file` is a smoke test, not proof.
 
 ## Consequences
 
