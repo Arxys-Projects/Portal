@@ -391,6 +391,11 @@ Design targets: the page-1 hero frame is 720×240 at the sheet's full measure, t
 frame 720×200. Sources at those pixel dimensions fill the frame exactly. Tighter cropping
 helps — surplus whitespace baked into the canvas shrinks the drawing inside a `contain` fit.
 
+Off-size sources still render, but badly, and the fit is `contain` so the failure is silent.
+A 557×110 hero upscales 1.29× to meet the 720 measure (softening it) and then letterboxes,
+leaving 98px of dead space split above and below — enough that a hero with a baked background
+stops reaching the frame edges and reads as unfinished. Check the render, not just the file.
+
 ## 12. Day-to-day commands
 
 | Task | Command |
