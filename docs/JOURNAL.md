@@ -50,6 +50,24 @@ seal for a version with a real alpha channel.
   - **No V800 rear panel exists yet.** V700 is 24-bay 4U and V800 is 36-bay 4U — different
     chassis, so V700's rear is not a stand-in. Left as a held frame, which is exactly what
     ADR 0107's null path is for. `--model v800` errors on it rather than rendering blank.
+- **Third batch: the 1U hero and the V800 rear.** The V800 sheet is now complete on both
+  frames, and `--model v800` renders instead of erroring.
+  - **The V800 rear is the good kind of transparency** — 720×200 RGBA, 37.5% fully transparent,
+    60.5% at alpha 224–255 and only ~650 px in the mid range. A proper hard cutout, and it
+    renders crisp and dark where the V600/V700 pair render grey. Same artwork source, so the
+    V600/V700 export is a fixable anomaly rather than the house style.
+  - **The 1U chassis shot arrived as two pixel-identical files** (`Videox-V100.png` and
+    `Videox-V200.png` — RGB-identical, not merely similar) and serves seven models: V100, V150,
+    V200, V250, V255, V260, V265. Landed once as `v100-v200-front.png` rather than seven
+    identical blobs. ADR 0108 amended to cover shared assets, following the Price Book's
+    existing `v700-v800-hero.png`.
+  - **Noted and resolved: the V100 is a 2-bay unit** (`families.ts` calls it "1U 2Bay Value
+    Server") and the shared photo shows four carriers, so a V100 sheet reads "DRIVE BAYS 2"
+    beside a 4-bay chassis. Raised; confirmed intentional — the V100 and V200 are the same
+    chassis externally, differing in population. Recorded because it looks like a defect to
+    anyone reviewing a V100 datasheet who does not know that.
+  - Still missing: **rear panels for the 1U and 2U-value models** (V100/V150/V200 and the
+    V250–V265 appliances). Nothing for those frames yet, so they stay null.
 - **`scripts/render-datasheet-mockup.ts` gained `--model` / `--front` / `--rear`.** Worth
   noting *why*, since it was not obvious: `V800_PLACEHOLDER` has `path: null` on both photo
   slots, so the script as it stood rendered empty held frames and could not show a new photo at

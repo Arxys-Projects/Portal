@@ -41,9 +41,21 @@ lowercased (`v400-front.png`). The path pasted into the admin form is that name 
 `/datasheet/`.
 
 `public/datasheet/` — not `public/price-book/` — because these are datasheet assets. The
-Price Book heroes stay where they are and stay referenced by `families.ts`; several of them
-are shared across models (`1u-chassis-hero.png` serves three), which is exactly the ambiguity
-a model-keyed name is meant to remove.
+Price Book heroes stay where they are and stay referenced by `families.ts`.
+
+**One photo shared by many models is named for the models, not duplicated per model.** The
+1U chassis shot arrived twice, as `Videox-V100.png` and `Videox-V200.png`, and the two files are
+RGB pixel-identical — one photograph, and it serves V100, V150, V200, V250, V255, V260 and V265.
+Seven copies of identical bytes would be ~1.6 MB of duplication and seven files to keep in step,
+so it lands once as `v100-v200-front.png` and all seven rows point at that path. This follows the
+Price Book's existing `v700-v800-hero.png`, so the shape is precedent rather than invention, and
+it is what the schema already expects: ADR 0107's sibling prefill *copies the path value* between
+rows, which only makes sense if one path can serve many models.
+
+The cost is that such a name is not derivable from a model — nothing about "V265" suggests
+`v100-v200-front.png`. That is accepted for shared assets and only for shared assets: a photo of
+one model keeps the `{model}-front.png` form. The pair naming is a signal in itself, since a
+reader seeing two models in a filename knows to expect it in more than one row.
 
 **The staging folder is a drop-box, never a source.** Nothing under `staging/` is tracked and
 nothing reads from it, so a file left there is inert rather than half-wired.
