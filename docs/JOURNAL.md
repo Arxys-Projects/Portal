@@ -28,9 +28,19 @@ resolved the way `effectiveCompany()` already does it, and expiry is `projectQuo
   copied from `project_quotes`. One global flag with `archived_by` recorded; undo is a DELETE.
 - **`supabase/migrations/20260803000002_pipedrive_deal_cache.sql`** — last-known Pipedrive
   values, keyed by deal id. [ADR 0113](./decisions/0113-pipedrive-reads-are-cached-with-a-last-known-fallback.md).
-  Both migrations are **not yet applied**; see
-  [the apply note](./apply-notes/0112-0113-projects-page-schema.md), which explains why the
-  order does not matter here even though it did for 0107 and 0111.
+  Both migrations were **applied to production the same day** and verified straight after;
+  see [the apply note](./apply-notes/0112-0113-projects-page-schema.md), which explains why
+  the order did not matter here even though it did for 0107 and 0111.
+- **`scripts/verify-project-queue.mts`** — the acceptance check, and the reason the unverified
+  I/O half is no longer unverified. It provisions a throwaway internal persona and a
+  throwaway partner persona (the `scripts/test-rls.ts` pattern: a `service_role` connection
+  has no `auth.uid()`, so it passes every gate it is meant to test), runs `loadProjectQueue`
+  against real production data read-only, and checks five things — that both tables exist,
+  that an `is_internal` user genuinely reads across every partner, that all 35 contract fields
+  are present on every row, what the state distribution actually looks like, and that a plain
+  partner can neither read nor INSERT an archive row. **All checks passed with none skipped**
+  after apply. The last of those is ADR 0112's entire premise and the one claim in it a schema
+  diff cannot demonstrate.
 - **`src/lib/projects/`** — five modules, split so the derivation is pure and the I/O is thin.
   `types.ts` is the contract, `rows.ts` the derivation (`buildProjectQueue`, `deriveRowState`,
   `deriveAvailableActions`), `line-items.ts` the fingerprints and drift diff, `queue.ts` the

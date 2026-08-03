@@ -1,9 +1,19 @@
 # Apply note — `/projects` schema: internal archive + Pipedrive deal cache (ADRs 0112, 0113)
 
-> **NOT YET APPLIED.** Two brand-new tables. Nothing existing is touched, and the code
-> half ships dark, so unlike [0111](./0111-management-cameras-managed.md) and
-> [0107](./0107-datasheet-media-and-usage.md) **the order does not matter** — see below
-> for why that is true here and not there.
+> **APPLIED to production 2026-08-03** via the dashboard SQL editor, and verified
+> immediately after by `scripts/verify-project-queue.mts`, which reported **all checks
+> passed with none skipped**. That "none skipped" is the part that matters: checks 5a–5d
+> only run once both tables exist, and they are the ones that confirm a plain partner can
+> neither read nor INSERT an archive row — the property ADR 0112 exists for and the only
+> claim in it that a schema diff cannot demonstrate. The cross-partner read through
+> `submissions_select_internal` is confirmed live as well, which is what let both migrations
+> add no policy of their own.
+>
+> Two brand-new tables. Nothing existing was touched, and the code half shipped dark, so
+> unlike [0111](./0111-management-cameras-managed.md) and
+> [0107](./0107-datasheet-media-and-usage.md) **the order did not matter** — see below for
+> why that was true here and not there. The rest of this note is kept as the record of what
+> was applied and how to back it out.
 
 | | File |
 |---|---|
@@ -74,8 +84,24 @@ By hand via the Supabase **dashboard SQL editor**, as with 0111, 0107 and 0090. 
 recorded in the remote migration history, so a push would try to re-run them. The CLI also
 has no usable credentials here.
 
-1. Paste `20260803000001_internal_project_archive.sql` into the SQL editor and run it.
-2. Paste `20260803000002_pipedrive_deal_cache.sql` and run it.
+Paste the **contents** of each file, one at a time. Copying the filename instead of the file
+is a mistake that actually happened on this note, and it fails confusingly — Postgres reads
+`20260803000002` as a numeric literal and reports `42601: trailing junk after numeric literal`,
+which reads like a syntax error in the migration rather than a bad paste. Put the contents on
+the clipboard directly and it cannot happen:
+
+```bash
+pbcopy < supabase/migrations/20260803000001_internal_project_archive.sql
+```
+
+1. Run that paste in the SQL editor. The first line in the editor must be `-- ADR 0112 …`; if
+   it is not a `--` comment, the paste picked up something it should not have.
+2. Then the second file, same way:
+
+```bash
+pbcopy < supabase/migrations/20260803000002_pipedrive_deal_cache.sql
+```
+
 3. Confirm both tables exist with RLS on and no policy gaps:
 
 ```sql
@@ -100,15 +126,31 @@ order by 1, 2, 3;
 
 Expect grants for `authenticated` (and the table owner) only. **No `anon` row at all.**
 
-## The partner-invisibility check worth doing by hand
+5. Then run the verification script, which is the real acceptance check:
 
-This is the property ADR 0112 exists to guarantee, and it is the one thing a schema
-diff cannot show you. Signed in as a **non-internal partner**, against either table:
-
-```
-GET /rest/v1/submission_internal_archives?select=*
+```bash
+node --env-file=.env.local --import tsx scripts/verify-project-queue.mts
 ```
 
-Expect an empty array or a permission error, never a row — including after an internal
-user has archived one of *that partner's own* projects. The equivalent write must also
-fail. If either returns data, the gate is wrong and the ADR's premise is broken.
+Read-only apart from two throwaway personas it tears down in a `finally` (the
+`scripts/test-rls.ts` pattern — a `service_role` connection has no `auth.uid()` and so
+passes every gate it is meant to test). **Every check must pass with none skipped.** A
+`SKIP` means a table is still missing and the checks that matter did not run.
+
+## The partner-invisibility check, and why the script owns it
+
+This is the property ADR 0112 exists to guarantee, and it is the one thing a schema diff
+cannot show you: that a plain partner can neither READ nor WRITE an archive row. The
+write half is the whole argument — a flag on `submissions` would have been partner-writable
+through `submissions_update_own`, because RLS there is row-level and PostgREST accepts an
+arbitrary column list.
+
+Checks 5a–5d of the script are exactly that, automated: a non-internal persona attempting a
+SELECT and an INSERT against `submission_internal_archives`, a SELECT against
+`pipedrive_deal_cache`, and an internal persona confirming it CAN read the cache (or the
+queue could never populate). Signing in as a real partner and issuing
+`GET /rest/v1/submission_internal_archives?select=*` by hand tests the same thing and is
+worth doing once if you want to see it with your own eyes; the script is what should run
+every time, because a by-hand check is one nobody repeats.
+
+Confirmed passing 2026-08-03, immediately after apply.
