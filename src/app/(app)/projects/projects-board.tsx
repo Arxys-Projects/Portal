@@ -113,7 +113,6 @@ export default function ProjectsBoard({
   const [quotesWindowOnly, setQuotesWindowOnly] = useState(false);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
-  const [downloadMenuOpenId, setDownloadMenuOpenId] = useState<string | null>(null);
   const [generateDialogRow, setGenerateDialogRow] = useState<ProjectQueueRow | null>(null);
   const [archiveDialogRow, setArchiveDialogRow] = useState<ProjectQueueRow | null>(null);
   const [isRefreshing, startRefresh] = useTransition();
@@ -240,7 +239,6 @@ export default function ProjectsBoard({
     nowIso,
     viewerId,
     query: filters.q,
-    downloadMenuOpenId,
     onRequestGenerate: (row: ProjectQueueRow) => setGenerateDialogRow(row),
     onRequestArchive: (row: ProjectQueueRow) => setArchiveDialogRow(row),
     onMutated,
@@ -319,25 +317,25 @@ export default function ProjectsBoard({
         </div>
 
         {/* Band B — attention, absent when empty */}
-        {queue.attention.expired_quote_submission_ids.length > 0 ||
+        {queue.attention.needs_price_update_submission_ids.length > 0 ||
         queue.attention.missing_deal_link_submission_ids.length > 0 ? (
           <div className="flex flex-wrap gap-3">
-            {queue.attention.expired_quote_submission_ids.length > 0 ? (
+            {queue.attention.needs_price_update_submission_ids.length > 0 ? (
               <div
                 role="button"
                 tabIndex={0}
-                onClick={() => updateFilters({ attention: "expired" })}
-                onKeyDown={(e) => e.key === "Enter" && updateFilters({ attention: "expired" })}
+                onClick={() => updateFilters({ attention: "needs_price_update" })}
+                onKeyDown={(e) => e.key === "Enter" && updateFilters({ attention: "needs_price_update" })}
                 className="flex min-w-[320px] flex-1 cursor-pointer items-center justify-between gap-3 rounded-[12px] bg-[#fdf1e0] px-5 py-3.5"
               >
                 <span className="text-[16px] text-[#8a4b0a]">
                   <strong className="text-xl font-extrabold">
-                    {queue.attention.expired_quote_submission_ids.length}
+                    {queue.attention.needs_price_update_submission_ids.length}
                   </strong>{" "}
-                  quotes expired on deals still open
+                  quotes need updated pricing on deals still open
                 </span>
                 <button type="button" className={buttonClasses("amber", "md")}>
-                  Show these {queue.attention.expired_quote_submission_ids.length} →
+                  Show these {queue.attention.needs_price_update_submission_ids.length} →
                 </button>
               </div>
             ) : null}
@@ -469,7 +467,7 @@ export default function ProjectsBoard({
               </Chip>
               {filters.attention ? (
                 <Chip active clearable onClick={() => updateFilters({ attention: null })}>
-                  {filters.attention === "expired" ? "Expired quotes" : "No Pipedrive deal"}
+                  {filters.attention === "needs_price_update" ? "Needs price update" : "No Pipedrive deal"}
                 </Chip>
               ) : null}
               {quotesWindowOnly ? (
@@ -551,10 +549,6 @@ export default function ProjectsBoard({
                       key={row.submission_id}
                       row={row}
                       focused={focusedIndex === i}
-                      downloadMenuOpen={downloadMenuOpenId === row.submission_id}
-                      onToggleDownloadMenu={() =>
-                        setDownloadMenuOpenId((cur) => (cur === row.submission_id ? null : row.submission_id))
-                      }
                       rowRef={(el) => {
                         if (el) rowElsRef.current.set(row.submission_id, el);
                         else rowElsRef.current.delete(row.submission_id);
@@ -587,10 +581,6 @@ export default function ProjectsBoard({
                   nowIso={nowIso}
                   viewerId={viewerId}
                   isAdmin={isAdmin}
-                  downloadMenuOpenId={downloadMenuOpenId}
-                  onToggleDownloadMenu={(id) =>
-                    setDownloadMenuOpenId((cur) => (cur === id ? null : id))
-                  }
                   onRequestGenerate={(row) => setGenerateDialogRow(row)}
                   onRequestArchive={(row) => setArchiveDialogRow(row)}
                   onMutated={onMutated}

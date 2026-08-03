@@ -54,6 +54,7 @@ function buildRows(o: Partial<BuildProjectQueueInput>): ProjectQueueRow[] {
     dealCache: [],
     viewerId: VIEWER,
     now: NOW,
+    latestPriceEffectiveDate: null,
     ...o,
   }).rows;
 }
@@ -70,7 +71,7 @@ const rows = buildRows({
   archives: [{ submission_id: "c", archived_at: "2026-08-02T09:51:00Z", archived_by: VIEWER }],
 });
 const attention = attentionIdSets({
-  expired_quote_submission_ids: [],
+  needs_price_update_submission_ids: [],
   missing_deal_link_submission_ids: [],
 });
 
@@ -90,7 +91,7 @@ describe("parseFilters / filtersToSearch round trip", () => {
       status: "open",
       archived: true,
       view: "partner",
-      attention: "expired",
+      attention: "needs_price_update",
     };
     const search = filtersToSearch(state);
     assert.deepEqual(parseFiltersFromSearch(search), state);

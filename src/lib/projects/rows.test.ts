@@ -52,7 +52,6 @@ function quote(o: Partial<QueueQuoteRow> & { submission_id: string; version: num
   return {
     pipedrive_deal_id: 5001,
     generated_at: "2026-08-01T10:00:00Z",
-    validity_days: 7,
     generated_by: VIEWER,
     line_items: [line({ product_id: 1 })],
     ...o,
@@ -84,6 +83,7 @@ function build(o: Partial<BuildProjectQueueInput>): ProjectQueueRow[] {
     dealCache: [],
     viewerId: VIEWER,
     now: NOW,
+    latestPriceEffectiveDate: null,
     ...o,
   }).rows;
 }
@@ -115,10 +115,7 @@ describe("row state 1 — proposal just generated", () => {
     });
     assert.equal(row.row_state, "proposal_just_generated");
     assert.equal(row.available_actions.task.kind, "download_proposal");
-    assert.equal(row.available_actions.task.label, "Download Proposal v4 ⌄");
-    // Slot 2 is still the split button: the strip's download and the menu of
-    // documents are different affordances.
-    assert.equal(row.available_actions.download.kind, "download_split");
+    assert.equal(row.available_actions.task.label, "Download Proposal v4");
   });
 
   it("is scoped to the viewer — somebody else's proposal is not 'by you'", () => {
@@ -151,8 +148,8 @@ describe("row state 1 — proposal just generated", () => {
   });
 });
 
-describe("row state 2 — quote current, inside its window", () => {
-  it("reports the derived expiry and offers the next version by number", () => {
+describe("row state 2 — quote current, no price update pending", () => {
+  it("offers the download as the primary action when nothing has changed", () => {
     const row = only({
       submissions: [sub({ id: "s1" })],
       quotes: [quote({ submission_id: "s1", version: 3 })],
@@ -160,59 +157,69 @@ describe("row state 2 — quote current, inside its window", () => {
     });
     assert.equal(row.row_state, "quote_current");
     assert.equal(row.current_quote_version, 3);
-    // generated_at 2026-08-01 + 7 frozen validity days.
-    assert.equal(row.current_quote_expires_at, "2026-08-08");
-    assert.equal(row.is_expired, false);
-    assert.equal(row.available_actions.task.kind, "generate_next_proposal");
-    assert.equal(row.available_actions.task.label, "New Project Proposal v4");
+    assert.equal(row.needs_price_update, false);
+    assert.equal(row.available_actions.task.kind, "download_proposal");
+    assert.equal(row.available_actions.task.label, "Download Proposal v3");
   });
 
-  it("uses the validity window frozen on the quote, not the current constant", () => {
-    // ADR 0061: shortening PROJECT_QUOTE_VALIDITY_DAYS must never move an
-    // already-issued proposal's expiry.
+  it("is not flagged when no price update has ever been recorded", () => {
     const row = only({
       submissions: [sub({ id: "s1" })],
-      quotes: [quote({ submission_id: "s1", version: 1, validity_days: 30 })],
+      quotes: [quote({ submission_id: "s1", version: 1, generated_at: "2026-01-01T10:00:00Z" })],
       dealCache: [cache({ pipedrive_deal_id: 5001 })],
+      latestPriceEffectiveDate: null,
     });
-    assert.equal(row.current_quote_expires_at, "2026-08-31");
-    assert.equal(row.is_expired, false);
+    assert.equal(row.needs_price_update, false);
+  });
+
+  it("is not flagged when the last price update predates the quote", () => {
+    const row = only({
+      submissions: [sub({ id: "s1" })],
+      quotes: [quote({ submission_id: "s1", version: 1, generated_at: "2026-08-01T10:00:00Z" })],
+      dealCache: [cache({ pipedrive_deal_id: 5001 })],
+      latestPriceEffectiveDate: "2026-07-01",
+    });
+    assert.equal(row.needs_price_update, false);
+    assert.equal(row.row_state, "quote_current");
   });
 });
 
-describe("row state 3 — quote expired on an open deal", () => {
-  it("marks expiry when the window has passed and the deal is still open", () => {
+describe("row state 3 — quote needs a price update on an open deal", () => {
+  it("flags a quote generated before the portal's last price update", () => {
     const row = only({
       submissions: [sub({ id: "s1" })],
       quotes: [quote({ submission_id: "s1", version: 1, generated_at: "2026-07-20T10:00:00Z" })],
       dealCache: [cache({ pipedrive_deal_id: 5001, deal_status: "open" })],
+      latestPriceEffectiveDate: "2026-07-25",
     });
-    assert.equal(row.row_state, "quote_expired");
-    assert.equal(row.is_expired, true);
-    assert.equal(row.current_quote_expires_at, "2026-07-27");
+    assert.equal(row.row_state, "quote_needs_price_update");
+    assert.equal(row.needs_price_update, true);
+    assert.equal(row.available_actions.task.kind, "generate_next_proposal");
+    assert.equal(row.available_actions.task.label, "Update Project Pricing");
   });
 
-  it("does NOT mark expiry on a won or lost deal", () => {
-    // The spec is explicit: is_expired is "true only when the deal is open". A
-    // lapsed proposal on a closed deal is not something to chase.
+  it("does NOT flag on a won or lost deal", () => {
+    // A stale-priced proposal on a closed deal is not something to chase.
     for (const status of ["won", "lost", "deleted"] as const) {
       const row = only({
         submissions: [sub({ id: "s1" })],
         quotes: [quote({ submission_id: "s1", version: 1, generated_at: "2026-07-20T10:00:00Z" })],
         dealCache: [cache({ pipedrive_deal_id: 5001, deal_status: status })],
+        latestPriceEffectiveDate: "2026-07-25",
       });
-      assert.equal(row.is_expired, false, `${status} deal must not read as expired`);
+      assert.equal(row.needs_price_update, false, `${status} deal must not read as needing a price update`);
       assert.equal(row.row_state, "quote_current");
     }
   });
 
-  it("does NOT mark expiry when the deal status has never been read", () => {
+  it("does NOT flag when the deal status has never been read", () => {
     const row = only({
       submissions: [sub({ id: "s1" })],
       quotes: [quote({ submission_id: "s1", version: 1, generated_at: "2026-07-20T10:00:00Z" })],
       dealCache: [],
+      latestPriceEffectiveDate: "2026-07-25",
     });
-    assert.equal(row.is_expired, false);
+    assert.equal(row.needs_price_update, false);
     assert.equal(row.pipedrive_read_ok, false);
   });
 });
@@ -245,7 +252,7 @@ describe("row state 4 — line items changed since the quote", () => {
     assert.equal(row.available_actions.task.kind, "generate_next_proposal");
   });
 
-  it("beats expiry, because a wrong document matters more than a lapsed one", () => {
+  it("beats a stale price, because a wrong document matters more than a stale-priced one", () => {
     const row = only({
       submissions: [sub({ id: "s1" })],
       quotes: [
@@ -259,8 +266,9 @@ describe("row state 4 — line items changed since the quote", () => {
       dealCache: [
         cache({ pipedrive_deal_id: 5001, line_items: [line({ product_id: 1, quantity: 7 })] }),
       ],
+      latestPriceEffectiveDate: "2026-07-25",
     });
-    assert.equal(row.is_expired, true);
+    assert.equal(row.needs_price_update, true);
     assert.equal(row.row_state, "line_items_drifted");
   });
 
@@ -517,7 +525,7 @@ describe("row state 9 — no quote yet on a deal that has line items", () => {
     assert.equal(row.current_quote_version, null);
     assert.equal(row.project_quote_version_count, 0);
     assert.equal(row.available_actions.task.kind, "generate_proposal");
-    assert.equal(row.available_actions.task.label, "Generate Project Proposal");
+    assert.equal(row.available_actions.task.label, "Make Project Proposal");
     assert.equal(
       row.available_actions.task.kind === "generate_proposal" &&
         row.available_actions.task.next_version,
@@ -694,10 +702,10 @@ describe("current quote derivation", () => {
     assert.equal(row.current_quote_version, 1);
     assert.equal(row.current_quote_generated_at, "2026-08-01T09:00:00Z");
     // The version reported is the quote row's own, so the row and the PDF agree.
-    assert.equal(row.available_actions.download.kind, "download_split");
+    assert.equal(row.available_actions.task.kind, "download_proposal");
     assert.equal(
-      row.available_actions.download.kind === "download_split" &&
-        row.available_actions.download.proposal_submission_id,
+      row.available_actions.task.kind === "download_proposal" &&
+        row.available_actions.task.proposal_submission_id,
       "s2",
     );
   });
@@ -705,19 +713,29 @@ describe("current quote derivation", () => {
   it("names the version generation will ACTUALLY create, even when it restarts", () => {
     // Known wrinkle, documented in ADR 0113: assemble.ts numbers per submission,
     // so a revision with no proposals of its own starts again at 1. The label
-    // reports the truth rather than current + 1.
+    // reports the truth rather than current + 1. Forced into the
+    // generate_next_proposal branch via drift, since an ordinary current quote's
+    // primary action is now the download rather than a new version.
     const row = only({
       submissions: [
         sub({ id: "s1", created_at: "2026-07-01T09:00:00Z" }),
         sub({ id: "s2", parent_submission_id: "s1", created_at: "2026-07-10T09:00:00Z" }),
       ],
       quotes: [
-        quote({ submission_id: "s1", version: 3, generated_at: "2026-08-01T09:00:00Z" }),
+        quote({
+          submission_id: "s1",
+          version: 3,
+          generated_at: "2026-08-01T09:00:00Z",
+          line_items: [line({ product_id: 1, quantity: 1 })],
+        }),
       ],
-      dealCache: [cache({ pipedrive_deal_id: 5001 })],
+      dealCache: [
+        cache({ pipedrive_deal_id: 5001, line_items: [line({ product_id: 1, quantity: 9 })] }),
+      ],
     });
     assert.equal(row.submission_id, "s2");
     assert.equal(row.current_quote_version, 3);
+    assert.equal(row.row_state, "line_items_drifted");
     assert.equal(row.available_actions.task.label, "New Project Proposal v1");
   });
 
@@ -737,41 +755,43 @@ describe("current quote derivation", () => {
 // ===========================================================================
 
 describe("Band B — attention", () => {
-  it("lists expired quotes on open deals and projects with no deal link", () => {
+  it("lists stale-priced quotes on open deals and projects with no deal link", () => {
     const result = buildProjectQueue({
       submissions: [
-        sub({ id: "s-exp", project_name: "Expired One" }),
+        sub({ id: "s-stale", project_name: "Stale One" }),
         sub({ id: "s-unlinked", project_name: "Unlinked One", pipedrive_deal_id: null }),
         sub({ id: "s-fine", project_name: "Fine One" }),
       ],
       partners: PARTNERS,
       quotes: [
-        quote({ submission_id: "s-exp", version: 1, generated_at: "2026-07-20T10:00:00Z" }),
+        quote({ submission_id: "s-stale", version: 1, generated_at: "2026-07-20T10:00:00Z" }),
         quote({ submission_id: "s-fine", version: 1 }),
       ],
       archives: [],
       dealCache: [cache({ pipedrive_deal_id: 5001 })],
       viewerId: VIEWER,
       now: NOW,
+      latestPriceEffectiveDate: "2026-07-25",
     });
-    assert.deepEqual(result.attention.expired_quote_submission_ids, ["s-exp"]);
+    assert.deepEqual(result.attention.needs_price_update_submission_ids, ["s-stale"]);
     assert.deepEqual(result.attention.missing_deal_link_submission_ids, ["s-unlinked"]);
   });
 
   it("excludes archived projects, so 'Show these 4' cannot reveal three", () => {
     const result = buildProjectQueue({
       submissions: [
-        sub({ id: "s-exp", project_name: "Expired One" }),
+        sub({ id: "s-stale", project_name: "Stale One" }),
         sub({ id: "s-unlinked", project_name: "Unlinked One", pipedrive_deal_id: null }),
       ],
       partners: PARTNERS,
-      quotes: [quote({ submission_id: "s-exp", version: 1, generated_at: "2026-07-20T10:00:00Z" })],
-      archives: [archive({ submission_id: "s-exp" }), archive({ submission_id: "s-unlinked" })],
+      quotes: [quote({ submission_id: "s-stale", version: 1, generated_at: "2026-07-20T10:00:00Z" })],
+      archives: [archive({ submission_id: "s-stale" }), archive({ submission_id: "s-unlinked" })],
       dealCache: [cache({ pipedrive_deal_id: 5001 })],
       viewerId: VIEWER,
       now: NOW,
+      latestPriceEffectiveDate: "2026-07-25",
     });
-    assert.deepEqual(result.attention.expired_quote_submission_ids, []);
+    assert.deepEqual(result.attention.needs_price_update_submission_ids, []);
     assert.deepEqual(result.attention.missing_deal_link_submission_ids, []);
     // The rows are still returned: the page needs them for the archived chip and
     // the "also matches" strip.
@@ -803,6 +823,7 @@ describe("Band C — the three numbers", () => {
       ],
       viewerId: VIEWER,
       now: NOW,
+      latestPriceEffectiveDate: null,
     });
     assert.equal(result.totals.open_pipeline_usd, 500_000);
     assert.equal(result.totals.open_pipeline_deal_count, 2);
@@ -828,6 +849,7 @@ describe("Band C — the three numbers", () => {
       ],
       viewerId: VIEWER,
       now: NOW,
+      latestPriceEffectiveDate: null,
     });
     // The last known value still counts toward the sum — dropping it would zero
     // the pipeline figure on a Pipedrive outage.
@@ -854,6 +876,7 @@ describe("Band C — the three numbers", () => {
       dealCache: [cache({ pipedrive_deal_id: 5001 })],
       viewerId: VIEWER,
       now: NOW,
+      latestPriceEffectiveDate: null,
     });
     assert.equal(result.totals.quotes_last_30_days, 2);
   });
@@ -867,6 +890,7 @@ describe("Band C — the three numbers", () => {
       dealCache: [],
       viewerId: VIEWER,
       now: NOW,
+      latestPriceEffectiveDate: null,
     });
     assert.deepEqual(result.rows, []);
     assert.equal(result.totals.open_pipeline_usd, 0);
@@ -894,11 +918,11 @@ describe("ordering", () => {
 });
 
 // ===========================================================================
-// The three slots are always present, and the status pill is read-only
+// The two visible slots are always present, and the status pill is read-only
 // ===========================================================================
 
-describe("the three action slots", () => {
-  it("fills all three plus archive on every row, whatever its state", () => {
+describe("the action slots", () => {
+  it("fills task, pipedrive and archive on every row, whatever its state", () => {
     const inputs: Array<Partial<BuildProjectQueueInput>> = [
       { submissions: [sub({ id: "s1", pipedrive_deal_id: null })] },
       { submissions: [sub({ id: "s1" })], dealCache: [cache({ pipedrive_deal_id: 5001 })] },
@@ -919,19 +943,9 @@ describe("the three action slots", () => {
     for (const input of inputs) {
       const actions = only(input).available_actions;
       assert.ok(actions.task.label.length > 0);
-      assert.ok(actions.download.label.length > 0);
       assert.ok(actions.pipedrive.label.length > 0);
       assert.ok(actions.archive.label.length > 0);
     }
-  });
-
-  it("gives a Recommended row a single Submission button, not a split one", () => {
-    const row = only({
-      submissions: [sub({ id: "s1" })],
-      dealCache: [cache({ pipedrive_deal_id: 5001 })],
-    });
-    assert.equal(row.available_actions.download.kind, "download_submission_only");
-    assert.equal(row.available_actions.download.label, "Submission ⤓");
   });
 
   it("keeps the status pill read-only for internal users", () => {
@@ -955,8 +969,10 @@ describe("the three action slots", () => {
   });
 
   it("exposes the exact action copy as one testable table", () => {
+    assert.equal(ACTION_LABELS.generate_first, "Make Project Proposal");
     assert.equal(ACTION_LABELS.generate_next(4), "New Project Proposal v4");
-    assert.equal(ACTION_LABELS.download_generated(4), "Download Proposal v4 ⌄");
+    assert.equal(ACTION_LABELS.update_pricing, "Update Project Pricing");
+    assert.equal(ACTION_LABELS.download_generated(4), "Download Proposal v4");
   });
 });
 

@@ -62,10 +62,11 @@ export async function loadProjectQueue(
   // Cross-partner: no partner_id filter. Single-digit-partner, double-digit-
   // submission scale, so this is one unpaginated read and the grouping happens
   // in memory, exactly as the admin partner-grouped view already does it.
-  const [{ data: submissionRows, error: submissionError }, { data: partnerRows }] =
+  const [{ data: submissionRows, error: submissionError }, { data: partnerRows }, latestPriceEffectiveDate] =
     await Promise.all([
       supabase.from("submissions").select(SUBMISSION_COLUMNS).order("created_at", { ascending: false }),
       supabase.from("partners").select("id, company_name, contact_name, is_internal"),
+      loadLatestPriceEffectiveDate(supabase),
     ]);
 
   if (submissionError) {
@@ -99,6 +100,7 @@ export async function loadProjectQueue(
       dealCache: [],
       viewerId,
       now,
+      latestPriceEffectiveDate,
     });
   }
 
@@ -127,7 +129,30 @@ export async function loadProjectQueue(
     dealCache,
     viewerId,
     now,
+    latestPriceEffectiveDate,
   });
+}
+
+// "When pricing was last updated," as one global date: every SKU changed by a
+// single scripts/push-prices.ts run shares the same effective_date, so the max
+// across current_products is that run's date. Scoped to current_products
+// (effective_date <= today) rather than the raw append-only products table, so
+// a price change staged for a future date does not flag quotes as stale before
+// it actually takes effect.
+async function loadLatestPriceEffectiveDate(supabase: SupabaseClient): Promise<string | null> {
+  const { data, error } = await supabase.from("current_products").select("effective_date");
+
+  if (error) {
+    // Degrade to "no flag": every quote reads as priced-current rather than
+    // the read failing the whole queue over a staleness signal.
+    console.error("[projects latest price]", error);
+    return null;
+  }
+
+  return (data ?? []).reduce<string | null>((max, row) => {
+    const effectiveDate = (row as { effective_date: string | null }).effective_date;
+    return effectiveDate && (!max || effectiveDate > max) ? effectiveDate : max;
+  }, null);
 }
 
 // Proposal metadata for every submission in hand. Deliberately does not select
@@ -139,7 +164,7 @@ async function loadQuoteMetadata(
 ): Promise<Array<QueueQuoteRow & { id: string }>> {
   const { data, error } = await supabase
     .from("project_quotes")
-    .select("id, submission_id, version, pipedrive_deal_id, generated_at, validity_days, generated_by")
+    .select("id, submission_id, version, pipedrive_deal_id, generated_at, generated_by")
     .in("submission_id", submissionIds);
 
   if (error) {
@@ -157,7 +182,6 @@ async function loadQuoteMetadata(
     version: Number(raw.version),
     pipedrive_deal_id: Number(raw.pipedrive_deal_id),
     generated_at: String(raw.generated_at),
-    validity_days: Number(raw.validity_days),
     generated_by: String(raw.generated_by),
     line_items: null,
   }));

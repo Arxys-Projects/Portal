@@ -23,8 +23,8 @@ export type PartnerProjectGroup = {
   // Group header: "0 projects · 0 contacts".
   project_count: number;
   contact_count: number;
-  // Warning pills: "1 quote expired", "1 project has no deal link".
-  expired_quote_count: number;
+  // Warning pills: "1 quote needs a price update", "1 project has no deal link".
+  needs_price_update_count: number;
   missing_deal_link_count: number;
   // Right-aligned OPEN PIPELINE and WON totals — portal list prices (ADR 0081).
   open_pipeline_usd: number;
@@ -55,7 +55,7 @@ export function groupProjectRowsByPartner(rows: ProjectQueueRow[]): PartnerProje
         company_name: row.partner_company_name,
         project_count: 0,
         contact_count: 0,
-        expired_quote_count: 0,
+        needs_price_update_count: 0,
         missing_deal_link_count: 0,
         open_pipeline_usd: 0,
         won_usd: 0,
@@ -71,7 +71,7 @@ export function groupProjectRowsByPartner(rows: ProjectQueueRow[]): PartnerProje
     // to name (forecast.ts returns null for it); those projects count toward the
     // project total and not the contact total.
     if (row.partner_contact_name) group.contacts.add(row.partner_contact_name);
-    if (row.is_expired) group.expired_quote_count += 1;
+    if (row.needs_price_update) group.needs_price_update_count += 1;
     if (row.deal_link_state === "missing") group.missing_deal_link_count += 1;
 
     const value = row.portal_list_price_usd ?? 0;

@@ -6,24 +6,15 @@
 // mismatch (and a silent one, right at a midnight boundary). The server page
 // stamps one `nowIso` and every relative display on the page reads from it.
 //
-// Two different "today" questions get two different answers, deliberately:
-//   - A clock timestamp (read_at, created_at, archived_at, generated_at) is
-//     shown with a time of day ("at 9:42 AM"), so "today" has to mean the
-//     VIEWER'S LOCAL calendar day — anything else would print a time and a
-//     day that disagree with each other.
-//   - `current_quote_expires_at` is a UTC calendar date with no time
-//     component at all (projectQuoteExpiryIso derives it that way, ADR 0061),
-//     so its arithmetic stays in UTC rather than mixing in a local offset it
-//     was never computed against.
+// A clock timestamp (read_at, created_at, archived_at, generated_at) is shown
+// with a time of day ("at 9:42 AM"), so "today" has to mean the VIEWER'S
+// LOCAL calendar day — anything else would print a time and a day that
+// disagree with each other.
 
 const LOCALE = "en-US";
 
 export function formatUsd0(amount: number): string {
   return `$${Math.round(amount).toLocaleString(LOCALE)}`;
-}
-
-function pluralDays(n: number): string {
-  return `${n} day${n === 1 ? "" : "s"}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -74,34 +65,4 @@ export function formatClockTime(iso: string, timeZone?: string): string {
 // "Created …", "Archived …". Callers prepend their own verb/lead-in.
 export function formatDayAndClock(iso: string, nowIso: string, timeZone?: string): string {
   return `${formatDayLabel(iso, nowIso, timeZone)} at ${formatClockTime(iso, timeZone)}`;
-}
-
-// ---------------------------------------------------------------------------
-// UTC-calendar-date expiry arithmetic.
-// ---------------------------------------------------------------------------
-
-function utcMidnight(iso: string): number {
-  const d = new Date(iso);
-  return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
-}
-
-// Whole days from "now" (its UTC calendar day) to `dateIso` (a YYYY-MM-DD UTC
-// calendar date). Positive = in the future, negative = in the past.
-export function daysUntilUtc(dateIso: string, nowIso: string): number {
-  const target = Date.parse(`${dateIso}T00:00:00Z`);
-  const today = utcMidnight(nowIso);
-  return Math.round((target - today) / 86_400_000);
-}
-
-// "expires in 5 days" / "expires today" / "expired 5 days ago". Driven purely
-// by the calendar arithmetic (not by the row's `is_expired` flag), so it stays
-// honest even in the one case they can disagree: a quote whose calendar date
-// has passed on a deal that is no longer open, which `is_expired` deliberately
-// excludes (ADR 0113 — "true only when the deal is open") but which is still,
-// factually, a past date.
-export function formatExpiryQualifier(expiresAtIso: string, nowIso: string): string {
-  const days = daysUntilUtc(expiresAtIso, nowIso);
-  if (days > 0) return `expires in ${pluralDays(days)}`;
-  if (days === 0) return "expires today";
-  return `expired ${pluralDays(Math.abs(days))} ago`;
 }

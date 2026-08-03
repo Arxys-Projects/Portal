@@ -1,8 +1,8 @@
 "use client";
 
 // A single /projects row: the fixed 3-zone primary line (identity / state /
-// actions), the secondary line (products + fact trays), the additive top
-// strip or archived strip, and the download split-menu that grows the card.
+// actions), the secondary line (products + fact trays), and the additive top
+// strip or archived strip.
 //
 // This switches on row_state and available_actions.*.kind for the VISUAL
 // variant only — every label printed here comes straight off
@@ -12,7 +12,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition, type MouseEvent, type ReactNode } from "react";
 import type { ProjectQueueRow } from "@/lib/projects/types";
-import { Button, IconButton, buttonClasses, iconButtonClasses } from "@/app/(app)/_components/ui";
+import { Button, IconButton, buttonClasses } from "@/app/(app)/_components/ui";
 import { cx } from "@/app/(app)/_components/ui/styles";
 import { highlightSegments } from "./filter";
 import { formatDayLabel, formatUsd0 } from "./format";
@@ -129,19 +129,14 @@ function DashedChip({ tone = "grey", children }: { tone?: "grey" | "amber"; chil
   );
 }
 
-function OpenProjectLink({ submissionId }: { submissionId: string }) {
+function ViewProjectButton({ submissionId, size }: { submissionId: string; size: "md" }) {
   return (
     <Link
       href={`/admin/submissions/${submissionId}`}
-      aria-label="Open project"
-      title="Open project"
       onClick={(e) => e.stopPropagation()}
-      className={iconButtonClasses("default", "h-10 w-10")}
+      className={buttonClasses("primary", size)}
     >
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-        <line x1="7" y1="17" x2="17" y2="7" />
-        <polyline points="7 7 17 7 17 17" />
-      </svg>
+      View Project
     </Link>
   );
 }
@@ -152,7 +147,7 @@ function RowMenu({ onArchive }: { onArchive: () => void }) {
     <div className="relative">
       <IconButton
         label="More actions"
-        className="h-10 w-10"
+        className="h-9 w-9"
         onClick={(e) => {
           e.stopPropagation();
           setOpen((v) => !v);
@@ -192,9 +187,6 @@ export type ProjectRowProps = {
   viewerId: string;
   query: string;
   focused?: boolean;
-  compact?: boolean;
-  downloadMenuOpen: boolean;
-  onToggleDownloadMenu: () => void;
   onRequestGenerate: (row: ProjectQueueRow) => void;
   onRequestArchive: (row: ProjectQueueRow) => void;
   onMutated: () => void;
@@ -207,9 +199,6 @@ export function ProjectRow({
   viewerId,
   query,
   focused,
-  compact,
-  downloadMenuOpen,
-  onToggleDownloadMenu,
   onRequestGenerate,
   onRequestArchive,
   onMutated,
@@ -221,8 +210,8 @@ export function ProjectRow({
   const archivedText = archivedStripText(row, viewerId, nowIso);
   const valueOverride = valueCellText(row);
   const productsChip = productsSourceChip(row.products_source);
-  const size: "md" | "lg" = compact ? "md" : "lg";
-  const { task, download, pipedrive } = row.available_actions;
+  const size = "md" as const;
+  const { task, pipedrive } = row.available_actions;
 
   function openDetail() {
     router.push(`/admin/submissions/${row.submission_id}`);
@@ -251,7 +240,7 @@ export function ProjectRow({
           <AsyncTaskButton
             label={task.label}
             size={size}
-            variant="outline"
+            variant="primary"
             run={() => restoreProjectAction(row.submission_id)}
             onDone={onMutated}
           />
@@ -263,7 +252,7 @@ export function ProjectRow({
             target="_blank"
             rel="noopener noreferrer"
             onClick={(e) => e.stopPropagation()}
-            className={buttonClasses("outline", size)}
+            className={buttonClasses("primary", size)}
           >
             {task.label}
           </a>
@@ -295,30 +284,6 @@ export function ProjectRow({
     }
   })();
 
-  const downloadNode =
-    download.kind === "download_submission_only" ? (
-      <a
-        href={`/api/submissions/${row.submission_id}/pdf`}
-        download
-        onClick={(e) => e.stopPropagation()}
-        className={buttonClasses("secondary", size)}
-      >
-        {download.label}
-      </a>
-    ) : (
-      <button
-        type="button"
-        aria-expanded={downloadMenuOpen}
-        onClick={(e) => {
-          e.stopPropagation();
-          onToggleDownloadMenu();
-        }}
-        className={cx(buttonClasses("secondary", size), "gap-1.5")}
-      >
-        {download.label} <span aria-hidden>{downloadMenuOpen ? "︿" : "⌄"}</span>
-      </button>
-    );
-
   const pipedriveNode =
     pipedrive.kind === "open_deal" ? (
       <a
@@ -348,8 +313,7 @@ export function ProjectRow({
       tabIndex={-1}
       onClick={onCardClick}
       className={cx(
-        "cursor-pointer rounded-[14px] transition-shadow",
-        compact ? "bg-panel" : "bg-surface",
+        "cursor-pointer rounded-[14px] bg-surface transition-shadow",
         CARD_BORDER_CLASS[cardBorder(row.row_state)],
         focused && "ring-[3px] ring-arxys-navy",
       )}
@@ -357,7 +321,7 @@ export function ProjectRow({
       {strip ? (
         <div
           className={cx(
-            "rounded-t-[13px] px-5 py-2 text-[15px] font-semibold",
+            "rounded-t-[13px] px-4 py-1.5 text-[13px] font-semibold",
             strip.tone === "green" ? "bg-[#e8f5ee] text-[#136340]" : "bg-[#fdf1e0] text-[#8a4b0a]",
           )}
         >
@@ -366,43 +330,36 @@ export function ProjectRow({
       ) : null}
 
       {archivedText ? (
-        <div className="flex flex-wrap items-center gap-3 rounded-t-[13px] bg-panel px-5 py-2 text-[15px] text-ink-soft">
-          <span>{archivedText}</span>
-          <AsyncTaskButton
-            label="Undo"
-            size="md"
-            variant="outline"
-            run={() => restoreProjectAction(row.submission_id)}
-            onDone={onMutated}
-          />
+        <div className="rounded-t-[13px] bg-panel px-4 py-1.5 text-[13px] text-ink-soft">
+          {archivedText}
         </div>
       ) : null}
 
       <div className={row.row_state === "archived" ? "opacity-70" : undefined}>
-      <div className="flex items-start gap-4 p-5">
+      <div className="flex items-start gap-3 p-3.5">
         {/* Identity — flex:1, min-width:0 */}
         <div className="min-w-0 flex-1">
-          <h3 className="truncate text-2xl font-bold text-ink">
+          <h3 className="truncate text-lg font-bold text-ink">
             <Highlighted text={row.project_name ?? "Untitled project"} query={query} />
           </h3>
-          <p className="mt-0.5 truncate text-[17px] text-ink-soft">
+          <p className="mt-0.5 truncate text-[13px] text-ink-soft">
             <Highlighted text={row.partner_company_name} query={query} />
           </p>
         </div>
 
-        {/* State — fixed 230px */}
-        <div className={compact ? "w-[190px] shrink-0" : "w-[230px] shrink-0"}>
+        {/* State — fixed width */}
+        <div className="w-[190px] shrink-0">
           <div className="flex items-center gap-2">
             <span
               aria-hidden="true"
-              className="h-2.5 w-2.5 shrink-0 rounded-full"
+              className="h-2 w-2 shrink-0 rounded-full"
               style={{ background: DOT_COLOR[zone.dot] }}
             />
-            <span className={cx("text-[19px] font-bold leading-snug", TEXT_TONE_CLASS[zone.tone])}>
+            <span className={cx("text-[14.5px] font-bold leading-snug", TEXT_TONE_CLASS[zone.tone])}>
               {zone.headline}
             </span>
           </div>
-          <p className="mt-0.5 text-[16px] leading-snug text-ink-soft">{zone.qualifier}</p>
+          <p className="mt-0.5 text-[12.5px] leading-snug text-ink-soft">{zone.qualifier}</p>
         </div>
 
         {/* Actions — fixed MINIMUM widths per slot, flex:none. Every slot has
@@ -411,35 +368,28 @@ export function ProjectRow({
             primary action starts at the same x on every row in the ordinary
             case; min-width (not a hard cap) lets a slot grow past its floor
             for an unusually long label instead of clipping or overlapping the
-            next one — the guarantee is "never moves or clips", not an exact
-            620px total. The icon slots stay in the DOM even when inert (an
-            archived row has no "···" menu) so the row never visually jumps,
-            per the same rule IconButton's own docstring states. */}
-        <div className={cx("flex shrink-0 items-start gap-2", compact && "gap-1.5")}>
-          <div className={cx("shrink-0", compact ? "min-w-[190px]" : "min-w-[250px]")}>{taskNode}</div>
-          <div className={cx("shrink-0", compact ? "min-w-[100px]" : "min-w-[130px]")}>{downloadNode}</div>
-          <div className={cx("shrink-0", compact ? "min-w-[110px]" : "min-w-[140px]")}>{pipedriveNode}</div>
-          {!compact ? (
-            <div className="w-11 shrink-0">
-              <OpenProjectLink submissionId={row.submission_id} />
-            </div>
-          ) : null}
-          {!compact ? (
-            <div className="w-11 shrink-0">
-              {row.row_state !== "archived" ? (
-                <RowMenu onArchive={() => onRequestArchive(row)} />
-              ) : null}
-            </div>
-          ) : null}
+            next one. Every row shows exactly 3 navy buttons in the same
+            order — task, View Project, Pipedrive — plus the small "···"
+            overflow menu, which stays in the DOM even when inert (an archived
+            row has no menu) so the row never visually jumps. */}
+        <div className="flex shrink-0 items-start gap-1.5">
+          <div className="min-w-[170px] shrink-0">{taskNode}</div>
+          <div className="min-w-[110px] shrink-0">
+            <ViewProjectButton submissionId={row.submission_id} size={size} />
+          </div>
+          <div className="min-w-[110px] shrink-0">{pipedriveNode}</div>
+          <div className="w-9 shrink-0">
+            {row.row_state !== "archived" ? <RowMenu onArchive={() => onRequestArchive(row)} /> : null}
+          </div>
         </div>
       </div>
 
       {/* Secondary line */}
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 border-t border-line-soft px-5 py-2.5 text-[16px]">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-line-soft px-3.5 py-1.5 text-[13px]">
         <div className="flex min-w-0 items-center gap-2">
           <span
             className={cx(
-              "shrink-0 rounded border px-2 py-0.5 text-[11px] font-bold uppercase tracking-[0.06em]",
+              "shrink-0 rounded border px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em]",
               productsChip.dashed
                 ? "border-dashed border-line-strong text-ink-soft"
                 : "border-[#bcd0e6] bg-arxys-navy-soft text-arxys-navy",
@@ -472,37 +422,12 @@ export function ProjectRow({
           ) : null}
           <DealStatusPill row={row} />
           <span className="whitespace-nowrap text-ink-soft">Created {formatDayLabel(row.created_at, nowIso)}</span>
-          <span className="whitespace-nowrap text-[17px] font-bold tabular-nums text-ink">
+          <span className="whitespace-nowrap text-[13px] font-bold tabular-nums text-ink">
             {valueOverride ?? (row.pipedrive_deal_value !== null ? formatUsd0(row.pipedrive_deal_value) : "—")}
           </span>
         </div>
       </div>
       </div>
-
-      {downloadMenuOpen && download.kind === "download_split" ? (
-        <div className="flex justify-end border-t border-line-soft px-5 py-3" onClick={(e) => e.stopPropagation()}>
-          <div className="w-80 overflow-hidden rounded-lg border border-line bg-surface">
-            <a
-              href={`/api/submissions/${download.proposal_submission_id}/project-quote/pdf?version=${download.proposal_version}&variant=customer-proposal`}
-              download
-              className="block border-b border-line-soft px-4 py-3 hover:bg-arxys-navy-soft"
-            >
-              <span className="block text-sm font-bold text-ink">
-                Project Proposal v{download.proposal_version} (PDF)
-              </span>
-              <span className="block text-xs text-ink-soft">The quote you send to the customer</span>
-            </a>
-            <a
-              href={`/api/submissions/${row.submission_id}/pdf`}
-              download
-              className="block px-4 py-3 hover:bg-arxys-navy-soft"
-            >
-              <span className="block text-sm font-bold text-ink">Calculator submission (PDF)</span>
-              <span className="block text-xs text-ink-soft">Sizing inputs and recommendation, internal</span>
-            </a>
-          </div>
-        </div>
-      ) : null}
     </div>
   );
 }

@@ -49,8 +49,7 @@ function baseRow(overrides: Partial<ProjectQueueRow>): ProjectQueueRow {
     products_source: "quoted",
     current_quote_version: 3,
     current_quote_generated_at: "2026-08-01T10:00:00Z",
-    current_quote_expires_at: "2026-08-08",
-    is_expired: false,
+    needs_price_update: false,
     project_quote_version_count: 3,
     is_superseded: false,
     project_key: "riverside campus",
@@ -60,12 +59,6 @@ function baseRow(overrides: Partial<ProjectQueueRow>): ProjectQueueRow {
     row_state: "quote_current",
     available_actions: {
       task: { kind: "generate_next_proposal", label: "New Project Proposal v4", next_version: 4 },
-      download: {
-        kind: "download_split",
-        label: "Download",
-        proposal_version: 3,
-        proposal_submission_id: "s1",
-      },
       pipedrive: { kind: "open_deal", label: "Pipedrive ↗", url: "https://app.pipedrive.com/deal/5001", enabled: true },
       archive: { kind: "archive", label: "Archive" },
     },
@@ -74,12 +67,12 @@ function baseRow(overrides: Partial<ProjectQueueRow>): ProjectQueueRow {
 }
 
 describe("stateZoneCopy", () => {
-  it("quote_current: headline reads 'current', qualifier carries the expiry", () => {
+  it("quote_current: headline reads 'current', qualifier carries the generated date", () => {
     const copy = stateZoneCopy(baseRow({}), NOW);
     assert.equal(copy.dot, "green");
     assert.equal(copy.tone, "ink");
     assert.equal(copy.headline, "Quote v3 · current");
-    assert.equal(copy.qualifier, "Generated 1 Aug · expires in 5 days");
+    assert.equal(copy.qualifier, "Generated 1 Aug");
   });
 
   it("proposal_just_generated: headline still reads 'current', qualifier forces 'today'", () => {
@@ -87,26 +80,24 @@ describe("stateZoneCopy", () => {
       row_state: "proposal_just_generated",
       current_quote_version: 4,
       current_quote_generated_at: "2026-08-03T09:47:00Z",
-      current_quote_expires_at: "2026-08-10",
     });
     const copy = stateZoneCopy(row, NOW);
     assert.equal(copy.dot, "green");
     assert.equal(copy.headline, "Quote v4 · current");
-    assert.equal(copy.qualifier, "Generated today · expires in 7 days");
+    assert.equal(copy.qualifier, "Generated today");
   });
 
-  it("quote_expired: the expiry phrase moves into the headline itself", () => {
+  it("quote_needs_price_update: the amber headline names why", () => {
     const row = baseRow({
-      row_state: "quote_expired",
+      row_state: "quote_needs_price_update",
       current_quote_version: 1,
       current_quote_generated_at: "2026-07-20T10:00:00Z",
-      current_quote_expires_at: "2026-07-27",
-      is_expired: true,
+      needs_price_update: true,
     });
     const copy = stateZoneCopy(row, NOW);
     assert.equal(copy.dot, "amber");
     assert.equal(copy.tone, "amber");
-    assert.equal(copy.headline, "Quote v1 · expired 7 days ago");
+    assert.equal(copy.headline, "Quote v1 · pricing changed");
     assert.equal(copy.qualifier, "Generated 20 Jul · deal still open");
   });
 
@@ -132,7 +123,6 @@ describe("stateZoneCopy", () => {
       row_state: "deal_zero_line_items",
       current_quote_version: null,
       current_quote_generated_at: null,
-      current_quote_expires_at: null,
       deal_line_item_count: 0,
       products_source: "recommended",
     });
@@ -180,7 +170,7 @@ describe("stateZoneCopy", () => {
 describe("cardBorder", () => {
   it("only the four specified states get a special border", () => {
     assert.equal(cardBorder("no_deal_link"), "red-2");
-    assert.equal(cardBorder("quote_expired"), "amber-2");
+    assert.equal(cardBorder("quote_needs_price_update"), "amber-2");
     assert.equal(cardBorder("archived"), "dashed");
     for (const s of [
       "proposal_just_generated",

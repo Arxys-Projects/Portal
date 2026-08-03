@@ -4,6 +4,51 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-08-03 — `/projects`: unified row buttons, pricing-based staleness flag
+
+### Work done
+
+Follow-up on phase 2 based on direct feedback: the shipped row was too tall and its four button
+treatments (filled navy, "secondary," filled navy again, two bare icons) had no visible logic. Built
+a mockup first (current-vs-proposed, all eight `row_state`s) and iterated on it before touching code;
+approved before implementation.
+
+- **Every row now shows exactly 3 navy buttons — task, "View Project," Pipedrive — plus a small "···"
+  overflow menu**, across all eight row states, not just the three everyday ones. The standalone
+  Download split-menu slot is gone (the task button downloads directly on an ordinary current quote;
+  the calculator-submission PDF is still one click away on the project detail page). The "Open
+  project" icon-arrow became a labeled "View Project" button.
+- **An ordinary `quote_current` row's primary action changed from "New Project Proposal vN" to
+  "Download Proposal vN."** A merely-current quote's job is to be sent, not remade; deliberately
+  generating another version now happens from the project page rather than the list.
+- **The 7-day fixed expiry (`is_expired` / `quote_expired`) was replaced with a pricing-staleness flag
+  (`needs_price_update` / `quote_needs_price_update`)**, per the actual ask: a quote should flag only
+  when it predates a real price change, not merely when it has aged past a week. Every SKU changed in
+  one `scripts/push-prices.ts` run shares the same `effective_date`, so "the last price update" is one
+  global `max(effective_date)` across `current_products`, computed once in `queue.ts` and compared
+  against each quote's `generated_at` in `rows.ts`. No schema change needed.
+  `PROJECT_QUOTE_VALIDITY_DAYS` / `projectQuoteExpiryIso` are untouched — they still back the PDF's
+  own "valid until" language, a genuinely separate fact from list-row staleness.
+- **Row height cut ~25–30%**: padding, name size, and state-zone type all stepped down one size;
+  `compact` prop removed from `ProjectRow` since one sizing tier now covers both the Recent list and
+  the By-partner grouped view.
+- **Archived row's duplicate "Undo"/"Restore to my queue" collapsed to one button.**
+- Full rationale in [`0115-projects-list-button-unification-and-pricing-flag.md`](./decisions/0115-projects-list-button-unification-and-pricing-flag.md).
+- Touched: `src/lib/projects/{types,rows,queue,by-partner}.ts`,
+  `src/app/(app)/projects/{project-row,row-copy,format,filter,projects-board,by-partner-view}.tsx?`,
+  `scripts/verify-project-queue.mts`, and their test files. 753 tests pass, `tsc --noEmit` and
+  `next build` both clean.
+
+### Detours & fixes
+
+- **Couldn't do a full authenticated browser walkthrough.** No seeded internal-user test credentials
+  were available in this environment, and the verification script's persona-provisioning pattern
+  writes real rows against whatever Supabase project `.env.local` points at — not something to run
+  casually against what may be production data. Verified instead via the full unit suite (753 passing,
+  covering every row-state transition and the new pricing comparison), `tsc --noEmit`, `next build`,
+  and an unauthenticated smoke request confirming `/projects` redirects to `/login` rather than
+  erroring. A real click-through is still worth doing before calling this fully verified.
+
 ## 2026-08-03 — `/projects`, phase 2: the page
 
 ### Work done

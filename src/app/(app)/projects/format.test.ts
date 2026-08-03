@@ -1,11 +1,9 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import {
-  daysUntilUtc,
   formatClockTime,
   formatDayAndClock,
   formatDayLabel,
-  formatExpiryQualifier,
   formatUsd0,
   isSameLocalDay,
 } from "./format";
@@ -61,49 +59,5 @@ describe("formatClockTime / formatDayAndClock", () => {
   it("composes day label and clock time", () => {
     const now = "2026-08-03T09:42:00.000Z";
     assert.equal(formatDayAndClock(now, now, TZ), "today at 9:42 AM");
-  });
-});
-
-describe("daysUntilUtc", () => {
-  it("is positive for a future UTC date", () => {
-    assert.equal(daysUntilUtc("2026-08-10", "2026-08-03T00:00:00.000Z"), 7);
-  });
-
-  it("is zero for today", () => {
-    assert.equal(daysUntilUtc("2026-08-03", "2026-08-03T15:00:00.000Z"), 0);
-  });
-
-  it("is negative for a past UTC date", () => {
-    assert.equal(daysUntilUtc("2026-07-29", "2026-08-03T00:00:00.000Z"), -5);
-  });
-});
-
-describe("formatExpiryQualifier", () => {
-  it("reads 'expires in N days' in the future", () => {
-    assert.equal(
-      formatExpiryQualifier("2026-08-10", "2026-08-03T00:00:00.000Z"),
-      "expires in 7 days",
-    );
-  });
-
-  it("singularizes one day", () => {
-    assert.equal(
-      formatExpiryQualifier("2026-08-04", "2026-08-03T00:00:00.000Z"),
-      "expires in 1 day",
-    );
-  });
-
-  it("reads 'expires today' on the day itself", () => {
-    assert.equal(
-      formatExpiryQualifier("2026-08-03", "2026-08-03T15:00:00.000Z"),
-      "expires today",
-    );
-  });
-
-  it("reads 'expired N days ago' in the past — driven by the calendar date, not is_expired", () => {
-    assert.equal(
-      formatExpiryQualifier("2026-07-29", "2026-08-03T00:00:00.000Z"),
-      "expired 5 days ago",
-    );
   });
 });

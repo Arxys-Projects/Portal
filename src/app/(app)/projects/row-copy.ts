@@ -14,7 +14,7 @@ import type {
   ProjectRowState,
   ProductsSource,
 } from "@/lib/projects/types";
-import { formatDayAndClock, formatDayLabel, formatExpiryQualifier } from "./format";
+import { formatDayAndClock, formatDayLabel } from "./format";
 
 export type DotTone = "green" | "amber" | "red" | "grey";
 export type TextTone = "ink" | "amber" | "red" | "muted";
@@ -46,17 +46,11 @@ function pluralLines(n: number): string {
   return n === 1 ? "1 line differs" : `${n} lines differ`;
 }
 
-// The State zone's two lines. Every quote-bearing state prints the expiry
-// phrase somewhere, but WHICH line it lands on differs by state on purpose
-// (matches the reference screenshot exactly): "current" and "just generated"
-// put it in the qualifier, under a headline that just says "current";
-// "expired" promotes it into the headline itself, because that is the fact
-// that most needs to be seen first.
+// The State zone's two lines.
 export function stateZoneCopy(row: ProjectQueueRow, nowIso: string, timeZone?: string): StateZoneCopy {
   const state: ProjectRowState = row.row_state;
   const version = row.current_quote_version;
   const generatedAt = row.current_quote_generated_at;
-  const expiresAt = row.current_quote_expires_at;
 
   switch (state) {
     case "archived":
@@ -80,7 +74,7 @@ export function stateZoneCopy(row: ProjectQueueRow, nowIso: string, timeZone?: s
         dot: "green",
         tone: "ink",
         headline: `Quote v${version} · current`,
-        qualifier: `Generated today${expiresAt ? ` · ${formatExpiryQualifier(expiresAt, nowIso)}` : ""}`,
+        qualifier: "Generated today",
       };
 
     case "line_items_drifted":
@@ -93,11 +87,11 @@ export function stateZoneCopy(row: ProjectQueueRow, nowIso: string, timeZone?: s
           pluralLines(row.line_item_drift_count),
       };
 
-    case "quote_expired":
+    case "quote_needs_price_update":
       return {
         dot: "amber",
         tone: "amber",
-        headline: `Quote v${version} · ${expiresAt ? formatExpiryQualifier(expiresAt, nowIso) : "expired"}`,
+        headline: `Quote v${version} · pricing changed`,
         qualifier: `Generated ${generatedAt ? formatDayLabel(generatedAt, nowIso, timeZone) : "—"} · deal still open`,
       };
 
@@ -106,9 +100,7 @@ export function stateZoneCopy(row: ProjectQueueRow, nowIso: string, timeZone?: s
         dot: "green",
         tone: "ink",
         headline: `Quote v${version} · current`,
-        qualifier:
-          `Generated ${generatedAt ? formatDayLabel(generatedAt, nowIso, timeZone) : "—"}` +
-          (expiresAt ? ` · ${formatExpiryQualifier(expiresAt, nowIso)}` : ""),
+        qualifier: `Generated ${generatedAt ? formatDayLabel(generatedAt, nowIso, timeZone) : "—"}`,
       };
 
     case "deal_zero_line_items":
@@ -139,7 +131,7 @@ export function cardBorder(state: ProjectRowState): CardBorder {
   switch (state) {
     case "no_deal_link":
       return "red-2";
-    case "quote_expired":
+    case "quote_needs_price_update":
       return "amber-2";
     case "archived":
       return "dashed";

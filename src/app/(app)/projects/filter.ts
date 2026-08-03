@@ -12,7 +12,7 @@
 import type { ProjectAttention, ProjectPortalStatus, ProjectQueueRow } from "@/lib/projects/types";
 
 export type ProjectsView = "recent" | "partner";
-export type AttentionFilter = "expired" | "missing_link" | null;
+export type AttentionFilter = "needs_price_update" | "missing_link" | null;
 
 export type ProjectsFilterState = {
   q: string;
@@ -40,7 +40,7 @@ function readStatus(v: string | null): ProjectPortalStatus | null {
 }
 
 function readAttention(v: string | null): AttentionFilter {
-  return v === "expired" || v === "missing_link" ? v : null;
+  return v === "needs_price_update" || v === "missing_link" ? v : null;
 }
 
 // Reads filter state from a key→value getter, so the same logic serves the
@@ -136,13 +136,13 @@ export function highlightSegments(text: string, query: string): TextSegment[] {
 // ---------------------------------------------------------------------------
 
 export type AttentionIdSets = {
-  expired: Set<string>;
+  needsPriceUpdate: Set<string>;
   missingLink: Set<string>;
 };
 
 export function attentionIdSets(attention: ProjectAttention): AttentionIdSets {
   return {
-    expired: new Set(attention.expired_quote_submission_ids),
+    needsPriceUpdate: new Set(attention.needs_price_update_submission_ids),
     missingLink: new Set(attention.missing_deal_link_submission_ids),
   };
 }
@@ -161,7 +161,7 @@ export function applyNonSearchFilters(
     if (!filters.archived && row.internal_archived_at !== null) return false;
     if (filters.mine && row.created_by_user_name !== viewerName) return false;
     if (filters.status && row.portal_status !== filters.status) return false;
-    if (filters.attention === "expired" && !attention.expired.has(row.submission_id)) {
+    if (filters.attention === "needs_price_update" && !attention.needsPriceUpdate.has(row.submission_id)) {
       return false;
     }
     if (filters.attention === "missing_link" && !attention.missingLink.has(row.submission_id)) {

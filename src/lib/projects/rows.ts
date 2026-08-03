@@ -16,7 +16,6 @@
 // partner's own RLS-scoped rows with partners: [].
 
 import { groupIntoDeals, supersededIds } from "@/lib/pipeline/forecast";
-import { projectQuoteExpiryIso } from "@/lib/project-quote/expiry";
 import { pipedriveDealUrl } from "@/lib/pipedrive/url";
 import {
   NO_DRIFT,
@@ -28,7 +27,6 @@ import {
 import type {
   AvailableActions,
   BuildProjectQueueInput,
-  DownloadAction,
   PipedriveAction,
   ProjectAttention,
   ProjectPortalStatus,
@@ -58,11 +56,10 @@ export const ACTION_LABELS = {
   retry_pipedrive_link: "Retry Pipedrive link",
   restore_from_archive: "Restore to my queue",
   add_line_items: "Add line items ↗",
-  generate_first: "Generate Project Proposal",
+  generate_first: "Make Project Proposal",
   generate_next: (version: number) => `New Project Proposal v${version}`,
-  download_generated: (version: number) => `Download Proposal v${version} ⌄`,
-  download_split: "Download",
-  download_submission_only: "Submission ⤓",
+  update_pricing: "Update Project Pricing",
+  download_generated: (version: number) => `Download Proposal v${version}`,
   open_deal: "Pipedrive ↗",
   no_deal: "No deal to open",
   archive: "Archive",
@@ -162,7 +159,7 @@ type RowFacts = {
   currentQuoteSubmissionId: string | null;
   nextVersion: number;
   justGenerated: boolean;
-  isExpired: boolean;
+  needsPriceUpdate: boolean;
   drift: LineItemDrift;
 };
 
@@ -177,11 +174,12 @@ type RowFacts = {
 //   3. just generated  — the green "ready to download and send" strip. Beats
 //                        drift and expiry because neither can be true of a
 //                        proposal made minutes ago.
-//   4. drifted         — beats expiry: "v2 no longer matches the deal" is a
-//                        correctness problem, "v2 lapsed" is only a freshness
-//                        one, and re-generating fixes both. A row that is both
-//                        should send him to the more serious reason.
-//   5. quote_expired
+//   4. drifted         — beats a stale price: "v2 no longer matches the deal"
+//                        is a correctness problem, "v2 is priced off the old
+//                        list" is only a pricing one, and re-generating fixes
+//                        both. A row that is both should send him to the more
+//                        serious reason.
+//   5. quote_needs_price_update
 //   6. quote_current
 //   7. deal_zero_line_items — only reachable with no proposal, and only on a
 //                        KNOWN zero. An unread deal is not claimed to be empty.
@@ -191,15 +189,18 @@ export function deriveRowState(facts: RowFacts): ProjectRowState {
   if (!facts.dealLinked) return "no_deal_link";
   if (facts.justGenerated) return "proposal_just_generated";
   if (facts.hasQuote && facts.drift.total > 0) return "line_items_drifted";
-  if (facts.isExpired) return "quote_expired";
+  if (facts.needsPriceUpdate) return "quote_needs_price_update";
   if (facts.hasQuote) return "quote_current";
   if (facts.lineItemCount === 0) return "deal_zero_line_items";
   return "no_quote_yet";
 }
 
-// The three slots, always present, always in this order. Slot 1's branch order
-// mirrors deriveRowState's precedence so a row's state and its primary action
-// can never describe different situations.
+// The two visible slots (task, pipedrive) plus archive, always present, always
+// in this order. Slot 1's branch order mirrors deriveRowState's precedence so
+// a row's state and its primary action can never describe different
+// situations. "View Project" needs no slot of its own — every row links to
+// the same submission_id, so the page renders that button directly off the
+// row rather than through available_actions.
 export function deriveAvailableActions(facts: RowFacts): AvailableActions {
   const task: TaskAction = (() => {
     if (facts.isArchived) {
@@ -230,11 +231,34 @@ export function deriveAvailableActions(facts: RowFacts): AvailableActions {
         url: facts.dealUrl ?? "",
       };
     }
-    if (facts.hasQuote) {
+    // Drift beats a stale price — see deriveRowState's precedence comment.
+    if (facts.hasQuote && facts.drift.total > 0) {
       return {
         kind: "generate_next_proposal",
         label: ACTION_LABELS.generate_next(facts.nextVersion),
         next_version: facts.nextVersion,
+      };
+    }
+    // Priced off a list that is no longer current: re-generating is the fix,
+    // named for WHY rather than reusing the generic "New Project Proposal" —
+    // the version bump is the same mechanism as the drifted case above, only
+    // the label differs.
+    if (facts.hasQuote && facts.needsPriceUpdate) {
+      return {
+        kind: "generate_next_proposal",
+        label: ACTION_LABELS.update_pricing,
+        next_version: facts.nextVersion,
+      };
+    }
+    // An ordinary current proposal: the primary action is to send it, not to
+    // make another one. Slot 1 IS the download, same as a proposal generated
+    // moments ago — there is no meaningful difference to the row's job.
+    if (facts.hasQuote && facts.currentVersion !== null && facts.currentQuoteSubmissionId) {
+      return {
+        kind: "download_proposal",
+        label: ACTION_LABELS.download_generated(facts.currentVersion),
+        version: facts.currentVersion,
+        proposal_submission_id: facts.currentQuoteSubmissionId,
       };
     }
     return {
@@ -244,18 +268,6 @@ export function deriveAvailableActions(facts: RowFacts): AvailableActions {
     };
   })();
 
-  // Slot 2. A Recommended row has no proposal, so there is nothing to split:
-  // one button, the calculator submission only.
-  const download: DownloadAction =
-    facts.currentVersion !== null && facts.currentQuoteSubmissionId
-      ? {
-          kind: "download_split",
-          label: ACTION_LABELS.download_split,
-          proposal_version: facts.currentVersion,
-          proposal_submission_id: facts.currentQuoteSubmissionId,
-        }
-      : { kind: "download_submission_only", label: ACTION_LABELS.download_submission_only };
-
   // Slot 3. Present but disabled when unlinked — the slot never disappears,
   // because a slot that moves costs more than a slot that repeats.
   const pipedrive: PipedriveAction = facts.dealUrl
@@ -264,7 +276,6 @@ export function deriveAvailableActions(facts: RowFacts): AvailableActions {
 
   return {
     task,
-    download,
     pipedrive,
     archive: facts.isArchived
       ? { kind: "restore", label: ACTION_LABELS.undo_archive }
@@ -277,7 +288,10 @@ export function deriveAvailableActions(facts: RowFacts): AvailableActions {
 // ---------------------------------------------------------------------------
 
 export function buildProjectQueue(input: BuildProjectQueueInput): ProjectQueueResult {
-  const { submissions, partners, quotes, archives, dealCache, viewerId, now } = input;
+  const { submissions, partners, quotes, archives, dealCache, viewerId, now, latestPriceEffectiveDate } =
+    input;
+  const latestPriceMs =
+    latestPriceEffectiveDate !== null ? Date.parse(`${latestPriceEffectiveDate}T00:00:00Z`) : null;
 
   const subById = new Map<string, QueueSubmissionRow>(submissions.map((s) => [s.id, s]));
   const partnerById = new Map(partners.map((p) => [p.id, p]));
@@ -355,17 +369,16 @@ export function buildProjectQueue(input: BuildProjectQueueInput): ProjectQueueRe
     const repVersions = (quotesBySubmission.get(rep.id) ?? []).map((q) => q.version);
     const nextVersion = (repVersions.length > 0 ? Math.max(...repVersions) : 0) + 1;
 
-    // Expiry: derived from the validity window frozen at generation, never
-    // stored (ADR 0061). is_expired additionally requires the deal to be open,
-    // per the spec — a lapsed proposal on a won or lost deal is not a chase.
-    let expiresAt: string | null = null;
-    let isExpired = false;
-    if (currentQuote) {
-      expiresAt = projectQuoteExpiryIso(currentQuote.generated_at, currentQuote.validity_days);
+    // Needs a price update: the current proposal was generated before the
+    // portal's last price update, gated on the deal still being open — a
+    // stale-priced proposal on a won or lost deal is not a chase. Replaces the
+    // old fixed-window expiry (ADR 0061): a 7-day-old quote is not stale
+    // pricing by itself, only a quote that predates an actual price change is.
+    let needsPriceUpdate = false;
+    if (currentQuote && latestPriceMs !== null) {
       const generatedAt = toEpoch(currentQuote.generated_at);
       if (generatedAt !== null) {
-        const expiryInstant = generatedAt + currentQuote.validity_days * MS_PER_DAY;
-        isExpired = now.getTime() > expiryInstant && cache?.deal_status === "open";
+        needsPriceUpdate = generatedAt < latestPriceMs && cache?.deal_status === "open";
       }
     }
 
@@ -396,7 +409,7 @@ export function buildProjectQueue(input: BuildProjectQueueInput): ProjectQueueRe
       currentQuoteSubmissionId: currentQuote?.submission_id ?? null,
       nextVersion,
       justGenerated,
-      isExpired,
+      needsPriceUpdate,
       drift,
     };
 
@@ -448,8 +461,7 @@ export function buildProjectQueue(input: BuildProjectQueueInput): ProjectQueueRe
 
       current_quote_version: currentQuote?.version ?? null,
       current_quote_generated_at: currentQuote?.generated_at ?? null,
-      current_quote_expires_at: expiresAt,
-      is_expired: isExpired,
+      needs_price_update: needsPriceUpdate,
       project_quote_version_count: projectQuotes.length,
 
       is_superseded: superseded.has(rep.id),
@@ -489,7 +501,9 @@ export function buildProjectQueue(input: BuildProjectQueueInput): ProjectQueueRe
 function deriveAttention(rows: ProjectQueueRow[]): ProjectAttention {
   const live = rows.filter((r) => r.internal_archived_at === null);
   return {
-    expired_quote_submission_ids: live.filter((r) => r.is_expired).map((r) => r.submission_id),
+    needs_price_update_submission_ids: live
+      .filter((r) => r.needs_price_update)
+      .map((r) => r.submission_id),
     missing_deal_link_submission_ids: live
       .filter((r) => r.deal_link_state === "missing")
       .map((r) => r.submission_id),

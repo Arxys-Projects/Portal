@@ -32,8 +32,6 @@ export type ByPartnerViewProps = {
   nowIso: string;
   viewerId: string;
   isAdmin: boolean;
-  downloadMenuOpenId: string | null;
-  onToggleDownloadMenu: (id: string) => void;
   onRequestGenerate: (row: ProjectQueueRow) => void;
   onRequestArchive: (row: ProjectQueueRow) => void;
   onMutated: () => void;
@@ -45,8 +43,6 @@ export function ByPartnerView({
   nowIso,
   viewerId,
   isAdmin,
-  downloadMenuOpenId,
-  onToggleDownloadMenu,
   onRequestGenerate,
   onRequestArchive,
   onMutated,
@@ -94,9 +90,10 @@ export function ByPartnerView({
                       {g.project_count} project{g.project_count === 1 ? "" : "s"} · {g.contact_count}{" "}
                       contact{g.contact_count === 1 ? "" : "s"}
                     </span>
-                    {g.expired_quote_count > 0 ? (
+                    {g.needs_price_update_count > 0 ? (
                       <WarningPill>
-                        {g.expired_quote_count} quote{g.expired_quote_count === 1 ? "" : "s"} expired
+                        {g.needs_price_update_count} quote
+                        {g.needs_price_update_count === 1 ? "" : "s"} need pricing updates
                       </WarningPill>
                     ) : null}
                     {g.missing_deal_link_count > 0 ? (
@@ -145,9 +142,6 @@ export function ByPartnerView({
                       nowIso={nowIso}
                       viewerId={viewerId}
                       query={query}
-                      compact
-                      downloadMenuOpen={downloadMenuOpenId === row.submission_id}
-                      onToggleDownloadMenu={() => onToggleDownloadMenu(row.submission_id)}
                       onRequestGenerate={onRequestGenerate}
                       onRequestArchive={onRequestArchive}
                       onMutated={onMutated}

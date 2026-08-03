@@ -95,8 +95,7 @@ const CONTRACT_FIELDS: Array<keyof ProjectQueueRow> = [
   "products_source",
   "current_quote_version",
   "current_quote_generated_at",
-  "current_quote_expires_at",
-  "is_expired",
+  "needs_price_update",
   "project_quote_version_count",
   "is_superseded",
   "project_key",
@@ -262,15 +261,14 @@ async function run(): Promise<void> {
       const blankProducts = rows.filter((r) => !r.products_display || r.products_display.trim() === "");
       record("3b: no row has a blank products line", blankProducts.length === 0);
 
-      // All three action slots filled on every row, whatever the state.
+      // Task, Pipedrive and archive slots filled on every row, whatever the state.
       const emptySlot = rows.filter(
         (r) =>
           !r.available_actions.task?.label ||
-          !r.available_actions.download?.label ||
           !r.available_actions.pipedrive?.label ||
           !r.available_actions.archive?.label,
       );
-      record("3c: all three action slots plus archive are filled on every row", emptySlot.length === 0);
+      record("3c: the task, Pipedrive and archive slots are filled on every row", emptySlot.length === 0);
 
       // Acceptance check 9, against real data: a stale row must still carry its
       // last known value.
@@ -315,7 +313,7 @@ async function run(): Promise<void> {
       );
 
       console.log("\n--- Band B (attention) ---");
-      console.log(`  expired quotes on open deals   ${result.attention.expired_quote_submission_ids.length}`);
+      console.log(`  needs price update on open deals   ${result.attention.needs_price_update_submission_ids.length}`);
       console.log(`  projects with no deal link     ${result.attention.missing_deal_link_submission_ids.length}`);
 
       console.log("\n--- Band C (the three numbers) ---");
@@ -338,7 +336,7 @@ async function run(): Promise<void> {
             ` · ${String(g.contact_count).padStart(2)} contacts` +
             ` · open ${money(g.open_pipeline_usd).padStart(12)}` +
             ` · won ${money(g.won_usd).padStart(12)}` +
-            (g.expired_quote_count > 0 ? `  [${g.expired_quote_count} expired]` : "") +
+            (g.needs_price_update_count > 0 ? `  [${g.needs_price_update_count} need pricing updates]` : "") +
             (g.missing_deal_link_count > 0 ? `  [${g.missing_deal_link_count} unlinked]` : ""),
         );
       }
@@ -370,7 +368,7 @@ async function run(): Promise<void> {
             `    quote       ${
               row.current_quote_version === null
                 ? "none"
-                : `v${row.current_quote_version} of ${row.project_quote_version_count}, generated ${row.current_quote_generated_at}, expires ${row.current_quote_expires_at}${row.is_expired ? " (EXPIRED)" : ""}`
+                : `v${row.current_quote_version} of ${row.project_quote_version_count}, generated ${row.current_quote_generated_at}${row.needs_price_update ? " (NEEDS PRICE UPDATE)" : ""}`
             }\n` +
             `    deal        ${
               row.pipedrive_deal_id === null
@@ -383,8 +381,7 @@ async function run(): Promise<void> {
             `    drift       ${row.line_item_drift_count} lines differ${
               row.deal_line_items_changed_at ? `, last observed change ${row.deal_line_items_changed_at}` : ""
             }\n` +
-            `    task        ${row.available_actions.task.kind}: "${row.available_actions.task.label}"\n` +
-            `    download    ${row.available_actions.download.kind}: "${row.available_actions.download.label}"`,
+            `    task        ${row.available_actions.task.kind}: "${row.available_actions.task.label}"`,
         );
       }
     }

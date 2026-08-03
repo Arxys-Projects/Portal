@@ -92,8 +92,9 @@ export type ProjectRowState =
   // Amber top strip: the deal's line items no longer match the current
   // proposal's frozen snapshot.
   | "line_items_drifted"
-  // 2px amber card border, amber dot: past expiry on a deal still open.
-  | "quote_expired"
+  // 2px amber card border, amber dot: the current proposal was generated
+  // before the portal's most recent price update, on a deal still open.
+  | "quote_needs_price_update"
   // Green dot: current proposal, inside its validity window.
   | "quote_current"
   // Grey dot, "No quote yet" / "Deal has 0 line items". The primary action is
@@ -138,18 +139,6 @@ export type TaskAction =
       proposal_submission_id: string;
     };
 
-export type DownloadAction =
-  // Split button: "Project Proposal v3 (PDF)" (the customer document) and
-  // "Calculator submission (PDF)" (sizing inputs, internal).
-  | {
-      kind: "download_split";
-      label: string;
-      proposal_version: number;
-      proposal_submission_id: string;
-    }
-  // A Recommended row has no proposal, so the slot is a single button.
-  | { kind: "download_submission_only"; label: string };
-
 export type PipedriveAction =
   | { kind: "open_deal"; label: string; url: string; enabled: true }
   // Present but disabled on an unlinked row: the slot never disappears, because
@@ -163,7 +152,6 @@ export type ArchiveAction =
 
 export type AvailableActions = {
   task: TaskAction;
-  download: DownloadAction;
   pipedrive: PipedriveAction;
   archive: ArchiveAction;
 };
@@ -274,15 +262,12 @@ export type ProjectQueueRow = {
   // current + 1, so it is never a lie — see next_version on TaskAction.
   current_quote_version: number | null;
   current_quote_generated_at: string | null;
-  // UTC calendar date (YYYY-MM-DD) from projectQuoteExpiryIso — generated_at
-  // plus the validity_days frozen at generation, computed at read time and never
-  // stored (ADR 0061). Same value the PDF footer derives from, so the row and
-  // the document never disagree about which day a proposal lapses.
-  current_quote_expires_at: string | null;
-  // Past expiry AND the last known Pipedrive deal status is open, per the spec's
-  // "true only when the deal is open". An expired proposal on a won or lost deal
-  // is not something to chase.
-  is_expired: boolean;
+  // True when the current proposal was generated before the portal's most
+  // recent price update (max effective_date across `products`) AND the last
+  // known Pipedrive deal status is open. A stale-priced proposal on a won or
+  // lost deal is not something to chase, matching the same rule the old
+  // date-based expiry used.
+  needs_price_update: boolean;
   // Total proposals across the project's whole lineage.
   project_quote_version_count: number;
 
@@ -320,8 +305,8 @@ export type ProjectQueueRow = {
 // lengths. Both exclude archived projects: an archived row is out of the queue,
 // so it must not drive a banner that says "Show these 4 →" and then shows three.
 export type ProjectAttention = {
-  // Rows whose current proposal is past expiry on a still-open deal.
-  expired_quote_submission_ids: string[];
+  // Rows whose current proposal predates the last price update, on a still-open deal.
+  needs_price_update_submission_ids: string[];
   // Rows with no Pipedrive deal link, which therefore cannot be quoted.
   missing_deal_link_submission_ids: string[];
 };
@@ -386,9 +371,6 @@ export type QueueQuoteRow = {
   // against a deal it was never built from would report every line as drifted.
   pipedrive_deal_id: number;
   generated_at: string;
-  // Frozen at generation, so shortening PROJECT_QUOTE_VALIDITY_DAYS never
-  // changes an already-issued proposal's expiry (ADR 0061).
-  validity_days: number;
   generated_by: string;
   // Normalised fingerprint of snapshot.commercial.lineItems. Loaded ONLY for the
   // quote that is current for its project — drift is only ever measured against
@@ -429,7 +411,11 @@ export type BuildProjectQueueInput = {
   // "proposal just generated" state, which is deliberately scoped to the person
   // who generated it.
   viewerId: string;
-  // Injected so every derived age, expiry and "today" is testable. Callers pass
-  // new Date().
+  // Injected so every derived age and "today" is testable. Callers pass new Date().
   now: Date;
+  // max(effective_date) across `current_products` — "when pricing was last
+  // updated" as one global date, since a portal price update
+  // (scripts/push-prices.ts) stamps every changed SKU in one run with the same
+  // effective_date. Null when the products table has never been read/seeded.
+  latestPriceEffectiveDate: string | null;
 };

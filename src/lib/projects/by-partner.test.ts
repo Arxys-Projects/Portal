@@ -32,8 +32,7 @@ function row(o: Partial<ProjectQueueRow> & { submission_id: string }): ProjectQu
     products_source: "recommended",
     current_quote_version: null,
     current_quote_generated_at: null,
-    current_quote_expires_at: null,
-    is_expired: false,
+    needs_price_update: false,
     project_quote_version_count: 0,
     is_superseded: false,
     project_key: "a project",
@@ -42,8 +41,7 @@ function row(o: Partial<ProjectQueueRow> & { submission_id: string }): ProjectQu
     line_item_drift_count: 0,
     row_state: "no_quote_yet",
     available_actions: {
-      task: { kind: "generate_proposal", label: "Generate Project Proposal", next_version: 1 },
-      download: { kind: "download_submission_only", label: "Submission ⤓" },
+      task: { kind: "generate_proposal", label: "Make Project Proposal", next_version: 1 },
       pipedrive: {
         kind: "open_deal",
         label: "Pipedrive ↗",
@@ -102,11 +100,11 @@ describe("groupProjectRowsByPartner", () => {
 
   it("counts the two warning pills", () => {
     const groups = groupProjectRowsByPartner([
-      row({ submission_id: "s1", is_expired: true }),
+      row({ submission_id: "s1", needs_price_update: true }),
       row({ submission_id: "s2", deal_link_state: "missing", pipedrive_deal_id: null }),
       row({ submission_id: "s3" }),
     ]);
-    assert.equal(groups[0].expired_quote_count, 1);
+    assert.equal(groups[0].needs_price_update_count, 1);
     assert.equal(groups[0].missing_deal_link_count, 1);
   });
 
