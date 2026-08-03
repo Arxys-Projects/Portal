@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { signOut } from "./_actions/logout";
+import InternalBar from "./_components/internal-bar";
 import PortalHeader from "./_components/portal-header";
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
@@ -47,6 +48,18 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   // view + invite-partner flow as admins, read-only.
   const isAdminOrInternal = isAdmin || isInternal;
 
+  // Pending access-request count for the internal bar's Requests badge — the
+  // same query admin/layout.tsx runs, needed here too now that Requests is
+  // reachable from every page an internal viewer is on, not just /admin/*.
+  let pendingRequests = 0;
+  if (isAdminOrInternal) {
+    const { count } = await supabase
+      .from("access_requests")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "pending");
+    pendingRequests = count ?? 0;
+  }
+
   return (
     <div className="min-h-screen bg-page">
       <PortalHeader
@@ -56,6 +69,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         showAdmin={isAdminOrInternal}
         signOutAction={signOut}
       />
+      {isAdminOrInternal ? <InternalBar pendingRequests={pendingRequests} /> : null}
       <main className="mx-auto max-w-7xl px-4 py-8">{children}</main>
     </div>
   );

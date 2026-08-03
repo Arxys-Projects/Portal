@@ -11,7 +11,7 @@ export type ButtonVariant =
   | "ghost"
   | "amber"
   | "invert";
-export type ButtonSize = "sm" | "md";
+export type ButtonSize = "sm" | "md" | "lg";
 
 const BUTTON_BASE =
   "inline-flex items-center justify-center gap-2 font-semibold rounded-lg border " +
@@ -22,6 +22,9 @@ const BUTTON_BASE =
 const BUTTON_SIZES: Record<ButtonSize, string> = {
   sm: "px-3.5 py-1.5 text-[13px]",
   md: "px-[18px] py-2.5 text-sm",
+  // /projects (ADR 0067 step +1): 48px+ tall primary action targets, 17/700
+  // labels — one step up from `md` per the page's type scale (4e).
+  lg: "px-5 py-3 text-[17px] font-bold min-h-[48px]",
 };
 
 // ADR 0075: gold reinstated (amber), plus outline/ghost/invert for the reskin.

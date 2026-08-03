@@ -4,6 +4,84 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-08-03 — `/projects`, phase 2: the page
+
+### Work done
+
+Phase 2 of two for the internal sales surface at `/projects` — the page itself, built against the
+phase 1 data contract (`src/lib/projects/types.ts`) without touching it. Switches on `row_state` and
+prints `available_actions.*.label` verbatim throughout, per the phase 1 handoff's non-negotiables.
+
+- **The internal nav strip** (screenshot 2c) — `INTERNAL / SALES / Partners / Requests / Specs &
+  Datasheets`, added to the shared `(app)/layout.tsx` rather than to `/projects` itself, because SALES
+  is the only link that reaches `/projects` at all. Gated on `isAdminOrInternal`, matching the page's
+  own access gate.
+- **Three pure, tested helper modules** under `src/app/(app)/projects/`: `format.ts` (money, "today" /
+  "14 Jul" day labels, expiry-day arithmetic — every local-day function takes an optional IANA
+  timezone so tests are deterministic regardless of the machine running them, while production leaves
+  it unset and gets the viewer's own browser zone), `filter.ts` (URL ⇄ filter-state parsing, search
+  matching and highlight ranges, a Levenshtein closest-match for the empty-search state), and
+  `row-copy.ts` (row-state → display copy: dot color, headline, qualifier, card border, the top strip
+  and archived strip text — switches on `row_state`, never re-derives it). 54 new unit tests across
+  the three, no regressions (760 pass overall).
+- **`src/app/(app)/projects/actions.ts`** — thin, internal-gated server actions. Archive/restore/relink
+  wrap the existing phase-1 writes and the existing admin relink action; generate wraps the existing
+  `generateProjectQuote` action verbatim. The one genuinely new piece is
+  `previewDealForGenerateAction`, a read-only wrapper around `getDealForQuote` for the Generate
+  dialog's live line-item preview.
+- **The page and board**: `page.tsx` gates via `requireAdminOrInternal` (404, not 403, matching
+  `/admin`), loads the queue with `refresh: "none"`, and hands it to `projects-board.tsx` — a client
+  component that filters/searches/groups entirely in memory against the already-loaded row set (the
+  query layer's own scale note makes this cheap) and keeps the URL in sync via the plain History API
+  rather than `next/navigation`'s router, so retyping a search query never round-trips to the server.
+  Bands A–D, the keyboard nav (`↑ ↓ Enter /`), both dialogs, and the empty states are all here.
+- **`project-row.tsx`** — the fixed 3-zone row (identity / state / actions), all eight row states,
+  the three action slots plus the "···" archive menu and "Open project" icon, the download split-menu
+  that grows the card, and the additive superseded/stale chip tray. Action slots use CSS `min-width`
+  rather than a hard cap, so the primary action starts at the same x on the ordinary case (acceptance
+  check 1) without ever clipping a longer label.
+- **`by-partner-view.tsx`** — the same filtered rows grouped via the existing `groupProjectRowsByPartner`,
+  with the warning pills, OPEN PIPELINE / WON totals, and the Export XLSX control (admin-only, reusing
+  the existing forecast XLSX route).
+- **`dialogs.tsx`** — Generate confirm (the "trust loop": a live Pipedrive line-item table before
+  committing a version) and Archive confirm (the facts panel + reversibility copy), both closing on
+  success and calling `router.refresh()` rather than a toast — the row itself carries the permanent
+  record afterward (acceptance check 4).
+- **One new design-system size**: `lg` added to `ButtonSize` in `ui/styles.ts` (48px+ tall, 17/700
+  text) for this page's row primary actions — the one deliberate type-scale change the spec calls for,
+  no new colors or fonts.
+- Decisions worth a longer memory than a code comment are in
+  [`0114-projects-page-ui-decisions.md`](./decisions/0114-projects-page-ui-decisions.md).
+
+### Detours & fixes
+
+- **The Actions zone almost used a hard 620px width with content right-aligned inside it.** That
+  satisfies "the zone sits at a fixed position" but not "the primary action starts at the same x" —
+  with `justify-end` and variable label lengths, Task's own start position shifts row to row. Switched
+  every slot to a fixed `min-width` instead: a floor sized for the design's own labels, free to grow
+  (never clip) for an unusually long one.
+- **The value cell's `?? 0` fallback would have silently violated acceptance check 9.** `no_deal_link`
+  was the only state the phase-1 handoff calls out for "Value unavailable," but a *linked* deal that
+  has never been read even once also has `pipedrive_deal_value === null` — and `formatUsd0(null ?? 0)`
+  renders `$0`, a fabricated number that looks exactly like real data. Fixed by extending
+  `valueCellText` to cover both cases; a deal that was read successfully before and has since gone
+  stale is unaffected — it keeps its real last-known figure and gets the separate "unreachable" chip.
+- **A `mark` tag ended up in the row's "don't navigate on this click" selector by mistake**, which
+  would have silently blocked "click the row to open it" whenever the click landed on a highlighted
+  search match inside the project name. Caught on review; removed.
+- **Interactive browser verification against production was intentionally skipped this session** — the
+  dev server points at the real Supabase project (`.env.local`), and Generate/Archive/Retry-link all
+  write. Verified instead via the full test suite (760 passing), a clean `tsc --noEmit`, a clean
+  `next build`, and a manual line-by-line pass against all nine acceptance checks and the six reference
+  screenshots. Flagged for a follow-up pass with either ephemeral test personas (the
+  `scripts/verify-project-queue.mts` pattern) or a live walkthrough by the user.
+
+### Decisions captured
+
+- [`0114-projects-page-ui-decisions.md`](./decisions/0114-projects-page-ui-decisions.md)
+
+---
+
 ## 2026-08-03 — `/projects`, phase 1: the schema and the query layer
 
 ### Work done
