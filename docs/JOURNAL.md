@@ -4,6 +4,105 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-08-03 — `/projects`, phase 1: the schema and the query layer
+
+### Work done
+
+Phase 1 of two for the new internal sales surface at `/projects`. **No route, no React, no
+page** — this is the half that carries the risk. The row-state logic (which proposal is
+current, expiry, line-item drift, archive semantics) is cheap to get subtly wrong and expensive
+to debug once a page sits on it, and this app has a documented history of Pipedrive-link bugs
+with three distinct root causes behind one symptom. The page build against this contract is
+comparatively mechanical.
+
+**Most of the ~20-field data contract turned out to be derivable, as the brief predicted.**
+Checked field by field before writing any SQL: `portal_status` is `submissions.status` (ADR
+0081), `is_superseded` and lineage are `parent_submission_id` plus `supersededIds()`,
+`project_key` stays a derived value in code, `partner_company_name` and the contact are a join
+resolved the way `effectiveCompany()` already does it, and expiry is `projectQuoteExpiryIso()`.
+**Two new tables, and only two**, both for the things with no precedent anywhere in the schema.
+
+- **`supabase/migrations/20260803000001_internal_project_archive.sql`** — the archive, as a
+  side table rather than the two columns on `submissions` the contract's field names imply.
+  [ADR 0112](./decisions/0112-internal-project-archive-is-a-side-table.md). Internal-only RLS
+  copied from `project_quotes`. One global flag with `archived_by` recorded; undo is a DELETE.
+- **`supabase/migrations/20260803000002_pipedrive_deal_cache.sql`** — last-known Pipedrive
+  values, keyed by deal id. [ADR 0113](./decisions/0113-pipedrive-reads-are-cached-with-a-last-known-fallback.md).
+  Both migrations are **not yet applied**; see
+  [the apply note](./apply-notes/0112-0113-projects-page-schema.md), which explains why the
+  order does not matter here even though it did for 0107 and 0111.
+- **`src/lib/projects/`** — five modules, split so the derivation is pure and the I/O is thin.
+  `types.ts` is the contract, `rows.ts` the derivation (`buildProjectQueue`, `deriveRowState`,
+  `deriveAvailableActions`), `line-items.ts` the fingerprints and drift diff, `queue.ts` the
+  Supabase reads, `pipedrive-cache.ts` the refresh, `by-partner.ts` the grouped view,
+  `archive.ts` the archive and restore writes.
+- **`groupIntoDeals()` is wrapped, not forked.** Company bucketing, on-behalf-of resolution,
+  lineage merging and representative selection are already right; the only thing that changes
+  versus the partner-facing "My Pipeline" caller is the input — an admin cross-partner result
+  set with a populated partners list instead of one partner's rows with `partners: []`.
+- **Cross-partner access needed no new access-control shape at all.**
+  `submissions_select_internal` (20260604000002) and `partners_select_internal` (20260605000004)
+  already exist as permissive SELECT policies gated on `is_internal`, so the ordinary
+  authenticated server client reads across every partner. No service-role client, no new policy
+  in either migration.
+- **`available_actions` carries its own labels.** The spec's rule is that every action label
+  names the specific thing that will happen *including the version number* — a version number
+  is data, so the only way to guarantee the label and the version agree is to build and test
+  them together. The page switches on `kind` for the visual variant and prints `label` verbatim.
+- **101 new unit tests**, covering each row state, the on-behalf-of and lineage cases
+  `forecast.test.ts` already pins (no regressions — 706 pass overall), and the
+  Pipedrive-read-failure case that proves last-known values survive rather than going blank.
+
+### Detours & fixes
+
+- **The archive was going to be two columns on `submissions`, and it cannot be.** RLS there is
+  *row*-level and `submissions_update_own` permits a partner to UPDATE **any column** of their
+  own row; PostgREST accepts an arbitrary column list, and the column-scope restriction this
+  repo relies on lives in the Server Actions, which a direct API call never enters. So the flag
+  would have been partner-**writable** as well as partner-readable — failing "invisible to
+  partners" outright. Not a theoretical hole. A side table `authenticated` cannot reach fixes
+  both by construction, and the contract's field names survived unchanged; only the storage
+  moved.
+- **Pipedrive cannot supply the drift timestamp the spec asks for.** A deal-product carries
+  `add_time`, so an added line is datable, but a **deleted** line leaves nothing behind at all —
+  and that is the change that most badly invalidates a proposal already with a customer. The
+  deal's `update_time` moves for edits unrelated to products. So the timestamp is *observed*:
+  the cache stores a fingerprint and stamps when a refresh sees a different one. A first
+  sighting is explicitly not a change, or every deal would look changed the day the cache
+  landed and the amber strip would fire across the whole queue.
+- **`getDealForQuote()` was the obvious thing to reuse for the refresh, and was the wrong
+  thing.** It resolves a product code per distinct product (extra round-trips the cache does not
+  need), and it returns a `DealQuote` that is frozen verbatim inside
+  `project_quotes.snapshot` — so widening that type to carry the deal status this needs would
+  have quietly changed the frozen snapshot shape as a side effect of an unrelated feature. The
+  refresh calls the shared client directly. One additive change instead: a `status` field on
+  `PdDealDetail`, which the API already returned and nothing was reading. Because codes are
+  therefore unavailable from the deal side, `code` is excluded from the drift comparison —
+  otherwise every line of every project would read as drifted forever.
+- **Reading the frozen line items via a PostgREST arrow-select was tried on paper and backed
+  out.** `select=line_items:snapshot->commercial->lineItems` would avoid pulling whole
+  snapshots, but there are no live credentials here to verify the syntax against, and shipping
+  an unverified query as the primary path is not worth the saving. It reads the full `snapshot`
+  for the **current** proposal of each project only, which is bounded by project count rather
+  than by quote history. Noted in `queue.ts` as the optimisation if it ever matters.
+- **A version-numbering mismatch was found and deliberately not fixed.** `assemble.ts` numbers
+  proposals **per submission** while `/projects` presents one row per **project**, so on a
+  project whose newest revision carries no proposals yet the current one can be v3 while the
+  next generated will be v1. The query layer reports what the system will actually do —
+  `current_quote_version` is the quote row's own version, so it always matches the number
+  printed in the PDF, and the generate label names the version generation will really create
+  rather than `current + 1`. Truthful and odd beats a button naming a version the system will
+  not produce. Making `loadMaxVersion()` project-scoped is the fix, and it is a behaviour change
+  to a shipped generate flow, so it is a decision of its own rather than a side effect of this
+  one. Written up in ADR 0113 and pinned by a test.
+
+### Decisions captured
+
+- [`0112-internal-project-archive-is-a-side-table.md`](./decisions/0112-internal-project-archive-is-a-side-table.md)
+- [`0113-pipedrive-reads-are-cached-with-a-last-known-fallback.md`](./decisions/0113-pipedrive-reads-are-cached-with-a-last-known-fallback.md)
+
+---
+
 ## 2026-07-31 — Rear-panel photography for the 1U chassis
 
 ### Work done

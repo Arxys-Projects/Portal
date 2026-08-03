@@ -72,6 +72,11 @@ export type PdDealDetail = {
   title: string | null;
   value: number | null;
   currency: string | null;
+  // Pipedrive's own deal status. Distinct from submissions.status, which is the
+  // portal-only open/won/lost of ADR 0081 and is never synced to Pipedrive; the
+  // two can legitimately disagree and /projects renders both. 'deleted' is
+  // returned for a deal in the bin.
+  status: "open" | "won" | "lost" | "deleted" | null;
   update_time: string | null;
   user_id: PdDealOwnerRef | null;
   person_id: PdDealPersonRef | null;
