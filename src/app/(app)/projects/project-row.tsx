@@ -403,17 +403,23 @@ export function ProjectRow({
           </span>
         </div>
 
+        {/* "Pipedrive unreachable" means a deal that WAS read successfully at
+            some point has since gone stale (ADR 0114) — never having been read
+            at all is a different situation ("Value unavailable" /
+            "Deal status unknown" cover that) and isn't an unreachability
+            signal: nothing has failed to reach, there's simply no prior read
+            to compare against yet. */}
         <div className="ml-auto flex items-center gap-3">
-          {row.is_superseded || (!row.pipedrive_read_ok && row.deal_link_state === "linked") ? (
+          {row.is_superseded ||
+          (!row.pipedrive_read_ok && row.deal_link_state === "linked" && row.pipedrive_status_as_of !== null) ? (
             <>
               <div className="flex items-center gap-2">
                 {row.is_superseded ? <DashedChip>Superseded by a newer submission</DashedChip> : null}
-                {!row.pipedrive_read_ok && row.deal_link_state === "linked" ? (
+                {!row.pipedrive_read_ok &&
+                row.deal_link_state === "linked" &&
+                row.pipedrive_status_as_of !== null ? (
                   <DashedChip tone="amber">
-                    Pipedrive unreachable
-                    {row.pipedrive_status_as_of
-                      ? ` · read ${formatDayLabel(row.pipedrive_status_as_of, nowIso)}`
-                      : ""}
+                    Pipedrive unreachable · read {formatDayLabel(row.pipedrive_status_as_of, nowIso)}
                   </DashedChip>
                 ) : null}
               </div>

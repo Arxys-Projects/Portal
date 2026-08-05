@@ -4,6 +4,45 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-08-05 — `/projects`: fix false "Pipedrive unreachable" chip on never-read deals
+
+### Work done
+
+Reported symptom: several rows showed the "Pipedrive unreachable" chip, but clicking the row's
+Pipedrive button opened the deal fine — the deal was clearly reachable.
+
+Root cause: `project-row.tsx`'s chip condition fired on `!row.pipedrive_read_ok` alone, which is
+true both for "never successfully read even once" and "read successfully before, now stale." The
+Pipedrive button never touches the cache at all — it's a static `https://app.pipedrive.com/deal/{id}`
+built from the stored deal id (`src/lib/pipedrive/url.ts`) — so it always "works" regardless of cache
+state, while the chip was reporting on a background sync's cache row, not live reachability.
+
+This directly contradicted the page's own documented design: ADR 0114 states these are "different
+situations [that] the page no longer conflates," and `row-copy.ts`'s own comment on `valueCellText`
+already spells out the same distinction (a never-read deal gets "Value unavailable"; a
+previously-read-then-stale deal keeps its last-known value and "always leaves a non-null last-known
+value per ADR 0113 and renders normally, with the 'Pipedrive unreachable' chip carrying the staleness
+separately"). The chip's actual condition just never enforced that split. In the data, ~44 of the 86
+cached deals had been caught in a single Pipedrive `429` rate-limit storm during the 2026-08-03 work
+above and had `read_at: null` — never read once — yet all rendered the "unreachable" chip.
+
+Fix: added `row.pipedrive_status_as_of !== null` (i.e., there was a prior successful read) to the
+chip's condition in `project-row.tsx`. A deal that has simply never been read now shows only "Value
+unavailable" / "Deal status unknown," with no unreachability claim attached — matching what the ADRs
+already said should happen. No ADR needed; this corrects an implementation gap against decisions
+already recorded in 0113/0114, not a new decision. 759 tests pass.
+
+### Detours & fixes
+
+- Considered wiring the dead `refresh: "missing"` mode (defined in `queue.ts`, described in ADR 0113,
+  never actually passed by `page.tsx`) into the page load to auto-heal never-read deals. Backed out:
+  it wouldn't have helped the 44 stuck deals anyway (they already have a cache row from the failed
+  read, so `!cache.has(id)` is false for them — "missing" mode only covers rows with zero cache entry
+  at all), and it's a separate, deliberate on-demand-only design tradeoff (ADR 0113 explicitly rejects
+  a TTL-based auto-refresh). Left untouched; the chip fix alone resolves the reported symptom.
+
+---
+
 ## 2026-08-03 — `/projects`: unified row buttons, pricing-based staleness flag
 
 ### Work done
