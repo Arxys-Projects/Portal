@@ -4,6 +4,62 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-08-05 — Price Book links the live datasheet route instead of static arxys.com PDFs
+
+### Work done
+
+The Price Book's per-family "Documentation" buttons pointed at hand-published PDFs on arxys.com. Those
+files drift from the spec tables the portal itself edits — a figure corrected in `/admin/specs` reaches
+the Price Book page immediately and the linked PDF never. ADR 0110's
+`GET /api/datasheet/{model}` renders the same sheet on demand from live rows, so the buttons now point
+there.
+
+**Coverage was re-verified, not assumed.** The 2026-07-23 audit listed seven mainline models and seven
+gaps. Rebuilt `datasheetCatalogue()` against live `product_specs` (21 rows) and `appliance_specs`
+(7 rows), then rendered every entry end-to-end with `scripts/render-datasheet.ts --all`. Ten sheets
+render at their specced page count — V100, V200, V400, V500, V600, V700, V800 (Ledger, 3/3 pages),
+V250/V255 (Ledger, 3/3), SW10 and SW20 (Rail, 1/1). The V250 and SW gaps had closed since July via
+ADR 0104/0111. Only V150, V260 and V265 remain out: no ACM template has been designed, and the route
+answers 409 for them by design.
+
+**The blocker was authorization, not coverage.** `requireDatasheetAccess()` gated the route to admin
+and internal, while the Price Book is visible to every active partner — a straight link swap would
+have answered 403 on a button that worked for those partners the day before. On the user's decision,
+the gate widened to any active partner (ADR 0116). `/admin/datasheets` had been borrowing the same
+helper, so it now calls `requireAdminOrInternal()` directly and stays internal.
+
+Verified the widened gate against live RLS with four ephemeral users (created and torn down):
+active-plain → allowed, active-internal → allowed, suspended → 403, invited → 403. Also confirmed a
+plain partner's RLS-scoped client reads all 21 `product_specs` and all 7 `appliance_specs` rows, so
+the sheet a partner downloads is the same one an admin gets rather than an under-populated render.
+
+Data model: `Family.datasheetModels: string[]` holds the datasheet catalogue keys, and
+`datasheetButtonsFor()` is the single place the button list is decided — live route where a sheet
+exists, static PDF where one does not. A model key is not a slug and not a SKU: `v250` maps to the one
+key `V250` (V255 is an alias on the same sheet), and `sw` maps to two keys because SW10 and SW20 were
+never one sheet. The V260 ACM family keeps its arxys.com PDF; a working link is not traded for a 409.
+
+`datasheetUrlFor()` is gone — with every live-covered family setting `datasheetUrl: null`, the only
+remaining static URL is V260's literal. Six new tests replace its convention test.
+
+### Detours & fixes
+
+- **The SW workstation buttons had never rendered.** The page gated the whole Documentation section on
+  `family.datasheetUrl ?`, but the SW family expressed its two buttons through `datasheetButtons` with
+  `datasheetUrl: null` — so the `datasheetButtons` branch was unreachable and `/price-book/sw` read
+  "Documentation coming soon." Found while mapping call sites, not from a report. Fixed incidentally by
+  collapsing both fields into `datasheetButtonsFor()`; a test now asserts no family renders that
+  fallback.
+- **ADR number collision.** Wrote the code comments against "ADR 0114" before checking
+  `docs/decisions/` — 0114 and 0115 had been taken by parallel `/projects` work. Renumbered to 0116
+  across four files.
+
+### Decisions captured
+
+- [`0116-price-book-links-the-live-datasheet-route.md`](./decisions/0116-price-book-links-the-live-datasheet-route.md)
+
+---
+
 ## 2026-08-05 — `/projects`: fix false "Pipedrive unreachable" chip on never-read deals
 
 ### Work done

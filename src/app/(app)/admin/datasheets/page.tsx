@@ -2,8 +2,14 @@
 //
 // Admin AND internal, unlike its neighbours /admin/specs and
 // /admin/appliance-specs, which are admin-only because they WRITE. This page
-// only reads and hands back a PDF, and the gate matches the route's
-// (requireDatasheetAccess, ADR 0110).
+// only reads and hands back a PDF.
+//
+// It gates on requireAdminOrInternal() DIRECTLY rather than on the route's
+// requireDatasheetAccess(), which ADR 0116 widened to any active partner so the
+// Price Book could link to the live sheets. The download is now partner-facing;
+// this picker is not. It shows gaps, warnings, template names and the reasons
+// the ACM rows cannot render — an internal spec-admin view that happens to
+// dispense PDFs, and it belongs with its neighbours.
 //
 // THE MODELS WITH NO SHEET ARE ON THIS PAGE. Three ACM rows cannot be generated,
 // because no template was ever designed for them. Omitting them would read as
@@ -18,7 +24,7 @@
 
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { requireDatasheetAccess } from "@/lib/datasheet/guard";
+import { requireAdminOrInternal } from "@/lib/auth/require-admin-or-internal";
 import { loadDatasheetSpecData } from "@/lib/datasheet/load";
 import { EXPECTED_PAGES } from "@/lib/datasheet/render";
 import type { CatalogueEntry } from "@/lib/datasheet/catalogue";
@@ -126,7 +132,7 @@ function SheetCard({ entry }: { entry: CatalogueEntry }) {
 }
 
 export default async function AdminDatasheetsPage() {
-  const gate = await requireDatasheetAccess();
+  const gate = await requireAdminOrInternal();
   if (!gate.ok) notFound();
 
   let catalogue: CatalogueEntry[];

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
   familyBySlug,
+  datasheetButtonsFor,
   COLUMN_HEADERS,
   RIGHT_ALIGNED_COLUMNS,
   type SkuColumn,
@@ -168,6 +169,8 @@ export default async function FamilyDetailPage({
       };
     }
   }
+
+  const datasheetButtons = datasheetButtonsFor(family);
 
   return (
     <div>
@@ -381,18 +384,15 @@ export default async function FamilyDetailPage({
         <h2 className="text-xs font-semibold uppercase tracking-wider text-ink-soft border-b border-line pb-2 mb-4">
           Documentation
         </h2>
-        {family.datasheetUrl ? (
+        {datasheetButtons.length > 0 ? (
           <div className="flex flex-wrap gap-3">
-            {(
-              family.datasheetButtons ?? [
-                { label: "Download Datasheet", url: family.datasheetUrl },
-              ]
-            ).map((btn) => (
+            {datasheetButtons.map((btn) => (
               <a
                 key={btn.url}
                 href={btn.url}
-                target="_blank"
-                rel="noopener noreferrer"
+                {...(btn.external
+                  ? { target: "_blank", rel: "noopener noreferrer" }
+                  : {})}
                 className="inline-flex items-center gap-2 rounded-lg border border-line bg-white px-4 py-3 text-sm font-medium text-[#14346b] hover:border-[#14346b] transition"
               >
                 <svg

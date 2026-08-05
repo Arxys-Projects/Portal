@@ -42,6 +42,13 @@ export type FamilyTierSection = {
 export type DatasheetButton = {
   label: string;
   url: string;
+  /**
+   * True for a PDF hosted on arxys.com, false for the portal's own live route.
+   * The two want different link behaviour — an outbound PDF opens in a tab, a
+   * same-origin `Content-Disposition: attachment` response downloads in place
+   * and would otherwise flash a blank tab open and shut.
+   */
+  external: boolean;
 };
 
 export type Family = {
@@ -60,15 +67,55 @@ export type Family = {
   tierSections: FamilyTierSection[];
   upgradeSkus: string[];
   heroImage: string | null;
+  /**
+   * Model keys the LIVE datasheet route serves for this family, in button order.
+   * `/api/datasheet/{model}` renders these from today's spec rows (ADR 0110), so
+   * they are preferred over any static PDF and are what most families carry.
+   *
+   * A key here is a datasheet catalogue key, NOT a SKU and not necessarily this
+   * family's slug: one sheet covers every capacity of a model, the V250 sheet
+   * covers V250 and V255 under the single key "V250", and the SW family is two
+   * separate sheets ("SW10", "SW20") because two workstations were never one
+   * sheet. Every key must resolve in `datasheetCatalogue()` with a non-null
+   * template — an unrenderable key answers 409, which is worse than the static
+   * PDF it replaced. See ADR 0116.
+   *
+   * Empty when no live sheet exists. Today that is the ACM line only.
+   */
+  datasheetModels: string[];
+  /**
+   * The arxys.com PDF, kept ONLY where no live sheet can be generated. A family
+   * with a live sheet sets this null: two link targets for one document is how
+   * the stale one gets clicked.
+   */
   datasheetUrl: string | null;
-  datasheetButtons?: DatasheetButton[]; // overrides datasheetUrl when set (multiple PDFs)
   category: "nvr-mgmt-acm" | "nvr-analytics" | "high-density" | "workstations";
   sortOrder: number;
   skuExtraData?: Record<string, Partial<Record<SkuColumn, string>>>;
 };
 
-export function datasheetUrlFor(productGroup: string): string {
-  return `https://www.arxys.com/wp-content/uploads/Arxys-VideoX-Factsheet-${productGroup}-V5.pdf`;
+/**
+ * The Documentation buttons for one family — live route where a sheet exists,
+ * the static PDF where one does not, and an empty list where neither does.
+ *
+ * Lives here rather than in the page because it is the rule about which document
+ * is authoritative, not a rendering detail.
+ */
+export function datasheetButtonsFor(family: Family): DatasheetButton[] {
+  if (family.datasheetModels.length > 0) {
+    // One button needs no disambiguation; two do, and "Download Datasheet"
+    // twice in a row tells a reader nothing about which is which.
+    const single = family.datasheetModels.length === 1;
+    return family.datasheetModels.map((model) => ({
+      label: single ? "Download Datasheet" : `${model} Datasheet`,
+      url: `/api/datasheet/${encodeURIComponent(model)}`,
+      external: false,
+    }));
+  }
+  if (family.datasheetUrl) {
+    return [{ label: "Download Datasheet", url: family.datasheetUrl, external: true }];
+  }
+  return [];
 }
 
 export const FAMILY_CATEGORIES: Record<
@@ -138,7 +185,10 @@ export const FAMILIES: Family[] = [
     ],
     upgradeSkus: ["VX5-GPU-A1000"],
     heroImage: "/price-book/v100-hero.png",
-    datasheetUrl: datasheetUrlFor("V100"),
+    // The V150 ACM in the tier section below has no live sheet and never had a
+    // button of its own, so nothing here covers it (ADR 0116).
+    datasheetModels: ["V100"],
+    datasheetUrl: null,
     category: "nvr-mgmt-acm",
     sortOrder: 1,
     skuExtraData: {
@@ -189,7 +239,10 @@ export const FAMILIES: Family[] = [
     tierSections: [],
     upgradeSkus: [],
     heroImage: "/price-book/1u-chassis-hero.png",
-    datasheetUrl: "https://www.arxys.com/wp-content/uploads/Arxys-VideoX-Factsheet-V250-V5.pdf",
+    // One sheet covers both SKUs and is addressed by "V250"; "V255" is an alias
+    // on the same catalogue entry, so a second button would download a duplicate.
+    datasheetModels: ["V250"],
+    datasheetUrl: null,
     category: "nvr-mgmt-acm",
     sortOrder: 2,
     skuExtraData: {
@@ -234,7 +287,13 @@ export const FAMILIES: Family[] = [
     tierSections: [],
     upgradeSkus: [],
     heroImage: "/price-book/1u-chassis-hero.png",
-    datasheetUrl: "https://www.arxys.com/wp-content/uploads/Arxys-VideoX-Factsheet-V260-V270-ACM-V5.pdf",
+    // STAYS STATIC. No datasheet template has been designed for the access
+    // control line, so /api/datasheet/V260 answers 409 (ADR 0110). The arxys.com
+    // PDF is a working link and is not traded for an error page — this is the one
+    // family ADR 0116 leaves behind, and it comes back when an ACM template exists.
+    datasheetModels: [],
+    datasheetUrl:
+      "https://www.arxys.com/wp-content/uploads/Arxys-VideoX-Factsheet-V260-V270-ACM-V5.pdf",
     category: "nvr-mgmt-acm",
     sortOrder: 3,
     skuExtraData: {
@@ -279,7 +338,8 @@ export const FAMILIES: Family[] = [
     tierSections: [],
     upgradeSkus: ["VX5-GPU-A1000"],
     heroImage: "/price-book/1u-chassis-hero.png",
-    datasheetUrl: datasheetUrlFor("V200"),
+    datasheetModels: ["V200"],
+    datasheetUrl: null,
     category: "nvr-mgmt-acm",
     sortOrder: 4,
     skuExtraData: {
@@ -329,7 +389,8 @@ export const FAMILIES: Family[] = [
       "VX5-NIC-SFP28x25",
     ],
     heroImage: "/price-book/v400-v500-hero.png",
-    datasheetUrl: datasheetUrlFor("V400"),
+    datasheetModels: ["V400"],
+    datasheetUrl: null,
     category: "nvr-analytics",
     sortOrder: 5,
     skuExtraData: {
@@ -379,7 +440,8 @@ export const FAMILIES: Family[] = [
       "VX5-NIC-SFP28x25",
     ],
     heroImage: "/price-book/v400-v500-hero.png",
-    datasheetUrl: "https://www.arxys.com/wp-content/uploads/Arxys-VideoX-Factsheet-V500-v5.pdf",
+    datasheetModels: ["V500"],
+    datasheetUrl: null,
     category: "nvr-analytics",
     sortOrder: 6,
     skuExtraData: {
@@ -429,7 +491,8 @@ export const FAMILIES: Family[] = [
       "VX5-NIC-SFP28x25",
     ],
     heroImage: "/price-book/v600-hero.png",
-    datasheetUrl: datasheetUrlFor("V600"),
+    datasheetModels: ["V600"],
+    datasheetUrl: null,
     category: "nvr-analytics",
     sortOrder: 7,
     skuExtraData: {
@@ -479,7 +542,8 @@ export const FAMILIES: Family[] = [
       "VX5-NIC-SFP28x25",
     ],
     heroImage: "/price-book/v700-v800-hero.png",
-    datasheetUrl: datasheetUrlFor("V700"),
+    datasheetModels: ["V700"],
+    datasheetUrl: null,
     category: "high-density",
     sortOrder: 8,
     skuExtraData: {
@@ -529,7 +593,8 @@ export const FAMILIES: Family[] = [
       "VX5-NIC-SFP28x25",
     ],
     heroImage: "/price-book/v700-v800-hero.png",
-    datasheetUrl: datasheetUrlFor("V800"),
+    datasheetModels: ["V800"],
+    datasheetUrl: null,
     category: "high-density",
     sortOrder: 9,
     skuExtraData: {
@@ -574,17 +639,16 @@ export const FAMILIES: Family[] = [
     tierSections: [],
     upgradeSkus: ["VX5-PP5-V100"],
     heroImage: "/price-book/sw-hero.png",
+    // TWO SHEETS, not one: the family slug is "sw" but no "SW" sheet exists, and
+    // the two workstations render through the Rail template separately.
+    //
+    // These two buttons had never actually appeared. They lived in a
+    // `datasheetButtons` array behind a `datasheetUrl ? ...` gate in the page,
+    // and this family's datasheetUrl was null — so /price-book/sw read
+    // "Documentation coming soon." datasheetButtonsFor() is now the single source
+    // of the list, which removes the branch that could disagree with itself.
+    datasheetModels: ["SW10", "SW20"],
     datasheetUrl: null,
-    datasheetButtons: [
-      {
-        label: "SW10 Datasheet",
-        url: "https://www.arxys.com/wp-content/uploads/Arxys-videoX-Factsheet-SW10-V5.pdf",
-      },
-      {
-        label: "SW20 Datasheet",
-        url: "https://www.arxys.com/wp-content/uploads/Arxys-videoX-Factsheet-SW20-V5.pdf",
-      },
-    ],
     category: "workstations",
     sortOrder: 10,
     skuExtraData: {
