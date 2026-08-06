@@ -199,6 +199,11 @@ export type ProjectQueueRow = {
   // created_by drives the "Projects I created" filter chip, not a column.
   created_by_user_name: string | null;
   created_by_is_internal: boolean;
+  // rep.partner_id verbatim — whichever account (internal rep or partner) filed
+  // the representative submission. The "Projects I created" chip matches on
+  // this id, not on created_by_user_name, since names collide/typo in a way
+  // ids can't.
+  created_by_partner_id: string;
   created_at: string;
 
   portal_status: ProjectPortalStatus;

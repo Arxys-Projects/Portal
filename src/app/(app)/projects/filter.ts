@@ -16,9 +16,12 @@ export type AttentionFilter = "needs_price_update" | "missing_link" | null;
 
 export type ProjectsFilterState = {
   q: string;
-  // "Projects I created" — default ON. Absence of the URL param means the
-  // default (true); an explicit `mine=0` is how "cleared" survives a reload,
-  // since an absent param can't be told apart from "never set" otherwise.
+  // "Projects I created" — default OFF. This is the internal sales dashboard:
+  // it should show the whole team's pipeline by default, with this chip as an
+  // opt-in narrowing to just the viewer's own filed submissions. Absence of the
+  // URL param means the default (false); an explicit `mine=1` is how "turned
+  // on" survives a reload, since an absent param can't be told apart from
+  // "never set" otherwise.
   mine: boolean;
   status: ProjectPortalStatus | null; // null = the Open/Won/Lost chips are all off
   archived: boolean;
@@ -28,7 +31,7 @@ export type ProjectsFilterState = {
 
 export const DEFAULT_FILTERS: ProjectsFilterState = {
   q: "",
-  mine: true,
+  mine: false,
   status: null,
   archived: false,
   view: "recent",
@@ -51,7 +54,7 @@ export function parseFilters(get: (key: string) => string | null): ProjectsFilte
   const mineParam = get("mine");
   return {
     q: get("q") ?? "",
-    mine: mineParam === "0" ? false : true,
+    mine: mineParam === "1" ? true : false,
     status: readStatus(get("status")),
     archived: get("archived") === "1",
     view: get("view") === "partner" ? "partner" : "recent",
@@ -79,7 +82,7 @@ export function parseFiltersFromSearch(search: string): ProjectsFilterState {
 export function filtersToSearch(filters: ProjectsFilterState): string {
   const params = new URLSearchParams();
   if (filters.q) params.set("q", filters.q);
-  if (!filters.mine) params.set("mine", "0");
+  if (filters.mine) params.set("mine", "1");
   if (filters.status) params.set("status", filters.status);
   if (filters.archived) params.set("archived", "1");
   if (filters.view === "partner") params.set("view", "partner");
@@ -154,12 +157,12 @@ export function attentionIdSets(attention: ProjectAttention): AttentionIdSets {
 export function applyNonSearchFilters(
   rows: ProjectQueueRow[],
   filters: ProjectsFilterState,
-  viewerName: string | null,
+  viewerId: string | null,
   attention: AttentionIdSets,
 ): ProjectQueueRow[] {
   return rows.filter((row) => {
     if (!filters.archived && row.internal_archived_at !== null) return false;
-    if (filters.mine && row.created_by_user_name !== viewerName) return false;
+    if (filters.mine && row.created_by_partner_id !== viewerId) return false;
     if (filters.status && row.portal_status !== filters.status) return false;
     if (filters.attention === "needs_price_update" && !attention.needsPriceUpdate.has(row.submission_id)) {
       return false;
@@ -174,10 +177,10 @@ export function applyNonSearchFilters(
 export function applyFilters(
   rows: ProjectQueueRow[],
   filters: ProjectsFilterState,
-  viewerName: string | null,
+  viewerId: string | null,
   attention: AttentionIdSets,
 ): ProjectQueueRow[] {
-  const scoped = applyNonSearchFilters(rows, filters, viewerName, attention);
+  const scoped = applyNonSearchFilters(rows, filters, viewerId, attention);
   if (!filters.q.trim()) return scoped;
   return scoped.filter((row) => matchesQuery(row, filters.q));
 }
@@ -188,14 +191,14 @@ export function applyFilters(
 export function archivedMatches(
   rows: ProjectQueueRow[],
   filters: ProjectsFilterState,
-  viewerName: string | null,
+  viewerId: string | null,
   attention: AttentionIdSets,
 ): ProjectQueueRow[] {
   if (filters.archived || !filters.q.trim()) return [];
   const withArchived = applyNonSearchFilters(
     rows,
     { ...filters, archived: true },
-    viewerName,
+    viewerId,
     attention,
   );
   return withArchived.filter(

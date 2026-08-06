@@ -16,11 +16,7 @@ export default async function ProjectsPage({ searchParams }: { searchParams: Sea
 
   const supabase = await createSupabaseServerClient();
 
-  // "Projects I created" has no id field in the data contract to match against
-  // (created_by_user_name is a name, not a uuid — see types.ts), so the chip
-  // compares against the viewer's OWN contact_name.
-  const [{ data: viewerPartner }, queue, rawParams] = await Promise.all([
-    supabase.from("partners").select("contact_name").eq("id", gate.userId).maybeSingle(),
+  const [queue, rawParams] = await Promise.all([
     loadProjectQueue(supabase, gate.userId, { refresh: "none" }),
     searchParams,
   ]);
@@ -29,7 +25,6 @@ export default async function ProjectsPage({ searchParams }: { searchParams: Sea
     <ProjectsBoard
       queue={queue}
       viewerId={gate.userId}
-      viewerName={viewerPartner?.contact_name ?? null}
       isAdmin={gate.isAdmin}
       nowIso={new Date().toISOString()}
       initialFilters={parseFiltersFromRecord(rawParams)}

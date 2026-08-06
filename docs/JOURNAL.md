@@ -4,6 +4,30 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-08-06 — `/projects` dashboard was hiding whole partners' pipelines
+
+### Work done
+
+User reported the sales dashboard (`/projects`) was missing all of Pathway Tech's 6 deals and
+Iteris's deal, both visible and open in the admin Partner Pipeline view. Traced to the
+"Projects I created" chip (`filters.mine`), which defaulted ON and matched by comparing the
+submitting partner's contact name against the viewer's own contact name — a comparison that can
+never succeed for a real partner-submitted deal, since the viewer isn't the partner. The header
+KPI tiles ("Open Pipeline", "Open Projects") sum the *unfiltered* row set, so the numbers and the
+filtered list beneath them silently disagreed with no indication anything was hidden.
+
+Fixed both halves: `DEFAULT_FILTERS.mine` is now `false` (opt-in narrowing, not a default-on
+scope), and the match itself now compares `ProjectQueueRow.created_by_partner_id` (`rep.partner_id`
+verbatim) to `viewerId` directly, instead of contact-name string equality. `page.tsx` no longer
+needs the extra `partners` table query that only existed to resolve the viewer's own contact name
+for the old comparison. Full test suite (759 tests) and `next build` pass.
+
+### Decisions captured
+
+- [`0117-projects-mine-filter-defaults-off-and-matches-by-id.md`](./decisions/0117-projects-mine-filter-defaults-off-and-matches-by-id.md)
+
+---
+
 ## 2026-08-05 — Price Book links the live datasheet route instead of static arxys.com PDFs
 
 ### Work done

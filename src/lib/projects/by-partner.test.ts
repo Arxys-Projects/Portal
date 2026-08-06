@@ -13,6 +13,7 @@ function row(o: Partial<ProjectQueueRow> & { submission_id: string }): ProjectQu
     partner_contact_name: "Ann Adams",
     created_by_user_name: "Ann Adams",
     created_by_is_internal: false,
+    created_by_partner_id: "p1",
     created_at: "2026-07-01T09:00:00Z",
     portal_status: "open",
     portal_status_editable: false,

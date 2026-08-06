@@ -92,7 +92,6 @@ function Chip({
 export type ProjectsBoardProps = {
   queue: ProjectQueueResult;
   viewerId: string;
-  viewerName: string | null;
   isAdmin: boolean;
   nowIso: string;
   initialFilters: ProjectsFilterState;
@@ -101,7 +100,6 @@ export type ProjectsBoardProps = {
 export default function ProjectsBoard({
   queue,
   viewerId,
-  viewerName,
   isAdmin,
   nowIso,
   initialFilters,
@@ -147,13 +145,13 @@ export default function ProjectsBoard({
   const attention = useMemo(() => attentionIdSets(queue.attention), [queue.attention]);
 
   const scopedCount = useMemo(
-    () => applyNonSearchFilters(queue.rows, filters, viewerName, attention).length,
-    [queue.rows, filters, viewerName, attention],
+    () => applyNonSearchFilters(queue.rows, filters, viewerId, attention).length,
+    [queue.rows, filters, viewerId, attention],
   );
 
   const filteredBeforeWindow = useMemo(
-    () => applyFilters(queue.rows, filters, viewerName, attention),
-    [queue.rows, filters, viewerName, attention],
+    () => applyFilters(queue.rows, filters, viewerId, attention),
+    [queue.rows, filters, viewerId, attention],
   );
 
   const filteredRows = useMemo(() => {
@@ -166,8 +164,8 @@ export default function ProjectsBoard({
   }, [filteredBeforeWindow, quotesWindowOnly, nowIso]);
 
   const archivedMatchRows = useMemo(
-    () => archivedMatches(queue.rows, filters, viewerName, attention),
-    [queue.rows, filters, viewerName, attention],
+    () => archivedMatches(queue.rows, filters, viewerId, attention),
+    [queue.rows, filters, viewerId, attention],
   );
 
   const namePool = useMemo(() => {

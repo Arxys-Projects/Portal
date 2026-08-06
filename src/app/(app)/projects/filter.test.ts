@@ -87,7 +87,7 @@ describe("parseFilters / filtersToSearch round trip", () => {
   it("round-trips a non-default state through the URL string", () => {
     const state: ProjectsFilterState = {
       q: "riverside",
-      mine: false,
+      mine: true,
       status: "open",
       archived: true,
       view: "partner",
@@ -97,9 +97,9 @@ describe("parseFilters / filtersToSearch round trip", () => {
     assert.deepEqual(parseFiltersFromSearch(search), state);
   });
 
-  it("an explicit mine=0 survives (default is mine=true, not absent=false)", () => {
-    assert.equal(parseFiltersFromRecord({ mine: "0" }).mine, false);
-    assert.equal(parseFiltersFromRecord({}).mine, true);
+  it("an explicit mine=1 survives (default is mine=false, not absent=true)", () => {
+    assert.equal(parseFiltersFromRecord({ mine: "1" }).mine, true);
+    assert.equal(parseFiltersFromRecord({}).mine, false);
   });
 
   it("filtersToSearch omits every param at its default", () => {
@@ -144,44 +144,44 @@ describe("matchesQuery / highlightSegments", () => {
 });
 
 describe("applyFilters", () => {
-  it("default filters (mine=true, archived=false) show only the viewer's live rows", () => {
-    assert.deepEqual(ids(applyFilters(rows, DEFAULT_FILTERS, "Ivan Internal", attention)), ["a", "d"]);
+  it("default filters (mine=false, archived=false) show everyone's live rows", () => {
+    assert.deepEqual(ids(applyFilters(rows, DEFAULT_FILTERS, VIEWER, attention)), ["a", "b", "d"]);
   });
 
-  it("mine=false surfaces everyone's live rows", () => {
-    const filters: ProjectsFilterState = { ...DEFAULT_FILTERS, mine: false };
-    assert.deepEqual(ids(applyFilters(rows, filters, "Ivan Internal", attention)), ["a", "b", "d"]);
+  it("mine=true narrows to rows the viewer's own id filed", () => {
+    const filters: ProjectsFilterState = { ...DEFAULT_FILTERS, mine: true };
+    assert.deepEqual(ids(applyFilters(rows, filters, VIEWER, attention)), ["a", "d"]);
   });
 
   it("archived=true brings the archived row back, still subject to other filters", () => {
     const filters: ProjectsFilterState = { ...DEFAULT_FILTERS, archived: true };
-    assert.deepEqual(ids(applyFilters(rows, filters, "Ivan Internal", attention)), ["a", "c", "d"]);
+    assert.deepEqual(ids(applyFilters(rows, filters, VIEWER, attention)), ["a", "b", "c", "d"]);
   });
 
   it("status narrows within the scoped set", () => {
     const filters: ProjectsFilterState = { ...DEFAULT_FILTERS, status: "lost" };
-    assert.deepEqual(ids(applyFilters(rows, filters, "Ivan Internal", attention)), ["d"]);
+    assert.deepEqual(ids(applyFilters(rows, filters, VIEWER, attention)), ["d"]);
   });
 
   it("search narrows the already-scoped set", () => {
-    const filters: ProjectsFilterState = { ...DEFAULT_FILTERS, mine: false, q: "beta" };
-    assert.deepEqual(ids(applyFilters(rows, filters, "Ivan Internal", attention)), ["b"]);
+    const filters: ProjectsFilterState = { ...DEFAULT_FILTERS, q: "beta" };
+    assert.deepEqual(ids(applyFilters(rows, filters, VIEWER, attention)), ["b"]);
   });
 });
 
 describe("archivedMatches", () => {
   it("finds an archived row matching the query when the archived chip is off", () => {
     const filters: ProjectsFilterState = { ...DEFAULT_FILTERS, q: "campus" };
-    assert.deepEqual(ids(archivedMatches(rows, filters, "Ivan Internal", attention)), ["c"]);
+    assert.deepEqual(ids(archivedMatches(rows, filters, VIEWER, attention)), ["c"]);
   });
 
   it("is empty once the archived chip is already on", () => {
     const filters: ProjectsFilterState = { ...DEFAULT_FILTERS, q: "campus", archived: true };
-    assert.deepEqual(archivedMatches(rows, filters, "Ivan Internal", attention), []);
+    assert.deepEqual(archivedMatches(rows, filters, VIEWER, attention), []);
   });
 
   it("is empty with no active query", () => {
-    assert.deepEqual(archivedMatches(rows, DEFAULT_FILTERS, "Ivan Internal", attention), []);
+    assert.deepEqual(archivedMatches(rows, DEFAULT_FILTERS, VIEWER, attention), []);
   });
 });
 

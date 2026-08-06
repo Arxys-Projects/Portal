@@ -433,6 +433,7 @@ export function buildProjectQueue(input: BuildProjectQueueInput): ProjectQueueRe
 
       created_by_user_name: creator?.contact_name ?? null,
       created_by_is_internal: creator?.is_internal ?? false,
+      created_by_partner_id: rep.partner_id,
       created_at: rep.created_at,
 
       portal_status: toPortalStatus(rep.status),
