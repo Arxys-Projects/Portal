@@ -9,6 +9,7 @@ import {
   buttonClasses,
 } from "@/app/(app)/_components/ui";
 import type { Deal } from "@/lib/pipeline/forecast";
+import { PIPEDRIVE_WINDOW_TARGET } from "@/lib/pipedrive/url";
 
 type SubmissionMini = {
   id: string;
@@ -174,8 +175,8 @@ function DealRow({ deal }: { deal: Deal & { submissions: SubmissionMini[] } }) {
         {deal.pipedrive_deal_id ? (
           <a
             href={`https://app.pipedrive.com/deal/${deal.pipedrive_deal_id}`}
-            target="_blank"
-            rel="noopener noreferrer"
+            target={PIPEDRIVE_WINDOW_TARGET}
+            rel="noreferrer"
             className="shrink-0 rounded-lg border-2 border-arxys-navy px-2.5 py-1 text-xs font-bold text-arxys-navy hover:bg-arxys-navy hover:text-white"
           >
             Pipedrive #{deal.pipedrive_deal_id} ↗
@@ -218,8 +219,8 @@ function DealRow({ deal }: { deal: Deal & { submissions: SubmissionMini[] } }) {
                     {s.pipedrive_deal_id ? (
                       <a
                         href={`https://app.pipedrive.com/deal/${s.pipedrive_deal_id}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                        target={PIPEDRIVE_WINDOW_TARGET}
+                        rel="noreferrer"
                         className="font-bold text-arxys-navy underline decoration-2 underline-offset-2 hover:no-underline"
                       >
                         #{s.pipedrive_deal_id} ↗

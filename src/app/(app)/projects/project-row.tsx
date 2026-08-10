@@ -27,6 +27,7 @@ import {
   valueCellText,
 } from "./row-copy";
 import { relinkPipedriveAction, restoreProjectAction } from "./actions";
+import { PIPEDRIVE_WINDOW_TARGET } from "@/lib/pipedrive/url";
 
 const CARD_BORDER_CLASS: Record<ReturnType<typeof cardBorder>, string> = {
   default: "border border-line",
@@ -249,8 +250,8 @@ export function ProjectRow({
         return (
           <a
             href={task.url}
-            target="_blank"
-            rel="noopener noreferrer"
+            target={PIPEDRIVE_WINDOW_TARGET}
+            rel="noreferrer"
             onClick={(e) => e.stopPropagation()}
             className={buttonClasses("primary", size)}
           >
@@ -288,8 +289,8 @@ export function ProjectRow({
     pipedrive.kind === "open_deal" ? (
       <a
         href={pipedrive.url}
-        target="_blank"
-        rel="noopener noreferrer"
+        target={PIPEDRIVE_WINDOW_TARGET}
+        rel="noreferrer"
         onClick={(e) => e.stopPropagation()}
         className={buttonClasses("primary", size)}
       >

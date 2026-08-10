@@ -4,6 +4,43 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+
+## 2026-08-10 — Pipedrive deal links reuse one browser tab (ADR 0119)
+
+### Work done
+
+- Verified the tab-consolidation mechanism live against production Pipedrive before writing any
+  code, using Claude in Chrome: opened two real deals (#5246, then #5122) from the same portal
+  tab via `window.open(url, 'arxysPipedrive')` and confirmed the second open reused and refocused
+  the first tab, with no `Cross-Origin-Opener-Policy` interference from Pipedrive's side.
+  Confirmed separately that a second, independently-opened portal tab does NOT share that
+  reuse — it gets its own second Pipedrive tab, because the browsing-context-name registry is
+  scoped per originating tab, not shared. This directly answers the two open risks
+  `docs/sales-dashboard-definition.md` §6 flagged before committing the idea to a build.
+- Added `PIPEDRIVE_WINDOW_TARGET = "arxysPipedrive"` to `src/lib/pipedrive/url.ts` and swapped
+  `target="_blank" rel="noopener noreferrer"` → `target={PIPEDRIVE_WINDOW_TARGET} rel="noreferrer"`
+  at all five Pipedrive deal-link render sites: `partner-group-view.tsx` (project row + drill-down
+  submission row), `submission-detail.tsx` (admin "Open Pipedrive deal" button), and
+  `project-row.tsx` (both the "Add line items" and "Open deal" `/projects` action-button
+  variants — the second render site there was found while re-checking the grep, not in the
+  original count of "four" sites; both point at the same deal URL and needed the same change).
+  `noopener` is dropped because it deliberately prevents the name-sharing this relies on;
+  `noreferrer` alone keeps the same privacy property without that side effect.
+- Added `src/lib/pipedrive/url.ts`'s first test file (`url.test.ts`) — covers `pipedriveDealUrl`'s
+  existing (previously untested) behavior plus the new constant. No render-test infrastructure
+  exists in this repo for any `.tsx` file, so the three changed components get the same coverage
+  their sibling `.tsx` files already have (none) — `tsc`/`build` catch a broken import, and
+  centralizing the target name behind one export means there's one string to get right, not five.
+- Wrote [ADR 0119](./decisions/0119-pipedrive-tab-consolidation.md).
+
+### Detours & fixes
+
+- `read_network_requests` (Claude in Chrome) proved unreliable for inspecting top-level
+  navigation response headers — it requires a site-level permission grant and, even once
+  granted, didn't reliably capture the document-level headers needed to check for COOP. Dropped
+  the header-inspection approach and ran a direct behavioral test instead (open twice, observe
+  actual tab count/focus) — more conclusive than header inspection would have been anyway.
+
 ## 2026-08-10 — /admin/partners table + Internal-bar label usability fixes
 
 ### Work done

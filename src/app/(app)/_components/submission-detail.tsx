@@ -9,6 +9,7 @@ import {
   TD,
   buttonClasses,
 } from "@/app/(app)/_components/ui";
+import { PIPEDRIVE_WINDOW_TARGET } from "@/lib/pipedrive/url";
 
 export type SubmissionDetailRow = {
   id: string;
@@ -250,8 +251,8 @@ export function SubmissionDetail({
           {mode === "admin" && submission.pipedrive_deal_id ? (
             <a
               href={`https://app.pipedrive.com/deal/${submission.pipedrive_deal_id}`}
-              target="_blank"
-              rel="noopener noreferrer"
+              target={PIPEDRIVE_WINDOW_TARGET}
+              rel="noreferrer"
               className={buttonClasses("secondary")}
             >
               Open Pipedrive deal #{submission.pipedrive_deal_id} ↗

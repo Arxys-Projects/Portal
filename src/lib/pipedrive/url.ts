@@ -19,3 +19,19 @@ export function pipedriveDealUrl(dealId: number | string | null | undefined): st
   if (!Number.isFinite(id) || !Number.isInteger(id) || id <= 0) return null;
   return `https://app.pipedrive.com/deal/${id}`;
 }
+
+// ADR 0119 — the shared `window.open()`/`target` name every Pipedrive deal
+// link uses, so opening a second (or fifth) deal from the portal reuses and
+// refocuses one browser tab instead of piling up a new one per click. This
+// works because same-named targets are resolved by the BROWSING CONTEXT that
+// opens them: every render site in the same portal tab shares this one
+// constant, so they all resolve to the same target and reuse each other's
+// tab. Opening links from two separately-opened portal tabs still produces
+// two Pipedrive tabs — each originating tab tracks its own target-name
+// registry, and there's no cross-tab signal to unify them. `rel="noreferrer"`
+// (not `"noopener noreferrer"`) is deliberate: `noopener` forces the new
+// context to never share a name with its opener, which breaks the reuse this
+// exists for. `noreferrer` alone keeps the same referrer-stripping privacy
+// property without that side effect. Verified live against production
+// Pipedrive (deals #5246/#5122) on 2026-08-10 — see ADR 0119.
+export const PIPEDRIVE_WINDOW_TARGET = "arxysPipedrive";
