@@ -159,6 +159,9 @@ export function EditableName({
   fieldName,
   label,
   action,
+  required = true,
+  inputMode,
+  placeholder,
 }: {
   id: string;
   value: string;
@@ -168,6 +171,12 @@ export function EditableName({
     prev: SimpleActionState | null,
     formData: FormData,
   ) => Promise<SimpleActionState>;
+  // ADR 0118 — the Pipedrive User ID field is optional (empty clears it back
+  // to the default owner), unlike company/contact name which must always hold
+  // a value. Defaults to true so every existing caller is unaffected.
+  required?: boolean;
+  inputMode?: "text" | "numeric";
+  placeholder?: string;
 }) {
   const [editing, setEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -190,7 +199,7 @@ export function EditableName({
   if (!editing) {
     return (
       <div className="inline-flex items-center gap-2">
-        <span className="text-neutral-900">{value}</span>
+        <span className="text-neutral-900">{value || "—"}</span>
         <button
           type="button"
           onClick={() => {
@@ -215,7 +224,9 @@ export function EditableName({
           defaultValue={value}
           autoFocus
           maxLength={120}
-          required
+          required={required}
+          inputMode={inputMode}
+          placeholder={placeholder}
           aria-label={label}
           className="w-48 rounded-lg border border-line px-2 py-1 text-sm text-ink focus:border-arxys-navy focus:outline-none focus:ring-2 focus:ring-arxys-navy/15"
         />

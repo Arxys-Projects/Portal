@@ -123,9 +123,11 @@ export async function submitCalculation(
   // Defense-in-depth: the (app)/layout.tsx gate (ADR 0021) already prevents a
   // suspended partner from reaching the calculator UI; this catches direct
   // POSTs from a stale tab or scripted client.
+  // ADR 0118 — pipedrive_user_id rides along on this same read so the deal
+  // owner can be routed to the caller below without a second query.
   const { data: callerStatus } = await supabase
     .from("partners")
-    .select("status, is_internal")
+    .select("status, is_internal, pipedrive_user_id")
     .eq("id", user.id)
     .maybeSingle();
   if (!callerStatus || callerStatus.status !== "active") {
@@ -544,9 +546,11 @@ export async function submitCalculation(
     addOnFailoverRecorder: input.addOnFailoverRecorder,
     addOnManagementServer: input.addOnManagementServer,
   };
-  // For an on-behalf calc the deal is billed against the TARGET partner; the
-  // internal rep who ran it is credited via a pinned note rather than the
-  // Pipedrive owner field (ADR 0048). A normal calc uses the creator's record.
+  // For an on-behalf calc the deal is billed against the TARGET partner (org +
+  // person); the internal rep who ran it is credited via a pinned note either
+  // way (ADR 0045) and, when they have a stored Pipedrive user id, also as the
+  // deal owner (ADR 0118 — see creatorPipedriveUserId below). A normal calc
+  // uses the creator's own record.
   const dealPartner = dealTarget
     ? {
         companyName: dealTarget.companyName,
@@ -565,6 +569,14 @@ export async function submitCalculation(
         `Portal user id: ${user.id}`,
       ].join("\n")
     : null;
+  // ADR 0118 — route the Pipedrive deal owner to whoever is actually logged in
+  // and running this calc, when they have a stored Pipedrive user id (today,
+  // only Andy and Richard do). Anyone else — Marcos, any other internal user,
+  // every external partner — has no stored id and falls through to the
+  // existing single-owner default inside resolveOwnerIdForCreator. Applies to
+  // every submitter, on-behalf or not; a normal external partner's own calc
+  // was already always owned by the default, so this changes nothing for them.
+  const creatorPipedriveUserId = callerStatus.pipedrive_user_id ?? null;
 
   let pipedriveWarnings: string[] = [];
   try {
@@ -590,7 +602,13 @@ export async function submitCalculation(
               sourceDealId,
               submissionId: inserted.id,
             });
-            ({ dealId } = await createDealFromSubmission(dealSubmission, recommendation, dealPartner, onBehalfNote));
+            ({ dealId } = await createDealFromSubmission(
+              dealSubmission,
+              recommendation,
+              dealPartner,
+              onBehalfNote,
+              creatorPipedriveUserId,
+            ));
           } else {
             throw err;
           }
@@ -600,13 +618,16 @@ export async function submitCalculation(
 
     if (dealId === undefined) {
       // onBehalfNote must be passed here too — it credits the internal rep on an
-      // on-behalf deal (ADR 0048). Omitting it silently dropped that attribution
-      // on every fresh on-behalf submission.
+      // on-behalf deal (ADR 0045). Omitting it silently dropped that attribution
+      // on every fresh on-behalf submission. creatorPipedriveUserId routes the
+      // owner (ADR 0118) — independent of onBehalfNote, which stays regardless
+      // of who ends up as owner.
       ({ dealId } = await createDealFromSubmission(
         dealSubmission,
         recommendation,
         dealPartner,
         onBehalfNote,
+        creatorPipedriveUserId,
       ));
     }
 

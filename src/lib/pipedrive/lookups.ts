@@ -145,6 +145,27 @@ export function resolveOwnerId(): Promise<number> {
   return cache.ownerId;
 }
 
+// ADR 0118 — per-creator owner routing. Andy and Richard are the only two
+// portal users who are also real Pipedrive users; their numeric Pipedrive
+// user ids are stored on their own `partners.pipedrive_user_id` row (admin-set
+// via /admin/partners). When the caller creating a deal has one, use it
+// directly — no Pipedrive lookup needed, the id is already what /v1/deals
+// wants for `user_id`. Anyone without a stored id (every external partner,
+// and any other internal user such as Marcos) falls back to the existing
+// single-owner default below, unchanged.
+export function resolveOwnerIdForCreator(
+  creatorPipedriveUserId: number | null | undefined,
+): Promise<number> {
+  if (
+    typeof creatorPipedriveUserId === "number" &&
+    Number.isFinite(creatorPipedriveUserId) &&
+    creatorPipedriveUserId > 0
+  ) {
+    return Promise.resolve(creatorPipedriveUserId);
+  }
+  return resolveOwnerId();
+}
+
 // Shared single fetch of /dealFields so both `ensureCustomFields` (creates
 // missing arxys_* fields) and `resolveCalculatorFieldKeys` (read-only on the
 // admin-curated calculator fields) hit the API once.

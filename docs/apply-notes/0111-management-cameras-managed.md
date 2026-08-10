@@ -1,7 +1,9 @@
 # Apply note — cameras managed on `appliance_specs` (ADR 0111)
 
-> **NOT YET APPLIED.** Two nullable integer columns. Read the ordering section before
-> deploying — the code and the migration are not interchangeable in sequence.
+> **APPLIED and verified 2026-08-10.** The forward migration ran via the Supabase dashboard
+> SQL editor and `roundtrip-appliance-specs.mts` confirms both columns are live (see
+> Verification below). Code deploy and the actual figure entry are separate follow-ons —
+> confirm both before treating this as fully closed out.
 
 | | File |
 |---|---|
@@ -40,8 +42,8 @@ Column coverage
   FAIL  form field 'cameras_managed_max' has no matching column on appliance_specs — a save would be rejected by Postgres.
 ```
 
-That output is the pre-apply state and is expected. It turns clean the moment the migration
-runs, which makes it the check to run before and after.
+That output was the pre-apply state. Post-apply, the same script reports **7 live rows, 67/67
+form fields preserved** — see Verification below.
 
 **The datasheet half is safe in either order**, which is worth knowing but is not a reason to
 relax the rule. The adapter reads the columns with `!= null`, and a column that does not
@@ -58,17 +60,22 @@ recorded in the remote history, so a push would try to re-run them. The CLI also
 usable credentials here — `supabase migration list` returns a login-role 401 and `.env.local`
 carries no `SUPABASE_DB_PASSWORD`.
 
-1. Paste the forward migration into the dashboard SQL editor and run it.
-2. Confirm the columns landed and every row is still readable:
+1. ~~Paste the forward migration into the dashboard SQL editor and run it.~~ **Done 2026-08-10.**
+2. ~~Confirm the columns landed and every row is still readable~~ **Done 2026-08-10** —
+   `node --env-file=.env.local --import tsx scripts/roundtrip-appliance-specs.mts` reports
+   **7 live rows**, every live column reachable, **67/67** form fields preserved (up from
+   65/65 — the two new fields are the difference).
+3. Deploy the code. **Status unconfirmed as of 2026-08-10 — verify separately before
+   relying on `/admin/appliance-specs` for the new fields in production.**
 
-```bash
-node --env-file=.env.local --import tsx scripts/roundtrip-appliance-specs.mts
-```
+## Verification (2026-08-10)
 
-Expect **7 live rows**, every live column reachable, and **67/67** form fields preserved
-(up from 65/65 — the two new fields are the difference).
-
-3. Only then deploy the code.
+| Check | Result |
+|---|---|
+| Migration applied via dashboard SQL editor | ✅ |
+| `roundtrip-appliance-specs.mts` | ✅ 7 live rows, 67/67 form fields preserved |
+| Code deployed | ⚠ not confirmed here — check before relying on this in prod |
+| V250/V255 figures entered | ⚠ not done — see "Then enter the figures" below |
 
 ## Then enter the figures
 

@@ -4,6 +4,7 @@ import {
   ensureCustomFields,
   resolveCalculatorFieldKeys,
   resolveOwnerId,
+  resolveOwnerIdForCreator,
   resolvePipelineId,
   resolveStageId,
   type CalculatorFieldName,
@@ -242,13 +243,22 @@ export async function createDealFromSubmission(
   recommendation: RecommendationResult,
   partner: DealPartnerInput,
   // Phase 7 Step 1 — when the calc was run on behalf of a partner, this pinned
-  // note credits the internal rep (we don't route the Pipedrive owner field;
-  // see ADR 0048). Omitted for normal self-serve deals.
+  // note always credits the internal rep, regardless of who ends up as
+  // owner below. Omitted for normal self-serve deals.
   onBehalfNote?: string | null,
+  // ADR 0118 — the creating portal user's own Pipedrive user id, when they
+  // have one (currently only Andy and Richard do; see partners.pipedrive_user_id).
+  // Routes the deal owner to whoever actually ran the calc instead of always
+  // defaulting to one name. Omitted or unset for anyone without a stored id —
+  // every external partner, and any other internal user — which resolves to
+  // today's single-owner default via resolveOwnerIdForCreator's fallback.
+  // Creation-only: a revision never re-resolves or changes the owner (see
+  // updateDealFromRevision below).
+  creatorPipedriveUserId?: number | null,
 ): Promise<{ dealId: number }> {
   const [pipelineId, ownerId, customFieldKeys, calcFieldKeys] = await Promise.all([
     resolvePipelineId(),
-    resolveOwnerId(),
+    resolveOwnerIdForCreator(creatorPipedriveUserId),
     ensureCustomFields(),
     resolveCalculatorFieldKeys(),
   ]);

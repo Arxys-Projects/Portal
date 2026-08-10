@@ -378,6 +378,52 @@ export async function updatePartnerContactName(
   return updatePartnerNameField(formData, "contact_name", "contactName", "Contact name");
 }
 
+// ADR 0118 — this partner's own numeric Pipedrive user id, used to route the
+// owner field on deals THEY create (as themselves or on behalf of a target).
+// Empty clears it back to null, which falls back to the existing single-owner
+// default — so unsetting a bad or stale id is always safe, never a hard
+// failure. Currently only meaningful on Andy's and Richard's own rows; setting
+// it on anyone else (or an external partner) is harmless — nothing reads it
+// unless that specific partner is ALSO the one submitting the calc.
+const pipedriveUserIdFieldSchema = z
+  .string()
+  .trim()
+  .refine((v) => v === "" || (/^\d+$/.test(v) && Number(v) > 0), {
+    message: "Pipedrive user id must be a positive whole number, or left empty to clear it.",
+  });
+
+export async function updatePartnerPipedriveUserId(
+  _prev: SimpleActionState | null,
+  formData: FormData,
+): Promise<SimpleActionState> {
+  const gate = await requireAdmin();
+  if (!gate.ok) return { status: "error", error: gate.error };
+  const targetId = String(formData.get("id") ?? "");
+  if (!targetId) return { status: "error", error: "Missing partner id." };
+
+  const parsed = pipedriveUserIdFieldSchema.safeParse(formData.get("pipedriveUserId"));
+  if (!parsed.success) {
+    return {
+      status: "error",
+      error: "Pipedrive user id must be a positive whole number, or left empty to clear it.",
+    };
+  }
+  const value = parsed.data === "" ? null : Number(parsed.data);
+
+  const admin = createSupabaseAdminClient();
+  const { error } = await admin
+    .from("partners")
+    .update({ pipedrive_user_id: value })
+    .eq("id", targetId);
+  if (error) return { status: "error", error: dbError(error, "update partner pipedrive user id") };
+
+  revalidatePath("/admin/partners");
+  return {
+    status: "ok",
+    message: value === null ? "Pipedrive user id cleared." : "Pipedrive user id updated.",
+  };
+}
+
 // Phase 7 Step 1 — mark/unmark a partner as an internal Arxys user. Needed to
 // retrofit staff who were invited as plain partners before this flag existed.
 // is_internal authorizes running calcs on behalf of other partners.

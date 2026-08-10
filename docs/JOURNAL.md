@@ -4,6 +4,89 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-08-10 — Pipedrive deal owner routed per creator (ADR 0118)
+
+### Work done
+
+Every deal the portal creates in Pipedrive has always been owned by one fixed name
+(`resolveOwnerId()`'s "Andy Newbom" lookup, or `PIPEDRIVE_DEAL_OWNER_ID` as an override),
+regardless of who actually ran the calc. ADR 0045 deferred real per-rep routing until "a third+
+sales rep joins." Andy confirmed directly that only he and Richard Kershaw are actual Pipedrive
+users, and no one else on the team will be — a small, fixed mapping, not the general N-rep
+problem 0045 was avoiding building prematurely.
+
+- **New column `partners.pipedrive_user_id`** (nullable integer, additive, stop-and-flag —
+  migration `20260810000001`, **not yet applied**, see
+  [the apply note](./apply-notes/0118-partners-pipedrive-user-id.md)). Set only on Andy's and
+  Richard's own rows; every other row (any other internal user, every external partner) stays
+  null.
+- **`resolveOwnerIdForCreator()`** in `lookups.ts`: a stored id is used directly as the deal
+  owner — no Pipedrive API call, since it's already what `/v1/deals` wants for `user_id`.
+  Unset falls through to the existing `resolveOwnerId()` default, unchanged.
+- **`createDealFromSubmission`** takes a new optional `creatorPipedriveUserId` param;
+  `calculator/actions.ts` reads `pipedrive_user_id` alongside `is_internal` in the same partners
+  query it already runs for the caller, and threads it through at both deal-creation call sites.
+  Creation-only, matching `updateDealFromRevision`'s existing "never touch owner on revise" rule
+  — no change there.
+- **The pinned on-behalf note stays exactly as it was**, unconditionally, regardless of whether
+  the rep also became the deal's Pipedrive owner.
+- **`/admin/partners` gets a new "Pipedrive User ID" field**, admin-only, inline-editable,
+  clearable back to empty (unlike the existing company/contact-name fields, which required a
+  value — `EditableName` gained a `required` prop, defaulting `true` so those two callers are
+  unaffected).
+- **Fixed a phantom citation.** The code and this JOURNAL have long referenced "ADR 0048" for
+  the original "don't route the owner" decision. No such file exists — the actual decision lives
+  in [0045](./decisions/0045-on-behalf-of-calculations.md) §Decision/Consequences. Code comments
+  now point there; 0045 itself is amended to note it's superseded by
+  [0118](./decisions/0118-pipedrive-owner-per-rep-routing.md) on this one point.
+- Extended `deal.test.ts`: a stored creator id is used directly with zero `/v1/users` calls;
+  no id (or `0`/negative/`NaN`) falls back to the default, matching prior behavior exactly.
+
+### Detours & fixes
+
+- **Andy's and Richard's numeric Pipedrive user ids (`6039322` / `3464106`) were supplied from
+  memory, not pulled from a live API call.** Tried `curl https://api.pipedrive.com/v1/users` from
+  this session's cloud sandbox first — failed at the network layer (`CONNECT tunnel failed,
+  response 403`) before the request ever reached Pipedrive. This sandbox's outbound network is
+  allowlisted to package registries and similar; third-party APIs like Pipedrive aren't on it.
+  Confirmed this is a sandbox-egress limitation, not a Claude Code-vs-Cowork product difference —
+  a locally-run Claude Code session hits the same URL over the user's own machine's normal
+  internet and would just work. The device bridge's `device_bash` (which does run on the user's
+  actual machine) was also not an option — it explicitly has no network access at all. Apply note
+  flags both numbers for a five-minute sanity check against Pipedrive's own Users settings page
+  before relying on them in production.
+- **While researching this, found `phase-7-plan.md`'s "Deferred — later Phase 7 steps" list was
+  stale on a second item too**: partner-side visibility into on-behalf projects reads as an open
+  question there, but shipped 2026-06-12 as ADR 0054 — eight days after the plan was written, and
+  the plan was never updated. Corrected in the same pass as this entry.
+
+### Decisions captured
+
+- [`0118-pipedrive-owner-per-rep-routing.md`](./decisions/0118-pipedrive-owner-per-rep-routing.md)
+
+---
+
+## 2026-08-10 — `20260731000001` (ADR 0111 cameras-managed columns) applied
+
+### Work done
+
+Closed out the stop-and-flag migration left pending since 2026-07-31 (see that entry, "The
+V250 / V255 management datasheet"). `cameras_managed_min` / `cameras_managed_max` were run by
+hand against production via the Supabase dashboard SQL editor per
+[the apply note](./apply-notes/0111-management-cameras-managed.md). `roundtrip-appliance-specs.mts`
+confirms **7 live rows, 67/67 form fields preserved** (up from 65/65).
+
+Code deploy status and the actual V250/V255 figure entry (neither number exists on the source
+factsheet — both ship empty by design until typed in on `/admin/appliance-specs`) were **not**
+verified in this session; apply-note 0111 carries the open checklist.
+
+### Decisions captured
+
+None — closes out [ADR 0111](./decisions/0111-management-is-a-ledger-variant.md)'s apply note,
+no new decision.
+
+---
+
 ## 2026-08-06 — `/projects` dashboard was hiding whole partners' pipelines
 
 ### Work done

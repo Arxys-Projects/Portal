@@ -283,6 +283,51 @@ describe("createDealFromSubmission", () => {
     assert.ok(calls.length > firstCallCount, "second invocation still issued some calls");
   });
 
+  // ADR 0118 — per-creator owner routing.
+  it("uses the creator's own Pipedrive user id as deal owner when supplied, with no /v1/users lookup", async () => {
+    const CREATOR_ID = 6039322;
+    const result = await createDealFromSubmission(
+      fixtureSubmission,
+      fixtureRecommendation(),
+      fixturePartner,
+      null,
+      CREATOR_ID,
+    );
+    assert.equal(result.dealId, DEAL_ID);
+    const dealCall = calls.find((c) => c.url.includes("/v1/deals") && c.method === "POST");
+    const body = dealCall!.body as Record<string, unknown>;
+    assert.equal(body.user_id, CREATOR_ID);
+    assert.equal(
+      calls.filter((c) => c.url.includes("/v1/users")).length,
+      0,
+      "a stored creator id must never trigger a Pipedrive user lookup",
+    );
+  });
+
+  it("falls back to the default owner when no creator id is supplied (unchanged behavior)", async () => {
+    await createDealFromSubmission(fixtureSubmission, fixtureRecommendation(), fixturePartner);
+    const dealCall = calls.find((c) => c.url.includes("/v1/deals") && c.method === "POST");
+    const body = dealCall!.body as Record<string, unknown>;
+    assert.equal(body.user_id, OWNER_ID);
+  });
+
+  it("falls back to the default owner when the creator id is 0, negative, or not a real number", async () => {
+    for (const bad of [0, -1, Number.NaN] as const) {
+      calls.length = 0;
+      resetCache();
+      await createDealFromSubmission(
+        fixtureSubmission,
+        fixtureRecommendation(),
+        fixturePartner,
+        null,
+        bad,
+      );
+      const dealCall = calls.find((c) => c.url.includes("/v1/deals") && c.method === "POST");
+      const body = dealCall!.body as Record<string, unknown>;
+      assert.equal(body.user_id, OWNER_ID, `creatorPipedriveUserId=${bad} should fall back to default`);
+    }
+  });
+
   it("reuses an existing Person and Organization via search (idempotent)", async () => {
     await createDealFromSubmission(
       fixtureSubmission,

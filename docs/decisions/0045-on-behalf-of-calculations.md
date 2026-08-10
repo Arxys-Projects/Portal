@@ -1,6 +1,6 @@
 # 0045 — Internal "on behalf of" calculations
 
-- **Status**: Accepted (extended by [0054](./0054-on-behalf-target-visibility.md) — the named partner can now see and revise on-behalf rows; the free-text match is replaced by a partner-user picker)
+- **Status**: Accepted (extended by [0054](./0054-on-behalf-target-visibility.md) — the named partner can now see and revise on-behalf rows; the free-text match is replaced by a partner-user picker. Also amended by [0118](./0118-pipedrive-owner-per-rep-routing.md) — the Pipedrive owner is now routed to the actual creator when they have a stored Pipedrive user id, per the "When to revisit" clause below; the pinned-note attribution stays as originally decided)
 - **Date**: 2026-06-04
 
 ## Context
@@ -28,6 +28,6 @@ Constraints: the change must be RLS-neutral (creator-based insert/select policie
 
 **Positive:** RLS untouched; external partners unaffected; the DB enforces the data invariant; on-behalf calcs roll up correctly for matched and free-typed targets; the 13 existing `deal.test.ts` cases stay green (self-serve Pipedrive path unchanged).
 
-**Negative:** an FK-only on-behalf row carries no inline display name, so an RLS-scoped reader (the rep's own dashboard) must resolve the target's name with a service-role lookup in the page loader — a small, scoped read, not an RLS change. Pipedrive owner is not routed to the rep.
+**Negative:** an FK-only on-behalf row carries no inline display name, so an RLS-scoped reader (the rep's own dashboard) must resolve the target's name with a service-role lookup in the page loader — a small, scoped read, not an RLS change. ~~Pipedrive owner is not routed to the rep.~~ **Superseded by [0118](./0118-pipedrive-owner-per-rep-routing.md)** — owner now routes to the rep when they have a stored Pipedrive user id.
 
-**When to revisit:** if a third+ sales rep joins (build the portal-user → Pipedrive-user-ID owner map), or if external partners should *see* on-behalf projects created for them (overlaps with the deferred collaborator work).
+**When to revisit:** ~~if a third+ sales rep joins (build the portal-user → Pipedrive-user-ID owner map)~~ — done, see [0118](./0118-pipedrive-owner-per-rep-routing.md) (built for the existing two-person team, not waiting on a third); or if external partners should *see* on-behalf projects created for them (overlaps with the deferred collaborator work).

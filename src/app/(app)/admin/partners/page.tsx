@@ -3,7 +3,11 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireAdminOrInternal } from "@/lib/auth/require-admin-or-internal";
 import { EditableName, InternalToggle, LogoUpload, PartnerRowActions } from "./partner-row-actions";
-import { updatePartnerCompanyName, updatePartnerContactName } from "./actions";
+import {
+  updatePartnerCompanyName,
+  updatePartnerContactName,
+  updatePartnerPipedriveUserId,
+} from "./actions";
 import { buttonClasses } from "@/app/(app)/_components/ui";
 import { partnerLogoPublicUrl } from "@/lib/storage/partner-logo";
 
@@ -90,6 +94,18 @@ export default async function AdminPartnersPage() {
     }
   }
 
+  // ADR 0118 — pipedrive_user_id, fetched separately for the same reason
+  // logo_path is: this page keeps working before the migration
+  // (20260810000001) has landed, degrading to "—" for everyone rather than
+  // failing the whole partners table.
+  const pipedriveUserIdById = new Map<string, number | null>();
+  {
+    const { data: pdRows } = await supabase.from("partners").select("id, pipedrive_user_id");
+    for (const r of (pdRows ?? []) as { id: string; pipedrive_user_id: number | null }[]) {
+      pipedriveUserIdById.set(r.id, r.pipedrive_user_id);
+    }
+  }
+
   return (
     <div>
       <div className="flex items-center justify-between">
@@ -119,6 +135,7 @@ export default async function AdminPartnersPage() {
                 <th className="px-4 py-2">Role</th>
                 <th className="px-4 py-2">Status</th>
                 <th className="px-4 py-2">Internal</th>
+                <th className="px-4 py-2">Pipedrive User ID</th>
                 <th className="px-4 py-2">Logo</th>
                 <th className="px-4 py-2">Created</th>
                 <th className="px-4 py-2 text-right">Actions</th>
@@ -164,6 +181,28 @@ export default async function AdminPartnersPage() {
                     ) : (
                       <span className="text-xs text-ink-soft">
                         {p.is_internal ? "Internal ✓" : "—"}
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
+                    {isAdmin ? (
+                      <EditableName
+                        id={p.id}
+                        value={
+                          pipedriveUserIdById.get(p.id) != null
+                            ? String(pipedriveUserIdById.get(p.id))
+                            : ""
+                        }
+                        fieldName="pipedriveUserId"
+                        label="Pipedrive user id"
+                        action={updatePartnerPipedriveUserId}
+                        required={false}
+                        inputMode="numeric"
+                        placeholder="e.g. 6039322"
+                      />
+                    ) : (
+                      <span className="text-xs text-ink-soft">
+                        {pipedriveUserIdById.get(p.id) ?? "—"}
                       </span>
                     )}
                   </td>
