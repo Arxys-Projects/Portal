@@ -134,11 +134,11 @@ export default async function AdminPartnersPage() {
                 <th className="px-4 py-2">Email</th>
                 <th className="px-4 py-2">Role</th>
                 <th className="px-4 py-2">Status</th>
+                <th className="px-4 py-2 text-right">Actions</th>
                 <th className="px-4 py-2">Internal</th>
                 <th className="px-4 py-2">Pipedrive User ID</th>
                 <th className="px-4 py-2">Logo</th>
                 <th className="px-4 py-2">Created</th>
-                <th className="px-4 py-2 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-line-soft">
@@ -175,6 +175,16 @@ export default async function AdminPartnersPage() {
                   </td>
                   <td className="px-4 py-3 text-ink-soft">{p.role}</td>
                   <td className="px-4 py-3">{statusPill(p.status)}</td>
+                  <td className="px-4 py-3">
+                    {isAdmin ? (
+                      <PartnerRowActions
+                        id={p.id}
+                        status={p.status as "active" | "invited" | "suspended"}
+                      />
+                    ) : (
+                      <span className="text-xs text-ink-soft">—</span>
+                    )}
+                  </td>
                   <td className="px-4 py-3">
                     {isAdmin ? (
                       <InternalToggle id={p.id} isInternal={Boolean(p.is_internal)} />
@@ -220,16 +230,6 @@ export default async function AdminPartnersPage() {
                   </td>
                   <td className="px-4 py-3 text-ink-soft">
                     {formatDate(p.created_at)}
-                  </td>
-                  <td className="px-4 py-3">
-                    {isAdmin ? (
-                      <PartnerRowActions
-                        id={p.id}
-                        status={p.status as "active" | "invited" | "suspended"}
-                      />
-                    ) : (
-                      <span className="text-xs text-ink-soft">—</span>
-                    )}
                   </td>
                 </tr>
               ))}

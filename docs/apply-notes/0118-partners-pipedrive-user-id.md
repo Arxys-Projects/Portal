@@ -1,9 +1,7 @@
 # Apply note — `partners.pipedrive_user_id` (ADR 0118)
 
-> **NOT YET APPLIED.** One nullable integer column. Safe in either order in
-> the sense that nothing 404s if the code deploys first — but the new
-> "Pipedrive User ID" field on `/admin/partners` will fail every save until
-> the column exists, so apply first anyway.
+> **Applied 2026-08-10**, by hand via the Supabase dashboard SQL editor,
+> ahead of the code deploy. One nullable integer column.
 
 | | File |
 |---|---|

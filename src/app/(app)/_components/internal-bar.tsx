@@ -35,10 +35,6 @@ export default function InternalBar({
   return (
     <div className="w-full bg-arxys-navy">
       <div className="mx-auto flex max-w-[1320px] items-center gap-6 px-6">
-        <span className="py-3 text-[13px] font-bold uppercase tracking-[0.11em] text-[#7f93bd]">
-          Internal
-        </span>
-
         <Link
           href="/projects"
           aria-current={salesActive ? "page" : undefined}

@@ -4,6 +4,37 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-08-10 — /admin/partners table + Internal-bar label usability fixes
+
+### Work done
+
+Two small usability complaints from Andy, both bug fixes (no ADR):
+
+- **`/admin/partners` table reorder.** The table had grown to 10 columns as
+  fields were added over time (company/contact/email/role/status, then
+  Internal, then Pipedrive User ID, then Logo, then Created), with row
+  Actions (Suspend / Reactivate / Resend sign-in link) pinned last. On a
+  table wide enough to need horizontal scroll, reaching Actions meant
+  scrolling past Company/Contact/Email — so by the time the right button was
+  in view, there was no way to confirm it was the right *person*. Moved
+  Actions to sit right after Status (`page.tsx`), so identity + status +
+  action now read together near the left edge; the columns that are edited
+  far less often (Internal toggle, Pipedrive User ID, Logo, Created) moved to
+  the tail, where scrolling to reach them is a fair trade. Pure column
+  reorder — no component changed, `PartnerRowActions` unchanged.
+- **Removed the static "Internal" label from the internal nav bar**
+  (`_components/internal-bar.tsx`). It sat to the left of the "Sales" link in
+  the same row, same visual weight as the surrounding nav links, but wasn't
+  a link — Andy found it read as a broken/dead link rather than a section
+  label. The bar's remaining "Sales / Partners / Requests / Specs &
+  Datasheets" links carry the same context without it.
+
+### Decisions captured
+
+None — both are UI bug fixes with no non-obvious tradeoff to record.
+
+---
+
 ## 2026-08-10 — Pipedrive deal owner routed per creator (ADR 0118)
 
 ### Work done
