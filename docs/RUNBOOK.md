@@ -198,7 +198,7 @@ for f in axis hanwha avigilon; do
 done
 ```
 
-Expected on a fresh project: 68 single-sensor rows then 39 multisensor rows, 107 total (Axis 35, Hanwha 42, Avigilon 30). A re-run reports `0 new` with the file's row count as updates.
+Expected on a fresh project: 214 single-sensor rows then 46 multisensor rows, 260 total (Axis 37, Hanwha 193, Avigilon 30). A re-run reports `0 new` with the file's row count as updates.
 
 ## 7. Supabase: verify RLS
 

@@ -5,6 +5,88 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 ---
 
 
+## 2026-08-11 — Hanwha camera seed refresh from the August 2026 price list (ADRs 0120–0122)
+
+### Work done
+
+- Refreshed the Hanwha `camera_specs` seed against
+  `Hanwha_Vision_America_Pricelist_USA_Internal_August_2026_R2.xlsx`
+  (`Category = "Camera - Network"`, 3MP and above). **Hanwha rows went 53 → 193**:
+  `data/hanwha-camera-specs.json` 30 → 167, `data/hanwha-camera-specs-multisensor.json`
+  23 → 26. Both files validated clean, dry-run counts matched the delta exactly,
+  then loaded through the gated `scripts/load-camera-specs.ts` CONFIRM path.
+- Built the roster/table diff as the union of `model` and every alias
+  (uppercased, non-alphanumerics striped) so alias-covered models do not present
+  as new. Emitted `hanwha-delta.json`: 138 new single, 3 new multisensor, 5
+  discontinued-in-table, 5 out-of-scope-not-EOL.
+- Post-load verification confirmed 140/140 rows present with the exact
+  dimensions and sensor counts built, all four alias strips applied, `TNB-9000`
+  absent, all ten EOL/out-of-scope rows retained, and `currently_shipping`
+  unchanged. **Nothing was deleted in this pass.**
+- Resolved the three multisensor rows from the official datasheet PDFs:
+  `TNS-9040IBC` / `TNS-9050IBC` / `TNS-9060IBC` are dual global-shutter imagers
+  (mono for barcode reading + colour for video), both at **4096×2160** — DCI 4K,
+  not 3840×2160. Sized 2 × 4096×2160 under ADR 0058 Option C.
+- Confirmed the three PNM "Panoramic" models are correctly single-sensor for the
+  storage math: each exposes one stitched channel (`PNM-9031RV`'s spec table is
+  headed "Panoramic channel"; `PNM-A13022RV`'s three "virtual channels" are crops
+  of one image). Recorded the reasoning in `sensor_detail` so it is not
+  re-derived from the marketing string.
+
+### Detours & fixes
+
+- **The `alias_covered` bucket was hiding four live SKUs, not covering them.**
+  Four existing rows carried an alias naming a *different* camera that is live in
+  the August list (`XNO-8082R`→`XNO-8083R`, `XNO-9083R`→`XNO-9082R`,
+  `XNV-8083R`→`XNV-8083RZ`, `XNV-9083R`→`XNV-9083RZ`). The diff suppressed four
+  genuinely new models, and the picker was resolving those searches to the
+  sibling row and feeding its resolution into the storage math. Stripped the four
+  aliases and seeded the models properly. See ADR 0122.
+- **Half the `discontinued_in_table` bucket was a false positive.** Ten rows
+  looked discontinued; only five were. `QNO-6083R`, `QNV-6083R`, `QNV-C6083R`,
+  `XNO-6083R` and `XNV-6083R` are all 1920×1080 (2.07MP) and absent from the
+  roster only because the 2MP band was excluded from the roster build. All five
+  are absent from `hanwha-eol-map.json`. Root cause: "absent from the active
+  roster" conflates *retired* with *out of scope for this pass*. Split into a
+  separate `out_of_scope_not_eol` bucket so they are never annotated as EOL.
+- **`currently_shipping` turned out to gate the partner picker, not just the
+  seed loader.** Planned flag flips were abandoned. See ADR 0120 — this also
+  surfaced that `PNM-9020V` is already invisible in the picker in production.
+- **Hanwha product pages are JS-rendered, so a markdown-converting fetch reads
+  nothing.** The spec table never appears in the server-rendered DOM. It *is*
+  present in the static HTML inside Next.js `self.__next_f` flight chunks, keyed
+  by `SpecLabelCode: "NW-SPCD059002"` for the Resolution row. Extracting from
+  there gave a repeatable official-source pull for 136 of 141 models; the method
+  was validated first against six already-seeded rows (including the pass's own
+  worked example `QNV-C9011R`) and agreed exactly on all six. Reseller listings
+  were never used.
+- **Five models had no US spec table.** `XNV-A8084RS` and `ANO-L7082R` return a
+  soft 404 on the US site (page title is the bare slug) and were read from the
+  official global and UK pages. The three `TNS-*IBC` pages exist but publish no
+  spec table; those came from the official datasheet PDFs on
+  `hvsgmpprdstorage.blob.core.windows.net`. Datasheet filenames carry opaque
+  numeric suffixes, so the URLs must be scraped from the product page, not
+  guessed.
+- **The roster's `mp_band` was wrong for eight models**, which is why it is a
+  triage signal only. `TNO-A26081` was banded 8K but is 6240×4160 (25.96MP), so
+  it fits the 29MP bucket and seeded normally. `QNE-C9013RL` was banded 5MP but
+  is 4K. The five `*NF-8010*` fisheyes are marketed 5MP but have square
+  2048×2048 imagers (4.19MP). Datasheet values won in every case.
+- **Four apparent family dimension conflicts were genuine vendor differences.**
+  Q-series and X-series share numeric suffixes but ship different sensors —
+  `QNV-C8083R` is 5MP (2592×1944) where `XNV-C8083R` is 6MP (3328×1872),
+  confirmed independently by the price-list `Item Type`. Checked the ADR-noted
+  precedent (`QNV-C9083R` sized to match `XNV-`/`XNO-C9083R`) and found the
+  datasheets there genuinely agree at 3840×2160, so it was never an override. No
+  dimensions were forced to match.
+
+### Decisions captured
+
+- [`0120-currently-shipping-is-a-display-filter.md`](./decisions/0120-currently-shipping-is-a-display-filter.md)
+- [`0121-8k-cameras-exceed-the-resolution-ceiling.md`](./decisions/0121-8k-cameras-exceed-the-resolution-ceiling.md)
+- [`0122-aliases-never-name-a-different-live-sku.md`](./decisions/0122-aliases-never-name-a-different-live-sku.md)
+
+
 ## 2026-08-10 — Pipedrive deal links reuse one browser tab (ADR 0119)
 
 ### Work done

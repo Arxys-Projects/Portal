@@ -274,5 +274,41 @@
     "currently_shipping": true,
     "source_url": "https://www.hanwhavision.com/en/products/camera/network/multi-sensor/PNM-9322VQP/overview/",
     "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Hanwha",
+    "model": "TNS-9040IBC",
+    "model_aliases": ["TNS9040IBC", "Wisenet TNS-9040IBC"],
+    "sensor_count": 2,
+    "max_width": 4096,
+    "max_height": 2160,
+    "sensor_detail": {"sensors": 2, "per_sensor": "4096x2160", "per_sensor_mp": 8.85, "total_mp": 17.69, "note": "Dual global-shutter imagers (mono for barcode reading + color for video monitoring), both 4096x2160"},
+    "currently_shipping": true,
+    "source_url": "https://hvsgmpprdstorage.blob.core.windows.net/pim/CDB/TNS-9040IBC/DataSheet_TNS-9040IBC_250325_EN.pdf",
+    "as_of_date": "2026-08-11"
+  },
+  {
+    "vendor": "Hanwha",
+    "model": "TNS-9050IBC",
+    "model_aliases": ["TNS-9050IBC/KEX", "TNS9050IBC", "Wisenet TNS-9050IBC"],
+    "sensor_count": 2,
+    "max_width": 4096,
+    "max_height": 2160,
+    "sensor_detail": {"sensors": 2, "per_sensor": "4096x2160", "per_sensor_mp": 8.85, "total_mp": 17.69, "note": "Dual global-shutter imagers (mono for barcode reading + color for video monitoring), both 4096x2160"},
+    "currently_shipping": true,
+    "source_url": "https://hvsgmpprdstorage.blob.core.windows.net/pim/CDB/TNS-9050IBC/DataSheet_TNS-9050IBC_250325_EN.pdf",
+    "as_of_date": "2026-08-11"
+  },
+  {
+    "vendor": "Hanwha",
+    "model": "TNS-9060IBC",
+    "model_aliases": ["TNS9060IBC", "Wisenet TNS-9060IBC"],
+    "sensor_count": 2,
+    "max_width": 4096,
+    "max_height": 2160,
+    "sensor_detail": {"sensors": 2, "per_sensor": "4096x2160", "per_sensor_mp": 8.85, "total_mp": 17.69, "note": "Dual global-shutter imagers (mono for barcode reading + color for video monitoring), both 4096x2160"},
+    "currently_shipping": true,
+    "source_url": "https://hvsgmpprdstorage.blob.core.windows.net/pim/CDB/TNS-9060IBC/DataSheet_TNS-9060IBC_250325_EN.pdf",
+    "as_of_date": "2026-08-11"
   }
 ]
