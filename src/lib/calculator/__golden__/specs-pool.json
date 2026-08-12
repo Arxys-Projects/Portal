@@ -1,0 +1,186 @@
+{
+  "note": "Frozen recommender candidate pool (current_products x product_specs via selectCandidates), captured read-only from production 2026-08-12 for the calculator math audit golden harness. Regenerating golden files does NOT refresh this.",
+  "capturedAt": "2026-08-12",
+  "pool": [
+    {
+      "sku": "VX5-V200-64",
+      "productGroup": "V200",
+      "productName": "VideoX V200 64TB 1U 4Bay Rack - Net usable 48TB - V5 NVR Server - 5yr Warranty",
+      "maxCameras": 100,
+      "maxStorageTb": 64,
+      "usableStorageTb": 48,
+      "msrp": 20470,
+      "priceType": "numeric"
+    },
+    {
+      "sku": "VX5-V200-80",
+      "productGroup": "V200",
+      "productName": "VideoX V200 80TB 1U 4Bay Rack - Net usable 60TB - V5 NVR Server - 5yr Warranty",
+      "maxCameras": 100,
+      "maxStorageTb": 80,
+      "usableStorageTb": 60,
+      "msrp": 22056,
+      "priceType": "numeric"
+    },
+    {
+      "sku": "VX5-V200-96",
+      "productGroup": "V200",
+      "productName": "VideoX V200 96TB 1U 4Bay Rack - Net usable 72TB - V5 NVR Server - 5yr Warranty",
+      "maxCameras": 100,
+      "maxStorageTb": 96,
+      "usableStorageTb": 72,
+      "msrp": 23685,
+      "priceType": "numeric"
+    },
+    {
+      "sku": "VX5-V400-128",
+      "productGroup": "V400",
+      "productName": "VideoX V400 128TB 2U 8Bay Rack - Net usable 96TB - V5 Video & Analytics Server - 5yr Warranty",
+      "maxCameras": 200,
+      "maxStorageTb": 128,
+      "usableStorageTb": 96,
+      "msrp": 31034,
+      "priceType": "numeric"
+    },
+    {
+      "sku": "VX5-V400-160",
+      "productGroup": "V400",
+      "productName": "VideoX V400 160TB 2U 8Bay Rack - Net usable 120TB- V5 Video & Analytics Server - 5yr Warranty",
+      "maxCameras": 200,
+      "maxStorageTb": 160,
+      "usableStorageTb": 120,
+      "msrp": 34206,
+      "priceType": "numeric"
+    },
+    {
+      "sku": "VX5-V400-192",
+      "productGroup": "V400",
+      "productName": "VideoX V400 192TB 2U 8Bay Rack - Net usable 144TB - V5 Video & Analytics Server - 5yr Warranty",
+      "maxCameras": 200,
+      "maxStorageTb": 192,
+      "usableStorageTb": 144,
+      "msrp": 37463,
+      "priceType": "numeric"
+    },
+    {
+      "sku": "VX5-V500-192",
+      "productGroup": "V500",
+      "productName": "VideoX V500 192TB 2U 12Bay Rack - Net usable 160TB - V5 Video & Analytics Server - 5yr Warranty",
+      "maxCameras": 275,
+      "maxStorageTb": 192,
+      "usableStorageTb": 160,
+      "msrp": 42577,
+      "priceType": "numeric"
+    },
+    {
+      "sku": "VX5-V500-240",
+      "productGroup": "V500",
+      "productName": "VideoX V500 240TB 2U 12Bay Rack - Net usable 200TB- V5 Video & Analytics Server - 5yr Warranty",
+      "maxCameras": 275,
+      "maxStorageTb": 240,
+      "usableStorageTb": 200,
+      "msrp": 47334,
+      "priceType": "numeric"
+    },
+    {
+      "sku": "VX5-V500-288",
+      "productGroup": "V500",
+      "productName": "VideoX V500 288TB 2U 12Bay Rack - Net usable 240TB - V5 Video & Analytics Server - 5yr Warranty",
+      "maxCameras": 275,
+      "maxStorageTb": 288,
+      "usableStorageTb": 240,
+      "msrp": 52220,
+      "priceType": "numeric"
+    },
+    {
+      "sku": "VX5-V600-256",
+      "productGroup": "V600",
+      "productName": "VideoX V600 256TB 3U 16Bay Rack - Net usable 224TB - V5 Video & Analytics Server - 5yr Warranty",
+      "maxCameras": 275,
+      "maxStorageTb": 256,
+      "usableStorageTb": 224,
+      "msrp": 50118,
+      "priceType": "numeric"
+    },
+    {
+      "sku": "VX5-V600-320",
+      "productGroup": "V600",
+      "productName": "VideoX V600 320TB 3U 16Bay Rack - Net usable 280TB - V5 Video & Analytics Server - 5yr Warranty",
+      "maxCameras": 275,
+      "maxStorageTb": 320,
+      "usableStorageTb": 280,
+      "msrp": 56461,
+      "priceType": "numeric"
+    },
+    {
+      "sku": "VX5-V600-384",
+      "productGroup": "V600",
+      "productName": "VideoX V600 384TB 3U 16Bay Rack - Net usable 336TB - V5 Video & Analytics Server - 5yr Warranty",
+      "maxCameras": 275,
+      "maxStorageTb": 384,
+      "usableStorageTb": 336,
+      "msrp": 62975,
+      "priceType": "numeric"
+    },
+    {
+      "sku": "VX5-V700-384",
+      "productGroup": "V700",
+      "productName": "VideoX V700 384TB 4U 24Bay Rack - Net usable 316TB - V5 Video & Analytics Server - 5yr Warranty",
+      "maxCameras": 325,
+      "maxStorageTb": 384,
+      "usableStorageTb": 320,
+      "msrp": 66481,
+      "priceType": "numeric"
+    },
+    {
+      "sku": "VX5-V700-480",
+      "productGroup": "V700",
+      "productName": "VideoX V700 480TB 4U 24Bay Rack - Net usable 400TB - V5 Video & Analytics Server - 5yr Warranty",
+      "maxCameras": 325,
+      "maxStorageTb": 480,
+      "usableStorageTb": 400,
+      "msrp": 75995,
+      "priceType": "numeric"
+    },
+    {
+      "sku": "VX5-V700-576",
+      "productGroup": "V700",
+      "productName": "VideoX V700 576TB 4U 24Bay Rack - Net usable 480TB - V5 Video & Analytics Server - 5yr Warranty",
+      "maxCameras": 325,
+      "maxStorageTb": 576,
+      "usableStorageTb": 480,
+      "msrp": 85766,
+      "priceType": "numeric"
+    },
+    {
+      "sku": "VX5-V800-576",
+      "productGroup": "V800",
+      "productName": "VideoX V800 576TB 4U 36Bay Rack - Net usable 480TB - V5 Video & Analytics Server - 5yr Warranty",
+      "maxCameras": 325,
+      "maxStorageTb": 576,
+      "usableStorageTb": 480,
+      "msrp": 88126,
+      "priceType": "numeric"
+    },
+    {
+      "sku": "VX5-V800-720",
+      "productGroup": "V800",
+      "productName": "VideoX V800 720TB 4U 36Bay Rack - Net usable 600TB - V5 Video & Analytics Server - 5yr Warranty",
+      "maxCameras": 325,
+      "maxStorageTb": 720,
+      "usableStorageTb": 600,
+      "msrp": 102398,
+      "priceType": "numeric"
+    },
+    {
+      "sku": "VX5-V800-864",
+      "productGroup": "V800",
+      "productName": "VideoX V800 864TB 4U 36Bay Rack - Net usable 720TB - V5 Video & Analytics Server - 5yr Warranty",
+      "maxCameras": 325,
+      "maxStorageTb": 864,
+      "usableStorageTb": 720,
+      "msrp": 117054,
+      "priceType": "numeric"
+    }
+  ]
+}

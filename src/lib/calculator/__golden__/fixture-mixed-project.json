@@ -1,0 +1,178 @@
+{
+  "note": "Five-scene / 300-camera mixed project — canonical audit fixture. Retention 30 days. Recommendation sized against the frozen 2026-08-12 pool.",
+  "retentionDays": 30,
+  "groups": [
+    {
+      "input": {
+        "name": "Perimeter & parking",
+        "cameras": 80,
+        "resolutionIdx": 14,
+        "codecIdx": 0,
+        "complexityIdx": 2,
+        "fps": 12,
+        "recordingPercent": 100,
+        "motionPercent": 100,
+        "resolutionLabel": "4MP (2560×1440)",
+        "codec": "h265",
+        "complexityLabel": "Medium detail, low motion"
+      },
+      "vsr": 73.728,
+      "computed": {
+        "frameKb": 37.4625,
+        "bitrateMbps": 3.512109,
+        "bandwidthMbps": 294.6171,
+        "rawStorageGb": 95455.94,
+        "storageGb": 114547.1
+      }
+    },
+    {
+      "input": {
+        "name": "Lobby & entries",
+        "cameras": 60,
+        "resolutionIdx": 11,
+        "codecIdx": 0,
+        "complexityIdx": 1,
+        "fps": 15,
+        "recordingPercent": 100,
+        "motionPercent": 75,
+        "resolutionLabel": "1080p Full HD (1920×1080)",
+        "codec": "h265",
+        "complexityLabel": "Low detail, high motion"
+      },
+      "vsr": 31.104,
+      "computed": {
+        "frameKb": 11.23875,
+        "bitrateMbps": 1.317041,
+        "bandwidthMbps": 82.86106,
+        "rawStorageGb": 26846.98,
+        "storageGb": 32216.38
+      }
+    },
+    {
+      "input": {
+        "name": "Warehouse floor",
+        "cameras": 90,
+        "resolutionIdx": 15,
+        "codecIdx": 2,
+        "complexityIdx": 3,
+        "fps": 15,
+        "recordingPercent": 100,
+        "motionPercent": 50,
+        "resolutionLabel": "4MP (2688×1520)",
+        "codec": "smart",
+        "complexityLabel": "Medium detail, high motion"
+      },
+      "vsr": 91.9296,
+      "computed": {
+        "frameKb": 44.84261,
+        "bitrateMbps": 5.254994,
+        "bandwidthMbps": 495.9234,
+        "rawStorageGb": 160679.2,
+        "storageGb": 192815
+      }
+    },
+    {
+      "input": {
+        "name": "Loading dock (12 h/day)",
+        "cameras": 40,
+        "resolutionIdx": 19,
+        "codecIdx": 1,
+        "complexityIdx": 4,
+        "fps": 10,
+        "recordingPercent": 50,
+        "motionPercent": 100,
+        "resolutionLabel": "4K/8MP (3840×2160)",
+        "codec": "h264",
+        "complexityLabel": "High detail, low motion"
+      },
+      "vsr": 82.944,
+      "computed": {
+        "frameKb": 320.9625,
+        "bitrateMbps": 25.0752,
+        "bandwidthMbps": 1051.73,
+        "rawStorageGb": 170380.2,
+        "storageGb": 204456.3
+      }
+    },
+    {
+      "input": {
+        "name": "Back offices",
+        "cameras": 30,
+        "resolutionIdx": 8,
+        "codecIdx": 0,
+        "complexityIdx": 0,
+        "fps": 15,
+        "recordingPercent": 100,
+        "motionPercent": 25,
+        "resolutionLabel": "720p HD (1280×720)",
+        "codec": "h265",
+        "complexityLabel": "Low detail, low motion"
+      },
+      "vsr": 6.912,
+      "computed": {
+        "frameKb": 1.665,
+        "bitrateMbps": 0.1951172,
+        "bandwidthMbps": 6.137856,
+        "rawStorageGb": 1988.665,
+        "storageGb": 2386.398
+      }
+    }
+  ],
+  "totals": {
+    "cameras": 300,
+    "vsr": 286.6176,
+    "bandwidthMbps": 1931.269,
+    "rawStorageGb": 455351,
+    "storageGb": 546421.2,
+    "storageTb": 546.4212
+  },
+  "recommendation": {
+    "winner": {
+      "sku": "VX5-V800-864",
+      "productGroup": "V800",
+      "productName": "VideoX V800 864TB 4U 36Bay Rack - Net usable 720TB - V5 Video & Analytics Server - 5yr Warranty",
+      "units": 1,
+      "unitMsrp": 117054,
+      "totalCostUsd": 117054,
+      "coveredCameras": 325,
+      "coveredStorageTb": 720,
+      "driverDimension": "storage"
+    },
+    "alternativesTop3": [
+      {
+        "sku": "VX5-V600-384",
+        "productGroup": "V600",
+        "productName": "VideoX V600 384TB 3U 16Bay Rack - Net usable 336TB - V5 Video & Analytics Server - 5yr Warranty",
+        "units": 2,
+        "unitMsrp": 62975,
+        "totalCostUsd": 125950,
+        "coveredCameras": 550,
+        "coveredStorageTb": 672,
+        "driverDimension": "storage"
+      },
+      {
+        "sku": "VX5-V600-256",
+        "productGroup": "V600",
+        "productName": "VideoX V600 256TB 3U 16Bay Rack - Net usable 224TB - V5 Video & Analytics Server - 5yr Warranty",
+        "units": 3,
+        "unitMsrp": 50118,
+        "totalCostUsd": 150354,
+        "coveredCameras": 825,
+        "coveredStorageTb": 672,
+        "driverDimension": "storage"
+      },
+      {
+        "sku": "VX5-V700-480",
+        "productGroup": "V700",
+        "productName": "VideoX V700 480TB 4U 24Bay Rack - Net usable 400TB - V5 Video & Analytics Server - 5yr Warranty",
+        "units": 2,
+        "unitMsrp": 75995,
+        "totalCostUsd": 151990,
+        "coveredCameras": 650,
+        "coveredStorageTb": 800,
+        "driverDimension": "storage"
+      }
+    ],
+    "warnings": []
+  }
+}
