@@ -8,6 +8,21 @@
 > `NOT VALID` range guards and the column comments were applied as a second
 > step. If you are replaying this on another environment, run the **whole**
 > migration file rather than the fragment below.
+>
+> Constraints confirmed present 2026-08-12. To re-check:
+>
+> ```sql
+> select conname, convalidated
+> from pg_constraint
+> where conrelid = 'public.submissions'::regclass and contype = 'c'
+> order by conname;
+> ```
+>
+> The three `submissions_*_check` rows added here report
+> **`convalidated = false`, and that is correct** — it is the `NOT VALID`
+> flag, meaning Postgres never rescanned the existing table. New writes are
+> still checked. The older constraints on this table report `true` only
+> because they were created normally, back when the table was small.
 
 | | File |
 |---|---|
