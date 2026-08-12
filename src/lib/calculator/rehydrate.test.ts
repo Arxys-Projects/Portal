@@ -37,6 +37,7 @@ describe("normalizeInputState", () => {
       recordingMode: "constant",
       recordingPercent: 100,
       motionPercent: 100,
+      recordsAudioMetadata: true,
       // Phase 10 Step 3 — no model loaded by default.
       cameraVendor: null,
       cameraModel: null,
@@ -197,7 +198,7 @@ describe("fromStoredSubmission", () => {
     assert.equal(g.motionPercent, 40);
   });
 
-  it("falls back to the raw index when groups_payload is absent", () => {
+  it("falls back to the raw index when groups_payload is absent (v1 codecIdx migrated)", () => {
     const row = {
       input_state: {
         version: 1,
@@ -207,11 +208,14 @@ describe("fromStoredSubmission", () => {
     };
     const g = fromStoredSubmission(row).groups[0];
     assert.equal(g.resolutionIdx, 8);
-    assert.equal(g.codecIdx, 2);
+    // v1 codecIdx 2 was the retired H.264-Smart. Under the v2 index space that
+    // slot is h264 — the migration must land it on `smart`, not silently
+    // reinterpret it (ADR 0124).
+    assert.equal(CODECS[g.codecIdx].value, "smart");
     assert.equal(g.complexityIdx, 2);
   });
 
-  it("falls back to the raw index when a banked label no longer exists", () => {
+  it("falls back to the raw index when a banked label no longer exists (v1 codecIdx migrated)", () => {
     const row = {
       input_state: {
         version: 1,
@@ -229,8 +233,36 @@ describe("fromStoredSubmission", () => {
     };
     const g = fromStoredSubmission(row).groups[0];
     assert.equal(g.resolutionIdx, 3);
-    assert.equal(g.codecIdx, 1);
+    // v1 codecIdx 1 was h264; v2 slot 1 is h265smart. Migrated, not shifted.
+    assert.equal(CODECS[g.codecIdx].value, "h264");
     assert.equal(g.complexityIdx, 1);
+  });
+
+  // ADR 0124 — the codec index space changed when h265smart was added. A v1 row
+  // must never silently become a different codec; a v2 row must pass through.
+  it("migrates every v1 codec index and leaves v2 indices alone", () => {
+    const at = (version: number, codecIdx: number) =>
+      CODECS[normalizeInputState({ version, groups: [{ codecIdx }] }).groups[0].codecIdx].value;
+
+    assert.equal(at(1, 0), "h265");
+    assert.equal(at(1, 1), "h264");
+    assert.equal(at(1, 2), "smart");
+
+    assert.equal(at(2, 0), "h265");
+    assert.equal(at(2, 1), "h265smart");
+    assert.equal(at(2, 2), "h264");
+    assert.equal(at(2, 3), "smart");
+  });
+
+  // ADR 0126 — pre-v2 rows carry no buffer setting and must open at the default
+  // rather than being back-fitted to the old ×1.44.
+  it("defaults the utilization buffer on pre-v2 rows and honors it on v2 rows", () => {
+    assert.equal(normalizeInputState({ version: 1 }).utilizationPct, 90);
+    assert.equal(normalizeInputState({ version: 1, utilizationPct: 70 }).utilizationPct, 90);
+    assert.equal(normalizeInputState({ version: 2, utilizationPct: 70 }).utilizationPct, 70);
+    // Out-of-range values clamp into 60–90 rather than being trusted.
+    assert.equal(normalizeInputState({ version: 2, utilizationPct: 10 }).utilizationPct, 60);
+    assert.equal(normalizeInputState({ version: 2, utilizationPct: 99 }).utilizationPct, 90);
   });
 
   it("rehydrates a pre-add-on (version 0) row with add-ons defaulted off", () => {

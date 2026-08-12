@@ -35,6 +35,10 @@ function fixture(): SubmissionPdfInput {
     totals: { cameras: 150, bandwidthMbps: 540.25, storageGb: 80500 },
     storageTb: 80.5,
     bandwidthMbps: 540.25,
+    // Phase A sizing basis (ADRs 0123–0128).
+    calcVersion: 2,
+    recordedStorageTb: 64.71,
+    maxDiskUtilizationPct: 90,
     groups: [
       {
         name: "Lobby cameras",

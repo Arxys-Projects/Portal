@@ -68,6 +68,9 @@ export async function loadSubmissionPdfInput(
         "cameras_count",
         "bandwidth_mbps",
         "storage_tb",
+        "recorded_storage_tb",
+        "calc_version",
+        "max_disk_utilization_pct",
         "vms",
         "retention_days",
         "recommended_product_id",
@@ -88,6 +91,10 @@ export async function loadSubmissionPdfInput(
     cameras_count: number;
     bandwidth_mbps: number;
     storage_tb: number;
+    // Phase A columns (migration 20260812000001). NULL on pre-Phase-A rows.
+    recorded_storage_tb: number | null;
+    calc_version: number | null;
+    max_disk_utilization_pct: number | null;
     vms: string | null;
     retention_days: number;
     recommended_product_id: string | null;
@@ -190,6 +197,12 @@ export async function loadSubmissionPdfInput(
     groups,
     storageTb: Number(submission.storage_tb),
     bandwidthMbps: Number(submission.bandwidth_mbps),
+    // An absent stamp means a row written before the column existed, which is
+    // by definition the pre-Phase-A model (ADR 0126).
+    calcVersion: submission.calc_version ?? 1,
+    recordedStorageTb:
+      submission.recorded_storage_tb == null ? null : Number(submission.recorded_storage_tb),
+    maxDiskUtilizationPct: submission.max_disk_utilization_pct,
     recommendation: {
       units: recommendedUnits,
       modelCode,

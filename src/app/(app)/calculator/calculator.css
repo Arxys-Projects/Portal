@@ -89,6 +89,16 @@
 #arxys-calc-root .ax-setup-row .ax-f-project { flex: 1 1 240px; min-width: 200px; }
 #arxys-calc-root .ax-setup-row .ax-f-vms { flex: 0 1 180px; }
 #arxys-calc-root .ax-setup-row .ax-f-ret { flex: 0 0 130px; }
+/* Max disk utilization — the project's one buffer (ADR 0126). Given its own
+   row rather than a slot in ax-setup-row because it is the single number a
+   partner compares against a Milestone or Genetec proposal, and it deserves
+   room for the plain-language note that explains what it bought. */
+#arxys-calc-root .ax-buffer-row { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--bd); }
+#arxys-calc-root .ax-buffer-control { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+#arxys-calc-root .ax-buffer-control input[type="range"] { flex: 0 1 260px; min-width: 180px; accent-color: var(--ac); cursor: pointer; }
+#arxys-calc-root .ax-buffer-value { font-size: 18px; font-weight: 700; color: var(--ac); min-width: 52px; font-variant-numeric: tabular-nums; }
+#arxys-calc-root .ax-buffer-note { flex: 1 1 260px; font-size: 12px; color: var(--td); line-height: 1.5; }
+
 #arxys-calc-root .ax-addons-row { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-top: 10px; }
 #arxys-calc-root .ax-addons-label { font-size: 12px; color: var(--ts); text-transform: uppercase; letter-spacing: 0.7px; font-weight: 700; display: inline-flex; align-items: center; }
 #arxys-calc-root .ax-addon-chk { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; font-size: 13px; color: var(--ts); }
@@ -318,6 +328,11 @@
    input row (kept out of the flex row so it can't break baseline alignment). */
 #arxys-calc-root .ax-cx-ex { padding: 0 20px 10px; font-size: 12px; color: var(--td); line-height: 1.4; }
 #arxys-calc-root .ax-cx-ex strong { color: var(--ts); font-weight: 700; }
+/* Per-group audio / analytics metadata toggle (ADR 0128). */
+#arxys-calc-root .ax-cx-extras { padding: 0 20px 12px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+/* Retired-codec warning, shown only when a revived quote still carries one. */
+#arxys-calc-root .ax-cx-warn { margin-top: 6px; font-size: 11px; line-height: 1.45; color: #92400e; background: #fffbeb; border: 1px solid #fcd34d; border-radius: 6px; padding: 6px 8px; }
+#arxys-calc-root .ax-cx-warn strong { font-weight: 700; }
 
 /* Camera Results Row */
 #arxys-calc-root .ax-cr { padding: 10px 20px; background: #e9f0fb; border-top: 1px solid #d3ddee; display: flex; gap: 30px; flex-wrap: wrap; border-radius: 0 0 13px 13px; }
@@ -522,6 +537,9 @@
   font-weight: 700;
 }
 #arxys-calc-root .ax-rec-v { font-size: 14px; color: var(--tp); font-weight: 600; }
+/* Secondary line under a coverage figure — states the footage the request was
+   built from and the utilization it was sized at (ADR 0126). */
+#arxys-calc-root .ax-rec-sub { font-size: 11px; color: var(--td); line-height: 1.45; }
 #arxys-calc-root .ax-rec-warn {
   margin: 12px 0;
   padding: 10px 14px 10px 30px;

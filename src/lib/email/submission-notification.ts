@@ -8,10 +8,16 @@ export type SubmissionNotificationInput = {
   projectName: string | null;
   totals: {
     cameras: number;
+    // Event peak, not a time-average (ADR 0125).
     bandwidthMbps: number;
+    // Required decimal RAID-net capacity — buffer and binary charge included.
     storageGb: number;
+    // Recorded footage only; the Milestone-comparable figure.
+    recordedStorageGb: number;
     retentionDays: number;
   };
+  // Max disk utilization the quote was sized at (ADR 0126).
+  utilizationPct: number;
   vms: string | null;
   recommendation: RecommendationResult;
   submissionId: string;
@@ -45,8 +51,9 @@ function buildSalesBody(input: SubmissionNotificationInput): string {
     "",
     "Workload totals",
     `  Cameras:    ${totals.cameras}`,
-    `  Bandwidth:  ${fmtNumber(totals.bandwidthMbps)} Mbit/s`,
-    `  Storage:    ${fmtNumber(totals.storageGb)} GB (incl. 20% overhead)`,
+    `  Bandwidth:  ${fmtNumber(totals.bandwidthMbps)} Mbit/s (peak while recording, not an average)`,
+    `  Footage:    ${fmtNumber(totals.recordedStorageGb)} GB recorded`,
+    `  Storage:    ${fmtNumber(totals.storageGb)} GB to buy (at ${input.utilizationPct}% max disk utilization)`,
     `  Retention:  ${totals.retentionDays} days`,
     `  VMS:        ${vms ?? "(not specified)"}`,
     "",
@@ -63,7 +70,7 @@ function buildSalesBody(input: SubmissionNotificationInput): string {
 }
 
 function buildPartnerBody(input: SubmissionNotificationInput): string {
-  const { partner, projectName, totals, recommendation } = input;
+  const { partner, projectName, totals, recommendation, utilizationPct } = input;
   const { winner } = recommendation;
   const lines = [
     `Hi ${partner.contactName || "there"},`,
@@ -76,8 +83,14 @@ function buildPartnerBody(input: SubmissionNotificationInput): string {
     "Workload totals",
     `  Cameras:    ${totals.cameras}`,
     `  Bandwidth:  ${fmtNumber(totals.bandwidthMbps)} Mbit/s`,
-    `  Storage:    ${fmtNumber(totals.storageGb)} GB (includes 20% overhead)`,
-    `  Retention:  ${totals.retentionDays} days`,
+    `  Footage:    ${fmtNumber(totals.recordedStorageGb)} GB over ${totals.retentionDays} days`,
+    `  Storage:    ${fmtNumber(totals.storageGb)} GB to buy`,
+    "",
+    `Bandwidth is the peak while recording, so size your network for it even if`,
+    `the cameras record on motion. Storage adds the room to keep the array at or`,
+    `under ${utilizationPct}% full, plus the capacity a formatted disk really`,
+    `presents to the VMS — that ${100 - utilizationPct}% is the only safety margin`,
+    `in the estimate.`,
     "",
     "Recommended configuration",
     `  ${winner.units} × ${winner.productGroup}`,

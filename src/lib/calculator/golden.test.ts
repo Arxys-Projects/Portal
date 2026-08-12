@@ -24,7 +24,13 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 
 import { computeGroup, vsrLoad, type GroupInput } from "./compute";
-import { CODECS, COMPLEXITIES, RESOLUTIONS } from "./tables";
+import {
+  CODECS,
+  COMPLEXITIES,
+  RESOLUTIONS,
+  UTILIZATION_DEFAULT_PCT,
+  type CodecValue,
+} from "./tables";
 import { recommend } from "../recommend/algorithm";
 import type { ServerSpec } from "../recommend/types";
 
@@ -50,33 +56,57 @@ const REPRESENTATIVE_SKU = "VX5-V600-320";
 const fmt = (n: number): string => n.toPrecision(7);
 
 // ---------------------------------------------------------------------------
-// Matrix generation — every RESOLUTIONS entry × fps 5/10/12/15/20/30 × all
+// Matrix generation — every RESOLUTIONS entry × fps 5/10/12/15/20/30 × three
 // codecs × all six complexity tiers × motion 0/25/50/75/100 × retention
 // 7/30/60/90 days × recordingPercent 100 (continuous) and 50 (12 h/day).
 // Cameras fixed at 100 per row so storage totals and unit counts are realistic.
-// motion 0 is below the UI's 20% floor — included deliberately to pin the
-// 0.2 idle-floor behavior.
+// motion 0 is below the UI's 20% clamp — included deliberately to pin the
+// no-idle-floor duty-cycle behavior (ADR 0125): it must bill zero storage while
+// still reporting the full event-peak bandwidth.
+//
+// Every row records audio/metadata (ADR 0128 default ON); the toggle is a clean
+// ×1.05 on the stream rate, so a second sweep of it would double the file for a
+// scalar nobody needs to diff.
+//
+// The codec sweep is an EXPLICIT ordered list rather than an iteration over
+// CODECS, for two reasons. First, it insulates the golden from a picker
+// reordering. Second — and this is why the order is h265, h264, h265smart and
+// not the picker's — it keeps slots 0 and 1 identical to the pre-Phase-A golden
+// (h265, h264), so those rows diff as pure coefficient movement. Only slot 2
+// changes identity, from the retired `smart` to the new `h265smart` (ADR 0124),
+// and the `codec` column makes that visible on every line.
 // ---------------------------------------------------------------------------
 const FPS_STEPS = [5, 10, 12, 15, 20, 30] as const;
+const GOLDEN_CODECS: readonly CodecValue[] = ["h265", "h264", "h265smart"];
 const MOTION_STEPS = [0, 25, 50, 75, 100] as const;
 const RETENTION_STEPS = [7, 30, 60, 90] as const;
 const RECORDING_STEPS = [100, 50] as const;
 const MATRIX_CAMERAS = 100;
+
+function codecByValue(value: CodecValue) {
+  const c = CODECS.find((x) => x.value === value);
+  if (!c) throw new Error(`codec "${value}" missing from CODECS`);
+  return c;
+}
 
 function generateMatrixCsv(): string {
   const repSpec = POOL.find((s) => s.sku === REPRESENTATIVE_SKU);
   if (!repSpec) throw new Error(`${REPRESENTATIVE_SKU} missing from frozen pool`);
   const lines: string[] = [
     `# calculator golden matrix — cameras=${MATRIX_CAMERAS} per row; units = recommended`,
-    `# unit count for ${REPRESENTATIVE_SKU} alone (storage floor 1.2 / VSR floor 1.1).`,
+    `# unit count for ${REPRESENTATIVE_SKU} alone (VSR floor 1.1; no storage floor —`,
+    `# storageGb already carries the utilization buffer and the binary charge).`,
+    `# storageGb = required decimal RAID-net at the 90% default Max disk utilization.`,
+    `# bitrateMbps / bandwidthMbps are DECIMAL and at the event peak (duty cycle 1.0).`,
     `# resIdx = index into RESOLUTIONS; cxIdx = index into COMPLEXITIES.`,
-    "resIdx,fps,codec,cxIdx,motion,ret,rec,frameKb,bitrateMbps,bandwidthMbps,rawStorageGb,storageGb,units",
+    "resIdx,fps,codec,cxIdx,motion,ret,rec,frameKb,bitrateMbps,bandwidthMbps,rawStorageGb,recordedStorageGb,storageGb,units",
   ];
   for (let resIdx = 0; resIdx < RESOLUTIONS.length; resIdx++) {
     const resolution = RESOLUTIONS[resIdx];
     const vsr = vsrLoad(MATRIX_CAMERAS, resolution);
     for (const fps of FPS_STEPS) {
-      for (const codec of CODECS) {
+      for (const codecValue of GOLDEN_CODECS) {
+        const codec = codecByValue(codecValue);
         for (let cxIdx = 0; cxIdx < COMPLEXITIES.length; cxIdx++) {
           for (const motion of MOTION_STEPS) {
             for (const ret of RETENTION_STEPS) {
@@ -112,6 +142,7 @@ function generateMatrixCsv(): string {
                     fmt(c.bitrateMbps),
                     fmt(c.bandwidthMbps),
                     fmt(c.rawStorageGb),
+                    fmt(c.recordedStorageGb),
                     fmt(c.storageGb),
                     winner.units,
                   ].join(","),
@@ -136,21 +167,29 @@ type FixtureGroup = {
   name: string;
   cameras: number;
   resolutionIdx: number;
-  codecIdx: number;
+  // Explicit codec VALUE, not an index. The pre-Phase-A fixture stored codecIdx,
+  // which silently changed meaning the moment CODECS gained h265smart — exactly
+  // the failure mode ADR 0124 exists to prevent. A value can only ever mean one
+  // thing.
+  codec: CodecValue;
   complexityIdx: number;
   fps: number;
+  recordingMode: "constant" | "motion";
   recordingPercent: number;
   motionPercent: number;
 };
 
 export const FIXTURE_RETENTION_DAYS = 30;
 export const FIXTURE_GROUPS: readonly FixtureGroup[] = [
-  // Constant recording ⇒ motion pinned to 100 (server behavior).
-  { name: "Perimeter & parking", cameras: 80, resolutionIdx: 14, codecIdx: 0, complexityIdx: 2, fps: 12, recordingPercent: 100, motionPercent: 100 },
-  { name: "Lobby & entries", cameras: 60, resolutionIdx: 11, codecIdx: 0, complexityIdx: 1, fps: 15, recordingPercent: 100, motionPercent: 75 },
-  { name: "Warehouse floor", cameras: 90, resolutionIdx: 15, codecIdx: 2, complexityIdx: 3, fps: 15, recordingPercent: 100, motionPercent: 50 },
-  { name: "Loading dock (12 h/day)", cameras: 40, resolutionIdx: 19, codecIdx: 1, complexityIdx: 4, fps: 10, recordingPercent: 50, motionPercent: 100 },
-  { name: "Back offices", cameras: 30, resolutionIdx: 8, codecIdx: 0, complexityIdx: 0, fps: 15, recordingPercent: 100, motionPercent: 25 },
+  { name: "Perimeter & parking", cameras: 80, resolutionIdx: 14, codec: "h265", complexityIdx: 2, fps: 12, recordingMode: "constant", recordingPercent: 100, motionPercent: 100 },
+  { name: "Lobby & entries", cameras: 60, resolutionIdx: 11, codec: "h265", complexityIdx: 1, fps: 15, recordingMode: "motion", recordingPercent: 100, motionPercent: 75 },
+  // The smart-codec group. It was quoted on the retired H.264-Smart key, which
+  // sized 20% ABOVE plain H.265; under ADR 0124 it becomes H.265+Smart, 20%
+  // below. This single group is what the audit's §C3 fixture impact was measured
+  // on, and it is where the largest movement in the golden diff lands.
+  { name: "Warehouse floor", cameras: 90, resolutionIdx: 15, codec: "h265smart", complexityIdx: 3, fps: 15, recordingMode: "motion", recordingPercent: 100, motionPercent: 50 },
+  { name: "Loading dock (12 h/day)", cameras: 40, resolutionIdx: 19, codec: "h264", complexityIdx: 4, fps: 10, recordingMode: "constant", recordingPercent: 50, motionPercent: 100 },
+  { name: "Back offices", cameras: 30, resolutionIdx: 8, codec: "h265", complexityIdx: 0, fps: 15, recordingMode: "motion", recordingPercent: 100, motionPercent: 25 },
 ];
 
 function generateFixtureJson(): string {
@@ -158,21 +197,23 @@ function generateFixtureJson(): string {
     const gi: GroupInput = {
       cameras: g.cameras,
       resolution: RESOLUTIONS[g.resolutionIdx],
-      codec: CODECS[g.codecIdx],
+      codec: codecByValue(g.codec),
       complexity: COMPLEXITIES[g.complexityIdx],
       fps: g.fps,
+      recordingMode: g.recordingMode,
       recordingPercent: g.recordingPercent,
       motionPercent: g.motionPercent,
     };
     const computed = computeGroup(gi, FIXTURE_RETENTION_DAYS);
     return {
-      input: { ...g, resolutionLabel: RESOLUTIONS[g.resolutionIdx].label, codec: CODECS[g.codecIdx].value, complexityLabel: COMPLEXITIES[g.complexityIdx].label },
+      input: { ...g, resolutionLabel: RESOLUTIONS[g.resolutionIdx].label, complexityLabel: COMPLEXITIES[g.complexityIdx].label },
       vsr: Number(fmt(vsrLoad(g.cameras, RESOLUTIONS[g.resolutionIdx]))),
       computed: {
         frameKb: Number(fmt(computed.frameKb)),
         bitrateMbps: Number(fmt(computed.bitrateMbps)),
         bandwidthMbps: Number(fmt(computed.bandwidthMbps)),
         rawStorageGb: Number(fmt(computed.rawStorageGb)),
+        recordedStorageGb: Number(fmt(computed.recordedStorageGb)),
         storageGb: Number(fmt(computed.storageGb)),
       },
     };
@@ -183,11 +224,12 @@ function generateFixtureJson(): string {
       acc.cameras += g.input.cameras;
       acc.bandwidthMbps += g.computed.bandwidthMbps;
       acc.rawStorageGb += g.computed.rawStorageGb;
+      acc.recordedStorageGb += g.computed.recordedStorageGb;
       acc.storageGb += g.computed.storageGb;
       acc.vsr += g.vsr;
       return acc;
     },
-    { cameras: 0, bandwidthMbps: 0, rawStorageGb: 0, storageGb: 0, vsr: 0 },
+    { cameras: 0, bandwidthMbps: 0, rawStorageGb: 0, recordedStorageGb: 0, storageGb: 0, vsr: 0 },
   );
 
   const rec = recommend(
@@ -200,16 +242,24 @@ function generateFixtureJson(): string {
       {
         note:
           "Five-scene / 300-camera mixed project — canonical audit fixture. " +
-          `Retention ${FIXTURE_RETENTION_DAYS} days. Recommendation sized against the frozen 2026-08-12 pool.`,
+          `Retention ${FIXTURE_RETENTION_DAYS} days. Recommendation sized against the frozen 2026-08-12 pool. ` +
+          "storageGb is required decimal RAID-net at the 90% default Max disk utilization; " +
+          "recordedStorageGb is the Milestone-comparable recorded-data figure; " +
+          "bandwidth is the event peak (duty cycle 1.0).",
         retentionDays: FIXTURE_RETENTION_DAYS,
+        utilizationPct: UTILIZATION_DEFAULT_PCT,
         groups,
         totals: {
           cameras: totals.cameras,
           vsr: Number(fmt(totals.vsr)),
           bandwidthMbps: Number(fmt(totals.bandwidthMbps)),
           rawStorageGb: Number(fmt(totals.rawStorageGb)),
+          recordedStorageGb: Number(fmt(totals.recordedStorageGb)),
           storageGb: Number(fmt(totals.storageGb)),
           storageTb: Number(fmt(totals.storageGb / 1000)),
+          // The headline the plan tracks: required drive nameplate over modeled
+          // raw video, before ceil/SKU granularity. ×1.499 pre-Phase-A → ×1.306.
+          multiplierOverRawVideo: Number(fmt(totals.storageGb / totals.rawStorageGb)),
         },
         recommendation: {
           winner: rec.winner,

@@ -5,6 +5,160 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 ---
 
 
+## 2026-08-12 — Calculator math Phase A: D1–D8 built, golden diff approved
+
+### Work done
+
+Phase A of [the Phase 2 plan](./calculator-math-phase-2-plan.md): decisions D1–D8 plus D5's
+gate-test update. **D9 (per-group retention) and D10 (VSR basis) are deliberately NOT in this
+change** — landing them together would make the golden diff unattributable.
+
+`npm test` green, `npm run build` clean. **Andy approved the golden diff 2026-08-12** after the
+row-by-row reconciliation below. The three schema columns were applied by hand that day and
+verified live (all NULL on existing rows, which is the intended "version 1" reading).
+
+- **The engine** ([`compute.ts`](../src/lib/calculator/compute.ts)) — full re-anchor to Milestone's
+  **decimal** 1,966 kbit/s, derived from the anchor constants in code rather than hardcoded, so the
+  reference point reproduces at 0.00%. Anchor-preserving fps curve `15 × (fps/15)^0.90`. Motion
+  became a duty cycle with no idle floor; `applyMotionAdjustment` is gone. Bandwidth is now the
+  event peak at duty cycle 1.0 while storage keeps the duty cycle — the two deliberately differ, and
+  every surface that prints the figure says so beside it. `bitrateMbps` is decimal and equals
+  `bandwidthMbps / cameras` exactly, which fixes §C4's display bug.
+- **One buffer.** `STORAGE_OVERHEAD` and `STORAGE_FLOOR` both deleted for a single per-project
+  **Max disk utilization** cap, 60–90%, default 90%, applied as `÷ 0.90` (a cap, not an additive
+  ×1.10). `÷ 0.8931` charged separately as physics. The whole storage-side margin is now one flat
+  **×1.306** for every deal shape — visible in one number instead of reverse-engineered out of three
+  files.
+- **Codecs.** `h265smart` added at `h265 × 0.80`; `smart` retired, not redefined — it is persisted
+  in `groups_payload` and redefining it would have made every already-banked row read as a codec it
+  was never quoted on. `INPUT_STATE_VERSION` → 2 with a v1 codec-index remap.
+- **Audio/metadata** counted via a per-group toggle, +5%, default ON.
+- **Propagated to all twelve surfaces** named in the plan, plus the calculator's copy rewritten
+  throughout: the summary card, per-group readouts, results table, footnote and FAQ now distinguish
+  *Footage* (Milestone-comparable) from *Storage to buy*, and state that bandwidth is a peak.
+- **Migration is stop-and-flag** — three additive nullable columns (`calc_version`,
+  `max_disk_utilization_pct`, `recorded_storage_tb`) with `NOT VALID` guards, plus a rollback script
+  and [apply note](./apply-notes/0123-calculator-math-phase-a.md). `submissions.storage_tb` changes
+  meaning, which is what `calc_version` records; existing rows are version 1 and the buffer column
+  is deliberately **not** backfilled, because no single value reproduces the old ×1.44.
+
+**Verification.** Beyond `npm test` / `tsc` / `npm run build`, two read-only probes:
+
+- **Both exported Milestone proposals reproduce.** The five anchor tiers land within 0.034%, the
+  10/12/15/18 fps sweep within 0.47% on two tiers, and the 1609/2774 H.265/H.264 figures at 12 fps
+  within 0.05% — none of which the coefficients were fitted to. Proposal 1 (4 cameras, 1×4 TB)
+  reproduces at 2.4684 TB vs Milestone's 2.4637 (+0.19%) and 69.10% vs 68.97%. Proposal 2's
+  available figures land within 0.006%.
+- **Every one of the 112,320 golden matrix rows was reconciled** against the movement each decision
+  predicts, storage and bandwidth independently. **Zero unexplained rows**, all within 0.02%. Row
+  count and the h265/h264 slot positions are unchanged, so those slots diff as pure coefficient
+  movement.
+
+Fixture: **546.42 TB → 491.82 TB**, `multiplierOverRawVideo` **1.306311** — exactly the plan's
+target. Recommendation drops one SKU tier, **$117,054 → $102,398 (−$14,656)**, which is precisely
+the figure audit §C3 predicted for this fixture.
+
+### Detours & fixes
+
+- **Milestone's implied duty cycle came out at exactly 0.7000.** Reversing proposal 2 from its own
+  published per-server bandwidth (271.58 Mbps × 4 servers) against its printed 246.373 TB gives a
+  duty cycle of 0.7000 to four decimals. That single number independently confirms *both* D2 (motion
+  is recorded time, no idle floor) and D7 (the quoted Mbps is the event peak) — if either were
+  wrong the fraction would not have come out clean. Stronger evidence than the coefficient checks.
+- **The warehouse fixture group moved −41.9%, not the plan's "roughly −35%".** Reconciled rather
+  than accepted: the gap is entirely the baseline. The plan's −20% describes a group switching from
+  plain H.265 to H.265+Smart; the fixture's warehouse group was quoted on the **retired
+  H.264-Smart** key, which sat 20% *above* plain H.265, so it moves −36% not −20%. Every component
+  checks out individually (codec ×0.6405, duty ×0.8333, stack ×1.0886). A group actually moving
+  h265 → h265smart at motion 50 lands at −30.3%.
+- **`codecIdx` is a persisted index, and inserting `h265smart` shifted it.** Rehydration already
+  preferred the banked codec *value*, so banked rows were safe — but the raw-index fallback path
+  would have read v1 index 1 (h264) as h265smart and index 2 (smart) as h264. Fixed with an
+  `INPUT_STATE_VERSION` bump and an explicit remap, with a test that walks every index in both
+  version spaces. The golden fixture had the same latent bug: it stored `codecIdx`, so it now stores
+  codec **values**.
+- **Audio/metadata applied to the stream rate, not to storage alone.** The plan's stack diagram
+  shows it in the storage chain, but that diagram does not depict bandwidth at all (D7 handles it
+  separately). Audio and metadata ride the same network as the video, and applying the uplift to
+  storage only would have desynced two outputs of the same function by 5% — exactly the class of
+  defect audit §C4 exists to document. **Flagged for Andy at review.**
+- **Three recommender tests encoded the deleted ×1.2 floor** and had to be recomputed rather than
+  patched — two winners genuinely change (V600→V500 at 400 TB, V800→V700 at 800 TB) because the
+  floor had been pushing the cheaper box up a unit. The ADR 0068 regression test was rewritten to
+  defend what it was actually for (never ship under the requirement) instead of re-asserting a ×1.2
+  that would restore the double count, and a new test pins `units == ceil(required / per-unit)`
+  across every SKU so the floor cannot creep back in.
+- **Found and deferred**: Pipedrive's "Recording New" field reads `recordingPercent` (operation
+  hours) instead of the motion setting, so a 12 h/day continuous deal is labelled "On Motion" in the
+  CRM. Display-only, never touches sizing. Left out to keep the diff attributable to D1–D8;
+  spawned as its own task.
+
+### Decisions captured
+
+- [`0123-bitrate-reanchor-and-sublinear-fps.md`](./decisions/0123-bitrate-reanchor-and-sublinear-fps.md)
+- [`0124-h265-smart-codec-key.md`](./decisions/0124-h265-smart-codec-key.md)
+- [`0125-motion-duty-cycle-and-event-peak-bandwidth.md`](./decisions/0125-motion-duty-cycle-and-event-peak-bandwidth.md)
+- [`0126-one-buffer-max-disk-utilization.md`](./decisions/0126-one-buffer-max-disk-utilization.md)
+- [`0127-charge-decimal-to-binary-conversion.md`](./decisions/0127-charge-decimal-to-binary-conversion.md)
+- [`0128-audio-metadata-counted.md`](./decisions/0128-audio-metadata-counted.md)
+
+
+## 2026-08-12 — Calculator math: all ten Phase 1 decisions answered, Phase 2 plan banked
+
+### Work done
+
+Andy worked through the audit's §7 decision list in one session. All ten answered; the governing
+principle he set is **one deliberate buffer, accurate math everywhere else** — the audit had found
+four overlapping margins (a +4.07% bitrate bias, ×1.2 "database overhead", ×1.2 hardware floor, an
+unsourced 0.2 motion floor), none stated and none ever multiplied together.
+
+- **Plan banked**: [`docs/calculator-math-phase-2-plan.md`](./calculator-math-phase-2-plan.md) — the
+  ten decisions with derived coefficients, three-phase sequencing, the twelve propagation surfaces,
+  and Milestone's own exported proposals as the external acceptance test. **No code changed yet.**
+- Headline decisions: H.264-Smart retired for a new `h265smart` key at a conservative 20% saving;
+  motion becomes a pure duty cycle with no idle floor (the codec carries the damping, so no second
+  knob); `STORAGE_OVERHEAD` and `STORAGE_FLOOR` both deleted for **one per-project Max-disk-utilization
+  slider, 60–90%, default 90%**; the decimal→binary conversion is charged in sizing via Milestone's
+  `× 0.8931`; full re-anchor to 1,966 decimal kbit/s; fps exponent 0.90 anchor-preserving; bandwidth
+  quoted at event peak; audio/metadata counted via a default-on per-group toggle; retention moves
+  per camera group.
+- **§7.9 answered without a bench test**: the VSR rating profile was already published in-repo as
+  [`LEDGER_VSR_PARAMETERS`](../src/lib/datasheet/copy.ts) (from the datasheet handoff). Andy noted the
+  ratings predate the ADR 0049/0050 retier, so the labels are unreliable and the bitrate is the
+  evidence: ~3.2 Mbit/s is +8.5% above re-anchored tier 2 and −27.6% below tier 3, so **tier 2
+  (Medium-Low) is the rating basis**. This surfaced a live conflict — Quick Calc's pinned profile
+  (ADR 0082) is that same profile at complexity **2.25**, so the default sizing profile bills streams
+  38% heavier than the published ratings were established at, while `vsrLoad` varies with resolution
+  only. Still open; deliberately not resolved with an invented derate.
+- **4MP stays 2560×1440.** MSD's bucket has moved to 2592×1520, but the published VSR ratings are
+  defined at 2560×1440 — adopting MSD's bucket would desync the camera floor's rating basis from the
+  storage math. Closes the audit's §8 "which 4MP" caveat.
+
+### Detours & fixes
+
+- **The audit's Genetec figure was wrong, and Andy had first-party evidence.** §C5 stated "Genetec's
+  own calculator applies zero overhead," sourced from the Stratocast NAS-volume calculator techdocs
+  page — a **different product** from the Security Center design tool partners quote from, and a page
+  only reachable through search-index excerpts (the audit's appendix had flagged that weakness).
+  Multiple partner-supplied Genetec proposals show **10% storage buffer, adjustable 10–30%**.
+  Corrected in §C5, §8 and the appendix. This *strengthened* the finding rather than weakening it:
+  both reference tools now default to a 10% buffer (Milestone 90% Max Disk Utilization on
+  auto-select, Genetec 10%), which is what moved the slider default from 20% to 10%.
+- **An initial recommendation to ship a 20% default first was withdrawn** once the Genetec evidence
+  landed. The reasoning that replaced it: both reference tools default to 10%; matching makes quotes
+  directly comparable against the proposals partners set beside them (the stated goal of the buffer
+  work); and putting the default *at the floor* of the 10–40% range makes the slider one-directional,
+  so every adjustment a user can make adds margin rather than removing it. The compounding concern
+  that motivated the original recommendation is handled instead by reviewing the golden diff on real
+  deal shapes before release — a motion-triggered all-smart-codec deal compounds to roughly −35%.
+
+### Decisions captured
+
+None yet — ADRs are written with each implementation phase, so the numbers are allocated against a
+current checkout rather than reserved now and collided with by a parallel session. The plan document
+is the authority in the meantime, and names ADR 0049 / 0050 / 0068 / 0082 as the ones to supersede.
+
+
 ## 2026-08-12 — Calculator math audit, Phase 1 (findings + golden regression harness)
 
 ### Work done
@@ -14,6 +168,7 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 - Headline findings: the Milestone anchor is real but was matched in binary Kbit against Milestone's decimal figure (engine sits +4.07% above the source, only +1.63% of it documented); the margin stack is ×1.581 raw-video→delivered-usable on the fixture (×1.897 to drive nameplate); no VMS documents anything near the 20% STORAGE_OVERHEAD; there is no way to represent H.265+smart compression (the costliest gap, ~−$14.7k on the fixture); fps linearity and unmodeled audio/metadata push the other way; the corrections roughly cancel on the fixture but move specific deal types by five figures.
 - Time-sensitive: the Milestone tool the anchor was audited against was replaced 2026-07-06 and is decommissioned 2026-10-01 — after that the 1966-series gate numbers become unfalsifiable (audit §7.6).
 - **Same-day follow-up — §7.6 actioned live** (audit §8 addendum): re-audited the replacement Milestone Solution Designer through Andy's authenticated Chrome session (Andy driving the UI, the audit reading the design's server-rendered state + client code from a second tab). All five anchor values re-confirmed exactly (1966/2950/4424/6637/9832); decimal Kbit confirmed in live conversion code; Milestone's own fps scaling measured at exponent ≈0.90 over a 10/12/15/18 fps sweep (not linear); H.264:H.265 ratio 1.724 vs engine's inherited 1.714; motion confirmed as recording duty-cycle (data rate invariant to motion %); capacity margin is an explicit Max. Disk Utilization slider defaulting 70–90%, applied ON TOP of net-usable (RAID + formatting + decimal→binary conversion are charged separately in "available") — total Milestone storage margin ×1.24–×1.60 over nameplate, with Arxys's stacked ×1.44 sitting between the two defaults. (Andy corrected an initial mis-read that folded the buffer into "available"; the proposal's own 68.97% bar proves the buffer is separate.) A second 400-camera proposal on 4× 8-bay Husky HE1000R then pinned the full capacity model: available = RAID-net decimal × 0.8931 (binary conversion × proportional ~1.81% allowance) on both configs tested, with 2-of-8 drives charged to parity — the same arithmetic as usableCapacityTb(128, 8, "6"). New caveat: MSD's "4MP" bucket is now 2592×1520, not 2560×1440. Finally, an exported MSD proposal PDF let the storage formula be reversed exactly (2.46 TB / 68.97% both reproduce to five digits): zero overhead added to storage, motion billed as a pure duty cycle with no idle floor, decimal units throughout, and proposal bandwidth quoted at full event rate rather than motion-weighted average. §7.6 fully closed.
+- **Correction to §C5's Genetec figure (same day, from Andy).** The audit stated "Genetec's own calculator applies zero overhead," sourced from the Stratocast NAS-volume calculator techdocs page — a **different product** from the Security Center design tool partners actually quote from, and a page only reachable through search-index excerpts. Multiple partner-supplied Genetec proposals show **10% storage buffer, partner-adjustable 10–30%**. Corrected in §C5, §8 and the appendix. This matters because it changes the evidence under open decision §7.5: both reference vendors now default to a 10% buffer (Milestone 90% Max Disk Utilization on auto-select; Genetec 10%), rather than one at 5–10% and one at zero.
 
 ### Detours & fixes
 

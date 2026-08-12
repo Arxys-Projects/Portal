@@ -42,9 +42,10 @@ describe("recommend (storage-first, ADR 0068)", () => {
 
   it("medium workload — 1x VX5-V400-160 beats 2x V200 on total cost", () => {
     // 150 cams (VSR 150), 100 TB usable required.
-    // storage floor 100×1.2=120; VSR floor uses ×1.1.
-    // V200: storage ceil(120/60)=2; vsr ceil(165/100)=2 -> 2 * $16640 = $33,280
-    // V400: storage ceil(120/120)=1; vsr ceil(165/200)=1 -> 1 * $26910 = $26,910 <- winner
+    // No storage multiplier (ADR 0126 deleted STORAGE_FLOOR — totalStorageGb
+    // already carries the buffer and the binary charge); VSR floor ×1.1.
+    // V200: storage ceil(100/60)=2; vsr ceil(165/100)=2 -> 2 * $16640 = $33,280
+    // V400: storage ceil(100/120)=1; vsr ceil(165/200)=1 -> 1 * $26910 = $26,910 <- winner
     const r = recommend({ totalCameras: 150, totalStorageGb: tb(100), totalVsr: 150 }, SPECS);
     assert.equal(r.winner.sku, "VX5-V400-160");
     assert.equal(r.winner.units, 1);
@@ -52,23 +53,29 @@ describe("recommend (storage-first, ADR 0068)", () => {
     assert.equal(r.warnings.length, 0);
   });
 
-  it("large workload — VX5-V600-320 cheapest at 2 units (usable-driven)", () => {
-    // 500 cams (VSR 500), 400 TB usable. storage floor 480; VSR floor ×1.1.
-    // V200: storage ceil(480/60)=8;   vsr ceil(550/100)=6  -> 8 * $16640 = $133,120
-    // V400: storage ceil(480/120)=4;  vsr ceil(550/200)=3  -> 4 * $26910 = $107,640
-    // V500: storage ceil(480/200)=3;  vsr ceil(550/275)=2  -> 3 * $35926 = $107,778
-    // V600: storage ceil(480/240)=2;  vsr ceil(550/275)=2  -> 2 * $41659 = $83,318 <- winner
-    // V700: storage ceil(480/400)=2;  vsr ceil(550/325)=2  -> 2 * $54512 = $109,024
-    // V800: storage ceil(480/640)=1;  vsr ceil(550/325)=2  -> 2 * $74048 = $148,096
+  it("large workload — VX5-V500-240 cheapest at 2 units (usable-driven)", () => {
+    // 500 cams (VSR 500), 400 TB usable. No storage multiplier; VSR floor ×1.1.
+    // V200: storage ceil(400/60)=7;   vsr ceil(550/100)=6  -> 7 * $16640 = $116,480
+    // V400: storage ceil(400/120)=4;  vsr ceil(550/200)=3  -> 4 * $26910 = $107,640
+    // V500: storage ceil(400/200)=2;  vsr ceil(550/275)=2  -> 2 * $35926 = $71,852 <- winner
+    // V600: storage ceil(400/240)=2;  vsr ceil(550/275)=2  -> 2 * $41659 = $83,318
+    // V700: storage ceil(400/400)=1;  vsr ceil(550/325)=2  -> 2 * $54512 = $109,024
+    // V800: storage ceil(400/640)=1;  vsr ceil(550/325)=2  -> 2 * $74048 = $148,096
+    //
+    // Pre-ADR-0126 this was V600 at $83,318: the ×1.2 floor pushed the V500's
+    // storage requirement from 2 units to 3, which cost more than the V600's 2.
+    // Removing the floor is exactly what lets the cheaper box win here.
     const r = recommend({ totalCameras: 500, totalStorageGb: tb(400), totalVsr: 500 }, SPECS);
-    assert.equal(r.winner.sku, "VX5-V600-320");
+    assert.equal(r.winner.sku, "VX5-V500-240");
     assert.equal(r.winner.units, 2);
-    assert.equal(r.winner.totalCostUsd, 83318);
+    assert.equal(r.winner.totalCostUsd, 71852);
     assert.equal(r.winner.driverDimension, "storage");
+    // The delivered capacity still clears the requirement outright.
+    assert.ok(r.winner.coveredStorageTb >= 400);
     // VSR 500 > 325 (largest single-unit VSR capacity) -> exceeds-largest fires
     // alongside the units>1 warning.
     assert.equal(r.warnings.length, 2);
-    assert.match(r.warnings[0], /stacks 2 units of VX5-V600-320/);
+    assert.match(r.warnings[0], /stacks 2 units of VX5-V500-240/);
     assert.ok(r.warnings.some((w) => /exceeds the largest single VideoX SKU/.test(w)));
   });
 
@@ -89,11 +96,11 @@ describe("recommend (storage-first, ADR 0068)", () => {
   });
 
   it("storage-pathological — 1 cam, 1000 TB drives unit count by storage", () => {
-    // storage floor 1000×1.2=1200, on net-usable per unit.
-    // V200: ceil(1200/60)=20 * $16640 = $332,800
-    // V500: ceil(1200/200)=6 * $35926 = $215,556
-    // V700: ceil(1200/400)=3 * $54512 = $163,536
-    // V800: ceil(1200/640)=2 * $74048 = $148,096  <- winner
+    // 1000 TB required, on net-usable per unit. No storage multiplier.
+    // V200: ceil(1000/60)=17 * $16640 = $282,880
+    // V500: ceil(1000/200)=5 * $35926 = $179,630
+    // V700: ceil(1000/400)=3 * $54512 = $163,536
+    // V800: ceil(1000/640)=2 * $74048 = $148,096  <- winner
     const r = recommend({ totalCameras: 1, totalStorageGb: tb(1000), totalVsr: 1 }, SPECS);
     assert.equal(r.winner.sku, "VX5-V800-720");
     assert.equal(r.winner.units, 2);
@@ -103,7 +110,15 @@ describe("recommend (storage-first, ADR 0068)", () => {
   });
 
   // ── ADR 0068 regression: the real deal that exposed the bug ───────────────
-  it("observed failing case — 1,764.3 TB net-usable + 332 cameras is sized with ≥20% headroom", () => {
+  //
+  // The bug this pins is that the old engine shipped 4×V700 = 1600 TB usable
+  // against a 1764.3 TB requirement — a system at 110% of its own capacity.
+  // ADR 0068 fixed it with a ×1.2 hard floor; ADR 0126 deleted that floor,
+  // because `totalStorageGb` now arrives with the Max disk utilization buffer
+  // and the decimal→binary charge already in it. The requirement itself must
+  // still be met outright — that is what this test defends. It must NOT
+  // re-assert a ×1.2 on top, which would restore the double count.
+  it("observed failing case — 1,764.3 TB required is met outright, never under-shipped", () => {
     const neededUsableTb = 1764.3;
     const totalVsr = 332; // resolution-normalized; nominal-4MP streams
     const r = recommend(
@@ -113,28 +128,50 @@ describe("recommend (storage-first, ADR 0068)", () => {
     const w = r.winner;
     const spec = specBySku(w.sku);
 
-    // Storage HARD floor (1.2 net-usable) holds — the old engine returned
-    // 4×V700 = 1600 usable < 1764.3 (110% over). The fix must clear 1.2×.
+    // The requirement is met outright — the original defect was shipping under it.
     assert.ok(
-      w.units * spec.usableStorageTb >= neededUsableTb * 1.2,
-      `chosen ${w.units}×${w.sku} usable ${w.units * spec.usableStorageTb} must be >= ${neededUsableTb * 1.2}`,
+      w.units * spec.usableStorageTb >= neededUsableTb,
+      `chosen ${w.units}×${w.sku} usable ${w.units * spec.usableStorageTb} must be >= ${neededUsableTb}`,
     );
     // VSR SOFT floor (1.1) holds.
     assert.ok(totalVsr <= (spec.maxCameras * w.units) / 1.1);
-    // Honest utilization — comfortably under capacity, not the old 110%.
+    // Never over 100% of delivered capacity — the 110% failure cannot recur.
     const storageUtil = (neededUsableTb / (w.units * spec.usableStorageTb)) * 100;
-    assert.ok(storageUtil <= 83, `utilization ${storageUtil}% must be <= ~83%`);
+    assert.ok(storageUtil <= 100, `utilization ${storageUtil}% must be <= 100%`);
     // coveredStorageTb is net-usable, not raw nameplate.
     assert.equal(w.coveredStorageTb, w.units * spec.usableStorageTb);
     // Storage is the binding constraint and selects the larger-storage V800.
     assert.equal(w.sku, "VX5-V800-720");
-    assert.equal(w.units, 4);
+    assert.equal(w.units, 3);
+  });
+
+  // The ×1.2 floor is gone and must not creep back in — not as a constant, not
+  // as a rounding-up, not as a "safety" ceil. This pins the exact contract:
+  // units are ceil(required / per-unit) and nothing else (ADR 0126).
+  it("applies no storage multiplier — units are exactly ceil(required / per-unit)", () => {
+    for (const needed of [1, 59, 60, 61, 200, 400, 401, 1000]) {
+      const r = recommend({ totalCameras: 1, totalStorageGb: tb(needed), totalVsr: 1 }, SPECS);
+      for (const c of [r.winner, ...r.alternatives]) {
+        const spec = specBySku(c.sku);
+        const expected = Math.max(1, Math.ceil(needed / spec.usableStorageTb));
+        // VSR is 1 here, so storage alone decides the unit count.
+        assert.equal(
+          c.units,
+          expected,
+          `${c.sku} at ${needed} TB: expected ${expected} units, got ${c.units}`,
+        );
+      }
+    }
   });
 
   it("storage-first model change — high-storage / low-camera deal picks a larger-storage SKU, not many small units", () => {
     // 2 cameras, 800 TB usable. Cameras are a non-factor; storage alone decides.
+    // V500: ceil(800/200)=4 -> $143,704   V700: ceil(800/400)=2 -> $109,024 <- winner
+    // V800: ceil(800/640)=2 -> $148,096
+    // Pre-ADR-0126 the ×1.2 floor made this 960 TB, which pushed the V700 to 3
+    // units and handed the win to the V800 at 2.
     const r = recommend({ totalCameras: 2, totalStorageGb: tb(800), totalVsr: 2 }, SPECS);
-    assert.equal(r.winner.productGroup, "V800");
+    assert.equal(r.winner.productGroup, "V700");
     assert.equal(r.winner.driverDimension, "storage");
     // The cheapest small-SKU alternative needs far more boxes for the same job.
     const v200 = r.alternatives.find((a) => a.productGroup === "V200")!;

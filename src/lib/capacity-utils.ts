@@ -55,6 +55,44 @@ export function usableCapacityTb(
   return (rawTb * (n - parity)) / n;
 }
 
+// ---------------------------------------------------------------------------
+// Decimal → VMS-visible "available" capacity (ADR 0127, D4)
+// ---------------------------------------------------------------------------
+//
+// The engine is decimal end-to-end (ADR 0092) and drives are sold decimal, but
+// a VMS sees binary capacity on a formatted filesystem. Until now nothing
+// charged that loss, so a quoted 720 TB delivered ~643 TB of VMS-visible space
+// and partners closed the gap by hand.
+//
+// Milestone's exact figure, reversed from two of its own exported proposals and
+// confirmed on both (audit §8):
+//
+//   available = RAID_net_decimal × 0.8931
+//
+// which decomposes as 0.909495 (decimal TB → binary TiB, 10^12 / 2^40) ×
+// 0.9819 (formatting / filesystem reserve allowance, ~1.81%).
+//
+// Checks against the two proposals:
+//   1 × 4 TB   → 4      × 0.8931 = 3.572  TB   (Milestone printed 3.57)
+//   8 × 16 TB  → 96     × 0.8931 = 85.738 TB   (Milestone printed 85.73)
+//
+// This is PHYSICS, not buffer. It is deliberately kept separate from the Max
+// disk utilization slider (ADR 0126) in both code and copy — one is what the
+// hardware actually gives you, the other is how full you choose to run it.
+export const AVAILABLE_CAPACITY_FACTOR = 0.8931;
+
+/**
+ * VMS-visible available capacity (TB) for a given decimal RAID-net figure.
+ *
+ * This is the number to set beside a Milestone proposal's "X TB of Y available"
+ * line. `usableCapacityTb()` remains the decimal RAID-net figure the Price Book
+ * publishes and the recommender sizes against — this is one step further down.
+ */
+export function availableCapacityTb(netUsableDecimalTb: number | null): number | null {
+  if (netUsableDecimalTb == null) return null;
+  return netUsableDecimalTb * AVAILABLE_CAPACITY_FACTOR;
+}
+
 // The product_specs slice needed to state delivered capacity.
 export type CoveredCapacitySpec = {
   max_cameras: number | null;

@@ -10,6 +10,7 @@ import {
   buttonClasses,
 } from "@/app/(app)/_components/ui";
 import { PIPEDRIVE_WINDOW_TARGET } from "@/lib/pipedrive/url";
+import { codecLabel } from "@/lib/calculator/tables";
 
 export type SubmissionDetailRow = {
   id: string;
@@ -21,7 +22,14 @@ export type SubmissionDetailRow = {
   vms: string | null;
   retention_days: number;
   bandwidth_mbps: number;
+  // Required decimal RAID-net capacity on calc_version 2 rows; the old
+  // raw-video × 1.2 figure on version 1. Not comparable across the two.
   storage_tb: number;
+  // Phase A (ADRs 0123–0128). null on version-1 rows, which had no
+  // user-visible buffer and never separated footage from capacity-to-buy.
+  recorded_storage_tb: number | null;
+  calc_version: number;
+  max_disk_utilization_pct: number | null;
   // Phase 2 Step 3+4: TEXT after the SKU-PK migration. Holds a SKU
   // (`VX5-V800-720`) for new submissions, a UUID-shaped string for
   // pre-migration legacy rows, or null.
@@ -277,14 +285,36 @@ export function SubmissionDetail({
           <KvRow label="Retention (days)">{submission.retention_days}</KvRow>
           <KvRow label="Primary resolution">{submission.resolution_code}</KvRow>
           <KvRow label="Primary codec / complexity">
-            {submission.codec} ·{" "}
+            {codecLabel(submission.codec)} ·{" "}
             {groups[0]?.complexityLabel ??
               fallbackComplexityLabel(groups[0]?.complexity ?? submission.complexity)}
           </KvRow>
           <KvRow label="Totals">
             {formatNumber(submission.cameras_count)} cameras ·{" "}
-            {formatNumber(submission.bandwidth_mbps, 2)} Mbit/s ·{" "}
-            {formatNumber(submission.storage_tb, 2)} TB
+            {formatNumber(submission.bandwidth_mbps, 2)} Mbit/s peak ·{" "}
+            {formatNumber(submission.storage_tb, 2)} TB to buy
+          </KvRow>
+          {/* ADR 0126 — state the sizing basis in words rather than leaving the
+              reader to assume one. A version-1 row predates the buffer, so it
+              says that instead of showing a cap it was never sized against. */}
+          <KvRow label="Storage sizing">
+            {submission.calc_version >= 2 && submission.recorded_storage_tb != null ? (
+              <>
+                {formatNumber(submission.recorded_storage_tb, 2)} TB of recorded footage,
+                sized to run at no more than{" "}
+                {submission.max_disk_utilization_pct ?? 90}% full — then adjusted for the
+                capacity a formatted disk presents to the VMS. That{" "}
+                {100 - (submission.max_disk_utilization_pct ?? 90)}% is the only safety
+                margin in this estimate.
+              </>
+            ) : (
+              <>
+                Sized by the pre-2026-08 model, which applied a fixed internal overhead
+                rather than a stated disk-utilization cap. Recorded-footage and
+                utilization figures were not captured for this estimate, and its storage
+                figure is not directly comparable to one produced after that change.
+              </>
+            )}
           </KvRow>
         </KvTable>
       </section>
@@ -303,8 +333,8 @@ export function SubmissionDetail({
                 <TH numeric>FPS</TH>
                 <TH numeric>Rec Hrs</TH>
                 <TH numeric>Motion %</TH>
-                <TH numeric>Mbit/s</TH>
-                <TH numeric>GB</TH>
+                <TH numeric>Mbit/s peak</TH>
+                <TH numeric>GB to buy</TH>
               </TR>
             </THead>
             <TBody>
@@ -313,7 +343,10 @@ export function SubmissionDetail({
                   <TD>{g.name || `Group ${i + 1}`}</TD>
                   <TD numeric>{formatNumber(g.cameras)}</TD>
                   <TD>{g.resolutionLabel ?? "—"}</TD>
-                  <TD>{g.codec ?? "—"}</TD>
+                  {/* codecLabel resolves retired keys too, so a quote taken on
+                      H.264-Smart still reads as what it was quoted on rather
+                      than as a bare "smart" (ADR 0124). */}
+                  <TD>{codecLabel(g.codec)}</TD>
                   <TD>{g.complexityLabel ?? fallbackComplexityLabel(g.complexity)}</TD>
                   <TD numeric>{formatNumber(g.fps)}</TD>
                   <TD numeric>{Math.round(((g.recordingPercent ?? 0) / 100) * 24)}</TD>

@@ -19,7 +19,10 @@ export type SubmissionPdfGroup = {
   recordingMode: "constant" | "motion";
   hoursPerDay: number;
   motionPercent: number;
+  // Event-peak network load for the group, decimal Mbit/s (ADR 0125).
   bandwidthMbps: number;
+  // Required decimal RAID-net capacity for the group. On a calc_version 1 row
+  // this is the old raw-video × 1.2 figure — banked, never recomputed.
   storageGb: number;
 };
 
@@ -42,6 +45,19 @@ export type SubmissionPdfInput = {
   groups: SubmissionPdfGroup[];
   storageTb: number;
   bandwidthMbps: number;
+  // Phase A of the calculator math rework (ADRs 0123–0128).
+  //
+  // `calcVersion` 1 = a submission sized before Phase A; 2 = sized after. On a
+  // version-1 row the two fields below are null, because that model had no
+  // user-visible buffer and never separated footage from capacity-to-buy. The
+  // template must render them as not recorded rather than assuming the current
+  // default — an old quote never promised a 90% cap.
+  calcVersion: number;
+  // Recorded footage in decimal TB, before the buffer and the binary charge.
+  // The figure to set beside a Milestone or Genetec proposal.
+  recordedStorageTb: number | null;
+  // Max disk utilization the quote was sized at, 60–90 (ADR 0126).
+  maxDiskUtilizationPct: number | null;
   recommendation: {
     units: number;
     modelCode: string;

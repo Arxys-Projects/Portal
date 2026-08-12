@@ -235,6 +235,36 @@ function fmtBwCell(mbps: number): string {
   return mbps.toLocaleString("en-US", { maximumFractionDigits: 1 });
 }
 
+/**
+ * Plain-language statement of how the storage figure was arrived at.
+ *
+ * Every field it reads is optional on ProjectQuoteSizing: a snapshot frozen
+ * before Phase A of the calculator math rework has none of them, and a snapshot
+ * taken FROM a pre-Phase-A submission carries calcVersion 1. Both must read as
+ * "produced by the older model" rather than silently inheriting today's default
+ * — the quote is a customer-facing document and the buffer it states has to be
+ * the buffer it was actually sized against (ADR 0126).
+ */
+export function buildSizingBasisNote(sizing: ProjectQuoteSizing): string {
+  const version = sizing.calcVersion ?? 1;
+  const recorded = sizing.recordedStorageTb;
+  if (version < 2 || recorded == null) {
+    return (
+      "Storage sizing: produced by the pre-2026-08 model, which applied a fixed internal " +
+      "overhead rather than a stated disk-utilization cap. Recorded-footage and utilization " +
+      "figures were not captured for this estimate."
+    );
+  }
+  const util = sizing.maxDiskUtilizationPct ?? 90;
+  return (
+    `Storage sizing: ${fmtTb(recorded)} of recorded footage over ${sizing.retentionDays} days, ` +
+    `sized so the array runs at no more than ${util}% full, then adjusted for the capacity a ` +
+    `formatted disk presents to the VMS. That ${100 - util}% is the only safety margin in this ` +
+    `estimate. Bandwidth is the peak while recording, not a time-average, so it does not fall ` +
+    `for motion-triggered groups.`
+  );
+}
+
 // Format a storage value (GB frozen → TB display) for a schedule cell.
 function fmtStorageCell(gb: number): string {
   return (gb / 1000).toLocaleString("en-US", {
@@ -1061,6 +1091,11 @@ export function ProjectQuotePdf({ data }: { data: ProjectQuotePdfInput }) {
       ? (sizing.bandwidthMbps / availableBandwidthMbps) * 100
       : 0;
 
+  // How the storage figure was built (ADR 0126). Snapshots frozen before Phase A
+  // carry none of these fields, and a quote generated from a version-1
+  // submission must not claim a utilization cap it was never sized against.
+  const sizingBasisNote = buildSizingBasisNote(sizing);
+
   // Totals from the snapshot's frozen aggregates — never re-summed from rows.
   const { cameras: totalCameras, bandwidthMbps: totalBwMbps, storageGb: totalStorageGb } =
     sizing.totals;
@@ -1213,6 +1248,7 @@ export function ProjectQuotePdf({ data }: { data: ProjectQuotePdfInput }) {
                     : `${fmtMbps(sizing.bandwidthMbps)} required`
                 }
               />
+              <Text style={styles.tableNote}>{sizingBasisNote}</Text>
             </View>
           </>
         ) : null}

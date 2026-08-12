@@ -2,7 +2,9 @@ import {
   CODECS,
   COMPLEXITIES,
   RESOLUTIONS,
+  UTILIZATION_DEFAULT_PCT,
   VMS_OPTIONS,
+  clampUtilizationPct,
 } from "./tables";
 
 // Phase 4 Step 3 — quote-revision rehydration.
@@ -23,7 +25,30 @@ import {
 // stamped version and is the marker that the two add-on booleans (Phase 4
 // Step 2) are present. Absent / 0 = a pre-stamp row where add-ons were never
 // stored, so they default to false.
-export const INPUT_STATE_VERSION = 1;
+//
+// v2 = Phase A of the calculator math rework (ADRs 0123–0128). Two things
+// rehydration must branch on:
+//   * `utilizationPct` (the Max disk utilization slider) exists. Older rows have
+//     no equivalent — no single setting reproduces the old ×1.44 under the new
+//     semantics — so they open at the new default rather than being back-fitted.
+//   * `codecIdx` changed index space when CODECS gained `h265smart`. See
+//     LEGACY_CODEC_IDX below.
+export const INPUT_STATE_VERSION = 2;
+
+// v1 CODECS was [h265, h264, smart]; v2 is [h265, h265smart, h264, smart].
+// A banked `codecIdx` is only ever consulted when groups_payload carries no
+// resolved codec value (fromStoredSubmission prefers the value), but when it IS
+// consulted, a raw v1 index would now read one codec to the left — index 1
+// "h264" becoming "h265smart" and index 2 "smart" becoming "h264". Remap it.
+const LEGACY_CODEC_IDX: readonly number[] = [0, 2, 3];
+
+function migrateCodecIdx(rawIdx: unknown, version: number): unknown {
+  if (version >= 2) return rawIdx;
+  const n = typeof rawIdx === "number" ? rawIdx : Number(rawIdx);
+  if (!Number.isFinite(n)) return rawIdx;
+  const mapped = LEGACY_CODEC_IDX[Math.round(n)];
+  return mapped === undefined ? rawIdx : mapped;
+}
 
 // Camera vendors offered by the model picker (Phase 10 Step 3). A loaded model
 // always carries one of these; anything else coerces to null (no model loaded).
@@ -39,6 +64,11 @@ const GROUP_DEFAULTS = {
   recordingMode: "constant" as const,
   recordingPercent: 100, // 24 h/day
   motionPercent: 100, // N/A under Constant; the safe default mode
+  // ADR 0128 — audio / analytics metadata. Default ON, matching the profile the
+  // published VSR stream ratings were established against. Pre-Phase-A rows were
+  // computed with no audio term at all; they rehydrate ON like everything else,
+  // because a revision is new work sized under the current model, not a replay.
+  recordsAudioMetadata: true,
   // Phase 10 Step 3 — camera-model picker. Pre-feature rows have none of these,
   // so they default to the no-model path: cameras stays the direct input, and
   // the group renders exactly as it did before the feature existed.
@@ -61,6 +91,7 @@ export type InitialGroup = {
   recordingMode: "constant" | "motion";
   recordingPercent: number;
   motionPercent: number;
+  recordsAudioMetadata: boolean;
   // Phase 10 Step 3 — null vendor/model = no model loaded (no-model path).
   cameraVendor: string | null;
   cameraModel: string | null;
@@ -73,6 +104,8 @@ export type CalculatorInitialState = {
   projectName: string;
   vms: string;
   retentionDays: number;
+  // Max disk utilization % (ADR 0126). Per project, not per group.
+  utilizationPct: number;
   addOnFailoverRecorder: boolean;
   addOnManagementServer: boolean;
   groups: InitialGroup[];
@@ -128,13 +161,17 @@ function coerceCameraModel(value: unknown): string | null {
   return typeof value === "string" && value.trim() ? value : null;
 }
 
-function normalizeGroup(g: RawGroup, i: number): InitialGroup {
+function normalizeGroup(g: RawGroup, i: number, version: number): InitialGroup {
   const name = typeof g.name === "string" && g.name.trim() ? g.name : `Camera Group ${i + 1}`;
   return {
     name,
     cameras: clampInt(g.cameras, 1, 9999, GROUP_DEFAULTS.cameras),
     resolutionIdx: clampIdx(g.resolutionIdx, RESOLUTIONS.length, GROUP_DEFAULTS.resolutionIdx),
-    codecIdx: clampIdx(g.codecIdx, CODECS.length, GROUP_DEFAULTS.codecIdx),
+    codecIdx: clampIdx(
+      migrateCodecIdx(g.codecIdx, version),
+      CODECS.length,
+      GROUP_DEFAULTS.codecIdx,
+    ),
     complexityIdx: clampIdx(g.complexityIdx, COMPLEXITIES.length, GROUP_DEFAULTS.complexityIdx),
     fps: clampInt(g.fps, 1, 60, GROUP_DEFAULTS.fps),
     recordingMode: coerceRecordingMode(g.recordingMode),
@@ -142,6 +179,9 @@ function normalizeGroup(g: RawGroup, i: number): InitialGroup {
     // Motion floor is 20 (UI domain); a stray sub-20 value from an old row
     // clamps up rather than tripping the submit-side schema on resubmission.
     motionPercent: clampInt(g.motionPercent, 20, 100, GROUP_DEFAULTS.motionPercent),
+    // Only an explicit stored `false` turns it off — an absent field (every
+    // pre-Phase-A row) reads as the ON default.
+    recordsAudioMetadata: g.recordsAudioMetadata !== false,
     // Phase 10 Step 3 — camera-model picker fields. units/sensors are finite
     // ints >= 1; cameras itself is NOT recomputed from them here (a banked
     // quote's cameras is authoritative). cameraModelModified is a stored fact,
@@ -160,7 +200,7 @@ export function normalizeInputState(raw: unknown): NormalizedInputState {
 
   const rawGroups = Array.isArray(obj.groups) ? (obj.groups as RawGroup[]) : [];
   const source = rawGroups.length > 0 ? rawGroups : [{}];
-  const groups = source.map((g, i) => normalizeGroup((g ?? {}) as RawGroup, i));
+  const groups = source.map((g, i) => normalizeGroup((g ?? {}) as RawGroup, i, version));
 
   // The add-on booleans arrived in v1 (Phase 4 Step 2). For older / absent
   // versions they were never stored, so we ignore any stray value and default
@@ -172,6 +212,11 @@ export function normalizeInputState(raw: unknown): NormalizedInputState {
     projectName: typeof obj.projectName === "string" ? obj.projectName.slice(0, 50) : "",
     vms: coerceVms(obj.vms),
     retentionDays: clampInt(obj.retentionDays, 1, 730, RETENTION_DEFAULT),
+    // Pre-v2 rows carry no buffer setting. They open at the default rather than
+    // being back-fitted: the old ×1.44 was two constants in two files under
+    // different semantics, and no single utilization value reproduces it.
+    utilizationPct:
+      version >= 2 ? clampUtilizationPct(obj.utilizationPct) : UTILIZATION_DEFAULT_PCT,
     addOnFailoverRecorder: supportsAddOns ? obj.addOnFailoverRecorder === true : false,
     addOnManagementServer: supportsAddOns ? obj.addOnManagementServer === true : false,
     groups,
@@ -286,6 +331,7 @@ export function fromStoredSubmission(row: StoredSubmissionRow): CalculatorInitia
     projectName: normalized.projectName,
     vms: normalized.vms,
     retentionDays: normalized.retentionDays,
+    utilizationPct: normalized.utilizationPct,
     addOnFailoverRecorder: normalized.addOnFailoverRecorder,
     addOnManagementServer: normalized.addOnManagementServer,
     groups,

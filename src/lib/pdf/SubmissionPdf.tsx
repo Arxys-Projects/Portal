@@ -17,7 +17,7 @@ import {
   TRACK_GRAY,
 } from "./colors";
 import type { SubmissionPdfInput } from "./types";
-import { utilizationNote } from "@/lib/capacity-utils";
+import { availableCapacityTb, utilizationNote } from "@/lib/capacity-utils";
 
 const styles = StyleSheet.create({
   page: {
@@ -309,13 +309,14 @@ export const SCHEDULE_COLUMNS: ReadonlyArray<{ key: keyof typeof styles; label: 
 ];
 
 // Operation-hours cell text: the daily hours figure plus the recording mode.
-// Motion-only groups surface their motion percentage; constant groups record
-// continuously. Numbers are unchanged — this only labels what's already there.
+// Motion-triggered groups surface their motion percentage — under ADR 0125 that
+// percentage is the exact fraction of those hours written, so it is what the
+// reader needs to interpret the storage column.
 function operationHoursText(g: SubmissionPdfInput["groups"][number]): string {
   if (g.recordingMode === "motion") {
     return `${g.hoursPerDay} (motion ${g.motionPercent}%)`;
   }
-  return `${g.hoursPerDay} (constant)`;
+  return `${g.hoursPerDay} (continuous)`;
 }
 
 const VALUE_BADGES: ReadonlyArray<{ letter: string; title: string; subtitle: string }> = [
@@ -376,6 +377,11 @@ export function SubmissionPdf({ data }: { data: SubmissionPdfInput }) {
     availableStorageTb && availableStorageTb > 0
       ? (requiredStorageTb / availableStorageTb) * 100
       : 0;
+
+  // ADR 0127 — the capacity a formatted array actually presents to the VMS,
+  // decimal RAID-net × 0.8931. Published so this document can be set beside a
+  // Milestone proposal's "X TB of Y available" line and compared directly.
+  const vmsAvailableTb = availableCapacityTb(availableStorageTb);
 
   const availableBandwidthMbps =
     serverSpec?.maxBandwidthMbps != null ? serverSpec.maxBandwidthMbps * units : null;
@@ -518,6 +524,7 @@ export function SubmissionPdf({ data }: { data: SubmissionPdfInput }) {
                 ? `${fmtTb(requiredStorageTb)} of ${fmtTb(availableStorageTb)} usable`
                 : `${fmtTb(requiredStorageTb)} required`
             }
+            note={vmsAvailableTb ? `${fmtTb(vmsAvailableTb)} available to the VMS` : undefined}
           />
           <CapacityBar
             label="Bandwidth"
@@ -528,6 +535,7 @@ export function SubmissionPdf({ data }: { data: SubmissionPdfInput }) {
                 ? `${fmtMbps(requiredBandwidthMbps)} of ${fmtMbps(availableBandwidthMbps)} Mbit/s`
                 : `${fmtMbps(requiredBandwidthMbps)} Mbit/s required`
             }
+            note="peak while recording"
           />
           <CapacityBar
             label="System utilization"
@@ -536,6 +544,23 @@ export function SubmissionPdf({ data }: { data: SubmissionPdfInput }) {
             value={`${utilizationPct.toLocaleString("en-US", { maximumFractionDigits: 0 })}%`}
             note={utilizationNote(utilizationPct)}
           />
+          {/* How the storage figure was built. A version-1 row predates the
+              Max-disk-utilization buffer and never separated footage from
+              capacity-to-buy, so it says so rather than implying a cap it was
+              never sized against (ADR 0126). */}
+          <Text style={styles.tableNote}>
+            {data.calcVersion >= 2 && data.recordedStorageTb != null
+              ? `Storage sizing: ${fmtTb(data.recordedStorageTb)} of recorded footage over ` +
+                `${data.retentionDays} days, sized so the array runs at no more than ` +
+                `${data.maxDiskUtilizationPct ?? 90}% full, then adjusted for the capacity a ` +
+                `formatted disk presents to the VMS. That ` +
+                `${100 - (data.maxDiskUtilizationPct ?? 90)}% is the only safety margin in this ` +
+                `estimate. Bandwidth is the peak while recording, not a time-average, so it does ` +
+                `not fall for motion-triggered groups.`
+              : "Storage sizing: produced by the pre-2026-08 model, which applied a fixed " +
+                "internal overhead rather than a stated disk-utilization cap. Recorded-footage " +
+                "and utilization figures were not captured for this estimate."}
+          </Text>
         </View>
 
         {/* 4. Recommended server */}

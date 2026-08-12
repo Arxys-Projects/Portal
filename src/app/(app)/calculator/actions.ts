@@ -7,9 +7,17 @@ import {
   CODECS,
   COMPLEXITIES,
   RESOLUTIONS,
+  UTILIZATION_DEFAULT_PCT,
+  UTILIZATION_MAX_PCT,
+  UTILIZATION_MIN_PCT,
   VMS_OPTIONS,
 } from "@/lib/calculator/tables";
-import { computeGroup, vsrLoad, type GroupInput } from "@/lib/calculator/compute";
+import {
+  CALC_VERSION,
+  computeGroup,
+  vsrLoad,
+  type GroupInput,
+} from "@/lib/calculator/compute";
 import { INPUT_STATE_VERSION } from "@/lib/calculator/rehydrate";
 import { recommend } from "@/lib/recommend/algorithm";
 import { loadCandidateSpecs } from "@/lib/recommend/candidates";
@@ -32,15 +40,21 @@ const groupSchema = z.object({
   codecIdx: z.number().int().min(0).max(CODECS.length - 1),
   complexityIdx: z.number().int().min(0).max(COMPLEXITIES.length - 1),
   fps: z.number().int().min(1).max(60),
-  // Recording mode: Constant (24/7 at full event rate) vs Motion-only (records
-  // full hours but at a reduced bitrate during quiet periods). The client
-  // resolves motionPercent from this (Constant ⇒ 100); old rows default here.
+  // Recording mode: Continuous (writes every operating hour) vs Motion-triggered
+  // (writes motion% of them). ADR 0125 — the mode IS the duty cycle; Continuous
+  // means 1.0 in the math regardless of what motionPercent carries.
   recordingMode: z.enum(["constant", "motion"]).default("constant"),
   // Operation Hours, encoded as a percent of the day = (hours / 24) × 100.
   recordingPercent: z.number().int().min(1).max(100),
-  // Motion/Event % — clamped 20–100 at the UI; the 0.2 idle floor in
-  // applyMotionAdjustment is the math-side safety net if a bad value slips in.
+  // Motion/Event % — the recording duty cycle, applied EXACTLY with no idle
+  // floor (ADR 0125). The 20–100 clamp here and at the UI is now the only limit
+  // on how aggressive a user can be: the old 0.2 math-side floor is gone.
   motionPercent: z.number().int().min(20).max(100),
+  // ADR 0128 — records audio and/or analytics metadata (+5% on the stream rate).
+  // Defaults ON, matching the form and the profile the VSR ratings were
+  // established against; a pre-Phase-A client payload therefore parses to the
+  // same value the current form sends.
+  recordsAudioMetadata: z.boolean().optional().default(true),
   // Phase 10 Step 3 — camera-model picker. `cameras` above stays the engine
   // input and equals units × sensorsPerCamera only on the model-loaded path;
   // these five fields are banked for rehydration + display, never read by the
@@ -68,6 +82,17 @@ const submissionSchema = z.object({
   onBehalfOfCompanyName: z.string().trim().max(120).optional().nullable(),
   vms: z.string().max(40).optional().nullable(),
   retentionDays: z.number().int().min(1).max(730),
+  // Max disk utilization % — THE ONE BUFFER (ADR 0126). Per project. Optional so
+  // a stale client tab still submits; it lands on the default, which is also the
+  // least-margin end of the range, so an omitted value can never quietly inflate
+  // a quote.
+  utilizationPct: z
+    .number()
+    .int()
+    .min(UTILIZATION_MIN_PCT)
+    .max(UTILIZATION_MAX_PCT)
+    .optional()
+    .default(UTILIZATION_DEFAULT_PCT),
   groups: z.array(groupSchema).min(1).max(50),
   addOnFailoverRecorder: z.boolean().optional().default(false),
   addOnManagementServer: z.boolean().optional().default(false),
@@ -87,7 +112,16 @@ export type PublicRecommendation = {
   winner: RecommendationResult["winner"];
   alternatives: RecommendationResult["alternatives"];
   warnings: string[];
-  totals: { cameras: number; bandwidthMbps: number; storageGb: number };
+  totals: {
+    cameras: number;
+    bandwidthMbps: number;
+    // Required decimal RAID-net capacity — buffer and binary charge included.
+    storageGb: number;
+    // Recorded data only, the Milestone-comparable figure.
+    recordedStorageGb: number;
+  };
+  // The Max disk utilization the totals above were sized at (ADR 0126).
+  utilizationPct: number;
 };
 
 export async function submitCalculation(
@@ -249,12 +283,11 @@ export async function submitCalculation(
 
   // Server-side recompute. Client totals are never trusted.
   //
-  // Constant recording always writes at the full event rate, so motion% is
-  // pinned to 100 server-side regardless of any value a scripted client sends;
-  // only Motion-only honors the entered motion%. The legitimate form already
-  // sends 100 under Constant, so this only bites a hand-crafted POST trying to
-  // under-size. We normalize input.groups so the banked state, PDF, and
-  // Pipedrive sync all agree with the figure the math used.
+  // Continuous recording writes every operating hour, so motion% is pinned to
+  // 100 server-side regardless of any value a scripted client sends. Under
+  // ADR 0125 the pin no longer changes the math (`dutyCycle` returns 1.0 for
+  // "constant" whatever motionPercent says) — it is kept so the banked state,
+  // PDF, and Pipedrive sync all display the figure the math actually used.
   for (const g of input.groups) {
     if (g.recordingMode === "constant") g.motionPercent = 100;
   }
@@ -265,19 +298,25 @@ export async function submitCalculation(
       codec: CODECS[g.codecIdx],
       complexity: COMPLEXITIES[g.complexityIdx],
       fps: g.fps,
+      recordingMode: g.recordingMode,
       recordingPercent: g.recordingPercent,
       motionPercent: g.motionPercent,
+      recordsAudioMetadata: g.recordsAudioMetadata,
     };
-    return { input: g, computed: computeGroup(gi, input.retentionDays) };
+    return {
+      input: g,
+      computed: computeGroup(gi, input.retentionDays, input.utilizationPct),
+    };
   });
   const totals = computed.reduce(
     (acc, r) => {
       acc.cameras += r.input.cameras;
       acc.bandwidthMbps += r.computed.bandwidthMbps;
+      acc.recordedStorageGb += r.computed.recordedStorageGb;
       acc.storageGb += r.computed.storageGb;
       return acc;
     },
-    { cameras: 0, bandwidthMbps: 0, storageGb: 0 },
+    { cameras: 0, bandwidthMbps: 0, recordedStorageGb: 0, storageGb: 0 },
   );
 
   // Candidate pool — shared with the Quick Calc preview (ADR 0082) so both
@@ -319,10 +358,18 @@ export async function submitCalculation(
       projectName: input.projectName ?? null,
       vms: input.vms ?? null,
       retentionDays: input.retentionDays,
+      utilizationPct: input.utilizationPct,
       groups: input.groups,
       addOnFailoverRecorder: input.addOnFailoverRecorder,
       addOnManagementServer: input.addOnManagementServer,
     },
+    // ADR 0126 — the sizing model this row was produced by. Version 1 is
+    // everything before Phase A of the calculator math rework; version 2 is
+    // the re-anchored engine with the single Max disk utilization buffer.
+    // storage_tb changes MEANING across that boundary (see below), so the
+    // column is not comparable without this stamp.
+    calc_version: CALC_VERSION,
+    max_disk_utilization_pct: input.utilizationPct,
     // ADR 0081: new submissions start Open (the default state). Won/Lost are
     // set manually. Matches the DB column default; set explicitly for clarity.
     status: "open",
@@ -341,12 +388,28 @@ export async function submitCalculation(
     vms: input.vms || null,
     retention_days: input.retentionDays,
     bandwidth_mbps: Number(totals.bandwidthMbps.toFixed(2)),
+    // CHANGED MEANING at calc_version 2 (ADR 0126/0127). It used to bank raw
+    // video × 1.2, with the recommender's second ×1.2 applied later and the
+    // decimal→binary conversion never charged at all. It now banks required
+    // decimal RAID-net capacity: recorded data with the buffer and the binary
+    // charge already in it, which is exactly what the recommender sizes on.
+    // Already-issued documents are safe — they render from banked values and
+    // nothing recomputes (audit §Q7) — but the column is not comparable across
+    // the boundary without calc_version.
     storage_tb: Number((totals.storageGb / GB_PER_TB).toFixed(2)),
+    // The Milestone-comparable figure: recorded data, no buffer, no binary
+    // charge. Banked so a partner can set it beside a Milestone or Genetec
+    // proposal's "Total storage" line without re-deriving it.
+    recorded_storage_tb: Number((totals.recordedStorageGb / GB_PER_TB).toFixed(2)),
     recommended_product_id: recommendation.winner.sku,
     recommended_units: recommendation.winner.units,
     total_list_price_usd: Number(recommendation.winner.totalCostUsd.toFixed(2)),
     groups_payload: {
       retentionDays: input.retentionDays,
+      // Banked alongside the groups so every document rendered from this row can
+      // state the buffer it was sized at without reaching into input_state.
+      utilizationPct: input.utilizationPct,
+      calcVersion: CALC_VERSION,
       groups: computed.map((r) => ({
         name: r.input.name,
         cameras: r.input.cameras,
@@ -362,6 +425,7 @@ export async function submitCalculation(
         recordingMode: r.input.recordingMode,
         recordingPercent: r.input.recordingPercent,
         motionPercent: r.input.motionPercent,
+        recordsAudioMetadata: r.input.recordsAudioMetadata,
         // Phase 10 Step 3 — resolved camera-model provenance for the display
         // path (PDF / submission view, Step 4) and preferred on rehydration.
         // `cameras` above already carries the derived count; these explain it.
@@ -436,6 +500,9 @@ export async function submitCalculation(
     },
     storageTb: totals.storageGb / GB_PER_TB,
     bandwidthMbps: totals.bandwidthMbps,
+    calcVersion: CALC_VERSION,
+    recordedStorageTb: totals.recordedStorageGb / GB_PER_TB,
+    maxDiskUtilizationPct: input.utilizationPct,
     groups: computed.map((r) => ({
       name: r.input.name,
       cameras: r.input.cameras,
@@ -492,8 +559,10 @@ export async function submitCalculation(
           cameras: totals.cameras,
           bandwidthMbps: totals.bandwidthMbps,
           storageGb: totals.storageGb,
+          recordedStorageGb: totals.recordedStorageGb,
           retentionDays: input.retentionDays,
         },
+        utilizationPct: input.utilizationPct,
         vms: submissionRow.vms,
         recommendation,
         submissionId: inserted.id,
@@ -656,6 +725,7 @@ export async function submitCalculation(
       alternatives: recommendation.alternatives,
       warnings: [...recommendation.warnings, ...duplicateWarnings, ...pipedriveWarnings],
       totals,
+      utilizationPct: input.utilizationPct,
     },
   };
 }

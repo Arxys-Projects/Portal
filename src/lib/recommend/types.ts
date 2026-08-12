@@ -28,7 +28,9 @@ export type RecommendationInput = {
   // Raw camera-stream count — used for warnings and the covered-cameras display
   // line, NOT for the capacity gate (that is totalVsr).
   totalCameras: number;
-  // Required net-usable storage (post storage-overhead), in GB.
+  // Required net-usable storage in decimal GB — recorded data with the Max disk
+  // utilization buffer and the decimal→binary charge already applied
+  // (ADR 0126/0127). The recommender adds no further storage multiplier.
   totalStorageGb: number;
   // Resolution-normalized camera load: Σ streamCount × (megapixels / 4). A 4MP
   // stream ≈ 1.0 VSR. This — not the raw camera count — gates the camera check.

@@ -2,7 +2,7 @@
 // (src/app/(app)/price-book/[slug]/page.tsx). Kept free of server-only /
 // Supabase imports so it is unit-testable on its own. See ADR 0069.
 
-import { usableCapacityTb } from "@/lib/capacity-utils";
+import { availableCapacityTb, usableCapacityTb } from "@/lib/capacity-utils";
 import type { SkuColumn } from "./families";
 
 // A row from the `products` table — identity and price only.
@@ -70,7 +70,15 @@ export function cellValue(
             spec.raid_level_display,
           )
         : null;
-      return usable != null ? `${formatTb(usable)} TB` : "—";
+      if (usable == null) return "—";
+      // ADR 0127 — publish the VMS-visible figure alongside the decimal
+      // net-usable one, so a partner can match this row against a Milestone
+      // proposal's "X TB of Y available" line instead of doing the
+      // decimal→binary conversion by hand. Closes ADR 0092 item 3.
+      const available = availableCapacityTb(usable);
+      return available != null
+        ? `${formatTb(usable)} TB (${formatTb(available)} TB available)`
+        : `${formatTb(usable)} TB`;
     }
     case "ssdStorage":
       // SSD storage is shown only for management / ACM servers, whose figures

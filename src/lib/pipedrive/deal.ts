@@ -162,6 +162,13 @@ function buildDealFields(
     // human readability. This will NOT exactly equal storage_tb (two decimals on
     // the row) or the PDF figure. Do not "reconcile" by switching to the precise
     // value — the rounding is deliberate for sales readability.
+    //
+    // As of calc_version 2 (ADR 0126/0127) this is storage-to-BUY: recorded
+    // footage with the Max disk utilization buffer and the decimal→binary charge
+    // already in it. Before Phase A the same field carried raw video × 1.2, with
+    // a second ×1.2 applied later and no binary charge — so a deal created
+    // before that change is not comparable to one created after. Existing deals
+    // are deliberately not rewritten.
     [customFieldKeys["arxys_storage_gb"]]: Math.round(submission.totals.storageGb / GB_PER_TB),
     [customFieldKeys["arxys_recommended_models"]]: recommendedModels,
     [customFieldKeys["arxys_portal_url"]]: `${PORTAL_BASE}/submissions/${submission.submissionId}`,

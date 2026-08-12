@@ -7,6 +7,9 @@ import {
   CODECS,
   COMPLEXITIES,
   RESOLUTIONS,
+  UTILIZATION_DEFAULT_PCT,
+  UTILIZATION_MAX_PCT,
+  UTILIZATION_MIN_PCT,
   VMS_OPTIONS,
 } from "@/lib/calculator/tables";
 import { mapPixelsToBucket } from "@/lib/calculator/camera-resolution";
@@ -57,11 +60,13 @@ type Group = {
   codecIdx: number;
   complexityIdx: number;
   fps: number;
-  // "constant" = records 24/7 at the full event rate (motion% pinned to 100);
-  // "motion" = records full hours but at a reduced bitrate during quiet periods.
+  // "constant" = writes every operating hour; "motion" = writes motion% of them.
+  // The mode IS the recording duty cycle (ADR 0125) — there is no idle floor.
   recordingMode: "constant" | "motion";
   recordingPercent: number; // Operation Hours, encoded as (hours / 24) × 100
   motionPercent: number;    // Motion/Event % (20–100); only live under "motion"
+  // Records audio and/or analytics metadata alongside video (+5%, ADR 0128).
+  recordsAudioMetadata: boolean;
   // Phase 10 Step 3 — camera-model picker. null vendor/model = no model loaded,
   // in which case `cameras` is the direct editable input and the group behaves
   // exactly as before the feature. When a model IS loaded, `cameras` is derived
@@ -90,9 +95,12 @@ function newGroup(seqNumber: number): Group {
     codecIdx: 0,          // H.265
     complexityIdx: 2,     // Medium detail, low motion (realistic typical scene)
     fps: 15,
-    recordingMode: "constant", // safe default: Constant, 24 h, 100%
+    recordingMode: "constant", // safe default: Continuous, 24 h, 100%
     recordingPercent: 100,     // 24 h/day
     motionPercent: 100,
+    // Default ON — the profile the published VSR stream ratings were
+    // established against records VMD + metadata (ADR 0128).
+    recordsAudioMetadata: true,
     // No model loaded by default — the no-model (direct-cameras) path.
     cameraVendor: null,
     cameraModel: null,
@@ -182,6 +190,11 @@ export function CalculatorForm({
   );
   const [retentionDays, setRetentionDays] = useState(
     () => initialState?.retentionDays ?? 30,
+  );
+  // Max disk utilization — the project's ONE buffer (ADR 0126). A cap on how
+  // full the array is designed to run, not an additive margin: 90% ⇒ ÷0.90.
+  const [utilizationPct, setUtilizationPct] = useState(
+    () => initialState?.utilizationPct ?? UTILIZATION_DEFAULT_PCT,
   );
   const [vms, setVms] = useState<string>(() => initialState?.vms ?? "");
   const [projectName, setProjectName] = useState(
@@ -382,6 +395,7 @@ export function CalculatorForm({
   const reset = () => {
     setGroups([newGroup(1)]);
     setRetentionDays(30);
+    setUtilizationPct(UTILIZATION_DEFAULT_PCT);
     setVms("");
     setProjectName("");
     setOnBehalfCompany("");
@@ -417,6 +431,7 @@ export function CalculatorForm({
         : null,
       vms: vms || null,
       retentionDays,
+      utilizationPct,
       addOnFailoverRecorder,
       addOnManagementServer,
       isRevision: Boolean(revisionSourceId),
@@ -432,8 +447,11 @@ export function CalculatorForm({
         fps: g.fps,
         recordingMode: g.recordingMode,
         recordingPercent: g.recordingPercent,
-        // Constant pins motion% to 100; the server re-enforces this.
+        // Continuous pins motion% to 100; the server re-enforces this. Under
+        // ADR 0125 the mode already means duty cycle 1.0, so this only keeps the
+        // banked/displayed value honest.
         motionPercent: g.recordingMode === "constant" ? 100 : g.motionPercent,
+        recordsAudioMetadata: g.recordsAudioMetadata,
         // Phase 10 Step 3 — banked for rehydration (input_state) + display
         // (groups_payload). The engine contract is unchanged; these are extra.
         cameraVendor: g.cameraVendor,
@@ -459,13 +477,17 @@ export function CalculatorForm({
           codec: CODECS[g.codecIdx],
           complexity: COMPLEXITIES[g.complexityIdx],
           fps: Math.max(1, g.fps),
+          recordingMode: g.recordingMode,
           recordingPercent: g.recordingPercent,
-          // Constant always sizes at the full event rate, matching the server.
           motionPercent: g.recordingMode === "constant" ? 100 : g.motionPercent,
+          recordsAudioMetadata: g.recordsAudioMetadata,
         };
-        return { group: g, computed: computeGroup(input, retentionDays) };
+        return {
+          group: g,
+          computed: computeGroup(input, retentionDays, utilizationPct),
+        };
       }),
-    [groups, retentionDays],
+    [groups, retentionDays, utilizationPct],
   );
 
   const totals = useMemo(() => {
@@ -477,9 +499,13 @@ export function CalculatorForm({
       (s, r) => s + r.computed.storageGb,
       0,
     );
+    const recordedStorageGb = groupResults.reduce(
+      (s, r) => s + r.computed.recordedStorageGb,
+      0,
+    );
     const cameras = groupResults.reduce((s, r) => s + r.group.cameras, 0);
-    const dailyGb = storageGb / Math.max(retentionDays, 1);
-    return { bandwidthMbps, storageGb, cameras, dailyGb };
+    const dailyGb = recordedStorageGb / Math.max(retentionDays, 1);
+    return { bandwidthMbps, storageGb, recordedStorageGb, cameras, dailyGb };
   }, [groupResults, retentionDays]);
 
   return (
@@ -496,18 +522,22 @@ export function CalculatorForm({
         <div className="ax-s cy">
           <div className="ax-sl">
             Total Bandwidth
-            <Tooltip text="The combined network speed all cameras need at the same time. Size your network switches and any uplink to handle at least this much." />
+            <Tooltip text="The combined network speed all cameras need while they are recording. This is the PEAK, not an average — it does not go down when you record on motion, because the network still has to carry the full rate the moment something happens. Size your switches and uplinks for at least this much." />
           </div>
           <div className="ax-sv cy">{formatBandwidthMbps(totals.bandwidthMbps)}</div>
+          <div style={{ fontSize: 11, color: "var(--td)", marginTop: 4 }}>
+            peak while recording
+          </div>
         </div>
         <div className="ax-s gn">
           <div className="ax-sl">
             Total Storage
-            <Tooltip text="Total drive space needed to keep every camera's footage for the full retention period. Already includes the 20% VMS overhead." side="r" />
+            <Tooltip text="Drive space to buy. It starts from the footage itself, then adds room to run the array at no more than your Max disk utilization setting, then accounts for the capacity a formatted disk actually presents to the VMS." side="r" />
           </div>
           <div className="ax-sv gn">{formatStorageGb(totals.storageGb)}</div>
           <div style={{ fontSize: 11, color: "var(--td)", marginTop: 4 }}>
-            (includes 20% overhead)
+            {formatStorageGb(totals.recordedStorageGb)} of footage · {utilizationPct}% max
+            disk use
           </div>
         </div>
       </div>
@@ -663,6 +693,34 @@ export function CalculatorForm({
                 />
                 <span style={{ color: "var(--td)", fontSize: 13 }}>days</span>
               </div>
+            </div>
+          </div>
+
+          {/* Max disk utilization — the project's one buffer (ADR 0126). */}
+          <div className="ax-buffer-row">
+            <label className="ax-fl" htmlFor="ax-utilization">
+              Max disk utilization
+              <Tooltip text="How full the storage is designed to run. At 90% we size for the footage to fill no more than 90% of the array, leaving 10% spare. Lower it to leave more room to grow. This is the only safety margin in the estimate — everything else models the real footage as accurately as we can." />
+            </label>
+            <div className="ax-buffer-control">
+              <input
+                id="ax-utilization"
+                type="range"
+                min={UTILIZATION_MIN_PCT}
+                max={UTILIZATION_MAX_PCT}
+                step={5}
+                value={utilizationPct}
+                onChange={(e) => {
+                  touch();
+                  setUtilizationPct(parseInt(e.target.value, 10));
+                }}
+              />
+              <span className="ax-buffer-value">{utilizationPct}%</span>
+              <span className="ax-buffer-note">
+                {utilizationPct === UTILIZATION_DEFAULT_PCT
+                  ? "Default. Matches Milestone's 90% and Genetec's 10% buffer, so this estimate lines up with a proposal from either."
+                  : `${100 - utilizationPct}% of the array left spare.`}
+              </span>
             </div>
           </div>
 
@@ -863,12 +921,24 @@ export function CalculatorForm({
                     })
                   }
                 >
-                  {CODECS.map((c, i) => (
-                    <option key={c.value} value={i}>
-                      {c.label}
-                    </option>
-                  ))}
+                  {/* Retired codecs are hidden from new work, but a revived old
+                      quote must still show what it was actually quoted on
+                      rather than silently switching (ADR 0124). */}
+                  {CODECS.map((c, i) =>
+                    !c.retired || i === group.codecIdx ? (
+                      <option key={c.value} value={i}>
+                        {c.label}
+                      </option>
+                    ) : null,
+                  )}
                 </select>
+                {CODECS[group.codecIdx].retired ? (
+                  <span className="ax-cx-warn">
+                    This codec is retired. For H.265 cameras with smart
+                    compression, pick <strong>H.265 + Smart Codec</strong> — the
+                    old option sizes 20% <em>above</em> plain H.265.
+                  </span>
+                ) : null}
               </div>
               <div className="ax-f wf">
                 <label className="ax-fl">
@@ -923,14 +993,14 @@ export function CalculatorForm({
               <div className="ax-f wd">
                 <label className="ax-fl">
                   Recording
-                  <Tooltip text="Constant = records continuously 24/7 at the full bitrate (most storage). Motion-only = records the full hours but at a reduced bitrate during quiet periods; enter the expected motion % at right." side="r" />
+                  <Tooltip text="Continuous = records every operating hour (most storage). Motion-triggered = records only while something is happening; enter the expected motion % at right. Motion-triggered saves storage in direct proportion — at 50% motion it stores half as much." side="r" />
                 </label>
                 <select
                   value={group.recordingMode}
                   onChange={(e) => {
                     touch();
-                    // Switching to Constant pins motion% to 100 (the full event
-                    // rate); switching to Motion-only re-enables the slider.
+                    // Continuous pins motion% to 100 for display; the mode
+                    // itself means duty cycle 1.0 in the math (ADR 0125).
                     updateGroup(
                       group.id,
                       e.target.value === "motion"
@@ -939,8 +1009,8 @@ export function CalculatorForm({
                     );
                   }}
                 >
-                  <option value="constant">Constant</option>
-                  <option value="motion">Motion-only</option>
+                  <option value="constant">Continuous</option>
+                  <option value="motion">Motion-triggered</option>
                 </select>
               </div>
               <div className="ax-f wh">
@@ -982,7 +1052,7 @@ export function CalculatorForm({
               <div className="ax-f wm">
                 <label className="ax-fl">
                   Motion/Event %
-                  <Tooltip text="Expected share of time the scene has motion/events. Weights the bitrate between a 20% idle floor and the full event rate. Only applies to Motion-only recording." side="r" />
+                  <Tooltip text="Expected share of the operating hours that something is actually happening. Storage scales with it exactly — 50% stores half, 20% stores a fifth. Bandwidth does not change, because the network still carries the full rate during an event. Only applies to Motion-triggered recording." side="r" />
                 </label>
                 {(() => {
                   const isConstant = group.recordingMode === "constant";
@@ -1028,11 +1098,29 @@ export function CalculatorForm({
               {COMPLEXITIES[group.complexityIdx].example}
             </div>
 
+            {/* Audio / analytics metadata — counted data, not a safety margin
+                (ADR 0128). Default ON: the profile these appliances were rated
+                against records VMD + metadata. */}
+            <div className="ax-cx-extras">
+              <label className="ax-addon-chk">
+                <input
+                  type="checkbox"
+                  checked={group.recordsAudioMetadata}
+                  onChange={(e) => {
+                    touch();
+                    updateGroup(group.id, { recordsAudioMetadata: e.target.checked });
+                  }}
+                />
+                Records audio / analytics metadata
+                <Tooltip text="Most deployments record an audio track, analytics metadata (object and motion data), or both alongside the video, and those streams take space too. Adds 5%. Untick it only if this group genuinely records video and nothing else." />
+              </label>
+            </div>
+
             <div className="ax-cr">
               <div className="ax-ci">
                 <span className="ax-cil">
                   Bitrate:
-                  <Tooltip text="How much data one camera in this group produces every second. Resolution, FPS, and how busy the scene is all push it up or down." side="r" />
+                  <Tooltip text="How much data one camera in this group produces every second while it is recording. Resolution, FPS, codec, and how busy the scene is all push it up or down." side="r" />
                 </span>
                 <span className="ax-civ" style={{ color: "var(--ac)" }}>
                   {computed.bitrateMbps >= 1
@@ -1043,7 +1131,7 @@ export function CalculatorForm({
               <div className="ax-ci">
                 <span className="ax-cil">
                   Bandwidth:
-                  <Tooltip text="Network speed this whole group needs at once (one camera's bitrate × the number of cameras)." side="r" />
+                  <Tooltip text="Network speed this group needs at once (one camera's bitrate × the number of cameras). This is the peak while recording — recording on motion cuts storage but not this figure, because the network must still carry the full rate during an event." side="r" />
                 </span>
                 <span className="ax-civ" style={{ color: "var(--ac)" }}>
                   {formatBandwidthMbps(computed.bandwidthMbps)}
@@ -1051,8 +1139,17 @@ export function CalculatorForm({
               </div>
               <div className="ax-ci">
                 <span className="ax-cil">
-                  Storage:
-                  <Tooltip text="Drive space this group needs to hold its footage for the full retention period, with the 20% VMS overhead added." side="r" />
+                  Footage:
+                  <Tooltip text="The footage this group actually records over the retention period — before any spare capacity. This is the figure to compare against a Milestone or Genetec proposal's storage line." side="r" />
+                </span>
+                <span className="ax-civ" style={{ color: "var(--ac)" }}>
+                  {formatStorageGb(computed.recordedStorageGb)}
+                </span>
+              </div>
+              <div className="ax-ci">
+                <span className="ax-cil">
+                  Storage to buy:
+                  <Tooltip text="Drive space this group needs, once the array is held to your Max disk utilization setting and the capacity a formatted disk really presents to the VMS is accounted for." side="r" />
                 </span>
                 <span className="ax-civ" style={{ color: "var(--ac)" }}>
                   {formatStorageGb(computed.storageGb)}
@@ -1061,10 +1158,10 @@ export function CalculatorForm({
               <div className="ax-ci">
                 <span className="ax-cil">
                   Daily:
-                  <Tooltip text="How much footage this group records each day. Multiply by your retention days to get total storage." side="r" />
+                  <Tooltip text="How much footage this group records each day. Multiply by your retention days to get the footage figure." side="r" />
                 </span>
                 <span className="ax-civ" style={{ color: "var(--ac)" }}>
-                  {formatStorageGb(computed.storageGb / Math.max(retentionDays, 1))}/day
+                  {formatStorageGb(computed.recordedStorageGb / Math.max(retentionDays, 1))}/day
                 </span>
               </div>
             </div>
@@ -1086,8 +1183,9 @@ export function CalculatorForm({
               <th>Codec</th>
               <th>FPS</th>
               <th>Rec</th>
-              <th>Bandwidth</th>
-              <th>Storage</th>
+              <th>Bandwidth (peak)</th>
+              <th>Footage</th>
+              <th>Storage to buy</th>
               <th>Daily</th>
             </tr>
           </thead>
@@ -1106,10 +1204,13 @@ export function CalculatorForm({
                   {formatBandwidthMbps(computed.bandwidthMbps)}
                 </td>
                 <td className="m" style={{ color: "var(--ac)" }}>
+                  {formatStorageGb(computed.recordedStorageGb)}
+                </td>
+                <td className="m" style={{ color: "var(--ac)" }}>
                   {formatStorageGb(computed.storageGb)}
                 </td>
                 <td className="m" style={{ color: "var(--ac)" }}>
-                  {formatStorageGb(computed.storageGb / Math.max(retentionDays, 1))}
+                  {formatStorageGb(computed.recordedStorageGb / Math.max(retentionDays, 1))}
                 </td>
               </tr>
             ))}
@@ -1121,6 +1222,9 @@ export function CalculatorForm({
               <td colSpan={4}></td>
               <td className="m" style={{ color: "var(--ac)" }}>
                 {formatBandwidthMbps(totals.bandwidthMbps)}
+              </td>
+              <td className="m" style={{ color: "var(--ac)" }}>
+                {formatStorageGb(totals.recordedStorageGb)}
               </td>
               <td className="m" style={{ color: "var(--ac)" }}>
                 {formatStorageGb(totals.storageGb)}
@@ -1186,7 +1290,13 @@ export function CalculatorForm({
       </div>
 
       <div className="ax-fn">
-        <strong>Note:</strong> Storage includes ~20% overhead for VMS best practices.
+        <strong>Note:</strong> <em>Footage</em> is what the cameras actually record —
+        compare it directly against a Milestone or Genetec proposal.{" "}
+        <em>Storage to buy</em> adds the room needed to keep the array at or under{" "}
+        {utilizationPct}% full, then accounts for the capacity a formatted disk really
+        presents to the VMS. That utilization figure is the only safety margin in this
+        estimate. <em>Bandwidth</em> is the peak while recording, so it does not fall when
+        you record on motion.
       </div>
 
       {/* Plain-speak FAQ — every field explained without leaving the page */}
@@ -1202,25 +1312,28 @@ export function CalculatorForm({
               <li><strong>Project Name</strong> — a label so you can find and revise this estimate later. Doesn&apos;t change the math.</li>
               <li><strong>Which VMS?</strong> — the recording software (Milestone, Genetec, etc.). Each compresses video a bit differently, so picking yours keeps the estimate realistic.</li>
               <li><strong>Retention</strong> — how many days of footage you keep before it&apos;s overwritten. More days = more storage, in a straight line.</li>
+              <li><strong>Max disk utilization</strong> — how full the storage is designed to run. At the 90% default we size so the footage fills no more than 90% of the array. This is the <em>only</em> safety margin in the estimate; everything else models the real footage as accurately as the evidence allows. Milestone and Genetec both default to the same 10% spare, so an estimate at 90% lines up with a proposal from either. Lower it if you want more room to grow.</li>
               <li><strong>Add-ons</strong> — optional hardware. <em>Failover Recorder</em> is a standby that takes over if a recorder dies; <em>Management Server</em> runs the VMS separately from the recorders on bigger systems.</li>
               <li><strong>Camera Model Lookup</strong>: Pick a vendor, then type a model name to auto-fill resolution and sensor count. Optional. Every field stays editable by hand; the manual path works exactly as before. <em>Units vs. sensors:</em> units is how many cameras, sensors is lenses per camera. A multisensor camera has multiple lenses in one housing, and each lens counts as a stream. Example: 10 units of a 4-sensor camera gives 40 video streams. Resolution fills to the closest matching level and stays editable. If a model does not appear in the search, enter the specs manually.</li>
               <li><strong>Video Streams</strong> — how many cameras share these settings. Everything below multiplies by this count.</li>
               <li><strong>Resolution</strong> — image size in megapixels. Higher = sharper footage, but more storage and bandwidth.</li>
-              <li><strong>Codec</strong> — the compression method. Newer codecs (H.265) pack the same picture into roughly half the space of older ones (H.264).</li>
-              <li><strong>FPS</strong> — frames per second, i.e. how smooth the video is. 15 suits most scenes; raise it only where fast motion matters.</li>
+              <li><strong>Codec</strong> — the compression method. H.265 packs the same picture into roughly half the space of H.264. <em>H.265 + Smart Codec</em> is H.265 on a camera running Axis Zipstream, Hanwha WiseStream, Hikvision H.265+ or similar, which drops the bitrate further in quiet scenes; we credit a conservative 20% for it, the low end of what those technologies deliver.</li>
+              <li><strong>FPS</strong> — frames per second, i.e. how smooth the video is. 15 suits most scenes; raise it only where fast motion matters. Halving the frame rate does not halve the storage — codecs only store what changed between frames, so dropping 15 to 12 saves about 18%, not 20%.</li>
               <li><strong>Complexity</strong> — how detailed and busy the scene is. A quiet hallway compresses small; a crowded stadium needs far more data. Pick the closest example scene.</li>
-              <li><strong>Recording</strong> — <em>Constant</em> records 24/7 at full quality (most storage). <em>Motion-only</em> records the full hours but drops quality during quiet periods to save space.</li>
+              <li><strong>Recording</strong> — <em>Continuous</em> records every operating hour. <em>Motion-triggered</em> records only while something is happening, and saves storage in direct proportion: 50% motion stores half as much.</li>
               <li><strong>Operation</strong> — hours per day the cameras actually record. Fewer hours cuts storage proportionally.</li>
-              <li><strong>Motion/Event %</strong> — on Motion-only, how much of the time something is actually happening. Higher % means more high-quality footage, so more storage.</li>
+              <li><strong>Motion/Event %</strong> — on Motion-triggered, how much of the operating hours something is actually happening. Storage scales with it exactly. Bandwidth does not — the network still has to carry the full rate the moment an event starts.</li>
+              <li><strong>Records audio / analytics metadata</strong> — most systems record an audio track, analytics metadata, or both alongside the video. Those streams take space, so we count 5% for them. Untick it for a group that records video and nothing else.</li>
             </ul>
           </div>
           <div className="ax-faq-col">
             <h4>What we calculate</h4>
             <ul>
-              <li><strong>Bitrate</strong> — the data one camera produces per second. The building block for everything else; resolution, FPS, codec, and complexity all feed into it.</li>
-              <li><strong>Bandwidth</strong> — network speed a group (or the whole system) needs at once. Make sure your switches and uplinks can carry the total.</li>
-              <li><strong>Storage</strong> — drive space to keep all footage for the retention period, including a 20% overhead the VMS needs for its database and indexes.</li>
-              <li><strong>Daily</strong> — footage recorded per day. A quick gut-check: daily × retention days ≈ total storage.</li>
+              <li><strong>Bitrate</strong> — the data one camera produces per second while recording. The building block for everything else; resolution, FPS, codec, and complexity all feed into it.</li>
+              <li><strong>Bandwidth</strong> — network speed a group (or the whole system) needs at once, at the peak. Make sure your switches and uplinks can carry the total. It is deliberately <em>not</em> reduced by motion recording: an average would under-size the network for the moment an event actually starts.</li>
+              <li><strong>Footage</strong> — what the cameras really record over the retention period, with no margin added. This is the number to set beside a Milestone or Genetec proposal.</li>
+              <li><strong>Storage to buy</strong> — footage, plus the room to keep the array at or under your Max disk utilization setting, plus the difference between what a drive is sold as and what a formatted disk actually presents to the VMS.</li>
+              <li><strong>Daily</strong> — footage recorded per day. A quick gut-check: daily × retention days ≈ the footage figure.</li>
               <li><strong>Totals</strong> — the summary cards at the top add up every group, so you see the project-wide camera count, bandwidth, and storage at a glance.</li>
               <li><strong>Recommendation</strong> — after you save, we match these totals to the Arxys appliance that fits, plus alternatives and room to grow.</li>
             </ul>
@@ -1623,6 +1736,10 @@ function RecommendationPanel({
           <span className="ax-rec-l">Storage covered</span>
           <span className="ax-rec-v">
             {formatNumber(winner.coveredStorageTb)} TB (request {formatStorageGb(recommendation.totals.storageGb)})
+          </span>
+          <span className="ax-rec-sub">
+            {formatStorageGb(recommendation.totals.recordedStorageGb)} of footage,
+            sized to run at no more than {recommendation.utilizationPct}% full
           </span>
         </div>
         <div>

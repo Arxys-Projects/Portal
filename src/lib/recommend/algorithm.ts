@@ -9,11 +9,11 @@ import {
 // Storage-first SKU-level recommendation (ADR 0068, replacing the raw-storage +
 // camera-count sizing of ADR 0032).
 //
-// Per-SKU evaluation, two floors — storage takes priority and may change both
-// the model/SKU and the unit count:
+// Per-SKU evaluation — storage takes priority and may change both the model/SKU
+// and the unit count:
 //
-//   Step 1 — storage floor (HARD, ×1.2), on NET-USABLE per unit:
-//     units_for_storage = ceil(needed_usable_tb × STORAGE_FLOOR / usable_per_unit)
+//   Step 1 — storage, on NET-USABLE per unit, NO multiplier:
+//     units_for_storage = ceil(needed_usable_tb / usable_per_unit)
 //
 //   Step 2 — VSR camera floor (SOFT, ×1.1), on the per-unit VSR capacity:
 //     units_for_vsr = ceil(total_vsr × VSR_FLOOR / max_cameras)
@@ -23,10 +23,19 @@ import {
 //
 // "Cheapest config across the whole catalog" falls out of sorting every SKU's
 // (model × N) by total cost — no compute-tier lock; a larger-storage SKU wins
-// whenever it clears both floors more cheaply. 1.1 is the ONLY camera margin
-// (no separate VSR safety multiplier — no double-counting); the 1.2 is a
-// hardware-headroom margin distinct from the calculator's STORAGE_OVERHEAD
-// (which is already baked into needed_usable_tb).
+// whenever it clears both floors more cheaply.
+//
+// STORAGE_FLOOR (×1.2) was DELETED in Phase A of the calculator math rework
+// (ADR 0126). It and the calculator's STORAGE_OVERHEAD (×1.2) were documented as
+// distinct but were both partly margin against the same estimate uncertainty,
+// and stacked to ×1.44 across two files with neither ever stated to the user.
+// Both are replaced by a single per-project Max disk utilization cap, applied
+// once inside computeGroup. `totalStorageGb` therefore ALREADY carries the
+// buffer and the decimal→binary charge; multiplying again here would restore
+// exactly the compounding that change removed.
+//
+// VSR_FLOOR stays: it is the camera dimension, has no storage effect, and the
+// audit found no double count against it (§C5).
 //
 // MKT / CFQ SKUs are filtered out per Q4(a) in
 // docs/phase-2/step-3-and-4-schema-and-algorithm.md. The caller is expected
@@ -38,20 +47,21 @@ import {
 //   2. excess capacity in driver dimension ASC — tighter fit wins (see ADR 0032).
 //   3. sku ASC — alphabetical for determinism.
 
-// Storage hard floor: chosen net-usable capacity must be ≥ 1.2× the required
-// net-usable storage. Camera soft floor: per-unit VSR load kept under ~91% of
-// rated VSR capacity.
-const STORAGE_FLOOR = 1.2;
+// Camera soft floor: per-unit VSR load kept under ~91% of rated VSR capacity.
+// This is the ONLY margin the recommender applies — the storage-side buffer is
+// the user-visible Max disk utilization cap, applied once in computeGroup.
 const VSR_FLOOR = 1.1;
 
 type EvalCandidate = RecommendationCandidate & { excess: number };
 
 function evaluate(spec: ServerSpec, input: RecommendationInput): EvalCandidate {
   const neededUsableTb = input.totalStorageGb / GB_PER_TB;
-  // Step 1 — storage sets the minimum config (net-usable, ×1.2 hard floor).
+  // Step 1 — storage sets the minimum config. neededUsableTb already carries the
+  // Max disk utilization buffer and the decimal→binary charge (ADR 0126/0127),
+  // so no multiplier is applied here.
   const unitsForStorage = Math.max(
     1,
-    Math.ceil((neededUsableTb * STORAGE_FLOOR) / spec.usableStorageTb),
+    Math.ceil(neededUsableTb / spec.usableStorageTb),
   );
   // Step 2 — VSR camera check (×1.1 soft floor) on the per-unit VSR capacity.
   const unitsForVsr = Math.max(

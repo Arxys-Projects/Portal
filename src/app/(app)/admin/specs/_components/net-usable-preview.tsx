@@ -15,7 +15,7 @@
 // invisible at the point of change and surfaced later in a rendered document.
 // This component moves the consequence to the moment of editing.
 
-import { usableCapacityTb } from "@/lib/capacity-utils";
+import { availableCapacityTb, usableCapacityTb } from "@/lib/capacity-utils";
 import { formatTb } from "@/lib/price-book/cell-value";
 
 export type CapacityInputs = {
@@ -146,6 +146,13 @@ export function NetUsablePreview({
             <DeltaBadge saved={savedPrimary} next={nextPrimary} />
           </div>
         ) : null}
+        {/* ADR 0127 — the same array as the VMS actually sees it, after the
+            decimal→binary conversion and the formatting allowance. This is the
+            number a partner compares against a Milestone proposal, so an editor
+            changing a spec row should see it move too. */}
+        {nextPrimary != null ? (
+          <Figure label="Available to the VMS" value={tb(availableCapacityTb(nextPrimary))} />
+        ) : null}
       </div>
 
       {next.raid_level_alt_display || savedAlt != null ? (
@@ -178,7 +185,11 @@ export function NetUsablePreview({
             <strong>new</strong> System Estimate PDF, Project Quote and Customer
             Proposal. It also changes <strong>which SKU the Calculator
             recommends</strong>. Documents already issued keep their stored
-            snapshot and are unaffected.
+            snapshot and are unaffected. <strong>Available to the VMS</strong> is
+            the same array once the decimal-to-binary conversion and the
+            filesystem allowance are charged (×0.8931) — that is the figure a
+            Milestone or Genetec proposal prints, and it is published so partners
+            can compare like for like.
           </>
         )}
       </p>

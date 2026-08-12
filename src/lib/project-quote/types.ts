@@ -66,6 +66,14 @@ export type ProjectQuoteSizing = {
   };
   storageTb: number;
   bandwidthMbps: number;
+  // Phase A of the calculator math rework (ADRs 0123–0128). Frozen so a quote
+  // states the sizing basis it was actually produced under, forever — a snapshot
+  // taken from a version-1 submission must never claim a 90% utilization cap it
+  // was never sized against. Read defensively: rows frozen before Phase A lack
+  // these fields entirely, so `?? 1` / `?? null` at every read site.
+  calcVersion?: number;
+  recordedStorageTb?: number | null;
+  maxDiskUtilizationPct?: number | null;
   // Camera schedule, one row per group: resolved labels plus Phase 10 fields.
   cameraSchedule: ProjectQuoteCameraRow[];
   // Recommended primary server summary (drives the page-1 capacity bars).

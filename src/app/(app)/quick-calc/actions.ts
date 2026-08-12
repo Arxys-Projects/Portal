@@ -7,7 +7,12 @@
 
 import { z } from "zod";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { RESOLUTIONS, CODECS, COMPLEXITIES } from "@/lib/calculator/tables";
+import {
+  RESOLUTIONS,
+  CODECS,
+  COMPLEXITIES,
+  UTILIZATION_DEFAULT_PCT,
+} from "@/lib/calculator/tables";
 import { computeGroup, vsrLoad, type GroupInput } from "@/lib/calculator/compute";
 import { QUICK_CALC_GROUP } from "@/lib/calculator/quick-calc";
 import { recommend } from "@/lib/recommend/algorithm";
@@ -32,7 +37,16 @@ export type QuickCalcPreview =
         coveredCameras: number;
         coveredStorageTb: number;
       };
-      totals: { cameras: number; bandwidthMbps: number; storageTb: number };
+      totals: {
+        cameras: number;
+        // Event peak, not a time-average (ADR 0125).
+        bandwidthMbps: number;
+        // Required decimal RAID-net capacity — buffer and binary charge in.
+        storageTb: number;
+        // Recorded footage only, the Milestone-comparable figure.
+        recordedStorageTb: number;
+      };
+      utilizationPct: number;
       warnings: string[];
     };
 
@@ -58,10 +72,14 @@ export async function quickCalcPreview(payload: unknown): Promise<QuickCalcPrevi
     codec: CODECS[QUICK_CALC_GROUP.codecIdx],
     complexity: COMPLEXITIES[QUICK_CALC_GROUP.complexityIdx],
     fps: QUICK_CALC_GROUP.fps,
+    recordingMode: QUICK_CALC_GROUP.recordingMode,
     recordingPercent: QUICK_CALC_GROUP.recordingPercent,
     motionPercent: QUICK_CALC_GROUP.motionPercent,
+    recordsAudioMetadata: QUICK_CALC_GROUP.recordsAudioMetadata,
   };
-  const computed = computeGroup(gi, retentionDays);
+  // Quick Calc is a fixed standard, so it pins the Max disk utilization default
+  // rather than exposing the slider (ADR 0082 + 0126).
+  const computed = computeGroup(gi, retentionDays, UTILIZATION_DEFAULT_PCT);
 
   const pool = await loadCandidateSpecs(supabase);
   if (pool.status === "db-error") {
@@ -95,7 +113,9 @@ export async function quickCalcPreview(payload: unknown): Promise<QuickCalcPrevi
         cameras,
         bandwidthMbps: computed.bandwidthMbps,
         storageTb: computed.storageGb / GB_PER_TB,
+        recordedStorageTb: computed.recordedStorageGb / GB_PER_TB,
       },
+      utilizationPct: UTILIZATION_DEFAULT_PCT,
       warnings: recommendation.warnings,
     };
   } catch (err) {

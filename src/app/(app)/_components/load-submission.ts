@@ -53,7 +53,8 @@ export async function loadSubmissionDetail(
     .from("submissions")
     .select(
       `id, project_name, cameras_count, resolution_code, codec, complexity, vms,
-       retention_days, bandwidth_mbps, storage_tb, recommended_product_id,
+       retention_days, bandwidth_mbps, storage_tb, recorded_storage_tb,
+       calc_version, max_disk_utilization_pct, recommended_product_id,
        recommended_units, total_list_price_usd, total_partner_price_usd,
        pipedrive_deal_id, created_at, groups_payload`,
     )
@@ -72,6 +73,12 @@ export async function loadSubmissionDetail(
     retention_days: data.retention_days,
     bandwidth_mbps: Number(data.bandwidth_mbps),
     storage_tb: Number(data.storage_tb),
+    // Phase A columns. Absent stamp = a row written before the column existed,
+    // which is by definition the pre-Phase-A sizing model (ADR 0126).
+    recorded_storage_tb:
+      data.recorded_storage_tb == null ? null : Number(data.recorded_storage_tb),
+    calc_version: data.calc_version ?? 1,
+    max_disk_utilization_pct: data.max_disk_utilization_pct,
     recommended_product_id: data.recommended_product_id,
     recommended_units: data.recommended_units,
     total_list_price_usd:

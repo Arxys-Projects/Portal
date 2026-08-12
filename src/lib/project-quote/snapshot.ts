@@ -132,6 +132,11 @@ export type SizingSubmissionRow = {
   cameras_count: number;
   bandwidth_mbps: number;
   storage_tb: number;
+  // Phase A columns (migration 20260812000001). Optional on the type as well as
+  // nullable in the DB, so a caller reading an older column set still compiles.
+  recorded_storage_tb?: number | null;
+  calc_version?: number | null;
+  max_disk_utilization_pct?: number | null;
   recommended_product_id: string | null;
   recommended_units: number;
   groups_payload: unknown;
@@ -324,6 +329,12 @@ export function buildSizingFromSubmission(input: {
     },
     storageTb: Number(submission.storage_tb),
     bandwidthMbps: Number(submission.bandwidth_mbps),
+    // Freeze the sizing basis with the numbers it produced (ADR 0126). An
+    // absent stamp is a pre-Phase-A submission by definition.
+    calcVersion: submission.calc_version ?? 1,
+    recordedStorageTb:
+      submission.recorded_storage_tb == null ? null : Number(submission.recorded_storage_tb),
+    maxDiskUtilizationPct: submission.max_disk_utilization_pct ?? null,
     cameraSchedule: buildCameraSchedule(submission.groups_payload),
     recommendation: {
       units,
