@@ -5,7 +5,20 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 ---
 
 
-## 2026-08-11 — Hanwha camera seed refresh from the August 2026 price list (ADRs 0120–0122)
+## 2026-08-12 — Calculator math audit, Phase 1 (findings + golden regression harness)
+
+### Work done
+
+- Full provenance audit of every constant, formula, and unit conversion in the camera→appliance path. Deliverable: [`docs/audits/calculator-math-audit.md`](./audits/calculator-math-audit.md) — provenance table (27 entries labeled VERIFIED/INHERITED/UNSOURCED), verdicts on the seven claims from the prior analysis session, answers to seven additional questions, the end-to-end conservatism stack, and errors ranked by dollar impact on a fixture deal. **No coefficients or formulas were changed** — Phase 1 is read-only by design; every proposed change is an open decision in §7 of the audit.
+- Landed a golden-file regression harness *before* any analysis: [`src/lib/calculator/golden.test.ts`](../src/lib/calculator/golden.test.ts) + `__golden__/` (112,320-row input matrix, a named five-scene/300-camera fixture, and a frozen 2026-08-12 snapshot of the live 18-SKU recommender pool). Any future math change now fails `npm test` with a line diff; deliberate changes regenerate with `UPDATE_GOLDEN=1 npm test`.
+- Headline findings: the Milestone anchor is real but was matched in binary Kbit against Milestone's decimal figure (engine sits +4.07% above the source, only +1.63% of it documented); the margin stack is ×1.581 raw-video→delivered-usable on the fixture (×1.897 to drive nameplate); no VMS documents anything near the 20% STORAGE_OVERHEAD; there is no way to represent H.265+smart compression (the costliest gap, ~−$14.7k on the fixture); fps linearity and unmodeled audio/metadata push the other way; the corrections roughly cancel on the fixture but move specific deal types by five figures.
+- Time-sensitive: the Milestone tool the anchor was audited against was replaced 2026-07-06 and is decommissioned 2026-10-01 — after that the 1966-series gate numbers become unfalsifiable (audit §7.6).
+
+### Detours & fixes
+
+- **The five-scene/300-camera fixture from the prior analysis session had no in-repo definition** — it was defined fresh in the harness (five groups spanning all complexity tiers, codecs, a 12 h/day group, and a multi-imager-style mix) and documented as the audit's canonical fixture.
+- **Milestone/Avigilon live tools could not be driven anonymously** (login-walled; XSD bitrate API returns 0). Verification fell back to their own client JS bundles (archived XSD bundle proved decimal Kbit; live Motorola SDT bundle proved the 3-detail×2-motion log-linear model) — stronger evidence than the tools' UIs would have been.
+
 
 ### Work done
 
