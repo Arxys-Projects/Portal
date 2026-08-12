@@ -214,7 +214,29 @@ These are decisions, not findings. No coefficient was changed in this phase.
 
 ---
 
-## 8. Regression harness (what landed with this audit)
+## 8. Addendum (2026-08-12, same day): live re-audit of Milestone Solution Designer
+
+Open question §7.6 was actioned immediately: the replacement tool (msd.milestonesys.com) was re-audited the same afternoon through Andy's authenticated session — Andy driving the UI with screenshots while the audit read the design's server-rendered state and client code from a second tab. Design used: fayetteville / Site Design 1. Results:
+
+**The anchor survives the tool migration — four of five values re-confirmed exactly.** At "4MP"/15 fps/H.265/Constant, the new tool produces Low **1966**, Medium **4424**, Medium-High **6637**, High **9832** — identical to the June 2026 XSD audit values (provenance table #1/#11). Medium-Low was not directly observed (its ladder position predicts 2950); the tool's Complexity Wizard confirms exactly five levels with example-scene UX. The gate test in [`compute.test.ts`](../../src/lib/calculator/compute.test.ts) therefore remains anchored to a *live, verifiable* reference — §C6's "permanently un-reauditable" concern is resolved.
+
+**Units re-confirmed decimal in live code.** The current client converts the UI's Kbit figure as `bitPerSec: value × 1000` (`toDataFlowFromKilobitsPerSecond`, camera-configurator-controller.js). Second independent confirmation of §C4's unit finding: the engine's binary-Kbit match against this decimal figure remains a +2.44% unintended bias.
+
+**Milestone itself scales fps sub-linearly (C1, from the anchor vendor).** A four-point sweep at Medium/4MP/H.265 gives 10 fps → **3062**, 12 → **3620**, 15 → **4424**, 18 → **5188**: exponents vs the 15 fps anchor of 0.908 / 0.899 / 0.874 — a consistent **b ≈ 0.90** across the 10–18 fps band (also holds on Low and High tiers: 1966→1609, 9832→8045 at 15→12). The Arxys engine applies linear 0.80 at 12 fps, under-sizing ~2.3% relative to its own reference tool — smaller than the 5–9% the measured-emission exponent 0.6 implies, but no longer hypothetical: the anchor tool is not linear. If Phase 2 adopts an fps exponent, **b = 0.9 is the value that preserves Milestone parity**; b ≈ 0.6–0.77 is what measured encoder emission supports (§C1) and quotes larger still.
+
+**Resolution scaling in the anchor tool is linear (C2).** 8MP (6400×1200) at Medium/15 = 8709 vs 4MP at 4424 → pixel exponent **1.015**. Supports keeping the linear pixel model.
+
+**The inherited H.264:H.265 ratio matches the live tool.** H.264/Low/12 fps = 2774 vs H.265/Low/12 fps = 1609 → ratio **1.724**, vs the engine's legacy-inherited 0.0634/0.037 = 1.714 (+0.6%). Provenance table #2 upgrades from "never validated" to "matches the live Milestone tool within 0.6% (2026-08-12)".
+
+**Motion is duty-cycle, not bitrate damping (C7, first-party).** Event mode at motion 70% leaves the data rate unchanged at every fps tested (e.g. 4424 at Medium/15 in both Constant and Event mode); the tool's own help text: Motion-Based Recording "records only when motion or events occur — enter expected motion %", plus a separate **Speedup** mode (low baseline FPS, e.g. 1 FPS keyframe recording, auto-raised during events). Confirms §C7: the reference tool models motion as recorded-time fraction with an optional two-rate baseline — not a `0.2 + 0.8·m` bitrate blend.
+
+**The capacity margin is an explicit, visible knob (C5).** MSD's server configuration exposes **Max. Disk Utilization**: default **70%** with a specific Husky IVO model selected (= ×1.43 headroom) and **90%** on auto-select (= ×1.11), plus Max. System Utilization 80%. This reframes §C5 rank 3: Arxys's stacked ×1.44 (1.2 overhead × 1.2 floor) matches Milestone's *most conservative* default almost exactly — the total margin is defensible against the reference tool; what remains unsupported is only the "database/indexes/filesystem" label on the first 1.2, and the fact that the margin is invisible rather than a user-facing assumption.
+
+**New caveat — the 4MP bucket moved.** MSD's "4MP" is now **2592×1520** (3.94 Mpx); the engine's table and the June audit anchor use 2560×1440 (3.69 Mpx). At bucket level the engine bills 2,046 decimal kbit/s where MSD says 1,966 (+4.1%, the known bias); per-pixel the gap is +11.2%. Any Phase-2 re-anchor should decide which "4MP" it means.
+
+**Still open from §7.6**: the Medium-Low rung (one dropdown flip away), and reverse-engineering MSD's end-to-end storage output (per-group TB on the proposal/summary screen) to confirm how hours × days × motion% × disk-utilization compose — worth capturing while the session is warm.
+
+## 9. Regression harness (what landed with this audit)
 
 [`src/lib/calculator/golden.test.ts`](../../src/lib/calculator/golden.test.ts) + [`src/lib/calculator/__golden__/`](../../src/lib/calculator/__golden__/): a 112,320-row golden matrix (every resolution × fps 5/10/12/15/20/30 × 3 codecs × 6 complexities × motion 0/25/50/75/100 × retention 7/30/60/90 × recording 100/50, at 100 cameras), the five-scene fixture with full-pool recommendation, and the frozen 2026-08-12 SKU pool. Runs with `npm test`; any math change fails with a line-diff summary; deliberate changes regenerate via `UPDATE_GOLDEN=1 npm test` and the diff ships with the change. Phase 2, whatever is decided in §7, lands against this.
 
