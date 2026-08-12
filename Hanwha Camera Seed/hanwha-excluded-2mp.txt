@@ -1,0 +1,117 @@
+ANE-L6012R	2MP Turret Camera
+ANO-L6012R	2MP IR Bullet
+ANO-L6022R	2MP IR Bullet
+ANO-L6082R	2MP IR Bullet
+ANV-L6012R	2MP IR Vandal Dome
+ANV-L6023R	2MP IR Vandal Dome
+ANV-L6082R	2MP IR Vandal Dome
+LND-6012R	2MP IR Dome
+LND-6022R	2MP IR Dome
+LNO-6012R	2MP IR Bullet
+PND-A6081RF	2MP IR Indoor Flush Mount Dome AI Camera
+PND-A6081RV	2MP IR Indoor Vandal Dome AI Camera
+PNO-A6081R	2MP IR Bullet AI camera
+PNV-A6081R	2MP IR Outdoor Vandal Dome AI Camera
+QND-6011	2MP Indoor Dome
+QND-6012R	2MP IR Indoor Dome
+QND-6012R1	2MP IR Indoor Dome
+QND-6021	2MP Indoor Dome
+QND-6022R	2MP IR Indoor Dome
+QND-6022R1	2MP IR Indoor Dome
+QND-6082R	2MP IR Indoor Dome
+QND-6082R1	2MP IR Indoor Dome
+QNO-6012R	2MP IR Bullet
+QNO-6012R1	2MP IR Bullet
+QNO-6022R	2MP IR Bullet
+QNO-6022R1	2MP IR Bullet
+QNO-6082R	2MP IR Bullet
+QNO-6082R1	2MP IR Bullet
+QNO-C6083R	2MP IR Bullet AI camera
+QNP-6250	2MP 25x PTZ
+QNP-6250H	2MP 25x PTZ
+QNP-6250R	2MP IR 25x PTZ
+QNP-6320	2MP 32x PTZ
+QNP-6320H	2MP 32x PTZ
+QNP-6320HS	2MP 32x PTZ
+QNP-6320R	2MP IR 32x PTZ
+QNV-6012R	2MP IR Outdoor Dome
+QNV-6012R1	2MP IR Outdoor Dome
+QNV-6022R	2MP IR Outdoor Dome
+QNV-6022R1	2MP IR Outdoor Dome
+QNV-6024RM	2M Mobile IR Flat Camera
+QNV-6082R	2MP IR Outdoor Dome
+QNV-6082R1	2MP IR Outdoor Dome
+QNV-C6083R	2MP IR Outdoor Vandal Dome AI Camera
+TNB-6030	PVM Camera
+TNO-6010M	Front Facing Mobile Camera
+TNP-A6550RW	2MP AI IR, Ruggedized PTZ Positioning Camera
+XNB-6000	2MP Box
+XNB-6001	2MP Covert Camera Main Module
+XNB-6002	2MP Covert Camera Main Module
+XNB-6003	2MP Box AI Camera
+XNB-A6004	2MP Box AI Camera
+XNB-H6240A	2MP Network ATM Camera Kit (L)
+XNB-H6241A	2MP Network ATM Camera Kit (L)
+XNB-H6244A	2MP Network ATM Camera Kit
+XNB-H6280B	2MP Bandit Barrier (L)
+XNB-H6282B	2MP Bandit Barrier (L)
+XNB-H6461H	2MP Pinhole Height Strip Camera Kit (L)
+XND-6010	2MP Indoor Vandal Dome
+XND-6011F	2MP Flush Mount 
+XND-6020R	2MP Indoor IR Vandal Dome
+XND-6080RV	2MP Indoor IR Vandal Dome
+XND-6080V	2MP Indoor Vandal Dome
+XND-6081REV	2MP Indoor Dome, PoE extender camera
+XND-6081RV	2MP IR Indoor Dome
+XND-6083RV	2MP IR Indoor Vandal Dome AI Camera
+XND-A6084RV	2MP IR Indoor Dome AI Camera
+XND-C6083RV	2MP IR Indoor Vandal Dome AI Camera
+XND-L6080RV	2MP Indoor IR Vandal Dome
+XND-L6080V	2MP Indoor Vandal Dome
+XNO-6010R	2MP IR Bullet
+XNO-6020R	2MP IR Bullet
+XNO-6080R	2MP IR Bullet
+XNO-6083R	2MP IR Bullet AI Camera
+XNO-6120R	2M 12X IR Bullet
+XNO-6120R/LPR	Low Speed LPR IR Bullet (L)
+XNO-6123R	2MP 12X IR Bullet
+XNO-A6084R	2MP IR Bullet AI Camera
+XNO-C6083R	2MP IR Bullet AI camera
+XNO-L6080R	2MP IR Bullet
+XNP-6040HW	2MP 4.3X PTZ
+XNP-6120HW	2MP 12X PTZ
+XNP-6400	2MP, 40x PTZ camera
+XNP-6400R	2MP, 40x, IR PTZ camera
+XNP-6400RW	2MP IR, Wiper PTZ
+XNP-6550RH	2MP IR 55x PTZ
+XNP-C6403	2MP AI PTZ
+XNP-C6403R	2MP AI IR PTZ
+XNP-C6403RW	2MP AI IR, Wiper PTZ
+XNV-6010	2MP Outdoor Dome
+XNV-6011	2MP Compact Vandal Dome
+XNV-6011W	2MP Compact Vandal Dome
+(White Color)
+XNV-6012	2MP Mobile Vandal Dome
+XNV-6012M	2MP Mobile Vandal Dome
+XNV-6013M	2MP Mobile Vandal Dome
+XNV-6020R	2MP IR Outdoor Dome
+XNV-6022R	2MP Mobile Vandal Dome
+XNV-6022RM	2MP Mobile Vandal Dome
+XNV-6080	2MP Outdoor Dome
+XNV-6080R	2MP IR Outdoor Dome
+XNV-6080RSA	2MP Stainless Steel IR Dome
+XNV-6081R	2MP IR Outdoor Dome
+XNV-6081RE	2MP Outdoor Dome, PoE extender camera
+XNV-6083R	2MP IR Outdoor Vandal Dome AI Camera
+XNV-6083RZ	2MP IR Outdoor Vandal Dome AI, PTRZ Camera 
+XNV-6085	eXtraLUX Outdoor PTRZ Dome
+XNV-6120	2M 12X Outdoor Dome
+XNV-6120R	2M 12X IR outdoor Dome
+XNV-6120R/LPR	Low Speed LPR Outdoor IR Dome (L)
+XNV-6123R	2MP 12X IR outdoor Dome
+XNV-A6016R	2MP IR Compact Outdoor Vandal Dome AI Camera
+XNV-A6084R	2MP IR Outdoor Vandal Dome AI Camera
+XNV-C6083R	2MP IR Outdoor Vandal Dome AI Camera
+XNV-L6080	2MP Outdoor Dome
+XNZ-6320A	2MP 32x Zoom Box
+XNZ-L6320A	2MP 32x Zoom Box

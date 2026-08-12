@@ -1,0 +1,2480 @@
+[
+  {
+    "model": "TNB-9000",
+    "ok": true,
+    "max_width": 7680,
+    "max_height": 4320,
+    "mp": 33.18,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 7680,
+        "height": 4320,
+        "full_list": "7680x4320, 7360x4128, 6016x4008, 6016x3384, 5472x3648, 4768x3184, 4608x2592, 3840x2160, 1920x1080, 1280x1024, 1280x960, 1280x720, 1024x768, 800x600, 800x448, 720x576, 720x480, 640x"
+      }
+    ],
+    "title": "TNB-9000 \u2014 8K AI Box Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/tnb-9000"
+  },
+  {
+    "model": "TNO-A26081",
+    "ok": true,
+    "max_width": 6240,
+    "max_height": 4160,
+    "mp": 25.96,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 6240,
+        "height": 4160,
+        "full_list": "6240x4160, 3840x2160, 2880x1920, 1920x1080, 1600x1200, 1440x960, 1280x800, 1280x720, 1024x768, 720x480, 640x480"
+      }
+    ],
+    "title": "TNO-A26081 \u2014 26MP AI Bullet Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/tno-a26081"
+  },
+  {
+    "model": "PNB-A9082",
+    "ok": true,
+    "max_width": 3840,
+    "max_height": 2160,
+    "mp": 8.29,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 3840,
+        "height": 2160,
+        "full_list": "3840x2160, 3328x1872, 3072x1728, 2688x1512, 2592x1944, 2560x1440, 1920x1080, 1600x1200, 1280x960, 1280x720, 1024x768, 800x600, 640x480, 640x360, 320x240, 320x180"
+      }
+    ],
+    "title": "PNB-A9082 \u2014 8MP Box AI camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/pnb-a9082"
+  },
+  {
+    "model": "PNB-A9092",
+    "ok": true,
+    "max_width": 3840,
+    "max_height": 2160,
+    "mp": 8.29,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 3840,
+        "height": 2160,
+        "full_list": "3840x2160, 3328x1872, 3072x1728, 2688x1512, 2592x1944, 2560x1440, 1920x1080, 1600x1200, 1280x960, 1280x720, 1024x768, 800x600, 640x480, 640x360, 320x240, 320x180"
+      }
+    ],
+    "title": "PNB-A9092 \u2014 8MP Box AI camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/pnb-a9092"
+  },
+  {
+    "model": "PND-A9081RF",
+    "ok": true,
+    "max_width": 3840,
+    "max_height": 2160,
+    "mp": 8.29,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 3840,
+        "height": 2160,
+        "full_list": "3840x2160, 3072x1728, 2688x1520, 2592x1944, 2560x1440, 2048x1536, 1920x1080, 1600x1200, 1280x1024, 1280x960, 1280x720, 1024x768, 800x600, 800x448, 720x576, 720x480, 640x480, 640x36"
+      }
+    ],
+    "title": "PND-A9081RF \u2014 4K IR Indoor Flush Mount Dome AI Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/pnd-a9081rf"
+  },
+  {
+    "model": "PND-A9081RV",
+    "ok": true,
+    "max_width": 3840,
+    "max_height": 2160,
+    "mp": 8.29,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 3840,
+        "height": 2160,
+        "full_list": "3840x2160, 3072x1728, 2688x1520, 2592x1944, 2560x1440, 2048x1536, 1920x1080, 1600x1200, 1280x1024, 1280x960, 1280x720, 1024x768, 800x600, 800x448, 720x576, 720x480, 640x480, 640x36"
+      }
+    ],
+    "title": "PND-A9081RV \u2014 4K IR Indoor Vandal Dome AI Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/pnd-a9081rv"
+  },
+  {
+    "model": "PND-A9081RVX",
+    "ok": true,
+    "max_width": 3840,
+    "max_height": 2160,
+    "mp": 8.29,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 3840,
+        "height": 2160,
+        "full_list": "3840x2160, 3072x1728, 2688x1520, 2592x1944, 2560x1440, 2048x1536, 1920x1080, 1600x1200, 1280x1024, 1280x960, 1280x720, 1024x768, 800x600, 800x448, 720x576, 720x480, 640x480, 640x36"
+      }
+    ],
+    "title": "PND-A9081RVX \u2014 4K AI IR Indoor Camera Module",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/pnd-a9081rvx"
+  },
+  {
+    "model": "PND-A9082RV",
+    "ok": true,
+    "max_width": 3840,
+    "max_height": 2160,
+    "mp": 8.29,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 3840,
+        "height": 2160,
+        "full_list": "3840x2160, 3328x1872, 3072x1728, 2688x1512, 2592x1944, 2560x1440, 1920x1080, 1600x1200, 1280x960, 1280x720, 1024x768, 800x600, 640x480, 640x360, 320x240, 320x180"
+      }
+    ],
+    "title": "PND-A9082RV \u2014 8MP AI IR Modular Indoor Dome Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/pnd-a9082rv"
+  },
+  {
+    "model": "PNM-9031RV",
+    "ok": true,
+    "max_width": 6720,
+    "max_height": 2240,
+    "mp": 15.05,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 6720,
+        "height": 2240,
+        "full_list": "6720x2240, 5952x1984, 4992x1664, 3840x1280, 3072x1024, 1920x640, 1152x384"
+      }
+    ],
+    "title": "PNM-9031RV \u2014 15MP Panoramic Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/pnm-9031rv"
+  },
+  {
+    "model": "PNM-A13022RV",
+    "ok": true,
+    "max_width": 5120,
+    "max_height": 2592,
+    "mp": 13.27,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 5120,
+        "height": 2592,
+        "full_list": "5120x2592, 4112x2080, 3240x1640, 2940x1488, 2560x1296, 2016x1016, 1600x800, 1424x720, 1280x648, 1016x512, 832x480, 832x416, 800x600, 640x480"
+      }
+    ],
+    "title": "PNM-A13022RV \u2014 13MP AI IR Multi-sensor Panoramic Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/pnm-a13022rv"
+  },
+  {
+    "model": "PNM-C9022RV",
+    "ok": true,
+    "max_width": 5120,
+    "max_height": 1568,
+    "mp": 8.03,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 5120,
+        "height": 1568,
+        "full_list": "5120x1568, 3648x1152, 2560x784, 1280x392"
+      }
+    ],
+    "title": "PNM-C9022RV \u2014 8MP AI IR Panoramic Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/pnm-c9022rv"
+  },
+  {
+    "model": "PNO-A9081R",
+    "ok": true,
+    "max_width": 3840,
+    "max_height": 2160,
+    "mp": 8.29,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 3840,
+        "height": 2160,
+        "full_list": "3840x2160, 3072x1728, 2688x1520, 2592x1944, 2560x1440, 2048x1536, 1920x1080, 1600x1200, 1280x1024, 1280x960, 1280x720, 1024x768, 800x600, 800x448, 720x576, 720x480, 640x480, 640x36"
+      }
+    ],
+    "title": "PNO-A9081R \u2014 4K AI IR Bullet Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/pno-a9081r"
+  },
+  {
+    "model": "PNO-A9082R",
+    "ok": true,
+    "max_width": 3840,
+    "max_height": 2160,
+    "mp": 8.29,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 3840,
+        "height": 2160,
+        "full_list": "3840x2160, 3328x1872, 3072x1728, 2688x1512, 2592x1944, 2560x1440, 1920x1080, 1600x1200, 1280x960, 1280x720, 1024x768, 800x600, 640x480, 640x360, 320x240, 320x180"
+      }
+    ],
+    "title": "PNO-A9082R \u2014 8MP IR Bullet AI Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/pno-a9082r"
+  },
+  {
+    "model": "PNO-A9092R",
+    "ok": true,
+    "max_width": 3840,
+    "max_height": 2160,
+    "mp": 8.29,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 3840,
+        "height": 2160,
+        "full_list": "3840x2160, 3328x1872, 3072x1728, 2688x1512, 2592x1944, 2560x1440, 1920x1080, 1600x1200, 1280x960, 1280x720, 1024x768, 800x600, 640x480, 640x360, 320x240, 320x180"
+      }
+    ],
+    "title": "PNO-A9092R \u2014 8MP IR Bullet AI Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/pno-a9092r"
+  },
+  {
+    "model": "PNO-A9311R",
+    "ok": true,
+    "max_width": 3840,
+    "max_height": 2160,
+    "mp": 8.29,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 3840,
+        "height": 2160,
+        "full_list": "3840x2160, 3072x1728, 2688x1520, 2592x1944, 2560x1440, 2048x1536, 1920x1080, 1600x1200, 1280x1024, 1280x960, 1280x720, 1024x768, 800x600, 800x448, 720x576, 720x480, 640x480, 640x36"
+      }
+    ],
+    "title": "PNO-A9311R \u2014 4K AI IR 31x Zoom Bullet Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/pno-a9311r"
+  },
+  {
+    "model": "PNV-A9081R",
+    "ok": true,
+    "max_width": 3840,
+    "max_height": 2160,
+    "mp": 8.29,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 3840,
+        "height": 2160,
+        "full_list": "3840x2160, 3072x1728, 2688x1520, 2592x1944, 2560x1440, 2048x1536, 1920x1080, 1600x1200, 1280x1024, 1280x960, 1280x720, 1024x768, 800x600, 800x448, 720x576, 720x480, 640x480, 640x36"
+      }
+    ],
+    "title": "PNV-A9081R \u2014 4K AI IR Vandal Dome",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/pnv-a9081r"
+  },
+  {
+    "model": "PNV-A9081RX",
+    "ok": true,
+    "max_width": 3840,
+    "max_height": 2160,
+    "mp": 8.29,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 3840,
+        "height": 2160,
+        "full_list": "3840x2160, 3072x1728, 2688x1520, 2592x1944, 2560x1440, 2048x1536, 1920x1080, 1600x1200, 1280x1024, 1280x960, 1280x720, 1024x768, 800x600, 800x448, 720x576, 720x480, 640x480, 640x36"
+      }
+    ],
+    "title": "PNV-A9081RX \u2014 4K AI IR Outdoor Vandal Dome Module*",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/pnv-a9081rx"
+  },
+  {
+    "model": "PNV-A9082RZ",
+    "ok": true,
+    "max_width": 3840,
+    "max_height": 2160,
+    "mp": 8.29,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 3840,
+        "height": 2160,
+        "full_list": "3840x2160, 3328x1872, 3072x1728, 2688x1512, 2592x1944, 2560x1440, 1920x1080, 1600x1200, 1280x960, 1280x720, 1024x768, 800x600, 640x480, 640x360, 320x240, 320x180"
+      }
+    ],
+    "title": "PNV-A9082RZ \u2014 8MP IR Outdoor Vandal Dome AI, PTRZ Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/pnv-a9082rz"
+  },
+  {
+    "model": "QNF-C9010",
+    "ok": true,
+    "max_width": 3584,
+    "max_height": 2688,
+    "mp": 9.63,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 3584,
+        "height": 2688,
+        "full_list": "3584x2688, 3584x1792, 3584x896, 3008x3008, 2560x2560, 2048x1536, 1920x1920, 1920x960, 1920x480, 1792x1344, 1504x1504, 1280x1280, 1280x640, 1280x320, 1024x768, 1024x512, 1024x256, 8"
+      }
+    ],
+    "title": "QNF-C9010 \u2014 12MP AI Indoor Fisheye Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/qnf-c9010"
+  },
+  {
+    "model": "QNF-C9010V",
+    "ok": true,
+    "max_width": 3584,
+    "max_height": 2688,
+    "mp": 9.63,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 3584,
+        "height": 2688,
+        "full_list": "3584x2688, 3584x1792, 3584x896, 3008x3008, 2560x2560, 2048x1536, 1920x1920, 1920x960, 1920x480, 1792x1344, 1504x1504, 1280x1280, 1280x640, 1280x320, 1024x768, 1024x512, 1024x256, 8"
+      }
+    ],
+    "title": "QNF-C9010V \u2014 12MP Outdoor AI Fisheye Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/qnf-c9010v"
+  },
+  {
+    "model": "QNO-C9083R",
+    "ok": true,
+    "max_width": 3840,
+    "max_height": 2160,
+    "mp": 8.29,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 3840,
+        "height": 2160,
+        "full_list": "3840x2160, 3328x1872, 3072x1728, 2688x1520, 2592x1944, 1920x1080, 1600x1200, 1280x1024, 1280x960, 1280x720, 1024x768, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "QNO-C9083R \u2014 4K AI IR Bullet Camera with Varifocal lens",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/qno-c9083r"
+  },
+  {
+    "model": "QNV-C9011R",
+    "ok": true,
+    "max_width": 3840,
+    "max_height": 2160,
+    "mp": 8.29,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 3840,
+        "height": 2160,
+        "full_list": "3840x2160, 3328x1872, 3072x1728, 2688x1520, 2592x1944, 1920x1080, 1600x1200, 1280x1024, 1280x960, 1280x720, 1024x768, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "QNV-C9011R \u2014 4K AI IR Mini Vandal Dome",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/qnv-c9011r"
+  },
+  {
+    "model": "TNP-A9430RW",
+    "ok": true,
+    "max_width": 3840,
+    "max_height": 2160,
+    "mp": 8.29,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 3840,
+        "height": 2160,
+        "full_list": "3840x2160, 3328x1872, 2592x1944, 2592x1464, 1920x1080, 1600x1200, 1280x1024, 1280x960, 1280x720, 1024x768, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "TNP-A9430RW \u2014 4K AI IR, Ruggedized PTZ Positioning Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/tnp-a9430rw"
+  },
+  {
+    "model": "TNS-9040IBC",
+    "ok": false,
+    "error": "no Resolution spec row",
+    "title": "TNS-9040IBC \u2014 4K Dual Sensor BCR Camera"
+  },
+  {
+    "model": "TNS-9050IBC",
+    "ok": false,
+    "error": "no Resolution spec row",
+    "title": "TNS-9050IBC \u2014 Barcode Reader Camera"
+  },
+  {
+    "model": "TNS-9060IBC",
+    "ok": false,
+    "error": "no Resolution spec row",
+    "title": "TNS-9060IBC \u2014 4K Dual Sensor BCR Camera"
+  },
+  {
+    "model": "XNB-A9004",
+    "ok": true,
+    "max_width": 3840,
+    "max_height": 2160,
+    "mp": 8.29,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 3840,
+        "height": 2160,
+        "full_list": "3840x2160, 3328x1872, 3072x1728, 2688x1512, 2592x1944, 2560x1440, 1920x1080, 1600x1200, 1280x960, 1280x720, 1024x768, 800x600, 640x480, 640x360, 320x240, 320x180"
+      }
+    ],
+    "title": "XNB-A9004 \u2014 4K Box AI Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/xnb-a9004"
+  },
+  {
+    "model": "XND-9082RF",
+    "ok": true,
+    "max_width": 3840,
+    "max_height": 2160,
+    "mp": 8.29,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 3840,
+        "height": 2160,
+        "full_list": "3840x2160, 3328x1872, 3072x1728, 2688x1520, 2592x1944, 1920x1080, 1600x1200, 1280x1024, 1280x960, 1280x720, 1024x768, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "XND-9082RF \u2014 4K Flush Mount IR Network Dome Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/xnd-9082rf"
+  },
+  {
+    "model": "XND-9082RV",
+    "ok": true,
+    "max_width": 3840,
+    "max_height": 2160,
+    "mp": 8.29,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 3840,
+        "height": 2160,
+        "full_list": "3840x2160, 3328x1872, 3072x1728, 2688x1520, 2592x1944, 1920x1080, 1600x1200, 1280x1024, 1280x960, 1280x720, 1024x768, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "XND-9082RV \u2014 4K Vandal-Resistant Indoor IR Network Dome Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/xnd-9082rv"
+  },
+  {
+    "model": "XND-9083RV",
+    "ok": true,
+    "max_width": 3840,
+    "max_height": 2160,
+    "mp": 8.29,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 3840,
+        "height": 2160,
+        "full_list": "3840x2160, 3328x1872, 3072x1728, 2688x1520, 2592x1944, 1920x1080, 1600x1200, 1280x1024, 1280x960, 1280x720, 1024x768, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "XND-9083RV \u2014 4K AI IR Indoor Vandal Dome Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/xnd-9083rv"
+  },
+  {
+    "model": "XND-A9084RV",
+    "ok": true,
+    "max_width": 3840,
+    "max_height": 2160,
+    "mp": 8.29,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 3840,
+        "height": 2160,
+        "full_list": "3840x2160, 3328x1872, 3072x1728, 2688x1512, 2560x1440, 1920x1080, 1600x1200, 1280x960, 1280x720, 1024x768, 800x600, 640x480, 640x360, 320x240, 320x180"
+      }
+    ],
+    "title": "XND-A9084RV \u2014 8MP AI IR Dome Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/xnd-a9084rv"
+  },
+  {
+    "model": "XND-A9085RV",
+    "ok": true,
+    "max_width": 3840,
+    "max_height": 2160,
+    "mp": 8.29,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 3840,
+        "height": 2160,
+        "full_list": "3840x2160, 3328x1872, 3072x1728, 2688x1512, 2592x1944, 2560x1440, 1920x1080, 1600x1200, 1280x960, 1280x720, 1024x768, 800x600, 640x480, 640x360, 320x240, 320x180"
+      }
+    ],
+    "title": "XND-A9085RV \u2014 8MP IR Indoor Dome AI Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/xnd-a9085rv"
+  },
+  {
+    "model": "XND-C9083RV",
+    "ok": true,
+    "max_width": 3840,
+    "max_height": 2160,
+    "mp": 8.29,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 3840,
+        "height": 2160,
+        "full_list": "3840x2160, 3328x1872, 3072x1728, 2688x1520, 2592x1944, 1920x1080, 1600x1200, 1280x1024, 1280x960, 1280x720, 1024x768, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "XND-C9083RV \u2014 4K IR Indoor Vandal Dome AI Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/xnd-c9083rv"
+  },
+  {
+    "model": "XNF-9010RS",
+    "ok": true,
+    "max_width": 3840,
+    "max_height": 2160,
+    "mp": 8.29,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 3840,
+        "height": 2160,
+        "full_list": "3840x2160, 3584x2688, 3584x1792, 3584x896, 3008x3008, 1920x960, 1920x480, 1792x1344, 1792x896, 1504x1504, 1080x1080, 1024x768, 960x960, 800x600, 768x768, 720x720, 704x576, 640x640,"
+      }
+    ],
+    "title": "XNF-9010RS \u2014 12MP Stainless Steel IR Fisheye Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/xnf-9010rs"
+  },
+  {
+    "model": "XNF-9010RVM",
+    "ok": true,
+    "max_width": 3584,
+    "max_height": 2688,
+    "mp": 9.63,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 3584,
+        "height": 2688,
+        "full_list": "3584x2688, 3584x1792, 3584x896, 3008x3008, 1792x1344, 1504x1504, 1080x1080, 960x960, 768x768, 720x720, 640x640, 640x480, 640x320, 640x160, 480x480"
+      }
+    ],
+    "title": "XNF-9010RVM \u2014 X series 12 MP sensor 360\u00b0 Outdoor Fisheye (Mobile)",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/xnf-9010rvm"
+  },
+  {
+    "model": "XNF-9013RV",
+    "ok": true,
+    "max_width": 3584,
+    "max_height": 2688,
+    "mp": 9.63,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 3584,
+        "height": 2688,
+        "full_list": "3584x2688, 3584x1792, 3584x896, 3008x3008, 1920x960, 1920x480, 1792x1344, 1792x896, 1504x1504, 1080x1080, 1024x768, 960x960, 800x600, 768x768, 720x720, 704x576, 640x640, 640x480, 6"
+      }
+    ],
+    "title": "XNF-9013RV \u2014 12MP AI IR Fisheye Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/xnf-9013rv"
+  },
+  {
+    "model": "XNF-A9014R",
+    "ok": true,
+    "max_width": 3584,
+    "max_height": 2688,
+    "mp": 9.63,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 3584,
+        "height": 2688,
+        "full_list": "3584x2688, 3584x1792, 3584x896, 3536x3536, 3008x3008, 2560x2560, 2560x1920, 2560x1280, 2560x640, 1920x960, 1920x480, 1792x1344, 1600x1600, 1280x1280, 1280x960, 1280x640, 1280x320, "
+      }
+    ],
+    "title": "XNF-A9014R \u2014 12MP AI IR Fisheye Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/xnf-a9014r"
+  },
+  {
+    "model": "XNF-A9014RV",
+    "ok": true,
+    "max_width": 3584,
+    "max_height": 2688,
+    "mp": 9.63,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 3584,
+        "height": 2688,
+        "full_list": "3584x2688, 3584x1792, 3584x896, 3536x3536, 3008x3008, 2560x2560, 2560x1920, 2560x1280, 2560x640, 1920x960, 1920x480, 1792x1344, 1600x1600, 1280x1280, 1280x960, 1280x640, 1280x320, "
+      }
+    ],
+    "title": "XNF-A9014RV \u2014 12MP AI IR Fisheye Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/xnf-a9014rv"
+  },
+  {
+    "model": "XNO-9082R",
+    "ok": true,
+    "max_width": 3840,
+    "max_height": 2160,
+    "mp": 8.29,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 3840,
+        "height": 2160,
+        "full_list": "3840x2160, 3328x1872, 3072x1728, 2688x1520, 2592x1944, 1920x1080, 1600x1200, 1280x1024, 1280x960, 1280x720, 1024x768, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "XNO-9082R \u2014 4K Network IR Bullet Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/xno-9082r"
+  },
+  {
+    "model": "XNP-9300RW",
+    "ok": true,
+    "max_width": 3840,
+    "max_height": 2160,
+    "mp": 8.29,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 3840,
+        "height": 2160,
+        "full_list": "3840x2160, 2592x1944, 2592x1464, 1920x1080, 1600x1200, 1280x1024, 1280x960, 1280x720, 1024x768, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "XNP-9300RW \u2014 4K 30x IR Wiper PTZ Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/xnp-9300rw"
+  },
+  {
+    "model": "XNP-C9253",
+    "ok": true,
+    "max_width": 3840,
+    "max_height": 2160,
+    "mp": 8.29,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 3840,
+        "height": 2160,
+        "full_list": "3840x2160, 2592x1944, 2592x1464, 1920x1080, 1600x1200, 1280x1024, 1280x960, 1280x720, 1024x768, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "XNP-C9253 \u2014 4K 25x AI PTZ PLUS Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/xnp-c9253"
+  },
+  {
+    "model": "XNP-C9253R",
+    "ok": true,
+    "max_width": 3840,
+    "max_height": 2160,
+    "mp": 8.29,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 3840,
+        "height": 2160,
+        "full_list": "3840x2160, 2592x1944, 2592x1464, 1920x1080, 1600x1200, 1280x1024, 1280x960, 1280x720, 1024x768, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "XNP-C9253R \u2014 4K 25x AI IR PTZ PLUS Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/xnp-c9253r"
+  },
+  {
+    "model": "XNP-C9303RW",
+    "ok": true,
+    "max_width": 3840,
+    "max_height": 2160,
+    "mp": 8.29,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 3840,
+        "height": 2160,
+        "full_list": "3840x2160, 2592x1944, 2592x1464, 1920x1080, 1600x1200, 1280x1024, 1280x960, 1280x720, 1024x768, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "XNP-C9303RW \u2014 4K 30x AI IR Wiper PTZ PLUS Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/xnp-c9303rw"
+  },
+  {
+    "model": "XNP-C9310R",
+    "ok": true,
+    "max_width": 3840,
+    "max_height": 2160,
+    "mp": 8.29,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 3840,
+        "height": 2160,
+        "full_list": "3840x2160, 2592x1944, 2592x1464, 1920x1080, 1600x1200, 1280x1024, 1280x960, 1280x720, 1024x768, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "XNP-C9310R \u2014 4K 31x AI FOCUS IR PTZ Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/xnp-c9310r"
+  },
+  {
+    "model": "XNV-9082R",
+    "ok": true,
+    "max_width": 3840,
+    "max_height": 2160,
+    "mp": 8.29,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 3840,
+        "height": 2160,
+        "full_list": "3840x2160, 3328x1872, 3072x1728, 2688x1520, 2592x1944, 1920x1080, 1600x1200, 1280x1024, 1280x960, 1280x720, 1024x768, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "XNV-9082R \u2014 4K Vandal-Resistant IR Outdoor Network Dome Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/xnv-9082r"
+  },
+  {
+    "model": "XNV-9083RZ",
+    "ok": true,
+    "max_width": 3840,
+    "max_height": 2160,
+    "mp": 8.29,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 3840,
+        "height": 2160,
+        "full_list": "3840x2160, 3328x1872, 3072x1728, 2688x1520, 2592x1944, 1920x1080, 1600x1200, 1280x1024, 1280x960, 1280x720, 1024x768, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "XNV-9083RZ \u2014 4K AI IR PTRZ Vandal Dome Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/xnv-9083rz"
+  },
+  {
+    "model": "XNV-A9016R",
+    "ok": true,
+    "max_width": 3840,
+    "max_height": 2160,
+    "mp": 8.29,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 3840,
+        "height": 2160,
+        "full_list": "3840x2160, 3328x1872, 3072x1728, 2688x1512, 2560x1440, 1920x1080, 1600x1200, 1280x960, 1280x720, 1024x768, 800x600, 640x480, 640x360, 320x240, 320x180"
+      }
+    ],
+    "title": "XNV-A9016R \u2014 4K Outdoor Compact IR Network Dome Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/xnv-a9016r"
+  },
+  {
+    "model": "XNV-A9084RS",
+    "ok": true,
+    "max_width": 3840,
+    "max_height": 2160,
+    "mp": 8.29,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 3840,
+        "height": 2160,
+        "full_list": "3840x2160, 3328x1872, 3072x1728, 2688x1512, 2592x1944, 2560x1440, 1920x1080, 1600x1200, 1280x960, 1280x720, 1024x768, 800x600, 640x480, 640x360, 320x240, 320x180"
+      }
+    ],
+    "title": "XNV-A9084RS \u2014 8MP Stainless Steel AI IR Vandal Dome Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/xnv-a9084rs"
+  },
+  {
+    "model": "XNV-A9085R",
+    "ok": true,
+    "max_width": 3840,
+    "max_height": 2160,
+    "mp": 8.29,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 3840,
+        "height": 2160,
+        "full_list": "3840x2160, 3328x1872, 3072x1728, 2688x1512, 2592x1944, 2560x1440, 1920x1080, 1600x1200, 1280x960, 1280x720, 1024x768, 800x600, 640x480, 640x360, 320x240, 320x180"
+      }
+    ],
+    "title": "XNV-A9085R \u2014 8MP IR Outdoor Vandal Dome AI Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/xnv-a9085r"
+  },
+  {
+    "model": "XND-8082RF",
+    "ok": true,
+    "max_width": 3328,
+    "max_height": 1872,
+    "mp": 6.23,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 3328,
+        "height": 1872,
+        "full_list": "3328x1872, 3072x1728, 2688x1520, 2592x1944, 1920x1080, 1600x1200, 1280x1024, 1280x960, 1280x720, 1024x768, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "XND-8082RF \u2014 6MP Flush Mount IR Network Dome Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/xnd-8082rf"
+  },
+  {
+    "model": "XND-8082RV",
+    "ok": true,
+    "max_width": 3328,
+    "max_height": 1872,
+    "mp": 6.23,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 3328,
+        "height": 1872,
+        "full_list": "3328x1872, 3072x1728, 2688x1520, 2592x1944, 1920x1080, 1600x1200, 1280x1024, 1280x960, 1280x720, 1024x768, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "XND-8082RV \u2014 6MP Vandal-Resistant Indoor IR Network Dome Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/xnd-8082rv"
+  },
+  {
+    "model": "XND-8083RV",
+    "ok": true,
+    "max_width": 3328,
+    "max_height": 1872,
+    "mp": 6.23,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 3328,
+        "height": 1872,
+        "full_list": "3328x1872, 3072x1728, 2688x1520, 2592x1944, 1920x1080, 1600x1200, 1280x1024, 1280x960, 1280x720, 1024x768, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "XND-8083RV \u2014 6MP IR Indoor Vandal Dome AI Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/xnd-8083rv"
+  },
+  {
+    "model": "XND-8083RVX",
+    "ok": true,
+    "max_width": 3328,
+    "max_height": 1872,
+    "mp": 6.23,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 3328,
+        "height": 1872,
+        "full_list": "3328x1872, 3072x1728, 2688x1520, 2592x1944, 1920x1080, 1600x1200, 1280x1024, 1280x960, 1280x720, 1024x768, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "XND-8083RVX \u2014 6MP AI IR Indoor Camera Module",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/xnd-8083rvx"
+  },
+  {
+    "model": "XND-8093RV",
+    "ok": true,
+    "max_width": 3328,
+    "max_height": 1872,
+    "mp": 6.23,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 3328,
+        "height": 1872,
+        "full_list": "3328x1872, 3072x1728, 2688x1520, 2592x1944, 1920x1080, 1600x1200, 1280x1024, 1280x960, 1280x720, 1024x768, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "XND-8093RV \u2014 6MP IR Indoor Vandal Dome AI Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/xnd-8093rv"
+  },
+  {
+    "model": "XND-C8083RV",
+    "ok": true,
+    "max_width": 3328,
+    "max_height": 1872,
+    "mp": 6.23,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 3328,
+        "height": 1872,
+        "full_list": "3328x1872, 3072x1728, 2688x1520, 2592x1944, 1920x1080, 1600x1200, 1280x1024, 1280x960, 1280x720, 1024x768, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "XND-C8083RV \u2014 6MP IR Indoor Vandal Dome AI Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/xnd-c8083rv"
+  },
+  {
+    "model": "XNF-A8014R",
+    "ok": true,
+    "max_width": 2560,
+    "max_height": 2560,
+    "mp": 6.55,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 2560,
+        "height": 2560,
+        "full_list": "2560x2560, 2560x1920, 2560x1280, 2560x640, 1920x960, 1920x480, 1792x1344, 1600x1600, 1280x1280, 1280x960, 1280x640, 1280x320, 1024x768, 1024x512, 1024x256, 800x800, 800x600, 640x64"
+      }
+    ],
+    "title": "XNF-A8014R \u2014 6MP AI IR Fisheye Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/xnf-a8014r"
+  },
+  {
+    "model": "XNF-A8014RV",
+    "ok": true,
+    "max_width": 2560,
+    "max_height": 2560,
+    "mp": 6.55,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 2560,
+        "height": 2560,
+        "full_list": "2560x2560, 2560x1920, 2560x1280, 2560x640, 1920x960, 1920x480, 1792x1344, 1600x1600, 1280x1280, 1280x960, 1280x640, 1280x320, 1024x768, 1024x512, 1024x256, 800x800, 800x600, 640x64"
+      }
+    ],
+    "title": "XNF-A8014RV \u2014 6MP AI IR Fisheye Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/xnf-a8014rv"
+  },
+  {
+    "model": "XNO-8083R",
+    "ok": true,
+    "max_width": 3328,
+    "max_height": 1872,
+    "mp": 6.23,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 3328,
+        "height": 1872,
+        "full_list": "3328x1872, 3072x1728, 2688x1520, 2592x1944, 1920x1080, 1600x1200, 1280x1024, 1280x960, 1280x720, 1024x768, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "XNO-8083R \u2014 6MP IR Bullet AI Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/xno-8083r"
+  },
+  {
+    "model": "XNO-C8083R",
+    "ok": true,
+    "max_width": 3328,
+    "max_height": 1872,
+    "mp": 6.23,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 3328,
+        "height": 1872,
+        "full_list": "3328x1872, 3072x1728, 2688x1520, 2592x1944, 1920x1080, 1600x1200, 1280x1024, 1280x960, 1280x720, 1024x768, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "XNO-C8083R \u2014 6MP IR Bullet AI Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/xno-c8083r"
+  },
+  {
+    "model": "XNP-C8253",
+    "ok": true,
+    "max_width": 3328,
+    "max_height": 1872,
+    "mp": 6.23,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 3328,
+        "height": 1872,
+        "full_list": "3328x1872, 3072x1728, 2688x1520, 2592x1944, 1920x1080, 1600x1200, 1280x1024, 1280x960, 1280x720, 1024x768, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "XNP-C8253 \u2014 25x AI PTZ PLUS Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/xnp-c8253"
+  },
+  {
+    "model": "XNP-C8253R",
+    "ok": true,
+    "max_width": 3328,
+    "max_height": 1872,
+    "mp": 6.23,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 3328,
+        "height": 1872,
+        "full_list": "3328x1872, 3072x1728, 2688x1520, 2592x1944, 1920x1080, 1600x1200, 1280x1024, 1280x960, 1280x720, 1024x768, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "XNP-C8253R \u2014 6MP 25x AI IR PTZ PLUS Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/xnp-c8253r"
+  },
+  {
+    "model": "XNP-C8303RW",
+    "ok": true,
+    "max_width": 3328,
+    "max_height": 1872,
+    "mp": 6.23,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 3328,
+        "height": 1872,
+        "full_list": "3328x1872, 3072x1728, 2688x1520, 2592x1944, 1920x1080, 1600x1200, 1280x1024, 1280x960, 1280x720, 1024x768, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "XNP-C8303RW \u2014 6MP 30x AI IR Wiper PTZ PLUS Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/xnp-c8303rw"
+  },
+  {
+    "model": "XNV-8082R",
+    "ok": true,
+    "max_width": 3328,
+    "max_height": 1872,
+    "mp": 6.23,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 3328,
+        "height": 1872,
+        "full_list": "3328x1872, 3072x1728, 2688x1520, 2592x1944, 1920x1080, 1600x1200, 1280x1024, 1280x960, 1280x720, 1024x768, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "XNV-8082R \u2014 6MP Vandal-Resistant IR Outdoor Network Dome Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/xnv-8082r"
+  },
+  {
+    "model": "XNV-8083RX",
+    "ok": true,
+    "max_width": 3328,
+    "max_height": 1872,
+    "mp": 6.23,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 3328,
+        "height": 1872,
+        "full_list": "3328x1872, 3072x1728, 2688x1520, 2592x1944, 1920x1080, 1600x1200, 1280x1024, 1280x960, 1280x720, 1024x768, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "XNV-8083RX \u2014 6MP IR Outdoor Vandal Dome AI Camera Module*",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/xnv-8083rx"
+  },
+  {
+    "model": "XNV-8083RZ",
+    "ok": true,
+    "max_width": 3328,
+    "max_height": 1872,
+    "mp": 6.23,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 3328,
+        "height": 1872,
+        "full_list": "3328x1872, 3072x1728, 2688x1520, 2592x1944, 1920x1080, 1600x1200, 1280x1024, 1280x960, 1280x720, 1024x768, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "XNV-8083RZ \u2014 6MP IR Outdoor Vandal Dome AI PTRZ Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/xnv-8083rz"
+  },
+  {
+    "model": "XNV-8093R",
+    "ok": true,
+    "max_width": 3328,
+    "max_height": 1872,
+    "mp": 6.23,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 3328,
+        "height": 1872,
+        "full_list": "3328x1872, 3072x1728, 2688x1520, 2592x1944, 1920x1080, 1600x1200, 1280x1024, 1280x960, 1280x720, 1024x768, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "XNV-8093R \u2014 6MP IR Outdoor Vandal Dome AI Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/xnv-8093r"
+  },
+  {
+    "model": "XNV-C8083R",
+    "ok": true,
+    "max_width": 3328,
+    "max_height": 1872,
+    "mp": 6.23,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 3328,
+        "height": 1872,
+        "full_list": "3328x1872, 3072x1728, 2688x1520, 2592x1944, 1920x1080, 1600x1200, 1280x1024, 1280x960, 1280x720, 1024x768, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "XNV-C8083R \u2014 6MP IR Outdoor Vandal Dome AI Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/xnv-c8083r"
+  },
+  {
+    "model": "QND-8010R",
+    "ok": true,
+    "max_width": 2592,
+    "max_height": 1944,
+    "mp": 5.04,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 2592,
+        "height": 1944,
+        "full_list": "2592x1944, 2560x1440, 1920x1080, 1280x960, 1280x720, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "QND-8010R \u2014 5 MP Network IR Dome Camera with 2.8mm Lens",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/qnd-8010r"
+  },
+  {
+    "model": "QND-8011",
+    "ok": true,
+    "max_width": 2592,
+    "max_height": 1944,
+    "mp": 5.04,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 2592,
+        "height": 1944,
+        "full_list": "2592x1944, 2560x1440, 1920x1080, 1280x960, 1280x720, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "QND-8011 \u2014 5 MP Super-Compact Dome Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/qnd-8011"
+  },
+  {
+    "model": "QND-8020R",
+    "ok": true,
+    "max_width": 2592,
+    "max_height": 1944,
+    "mp": 5.04,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 2592,
+        "height": 1944,
+        "full_list": "2592x1944, 2560x1440, 1920x1080, 1280x960, 1280x720, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "QND-8020R \u2014 5 MP Network IR Dome Camera with 4mm Lens",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/qnd-8020r"
+  },
+  {
+    "model": "QND-8021",
+    "ok": true,
+    "max_width": 2592,
+    "max_height": 1944,
+    "mp": 5.04,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 2592,
+        "height": 1944,
+        "full_list": "2592x1944, 2560x1440, 1920x1080, 1280x960, 1280x720, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "QND-8021 \u2014 5 MP Network Super-Compact Dome Camera with 4mm Lens",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/qnd-8021"
+  },
+  {
+    "model": "QND-C8013R",
+    "ok": true,
+    "max_width": 2592,
+    "max_height": 1944,
+    "mp": 5.04,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 2592,
+        "height": 1944,
+        "full_list": "2592x1944, 2560x1440, 1920x1080, 1280x960, 1280x720, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "QND-C8013R \u2014 5MP AI IR Dome Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/qnd-c8013r"
+  },
+  {
+    "model": "QND-C8023R",
+    "ok": true,
+    "max_width": 2592,
+    "max_height": 1944,
+    "mp": 5.04,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 2592,
+        "height": 1944,
+        "full_list": "2592x1944, 2560x1440, 1920x1080, 1280x960, 1280x720, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "QND-C8023R \u2014 5MP IR Indoor Dome AI camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/qnd-c8023r"
+  },
+  {
+    "model": "QNE-8011R",
+    "ok": true,
+    "max_width": 2592,
+    "max_height": 1944,
+    "mp": 5.04,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 2592,
+        "height": 1944,
+        "full_list": "2592x1944, 2560x1440, 1920x1080, 1280x960, 1280x720, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "QNE-8011R \u2014 5 MP Super-Compact Flateye Camera (White Color)",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/qne-8011r"
+  },
+  {
+    "model": "QNE-C8013RL",
+    "ok": true,
+    "max_width": 2592,
+    "max_height": 1944,
+    "mp": 5.04,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 2592,
+        "height": 1944,
+        "full_list": "2592x1944, 2560x1440, 1920x1080, 1280x960, 1280x720, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "QNE-C8013RL \u2014 5MP AI Dual Light Flateye Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/qne-c8013rl"
+  },
+  {
+    "model": "QNE-C9013RL",
+    "ok": true,
+    "max_width": 3840,
+    "max_height": 2160,
+    "mp": 8.29,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 3840,
+        "height": 2160,
+        "full_list": "3840x2160, 3328x1872, 3072x1728, 2688x1520, 2592x1944, 1920x1080, 1600x1200, 1280x1024, 1280x960, 1280x720, 1024x768, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "QNE-C9013RL \u2014 4K AI Dual Light Flateye Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/qne-c9013rl"
+  },
+  {
+    "model": "QNF-8010",
+    "ok": true,
+    "max_width": 2048,
+    "max_height": 2048,
+    "mp": 4.19,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 2048,
+        "height": 2048,
+        "full_list": "2048x2048, 2048x1536, 2048x1024, 2048x512, 1920x960, 1920x480, 1600x1200, 1280x1280, 1280x960, 1280x640, 1280x320, 1080x1080, 1024x768, 960x960, 800x600, 768x768, 720x720, 704x576,"
+      }
+    ],
+    "title": "QNF-8010 \u2014 Q Series 6 MP Sensor 360\u00b0 Indoor Fisheye Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/qnf-8010"
+  },
+  {
+    "model": "QNO-8010R",
+    "ok": true,
+    "max_width": 2592,
+    "max_height": 1944,
+    "mp": 5.04,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 2592,
+        "height": 1944,
+        "full_list": "2592x1944, 2560x1440, 1920x1080, 1280x960, 1280x720, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "QNO-8010R \u2014 5 MP Network IR Bullet Camera with 2.8mm Lens",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/qno-8010r"
+  },
+  {
+    "model": "QNO-8020R",
+    "ok": true,
+    "max_width": 2592,
+    "max_height": 1944,
+    "mp": 5.04,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 2592,
+        "height": 1944,
+        "full_list": "2592x1944, 2560x1440, 1920x1080, 1280x960, 1280x720, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "QNO-8020R \u2014 5 MP Network IR Bullet Camera with 4mm Lens",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/qno-8020r"
+  },
+  {
+    "model": "QNO-C8083R",
+    "ok": true,
+    "max_width": 2592,
+    "max_height": 1944,
+    "mp": 5.04,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 2592,
+        "height": 1944,
+        "full_list": "2592x1944, 2560x1440, 1920x1080, 1280x960, 1280x720, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "QNO-C8083R \u2014 5MP AI IR Bullet Camera with Varifocal lens",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/qno-c8083r"
+  },
+  {
+    "model": "QNV-8010R",
+    "ok": true,
+    "max_width": 2592,
+    "max_height": 1944,
+    "mp": 5.04,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 2592,
+        "height": 1944,
+        "full_list": "2592x1944, 2560x1440, 1920x1080, 1280x960, 1280x720, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "QNV-8010R \u2014 5 MP Network IR Vandal Resistant Dome Camera with 2.8mm Lens",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/qnv-8010r"
+  },
+  {
+    "model": "QNV-8020R",
+    "ok": true,
+    "max_width": 2592,
+    "max_height": 1944,
+    "mp": 5.04,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 2592,
+        "height": 1944,
+        "full_list": "2592x1944, 2560x1440, 1920x1080, 1280x960, 1280x720, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "QNV-8020R \u2014 5 MP Network IR Vandal Resistant Dome Camera with 4mm Lens",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/qnv-8020r"
+  },
+  {
+    "model": "QNV-C8011R",
+    "ok": true,
+    "max_width": 2592,
+    "max_height": 1944,
+    "mp": 5.04,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 2592,
+        "height": 1944,
+        "full_list": "2592x1944, 2560x1440, 1920x1080, 1280x960, 1280x720, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "QNV-C8011R \u2014 5MP AI IR Mini Vandal Dome Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/qnv-c8011r"
+  },
+  {
+    "model": "QNV-C8012",
+    "ok": true,
+    "max_width": 2592,
+    "max_height": 1944,
+    "mp": 5.04,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 2592,
+        "height": 1944,
+        "full_list": "2592x1944, 2560x1440, 1920x1080, 1280x960, 1280x720, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "QNV-C8012 \u2014 5MP AI Mini Vandal Dome Camera with Fixed Lens",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/qnv-c8012"
+  },
+  {
+    "model": "QNV-C8083R",
+    "ok": true,
+    "max_width": 2592,
+    "max_height": 1944,
+    "mp": 5.04,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 2592,
+        "height": 1944,
+        "full_list": "2592x1944, 2560x1440, 1920x1080, 1280x960, 1280x720, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "QNV-C8083R \u2014 5 MP IR Vandal Dome Camera with Varifocal lens",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/qnv-c8083r"
+  },
+  {
+    "model": "TNV-C8011RW",
+    "ok": true,
+    "max_width": 2592,
+    "max_height": 1944,
+    "mp": 5.04,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 2592,
+        "height": 1944,
+        "full_list": "2592x1944, 2560x1440, 1920x1080, 1280x960, 1280x720, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "TNV-C8011RW \u2014 5MP AI, IR Wall Mount Panoramic Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/tnv-c8011rw"
+  },
+  {
+    "model": "TNV-C8014RM",
+    "ok": true,
+    "max_width": 2592,
+    "max_height": 1944,
+    "mp": 5.04,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 2592,
+        "height": 1944,
+        "full_list": "2592x1944, 2560x1440, 1920x1080, 1280x960, 1280x720, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "TNV-C8014RM \u2014 5MP Mobile IR Flat Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/tnv-c8014rm"
+  },
+  {
+    "model": "TNV-C8034RM",
+    "ok": true,
+    "max_width": 2592,
+    "max_height": 1944,
+    "mp": 5.04,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 2592,
+        "height": 1944,
+        "full_list": "2592x1944, 2560x1440, 1920x1080, 1280x960, 1280x720, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "TNV-C8034RM \u2014 5MP Mobile IR Flat Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/tnv-c8034rm"
+  },
+  {
+    "model": "XNB-A8004",
+    "ok": true,
+    "max_width": 2560,
+    "max_height": 1920,
+    "mp": 4.92,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 2560,
+        "height": 1920,
+        "full_list": "2560x1920, 2560x1440, 1920x1080, 1600x1200, 1280x960, 1280x720, 1024x768, 800x600, 640x480, 640x360, 320x240, 320x180"
+      }
+    ],
+    "title": "XNB-A8004 \u2014 5MP Box AI Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/xnb-a8004"
+  },
+  {
+    "model": "XND-8020F",
+    "ok": true,
+    "max_width": 2560,
+    "max_height": 1920,
+    "mp": 4.92,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 2560,
+        "height": 1920,
+        "full_list": "2560x1920, 2560x1440, 2048x1536, 1920x1080, 1600x1200, 1280x1024, 1280x960, 1280x720, 1024x768, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "XND-8020F \u2014 5MP Indoor Flush Mount Compact Dome Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/xnd-8020f"
+  },
+  {
+    "model": "XND-8020R",
+    "ok": true,
+    "max_width": 2560,
+    "max_height": 1920,
+    "mp": 4.92,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 2560,
+        "height": 1920,
+        "full_list": "2560x1920, 2560x1440, 1920x1080, 1600x1200, 1280x1024, 1280x960, 1280x720, 1024x768, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "XND-8020R \u2014 5MP Indoor IR Dome",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/xnd-8020r"
+  },
+  {
+    "model": "XND-8030R",
+    "ok": true,
+    "max_width": 2560,
+    "max_height": 1920,
+    "mp": 4.92,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 2560,
+        "height": 1920,
+        "full_list": "2560x1920, 2560x1440, 2048x1536, 1920x1080, 1600x1200, 1280x1024, 1280x960, 1280x720, 1024x768, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "XND-8030R \u2014 5MP Indoor IR Vandal Dome",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/xnd-8030r"
+  },
+  {
+    "model": "XND-8040R",
+    "ok": true,
+    "max_width": 2560,
+    "max_height": 1920,
+    "mp": 4.92,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 2560,
+        "height": 1920,
+        "full_list": "2560x1920, 2560x1440, 2048x1536, 1920x1080, 1600x1200, 1280x1024, 1280x960, 1280x720, 1024x768, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "XND-8040R \u2014 5MP Indoor IR Dome",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/xnd-8040r"
+  },
+  {
+    "model": "XND-8080RV",
+    "ok": true,
+    "max_width": 2560,
+    "max_height": 1920,
+    "mp": 4.92,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 2560,
+        "height": 1920,
+        "full_list": "2560x1920, 2560x1440, 1920x1080, 1600x1200, 1280x1024, 1280x960, 1280x720, 1024x768, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "XND-8080RV \u2014 5MP Network IR Dome Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/xnd-8080rv"
+  },
+  {
+    "model": "XND-8081REV",
+    "ok": true,
+    "max_width": 2560,
+    "max_height": 1920,
+    "mp": 4.92,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 2560,
+        "height": 1920,
+        "full_list": "2560x1920, 2560x1440, 1920x1080, 1600x1200, 1280x1024, 1280x960, 1280x720, 1024x768, 800x600, 800x448, 720x576, 720x480, 640x640, 640x360, 320x240"
+      }
+    ],
+    "title": "XND-8081REV \u2014 5MP Vandal-Resistant Indoor IR Network Dome Camera with PoE Extender",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/xnd-8081rev"
+  },
+  {
+    "model": "XND-A8084RV",
+    "ok": true,
+    "max_width": 2560,
+    "max_height": 1920,
+    "mp": 4.92,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 2560,
+        "height": 1920,
+        "full_list": "2560x1920, 2560x1440, 1920x1080, 1600x1200, 1280x960, 1280x720, 1024x768, 800x600, 640x480, 640x360, 320x240, 320x180"
+      }
+    ],
+    "title": "XND-A8084RV \u2014 5MP IR Indoor Dome AI Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/xnd-a8084rv"
+  },
+  {
+    "model": "XND-A8085RV",
+    "ok": true,
+    "max_width": 2560,
+    "max_height": 1920,
+    "mp": 4.92,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 2560,
+        "height": 1920,
+        "full_list": "2560x1920, 2560x1440, 1920x1080, 1600x1200, 1280x960, 1280x720, 1024x768, 800x600, 640x480, 640x360, 320x240, 320x180"
+      }
+    ],
+    "title": "XND-A8085RV \u2014 5MP IR Indoor Dome AI Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/xnd-a8085rv"
+  },
+  {
+    "model": "XNF-8010R",
+    "ok": true,
+    "max_width": 2048,
+    "max_height": 2048,
+    "mp": 4.19,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 2048,
+        "height": 2048,
+        "full_list": "2048x2048, 2048x1536, 2048x1024, 2048x512, 1920x960, 1920x480, 1600x1200, 1280x1280, 1280x960, 1280x640, 1280x320, 1080x1080, 1024x768, 960x960, 800x600, 768x768, 720x720, 704x576,"
+      }
+    ],
+    "title": "XNF-8010R \u2014 X Series 6 MP sensor 360\u00b0 Indoor Fisheye",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/xnf-8010r"
+  },
+  {
+    "model": "XNF-8010RV",
+    "ok": true,
+    "max_width": 2048,
+    "max_height": 2048,
+    "mp": 4.19,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 2048,
+        "height": 2048,
+        "full_list": "2048x2048, 2048x1536, 2048x1024, 2048x512, 1920x960, 1920x480, 1600x1200, 1280x1280, 1280x960, 1280x640, 1280x320, 1080x1080, 1024x768, 960x960, 800x600, 768x768, 720x720, 720x576,"
+      }
+    ],
+    "title": "XNF-8010RV \u2014 X series 6 MP sensor 360\u00b0 Outdoor Fisheye",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/xnf-8010rv"
+  },
+  {
+    "model": "XNF-8010RVM",
+    "ok": true,
+    "max_width": 2048,
+    "max_height": 2048,
+    "mp": 4.19,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 2048,
+        "height": 2048,
+        "full_list": "2048x2048, 2048x1536, 2048x1024, 2048x512, 1920x960, 1920x480, 1600x1200, 1280x1280, 1280x960, 1280x640, 1280x320, 1080x1080, 1024x768, 960x960, 800x600, 768x768, 720x720, 704x576,"
+      }
+    ],
+    "title": "XNF-8010RVM \u2014 X Series 6 MP sensor 360\u00b0 Mobile Fisheye",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/xnf-8010rvm"
+  },
+  {
+    "model": "XNF-8010RW",
+    "ok": true,
+    "max_width": 2048,
+    "max_height": 2048,
+    "mp": 4.19,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 2048,
+        "height": 2048,
+        "full_list": "2048x2048, 2048x1536, 2048x1024, 2048x512, 1920x960, 1920x480, 1600x1200, 1280x1280, 1280x960, 1280x640, 1280x320, 1080x1080, 1024x768, 960x960, 800x600, 768x768, 720x720, 704x576,"
+      }
+    ],
+    "title": "XNF-8010RW \u2014 X series 6 MP sensor 360\u00b0 Indoor IR Fisheye (white)",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/xnf-8010rw"
+  },
+  {
+    "model": "XNO-8020R",
+    "ok": true,
+    "max_width": 2560,
+    "max_height": 1920,
+    "mp": 4.92,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 2560,
+        "height": 1920,
+        "full_list": "2560x1920, 2560x1440, 1920x1080, 1600x1200, 1280x1024, 1280x960, 1280x720, 1024x768, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "XNO-8020R \u2014 5MP IR Bullet",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/xno-8020r"
+  },
+  {
+    "model": "XNO-8030R",
+    "ok": true,
+    "max_width": 2560,
+    "max_height": 1920,
+    "mp": 4.92,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 2560,
+        "height": 1920,
+        "full_list": "2560x1920, 2560x1440, 1920x1080, 1600x1200, 1280x1024, 1280x960, 1280x720, 1024x768, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "XNO-8030R \u2014 5MP IR Bullet",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/xno-8030r"
+  },
+  {
+    "model": "XNO-8040R",
+    "ok": true,
+    "max_width": 2560,
+    "max_height": 1920,
+    "mp": 4.92,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 2560,
+        "height": 1920,
+        "full_list": "2560x1920, 2560x1440, 1920x1080, 1600x1200, 1280x1024, 1280x960, 1280x720, 1024x768, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "XNO-8040R \u2014 5MP IR Bullet",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/xno-8040r"
+  },
+  {
+    "model": "XNO-8080R",
+    "ok": true,
+    "max_width": 2560,
+    "max_height": 1920,
+    "mp": 4.92,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 2560,
+        "height": 1920,
+        "full_list": "2560x1920, 2560x1440, 1920x1080, 1600x1200, 1280x1024, 1280x960, 1280x720, 1024x768, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "XNO-8080R \u2014 5MP Network IR Bullet Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/xno-8080r"
+  },
+  {
+    "model": "XNV-8020R",
+    "ok": true,
+    "max_width": 2560,
+    "max_height": 1920,
+    "mp": 4.92,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 2560,
+        "height": 1920,
+        "full_list": "2560x1920, 2560x1440, 1920x1080, 1600x1200, 1280x1024, 1280x960, 1280x720, 1024x768, 800x600, 800x448, 720x576, 720x480, 640x640, 640x360, 320x240"
+      }
+    ],
+    "title": "XNV-8020R \u2014 5MP IR Outdoor Dome",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/xnv-8020r"
+  },
+  {
+    "model": "XNV-8030R",
+    "ok": true,
+    "max_width": 2560,
+    "max_height": 1920,
+    "mp": 4.92,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 2560,
+        "height": 1920,
+        "full_list": "2560x1920, 2560x1440, 2048x1536, 1920x1080, 1600x1200, 1280x1024, 1280x960, 1280x720, 1024x768, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "XNV-8030R \u2014 5MP IR Outdoor Dome",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/xnv-8030r"
+  },
+  {
+    "model": "XNV-8040R",
+    "ok": true,
+    "max_width": 2560,
+    "max_height": 1920,
+    "mp": 4.92,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 2560,
+        "height": 1920,
+        "full_list": "2560x1920, 2560x1440, 2048x1536, 1920x1080, 1600x1200, 1280x1024, 1280x960, 1280x720, 1024x768, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "XNV-8040R \u2014 5MP IR Outdoor Dome",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/xnv-8040r"
+  },
+  {
+    "model": "XNV-8080R",
+    "ok": true,
+    "max_width": 2560,
+    "max_height": 1920,
+    "mp": 4.92,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 2560,
+        "height": 1920,
+        "full_list": "2560x1920, 2560x1440, 1920x1080, 1600x1200, 1280x1024, 1280x960, 1280x720, 1024x768, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "XNV-8080R \u2014 5MP Vandal IR Dome Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/xnv-8080r"
+  },
+  {
+    "model": "XNV-8080RSA",
+    "ok": true,
+    "max_width": 2560,
+    "max_height": 1920,
+    "mp": 4.92,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 2560,
+        "height": 1920,
+        "full_list": "2560x1920, 2560x1440, 1920x1080, 1600x1200, 1280x1024, 1280x960, 1280x720, 1024x768, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "XNV-8080RSA \u2014 5MP Stainless Steel IR Vandal Dome",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/xnv-8080rsa"
+  },
+  {
+    "model": "XNV-8081R",
+    "ok": true,
+    "max_width": 2560,
+    "max_height": 1920,
+    "mp": 4.92,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 2560,
+        "height": 1920,
+        "full_list": "2560x1920, 2560x1440, 1920x1080, 1600x1200, 1280x1024, 1280x960, 1280x720, 1024x768, 800x600, 800x448, 720x576, 720x480, 640x640, 640x360, 320x240"
+      }
+    ],
+    "title": "XNV-8081R \u2014 5 MP Vandal-Resistant IR Outdoor Network Dome Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/xnv-8081r"
+  },
+  {
+    "model": "XNV-8081RE",
+    "ok": true,
+    "max_width": 2560,
+    "max_height": 1920,
+    "mp": 4.92,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 2560,
+        "height": 1920,
+        "full_list": "2560x1920, 2560x1440, 1920x1080, 1600x1200, 1280x1024, 1280x960, 1280x720, 1024x768, 800x600, 800x448, 720x576, 720x480, 640x640, 640x360, 320x240"
+      }
+    ],
+    "title": "XNV-8081RE \u2014 5 MP Vandal-Resistant IR Outdoor Network Dome Camera with PoE Extender",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/xnv-8081re"
+  },
+  {
+    "model": "XNV-A8016R",
+    "ok": true,
+    "max_width": 2560,
+    "max_height": 1920,
+    "mp": 4.92,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 2560,
+        "height": 1920,
+        "full_list": "2560x1920, 2560x1440, 1920x1080, 1600x1200, 1280x960, 1280x720, 1024x768, 800x600, 640x480, 640x360, 320x240, 320x180"
+      }
+    ],
+    "title": "XNV-A8016R \u2014 5MP AI IR Compact Vandal Dome Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/xnv-a8016r"
+  },
+  {
+    "model": "XNV-A8084RS",
+    "ok": false,
+    "error": "no Resolution spec row",
+    "title": null
+  },
+  {
+    "model": "XNV-A8085R",
+    "ok": true,
+    "max_width": 2560,
+    "max_height": 1920,
+    "mp": 4.92,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 2560,
+        "height": 1920,
+        "full_list": "2560x1920, 2560x1440, 1920x1080, 1600x1200, 1280x960, 1280x720, 1024x768, 800x600, 640x480, 640x360, 320x240, 320x180"
+      }
+    ],
+    "title": "XNV-A8085R \u2014 5MP IR Outdoor Vandal Dome AI Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/xnv-a8085r"
+  },
+  {
+    "model": "ANE-L7012L",
+    "ok": true,
+    "max_width": 2560,
+    "max_height": 1440,
+    "mp": 3.69,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 2560,
+        "height": 1440,
+        "full_list": "2560x1440, 1920x1080, 1280x960, 1280x720, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "ANE-L7012L \u2014 4MP Super-Compact White light Flateye Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/ane-l7012l"
+  },
+  {
+    "model": "ANE-L7012R",
+    "ok": true,
+    "max_width": 2560,
+    "max_height": 1440,
+    "mp": 3.69,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 2560,
+        "height": 1440,
+        "full_list": "2560x1440, 1920x1080, 1280x960, 1280x720, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "ANE-L7012R \u2014 4MP Super-Compact IR Flateye Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/ane-l7012r"
+  },
+  {
+    "model": "ANO-L7012R",
+    "ok": true,
+    "max_width": 2560,
+    "max_height": 1440,
+    "mp": 3.69,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 2560,
+        "height": 1440,
+        "full_list": "2560x1440, 1920x1080, 1280x960, 1280x720, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "ANO-L7012R \u2014 4MP IR Bullet Camera  &nbsp;",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/ano-l7012r"
+  },
+  {
+    "model": "ANO-L7022R",
+    "ok": true,
+    "max_width": 2560,
+    "max_height": 1440,
+    "mp": 3.69,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 2560,
+        "height": 1440,
+        "full_list": "2560x1440, 1920x1080, 1280x960, 1280x720, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "ANO-L7022R \u2014 4MP IR Bullet Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/ano-l7022r"
+  },
+  {
+    "model": "ANO-L7082R",
+    "ok": false,
+    "error": "no Resolution spec row",
+    "title": null
+  },
+  {
+    "model": "ANV-L7012R",
+    "ok": true,
+    "max_width": 2560,
+    "max_height": 1440,
+    "mp": 3.69,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 2560,
+        "height": 1440,
+        "full_list": "2560x1440, 1920x1080, 1280x960, 1280x720, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "ANV-L7012R \u2014 4MP IR Outdoor Vandal Dome Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/anv-l7012r"
+  },
+  {
+    "model": "ANV-L7082R",
+    "ok": true,
+    "max_width": 2560,
+    "max_height": 1440,
+    "mp": 3.69,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 2560,
+        "height": 1440,
+        "full_list": "2560x1440, 1920x1080, 1280x960, 1280x720, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "ANV-L7082R \u2014 4MP IR Outdoor Vandal Dome Camera  &nbsp;",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/anv-l7082r"
+  },
+  {
+    "model": "PND-A7082RV",
+    "ok": true,
+    "max_width": 2592,
+    "max_height": 1520,
+    "mp": 3.94,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 2592,
+        "height": 1520,
+        "full_list": "2592x1520, 2560x1440, 1920x1080, 1600x1200, 1280x960, 1280x720, 1024x768, 800x600, 640x480, 640x360, 320x240, 320x180"
+      }
+    ],
+    "title": "PND-A7082RV \u2014 4MP IR Indoor Vandal Dome AI Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/pnd-a7082rv"
+  },
+  {
+    "model": "PNO-A7082R",
+    "ok": true,
+    "max_width": 2592,
+    "max_height": 1520,
+    "mp": 3.94,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 2592,
+        "height": 1520,
+        "full_list": "2592x1520, 2560x1440, 1920x1080, 1600x1200, 1280x960, 1280x720, 1024x768, 800x600, 640x480, 640x360, 320x240, 320x180"
+      }
+    ],
+    "title": "PNO-A7082R \u2014 4MP IR Bullet AI camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/pno-a7082r"
+  },
+  {
+    "model": "PNV-A7082RZ",
+    "ok": true,
+    "max_width": 2592,
+    "max_height": 1520,
+    "mp": 3.94,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 2592,
+        "height": 1520,
+        "full_list": "2592x1520, 2560x1440, 1920x1080, 1600x1200, 1280x960, 1280x720, 1024x768, 800x600, 640x480, 640x360, 320x240, 320x180"
+      }
+    ],
+    "title": "PNV-A7082RZ \u2014 4MP IR Outdoor Vandal Dome AI, PTRZ Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/pnv-a7082rz"
+  },
+  {
+    "model": "QND-7012R",
+    "ok": true,
+    "max_width": 2560,
+    "max_height": 1440,
+    "mp": 3.69,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 2560,
+        "height": 1440,
+        "full_list": "2560x1440, 1920x1080, 1280x960, 1280x720, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "QND-7012R \u2014 4MP Network IR Dome Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/qnd-7012r"
+  },
+  {
+    "model": "QND-7022R",
+    "ok": true,
+    "max_width": 2560,
+    "max_height": 1440,
+    "mp": 3.69,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 2560,
+        "height": 1440,
+        "full_list": "2560x1440, 1920x1080, 1280x960, 1280x720, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "QND-7022R \u2014 4MP Network IR Dome Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/qnd-7022r"
+  },
+  {
+    "model": "QND-7032R",
+    "ok": true,
+    "max_width": 2560,
+    "max_height": 1440,
+    "mp": 3.69,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 2560,
+        "height": 1440,
+        "full_list": "2560x1440, 1920x1080, 1280x960, 1280x720, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "QND-7032R \u2014 4 MP Fixed Lens Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/qnd-7032r"
+  },
+  {
+    "model": "QND-7082R",
+    "ok": true,
+    "max_width": 2560,
+    "max_height": 1440,
+    "mp": 3.69,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 2560,
+        "height": 1440,
+        "full_list": "2560x1440, 1920x1080, 1280x960, 1280x720, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "QND-7082R \u2014 4MP IR Dome",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/qnd-7082r"
+  },
+  {
+    "model": "QNO-7012R",
+    "ok": true,
+    "max_width": 2560,
+    "max_height": 1440,
+    "mp": 3.69,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 2560,
+        "height": 1440,
+        "full_list": "2560x1440, 1920x1080, 1280x960, 1280x720, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "QNO-7012R \u2014 4MP Network IR Bullet Camera with 2.8mm Lens",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/qno-7012r"
+  },
+  {
+    "model": "QNO-7022R",
+    "ok": true,
+    "max_width": 2560,
+    "max_height": 1440,
+    "mp": 3.69,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 2560,
+        "height": 1440,
+        "full_list": "2560x1440, 1920x1080, 1280x960, 1280x720, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "QNO-7022R \u2014 4MP Network IR Bullet Camera with 3.6mm Lens",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/qno-7022r"
+  },
+  {
+    "model": "QNO-7032R",
+    "ok": true,
+    "max_width": 2560,
+    "max_height": 1440,
+    "mp": 3.69,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 2560,
+        "height": 1440,
+        "full_list": "2560x1440, 1920x1080, 1280x960, 1280x720, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "QNO-7032R \u2014 4MP Network IR Bullet Camera with 6.0mm Lens",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/qno-7032r"
+  },
+  {
+    "model": "QNO-7082R",
+    "ok": true,
+    "max_width": 2560,
+    "max_height": 1440,
+    "mp": 3.69,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 2560,
+        "height": 1440,
+        "full_list": "2560x1440, 1920x1080, 1280x960, 1280x720, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "QNO-7082R \u2014 4MP IR Bullet",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/qno-7082r"
+  },
+  {
+    "model": "QNV-7012R",
+    "ok": true,
+    "max_width": 2560,
+    "max_height": 1440,
+    "mp": 3.69,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 2560,
+        "height": 1440,
+        "full_list": "2560x1440, 1920x1080, 1280x960, 1280x720, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "QNV-7012R \u2014 4MP Network IR Vandal Resistant Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/qnv-7012r"
+  },
+  {
+    "model": "QNV-7022R",
+    "ok": true,
+    "max_width": 2560,
+    "max_height": 1440,
+    "mp": 3.69,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 2560,
+        "height": 1440,
+        "full_list": "2560x1440, 1920x1080, 1280x960, 1280x720, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "QNV-7022R \u2014 4MP Network IR Vandal Resistant Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/qnv-7022r"
+  },
+  {
+    "model": "QNV-7032R",
+    "ok": true,
+    "max_width": 2560,
+    "max_height": 1440,
+    "mp": 3.69,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 2560,
+        "height": 1440,
+        "full_list": "2560x1440, 1920x1080, 1280x960, 1280x720, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "QNV-7032R \u2014 4MP Network IR Vandal Resistant Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/qnv-7032r"
+  },
+  {
+    "model": "QNV-7082R",
+    "ok": true,
+    "max_width": 2560,
+    "max_height": 1440,
+    "mp": 3.69,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 2560,
+        "height": 1440,
+        "full_list": "2560x1440, 1920x1080, 1280x960, 1280x720, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "QNV-7082R \u2014 4MP IR Vandal Dome",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/qnv-7082r"
+  },
+  {
+    "model": "TNP-A7430RW",
+    "ok": true,
+    "max_width": 2592,
+    "max_height": 1520,
+    "mp": 3.94,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 2592,
+        "height": 1520,
+        "full_list": "2592x1520, 2560x1440, 1920x1080, 1280x1024, 1280x960, 1280x720, 1024x768, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "TNP-A7430RW \u2014 4MP AI IR, Ruggedized PTZ Positioning Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/tnp-a7430rw"
+  },
+  {
+    "model": "XND-C7083RV",
+    "ok": true,
+    "max_width": 2592,
+    "max_height": 1520,
+    "mp": 3.94,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 2592,
+        "height": 1520,
+        "full_list": "2592x1520, 2560x1440, 1920x1080, 1280x1024, 1280x960, 1280x720, 1024x768, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "XND-C7083RV \u2014 4MP AI IR Indoor Vandal Dome Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/xnd-c7083rv"
+  },
+  {
+    "model": "XNP-C7310R",
+    "ok": true,
+    "max_width": 2592,
+    "max_height": 1520,
+    "mp": 3.94,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 2592,
+        "height": 1520,
+        "full_list": "2592x1520, 2560x1440, 1920x1080, 1280x1024, 1280x960, 1280x720, 1024x768, 800x600, 800x448, 720x576, 720x480, 640x480, 640x360, 320x240"
+      }
+    ],
+    "title": "XNP-C7310R \u2014 4MP 31x AI FOCUS IR PTZ Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/xnp-c7310r"
+  },
+  {
+    "model": "TNS-7000M",
+    "ok": true,
+    "max_width": 2048,
+    "max_height": 1536,
+    "mp": 3.15,
+    "channel_count": 1,
+    "channels": [
+      {
+        "channel": 0,
+        "width": 2048,
+        "height": 1536,
+        "full_list": "2048x1536"
+      }
+    ],
+    "title": "TNS-7000M \u2014 3MP Mono BCR Camera",
+    "source_url": "https://www.hanwhavision.com/us/products/product-details/tns-7000m"
+  }
+]

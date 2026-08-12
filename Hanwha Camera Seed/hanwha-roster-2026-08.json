@@ -1,0 +1,3037 @@
+{
+  "source": "Hanwha_Vision_America_Pricelist_USA_Internal_August_2026_R2.xlsx",
+  "sheet": "HVA Pricelist (Category = \"Camera - Network\")",
+  "as_of_date": "2026-08-11",
+  "scope_excluded_bands": [
+    "2MP",
+    "ExplosionProof",
+    "RoadAI",
+    "Thermal"
+  ],
+  "count": 184,
+  "models": [
+    {
+      "model": "ANE-L7012L",
+      "item_type": "4MP White Light Turret Camera",
+      "mp_band": "4MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "ANEL7012L"
+      ],
+      "msrp_low": 310.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet A Series White Light turret camera, 4MP @ 30 FPS, 3mm fixed focal lens, WiseStream II, Triple codec (H.265/H.264/MJPEG),  120dB WDR, 24h Color mode, FoV H: 98.3\u00b0 / V: 54.2\u00b0, virtual area (intrusion/enter/exit), virtual Line (crossing/ direction), motion detection, tampering, hallway view, bu",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "ANE-L7012R",
+      "item_type": "4MP Turret Camera",
+      "mp_band": "4MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "ANEL7012R"
+      ],
+      "msrp_low": 310.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet A Series turret camera, 4MP @ 30 FPS, 3mm fixed focal lens, WiseStream II, Triple codec (H.265/H.264/MJPEG),  120dB WDR, IR LEDs 20m(65.62ft), day & night (ICR), FoV H: 98.3\u00b0 / V: 54.2\u00b0, virtual area (intrusion/enter/exit), virtual Line (crossing/ direction), motion detection, tampering, hal",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "ANO-L7012R",
+      "item_type": "4MP IR Bullet",
+      "mp_band": "4MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "ANOL7012R"
+      ],
+      "msrp_low": 253.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet A Series bullet camera, 4MP @ 30 FPS, 3mm fixed focal lens,  WiseStream II, triple codec (H.265/H.264/MJPEG),120dB WDR, IR LEDs 20m(65.62ft), day & night (ICR), FoV H: 98.3\u00b0 / V: 54.2\u00b0, virtual area (intrusion/enter/exit), virtual Line (crossing/ direction), motion detection, tampering, hall",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "ANO-L7022R",
+      "item_type": "4MP IR Bullet",
+      "mp_band": "4MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "ANOL7022R"
+      ],
+      "msrp_low": 253.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet A Series bullet camera, 4MP @ 30 FPS, 4mm fixed focal lens, WiseStreamII,  triple codec (H.265/H.264/MJPEG), 120dB WDR, IR LEDs  25m(82.02ft), day & night (ICR), FOV H: 78.3\u00b0 / V: 42.9\u00b0, virtual area (intrusion/enter/exit), virtual Line (crossing/ direction), motion detection, tampering, hal",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "ANO-L7082R",
+      "item_type": "4MP IR Bullet",
+      "mp_band": "4MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "ANOL7082R"
+      ],
+      "msrp_low": 345.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet A Series bullet camera, 4MP @ 30 FPS, motorized varifocal lens 3.1x (3.3~10.3mm) (94.8\u00b0 ~ 28.1\u00b0) , WiseStream II, triple codec (H.265/H.264/MJPEG), 120dB WDR, IR LEDs 30m (98.43ft), day & night (ICR), virtual area (intrusion/enter/exit), virtual Line (crossing/ direction), motion detection, ",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "ANV-L7012R",
+      "item_type": "4MP IR Vandal Dome",
+      "mp_band": "4MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "ANVL7012R"
+      ],
+      "msrp_low": 253.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet A Series outdoor vandal dome camera, 4MP @ 30 FPS, 3mm fixed focal lens, WiseStreamII,  triple codec (H.265/H.264/MJPEG), 120dB WDR, IR LEDs 20m(65.62ft), day & night (ICR), FoV H: 98.3\u00b0 / V: 54.2\u00b0, virtual area (intrusion/enter/exit), virtual Line (crossing/ direction), motion detection, ta",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "ANV-L7082R",
+      "item_type": "4MP IR Vandal Dome",
+      "mp_band": "4MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "ANVL7082R"
+      ],
+      "msrp_low": 345.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet A Series outdoor vandal dome camera, 4MP @ 30 FPS,  motorized varifocal lens 3.1x (3.3~10.3mm) (94.8\u00b0 ~ 28.1\u00b0), WiseStream II, triple codec (H.265/H.264/MJPEG), 120dB WDR, IR LEDs 30m (98.43ft), day & night (ICR), virtual area (intrusion/enter/exit), virtual Line (crossing/ direction), motio",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "PNB-A9082",
+      "item_type": "8MP Box AI camera",
+      "mp_band": "4K Cameras & up",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "PNBA9082"
+      ],
+      "msrp_low": 1900.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Powered by WN9, Network AI Box Camera; 8MP Max Resolution 3840x2160 @ 30FPS; 0.03Lux@F1.5 (Color); 5.9~13.3mm(2.25x); FoV H:109\u00b0~49\u00b0; Motorized Varifocal Lens, H.265/H.264/MJPEG Codec; USB Port for Easy Installation; Selectable microphone input (mic in/line in/built-in), AI-Based WiseStream; WiseNR ",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "PNB-A9092",
+      "item_type": "8MP Box AI camera",
+      "mp_band": "4K Cameras & up",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "PNBA9092"
+      ],
+      "msrp_low": 1900.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Powered by WN9, Network AI Box Camera; 8MP Max Resolution 3840x2160 @ 30FPS; 0.03Lux@F1.67 (Color); 15~50mm(3.33x); FoV H:42.7\u00b0~12.6\u00b0; Motorized Varifocal Lens, H.265/H.264/MJPEG Codec; USB Port for Easy Installation; Selectable microphone input (mic in/line in/built-in), AI-Based WiseStream; WiseNR",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "PND-A7082RV",
+      "item_type": "4MP IR Indoor Vandal Dome AI Camera",
+      "mp_band": "4MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "PNDA7082RV"
+      ],
+      "msrp_low": 1850.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Powered by WN9, Network AI IR Indoor Dome Camera; 4MP Max Resolution 2592x1520 @ 60FPS; 0.03Lux@F1.3 (Color), 0Lux (B/W IR LED On); 4.6~9.35mm(2.0x); FoV H:105\u00b0~47\u00b0; Motorized Varifocal Lens, Hard-coated dome bubble; H.265/H.264/MJPEG Codec; IR Viewable Length 60m (196.85ft); USB Port for Easy Insta",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "PND-A9081RF",
+      "item_type": "4K IR Indoor Flush Mount Dome AI Camera",
+      "mp_band": "4K Cameras & up",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "PND-A9081RF/KAP",
+        "PNDA9081RF"
+      ],
+      "msrp_low": 2000.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "4K Network AI IR Dome Camera, Max. 4K resolution @ 30FPS, 0.05Lux@F1.6 (Color), 0Lux (B/W, IR LED on), Day & Night(ICR), 4.5~10mm(2.2x) motorized varifocal lens, WDR(120dB), H.265, H.264, MJPEG codec, WiseStream\u2161, WiseStream\u2162 (Using AI engine). Video Analytics based on AI [ Object detection and clas",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "PND-A9081RV",
+      "item_type": "4K IR Indoor Vandal Dome AI Camera",
+      "mp_band": "4K Cameras & up",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "PND-A9081RV/KAP",
+        "PNDA9081RV"
+      ],
+      "msrp_low": 2000.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "4K Network AI IR Dome Camera, Max. 4K resolution @ 30FPS, 0.05Lux@F1.6 (Color), 0Lux (B/W, IR LED on), Day & Night(ICR), 4.5~10mm(2.2x) motorized varifocal lens, WDR(120dB), H.265, H.264, MJPEG codec, WiseStream\u2161, WiseStream\u2162 (Using AI engine). Video Analytics based on AI [ Object detection and clas",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "PND-A9081RVX",
+      "item_type": "4K IR Indoor AI Camera Module Only",
+      "mp_band": "4K Cameras & up",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "PNDA9081RVX"
+      ],
+      "msrp_low": 1710.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "4K Network AI IR Indoor Camera Module, Max. 4K resolution @ 30FPS, 0.05Lux@F1.6 (Color), 0Lux (B/W, IR LED on), Day & Night(ICR), 4.5~10mm(2.2x) motorized varifocal lens, WDR(120dB), H.265, H.264, MJPEG codec, WiseStream\u2161, WiseStream\u2162 (Using AI engine). Video Analytics based on AI [ Object detection",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "PND-A9082RV",
+      "item_type": "8MP IR Indoor Vandal Dome AI Camera",
+      "mp_band": "4K Cameras & up",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "PND-A9082RV/KEX",
+        "PNDA9082RV"
+      ],
+      "msrp_low": 2150.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Powered by WN9, Network AI IR Indoor Dome Camera; 8MP Max Resolution 3840x2160 @ 30FPS; 0.03Lux@F1.5 (Color), 0Lux (B/W IR LED On); 5.9~13.3mm(2.25x); FoV H:109\u00b0~49\u00b0; Motorized Varifocal Lens, Hard-coated dome bubble; H.265/H.264/MJPEG Codec; IR Viewable Length 60m (196.85ft); USB Port for Easy Inst",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "PNM-12082RVD",
+      "item_type": "6MP X 2, IR outdoor Dome",
+      "mp_band": "4K Cameras & up",
+      "sensor_hint": 2,
+      "seed_file": "multisensor",
+      "model_aliases": [
+        "PNM-12082RVD/KEX",
+        "PNM12082RVD"
+      ],
+      "msrp_low": 1900.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Network vandal outdoor 2CH IR dome camera, (6MP X 2 sensors) 12MP @ 15fps, 3.4~6.8mm(2x) (95.08\u00b0~47.64\u00b0) motorized varifocal lens, Triple codec (H.265/H.264/MJPEG), IR viewable length 25m (82ft), USB port for easy installation, Day & Night (ICR), extremeWDR (120dB), DIS, Handover, Analytics events: ",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "PNM-7082RVD",
+      "item_type": "2MP X 2, IR outdoor Dome",
+      "mp_band": "4MP",
+      "sensor_hint": 2,
+      "seed_file": "multisensor",
+      "model_aliases": [
+        "PNM-7082RVD/KEX",
+        "PNM7082RVD"
+      ],
+      "msrp_low": 1500.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Network vandal outdoor 2CH IR dome camera, (2MP X 2 sensors) 4MP @ 30fps, 3~6mm(2x) (107\u00b0~56.3\u00b0) motorized varifocal lens, Triple codec (H.265/H.264/MJPEG), IR viewable length 25m (82ft), USB port for easy installation, Day & Night (ICR), extremeWDR (150dB), DIS, Handover, IVA (Virtual line/Area, En",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "PNM-8082VT",
+      "item_type": "3CH x 2MP",
+      "mp_band": "4K Cameras & up",
+      "sensor_hint": 3,
+      "seed_file": "multisensor",
+      "model_aliases": [
+        "PNM8082VT"
+      ],
+      "msrp_low": 2000.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Powered by WN7, 2MP x 3CH @ 30FPS, multi directional camera, 3~6mm motorized varifocal lens, donut shape bubble, max 321\u00ba coverage, Triple codec H.264/265 MJPEG, WiseStream II, extreme WDR 150dB, defocus detection, video analytics, 2x microSD card, PoE+, IP66, IK10, NEMA4X, operating temp -40\u00b0C~+55\u00b0",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "PNM-9000QB",
+      "item_type": "Remote head 2MP x 4CH camera",
+      "mp_band": "4K Cameras & up",
+      "sensor_hint": 4,
+      "seed_file": "multisensor",
+      "model_aliases": [
+        "PNM9000QB"
+      ],
+      "msrp_low": 800.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "WN7 multi head camera, 4 x 2MP @ 30fps, triple codec H.265/H.264/MJPEG, extreme WDR 150dB, dual SD cards slots, Wisestream II, hallway view, HLC, defog detection, audio In/out, HDMI out 12VDC/PoE+ , DIS support, analytics- defocus, directional, motion, enter/exit, tampering, virtual line, I/O in/out",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "PNM-9002VQ",
+      "item_type": "2MP / 5MP X 4",
+      "mp_band": "4K Cameras & up",
+      "sensor_hint": 4,
+      "seed_file": "multisensor",
+      "model_aliases": [
+        "PNM9002VQ"
+      ],
+      "msrp_low": 1700.0,
+      "is_limited_stock": true,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Network vandal outdoor Multi-sensor Multi-Directional dome camera, (2MP/5MP X 4 sensors sold separately) 8MP ~20MP (2MP @ 60fps or 5MP @30fps), fixed focal lens modules, triple codec H.265/H.264/MJPEG with WiseStream II technology, 150dB WDR @ 2MP or 120dB @ 5MP, defocus detection, built in analytic",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "PNM-9031RV",
+      "item_type": "15MP Panoramic Camera",
+      "mp_band": "4K Cameras & up",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "PNM9031RV"
+      ],
+      "msrp_low": 3100.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Network vandal outdoor Multi-sensor dome camera, panoramic view with stitched image, (5MP X 4 sensors) 15MP @ 20fps, triple codec H.265/H.264/MJPEG with WiseStream II technology, WDR 120dB, IR viewable length 20m (65.5'), built in video analytics and sound classification, Heatmap, Bi-directional aud",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "PNM-9084QZ1",
+      "item_type": "2MP X 4 Outdoor dome, PTRZ",
+      "mp_band": "4K Cameras & up",
+      "sensor_hint": 4,
+      "seed_file": "multisensor",
+      "model_aliases": [
+        "PNM-9084QZ1/KUS",
+        "PNM9084QZ1"
+      ],
+      "msrp_low": 2200.0,
+      "is_limited_stock": true,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet P series network vandal outdoor Multi-sensor Multi-Directional dome camera, (2MP X 4 sensors) 8MP @ 60fps, motorized vari-focal lens 2x (3.0~6.0mm) (107\u00b0~56.3\u00b0), PTRZ (Pan/Tilt/Rotate/Zoom) remote adjustment, triple codec H.265/H.264/MJPEG with WiseStream II technology, 120dB WDR, defocus de",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "PNM-9084RQZ1",
+      "item_type": "2MP X 4 outdoor Dome, PTRZ w/IR",
+      "mp_band": "4K Cameras & up",
+      "sensor_hint": 4,
+      "seed_file": "multisensor",
+      "model_aliases": [
+        "PNM-9084RQZ1/KUS",
+        "PNM9084RQZ1"
+      ],
+      "msrp_low": 2880.0,
+      "is_limited_stock": true,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet P series network vandal outdoor Multi-sensor Multi-Directional dome camera, 2MP x 4ch multi-directional camera, Motorized PTRZ support, Max. 60fps@2MP(H.265, H.264), 3.2~10mm(3.1x) motorized varifocal, IR viewable length: 30m, H.265, H.264, MJPEG with WiseStream II technology, 120dB WDR, def",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "PNM-9085RQZ1",
+      "item_type": "5MP X 4 outdoor Dome, PTRZ w/IR",
+      "mp_band": "4K Cameras & up",
+      "sensor_hint": 4,
+      "seed_file": "multisensor",
+      "model_aliases": [
+        "PNM-9085RQZ1/KUS",
+        "PNM9085RQZ1"
+      ],
+      "msrp_low": 3800.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet P series network vandal outdoor Multi-sensor Multi-Directional dome camera, 5MP x 4ch multi-directional camera, Motorized PTRZ support, Max. 30fps@5MP(H.265, H.264), 4.13~9.4mm(2.3x) motorized varifocal lens, IR viewable length: 30m, H.265, H.264, MJPEG with WiseStream II technology, 120dB W",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "PNM-A13022RV",
+      "item_type": "13MP Panoramic Camera with AI and IR",
+      "mp_band": "4K Cameras & up",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "PNMA13022RV"
+      ],
+      "msrp_low": 3200.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Panoramic Multi-Sensor Camera,13MP resolution @ 30fps, FoV: H194\u00b0, V:93\u00b0 with Alpha Blending Stitching, H.265/H.264/MJPEG codec, IR viewable length 20m (65.62ft), USB-C port for easy installation, extreme WDR 120dB, Hard-coated dome bubble, AI-based WiseStream, Wise NR II (using AI engine), IVA even",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "PNM-C12083RVD",
+      "item_type": "6MP X 2 AI, IR outdoor Dome",
+      "mp_band": "4K Cameras & up",
+      "sensor_hint": 2,
+      "seed_file": "multisensor",
+      "model_aliases": [
+        "PNM-C12083RVD/KEX",
+        "PNMC12083RVD"
+      ],
+      "msrp_low": 2050.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Network vandal outdoor 2CH AI IR dome camera, (6MP X 2 sensors) 12MP @ 15fps, 3.4~6.8mm(2x) (95.08\u00b0~47.64\u00b0) motorized varifocal lens, Triple codec (H.265/H.264/MJPEG), IR viewable length 25m (82ft), USB port for easy installation, Day & Night (ICR), extremeWDR (120dB), DIS, Handover, Analytics event",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "PNM-C16013RVQ",
+      "item_type": "4MP x 4, AI, IR mini multi-directional camera",
+      "mp_band": "4K Cameras & up",
+      "sensor_hint": 4,
+      "seed_file": "multisensor",
+      "model_aliases": [
+        "PNMC16013RVQ"
+      ],
+      "msrp_low": 2250.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet P series network vandal outdoor mini Multi-Directional camera 4CH x 4MP @ 15FPS, Fix Lens 3.19mm (FoV H: 97\u00b0, V: 54\u00b0), triple codec H.265/H.264/MJPEG, 120dB WDR; IR viewable length 20m (65.6ft), USB port for easy installation, Analytics events based on AI engine: Object detection [Person/Veh",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "PNM-C16083RQZ",
+      "item_type": "4MP, AI, IR, and PTRZ Multi-directional",
+      "mp_band": "4K Cameras & up",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "PNM-C16083RQZ/KEX",
+        "PNMC16083RQZ"
+      ],
+      "msrp_low": 3440.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet P series network vandal outdoor Multi-Directional camera [AI ON] 4CH x 4MP @ 30FPS, Motorized Varifocal Lens with PTRZ function 3.2~10.2mm (FoV H: 95\u00b0~29\u00b0, V: 69\u00b0~21\u00b0), triple codec H.265/H.264/MJPEG, 120dB WDR; IR viewable length [PoE++ 20m(65.6ft), PoE+ 15m(49ft)], Analytics events based o",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "PNM-C16083RVQ",
+      "item_type": "4MP x 4, AI, IR Multi-directional outdoor camera",
+      "mp_band": "4K Cameras & up",
+      "sensor_hint": 4,
+      "seed_file": "multisensor",
+      "model_aliases": [
+        "PNM-C16083RVQ/KEX",
+        "PNMC16083RVQ"
+      ],
+      "msrp_low": 2850.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet P series network vandal outdoor Multi-Directional camera 4CH x 4MP @ 30FPS, Motorized Varifocal Lens 3.3~5.7mm (FoV H: 100\u00b0~53\u00b0, V: 54\u00b0~30\u00b0), triple codec H.265/H.264/MJPEG, 120dB WDR; IR viewable length [PoE+] 15m (49ft) / [HPoE] 20m (65ft), USB port for easy installation, Analytics events ",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "PNM-C19183RVTP",
+      "item_type": "3CH + PTZ, AI, IR Multi directional outdoor camera / 5MP x 3CH + 4MP 18x PTZ",
+      "mp_band": "4K Cameras & up",
+      "sensor_hint": 3,
+      "seed_file": "multisensor",
+      "model_aliases": [
+        "PNM-C19183RVTP/KUS",
+        "PNMC19183RVTP"
+      ],
+      "msrp_low": 4150.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet P series network vandal outdoor Multi-Directional camera, 3CH x 5MP @ 30FPS and 4MP PTZ 18x Zoom, 3CH Fix Lens 2.4mm (FoV H: 123\u00b0, V: 91\u00b0), 120dB WDR; IR viewable length 15m(49ft), Analytics events based on AI engine: Classified object type: Person/Face/Vehicle/License plate; Attributes: Veh",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "PNM-C20000QB",
+      "item_type": "AI Remote head 2MP/5MP x 4CH camera",
+      "mp_band": "4K Cameras & up",
+      "sensor_hint": 4,
+      "seed_file": "multisensor",
+      "model_aliases": [
+        "PNM-C20000QB/KEX",
+        "PNMC20000QB"
+      ],
+      "msrp_low": 1600.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet P series network remote head camera 4CH x 2MP @ 30FPS or 4CH x 5MP @ 15FPS, Triple codec H.265/H.264/MJPEG, 120dB WDR, Analytics events based on AI engine: Classified object type: Person/Face/Vehicle/License plate, Attributes: Vehicle(Type and color: car/bus/truck/motorcycle/bicycle), Person",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "PNM-C32083RQZ",
+      "item_type": "4K AI, IR, and PTRZ Multi-directional",
+      "mp_band": "4K Cameras & up",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "PNM-C32083RQZ/KEX",
+        "PNMC32083RQZ"
+      ],
+      "msrp_low": 3900.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet P series network vandal outdoor Multi-Directional camera [AI ON] 4CH x 8MP @ 15FPS / [AI OFF] 4CH x 8MP @ 20FPS, Motorized Varifocal Lens with PTRZ function 4.38~9.33mm (FoV H: 112.1\u00b0~47.5\u00b0, V: 58\u00b0~26.6\u00b0), triple codec H.265/H.264/MJPEG, 120dB WDR; IR viewable length [PoE++ 25m(82ft), PoE+ 1",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "PNM-C32083RVQ",
+      "item_type": "4K x 4, AI, IR Multi-directional outdoor camera",
+      "mp_band": "4K Cameras & up",
+      "sensor_hint": 4,
+      "seed_file": "multisensor",
+      "model_aliases": [
+        "PNM-C32083RVQ/KEX",
+        "PNMC32083RVQ"
+      ],
+      "msrp_low": 3200.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet P series network vandal outdoor Multi-Directional camera [AI ON] 4CH x 8MP @ 15FPS / [AI OFF] 4CH x 8MP @ 20FPS, Motorized Varifocal Lens 3.3~5.7mm (FoV H: 109\u00b0~56\u00b0, V: 55\u00b0~31\u00b0), triple codec H.265/H.264/MJPEG, 120dB WDR; IR viewable length [PoE+] 15m (49ft) / [HPoE] 20m (65ft), USB port for",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "PNM-C32084RQZ",
+      "item_type": "4K AI, IR, PTRZ Multi-directional, Open Version with Jetson Orin 8GB (L)",
+      "mp_band": "4K Cameras & up",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "PNM-C32084RQZ-8XE256G",
+        "PNM-C32084RQZ-8XE256G-LU",
+        "PNM-C32084RQZ-8XE4T-W",
+        "PNMC32084RQZ"
+      ],
+      "msrp_low": 9100.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet P series network vandal outdoor Multi-Directional camera  [WiseAI ON] 4CH x 8MP @ 15FPS / [WiseAI OFF] 4CH x 8MP @ 20FPS, Motorized Varifocal Lens 4.38~9.33mm (FoV H: 112.1\u00b0~47.5\u00b0, V: 58\u00b0~26.6\u00b0) with PTRZ function, triple codec H.265/H.264/MJPEG, 120dB WDR; IR viewable length 25m (82ft); Lum",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "PNM-C34404RQPZ",
+      "item_type": "5 CH, AI, IR, PTRZ Multi-directional outdoor camera with PTZ / 4K x 4 PTRZ + 2MP 40x PTZ",
+      "mp_band": "4K Cameras & up",
+      "sensor_hint": 4,
+      "seed_file": "multisensor",
+      "model_aliases": [
+        "PNM-C34404RQPZ/KEX",
+        "PNM-C34404RQPZ/KUS",
+        "PNMC34404RQPZ"
+      ],
+      "msrp_low": 8660.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet P series network vandal outdoor Multi-Directional camera with PTZ, [AI ON] 4CH x 8MP @ 15FPS / [AI OFF] 4CH x 8MP @ 20FPS + PTZ 40x 2MP @ 60FPS, 4CH Remote PTRZ Lens 3.3~5.7mm (FoV H: 109\u00b0~56\u00b0, V: 55\u00b0~31\u00b0), triple codec H.265/H.264/MJPEG, 120dB WDR; IR viewable [4CH] length 20m (65ft) / [PTZ",
+      "sensor_hint_conflict": "item_type says 5CH",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "PNM-C7083RVD",
+      "item_type": "2MP X 2 AI, IR outdoor Dome",
+      "mp_band": "4MP",
+      "sensor_hint": 2,
+      "seed_file": "multisensor",
+      "model_aliases": [
+        "PNM-C7083RVD/KEX",
+        "PNMC7083RVD"
+      ],
+      "msrp_low": 1750.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Network vandal outdoor 2CH AI IR dome camera, (2MP X 2 sensors) 4MP @ 30fps, 3~6mm(2x) (107\u00b0~56.3\u00b0) motorized varifocal lens, Triple codec (H.265/H.264/MJPEG), IR viewable length 25m (82ft), USB port for easy installation, Day & Night (ICR), extremeWDR (120dB), DIS, Handover, Analytics events based ",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "PNM-C9022RV",
+      "item_type": "8MP Panoramic Camera with AI and IR",
+      "mp_band": "4K Cameras & up",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "PNM-C9022RV/KEX",
+        "PNMC9022RV"
+      ],
+      "msrp_low": 2350.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Panoramic Multi-sensor camera, FoV: H209\u00ba, V:60\u00b0, 8MP @ 20fps, Alpha Blending, triple codec H.265/H.264/MJPEG with WiseStream III technology, extreme WDR 120dB, Wise NR II, IR viewable length 65' (20m), Analytics events based on AI engine: Object detection (Person/Vehicle), IVA (Virtual line/Area, E",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "PNO-A7082R",
+      "item_type": "4MP IR Bullet AI camera",
+      "mp_band": "4MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "PNOA7082R"
+      ],
+      "msrp_low": 2000.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Powered by WN9, Network AI IR Outdoor Vandal Bullet Camera; 4MP Max Resolution 2592x1520 @ 60FPS; 0.03Lux@F1.3 (Color), 0Lux (B/W IR LED On); 4.6~9.35mm(2.0x); FoV H:105\u00b0~47\u00b0; Motorized Varifocal Lens; Hard-Coated Window; H.265/H.264/MJPEG Codec; IR Viewable Length 60m (196.85ft); USB Port for Easy ",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "PNO-A9081R",
+      "item_type": "4K IR Bullet AI camera",
+      "mp_band": "4K Cameras & up",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "PNO-A9081R/KAP",
+        "PNOA9081R"
+      ],
+      "msrp_low": 2150.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "4K Network AI IR Bullet Camera, Max. 4K resolution @ 30FPS, 0.05Lux@F1.6 (Color), 0Lux (B/W, IR LED on), Day & Night(ICR), 4.5~10mm(2.2x) motorized varifocal lens, WDR(120dB) H.265, H.264, MJPEG codec, WiseStream\u2161, WiseStream\u2162 (Using AI engine), Video Analytics based on AI [ Object detection and cla",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "PNO-A9082R",
+      "item_type": "8MP IR Bullet AI Camera",
+      "mp_band": "4K Cameras & up",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "PNOA9082R"
+      ],
+      "msrp_low": 2300.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Powered by WN9, Network AI IR Outdoor Vandal Bullet Camera; 8MP Max Resolution 3840x2160 @ 30FPS; 0.03Lux@F1.5 (Color), 0Lux (B/W IR LED On); 5.9~13.3mm(2.25x); FoV H:109\u00b0~49\u00b0; Motorized Varifocal Lens; Hard-Coated Window; H.265/H.264/MJPEG Codec; IR Viewable Length 60m (196.85ft); USB Port for Easy",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "PNO-A9092R",
+      "item_type": "8MP IR Bullet AI Camera",
+      "mp_band": "4K Cameras & up",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "PNOA9092R"
+      ],
+      "msrp_low": 2300.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Powered by WN9, Network AI IR Outdoor Vandal Bullet Camera; 8MP Max Resolution 3840x2160 @ 30FPS; 0.03Lux@F1.67 (Color), 0Lux (B/W IR LED On); 15~50mm(3.33x); FoV H:42.7\u00b0~12.6\u00b0; Motorized Varifocal Lens; Hard-Coated Window; H.265/H.264/MJPEG Codec; IR Viewable Length 120m (393.7ft); USB Port for Eas",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "PNO-A9311R",
+      "item_type": "4K Network AI IR Zoom (31x) Bullet Camera",
+      "mp_band": "4K Cameras & up",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "PNOA9311R"
+      ],
+      "msrp_low": 2750.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "4K Network AI IR Bullet Camera, Max. 4K resolution @ 30FPS, 0.075Lux@F1.36 (Color), 0Lux (B/W, IR LED on), Day & Night(ICR), 6.91~214.7mm (31x) zoom lens, WDR(120dB) H.265, H.264, MJPEG codec, WiseStream\u2161, WiseStream\u2162 (Using AI engine), Video Analytics based on AI [Object detection and classificatio",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "PNV-A7082RZ",
+      "item_type": "4MP IR Outdoor Vandal Dome AI, PTRZ Camera ",
+      "mp_band": "4MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "PNVA7082RZ"
+      ],
+      "msrp_low": 2200.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Powered by WN9, Network AI IR Outdoor Vandal Dome Camera; 4MP Max Resolution 2592x1520 @ 60FPS; 0.03Lux@F1.3 (Color), 0Lux (B/W IR LED On); 4.6~9.35mm(2.0x); FoV H:105\u00b0~47\u00b0; Motorized Varifocal Lens, Remote lens adjustment (PTRZ); Hard-coated dome bubble; H.265/H.264/MJPEG Codec; IR Viewable Length ",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "PNV-A9081R",
+      "item_type": "4K IR Outdoor Vandal Dome AI Camera",
+      "mp_band": "4K Cameras & up",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "PNV-A9081R/KAP",
+        "PNVA9081R"
+      ],
+      "msrp_low": 2150.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "4K Network AI IR Vandal Dome Camera, Max. 4K resolution @ 30FPS, 0.05Lux@F1.6 (Color), 0Lux (B/W, IR LED on), Day & Night(ICR), 4.5~10mm(2.2x) motorized varifocal lens, WDR(120dB) H.265, H.264, MJPEG codec, WiseStream\u2161, WiseStream\u2162 (Using AI engine), Video Analytics based on AI [ Object detection an",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "PNV-A9081RX",
+      "item_type": "4K IR Outdoor AI Camera Module Only",
+      "mp_band": "4K Cameras & up",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "PNVA9081RX"
+      ],
+      "msrp_low": 1710.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "4K Network AI IR Outdoor Camera Module, Max. 4K resolution @ 30FPS, 0.05Lux@F1.6 (Color), 0Lux (B/W, IR LED on), Day & Night(ICR), 4.5~10mm(2.2x) motorized varifocal lens, WDR(120dB) H.265, H.264, MJPEG codec, WiseStream\u2161, WiseStream\u2162 (Using AI engine), Video Analytics based on AI [ Object detection",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "PNV-A9082RZ",
+      "item_type": "8MP IR Outdoor Vandal Dome AI, PTRZ Camera ",
+      "mp_band": "4K Cameras & up",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "PNV-A9082RZ/KEX",
+        "PNVA9082RZ"
+      ],
+      "msrp_low": 2500.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Powered by WN9, Network AI IR Outdoor Vandal Dome Camera; 8MP Max Resolution 3840x2160 @ 30FPS; 0.03Lux@F1.5 (Color), 0Lux (B/W IR LED On); 5.9~13.3mm(2.25x); FoV H:109\u00b0~49\u00b0; Motorized Varifocal Lens, Remote lens adjustment (PTRZ); Hard-coated dome bubble; H.265/H.264/MJPEG Codec; IR Viewable Length",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "QND-7012R",
+      "item_type": "4MP IR Dome",
+      "mp_band": "4MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "QND7012R"
+      ],
+      "msrp_low": 380.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet Q network indoor dome camera, 4MP @30fps, 2.8mm fixed focal lens (107\u00b0), triple codec H.265/H.264/MJPEG with Wisestream II, 120dB WDR, IR LEDs range 65', motion detection, tampering, defocus detection, hallway View, one way audio, built-in SD card slot (1x128GB), PoE/12VDC, white color",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "QND-7022R",
+      "item_type": "4MP IR Dome",
+      "mp_band": "4MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "QND7022R"
+      ],
+      "msrp_low": 380.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet Q network indoor dome camera, 4MP @30fps, 4mm fixed focal lens (78\u00b0), triple codec H.265/H.264/MJPEG with Wisestream II, 120dB WDR, IR LEDs range 65', motion detection, tampering, defocus detection, hallway View, one way audio, built-in SD card slot (1x128GB), PoE/12VDC, white color",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "QND-7032R",
+      "item_type": "4MP IR Dome",
+      "mp_band": "4MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "QND7032R"
+      ],
+      "msrp_low": 380.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet Q network indoor dome camera, 4MP @30fps, 6mm fixed focal lens (49\u00b0), triple codec H.265/H.264/MJPEG with Wisestream II, 120dB WDR, IR LEDs range 65', motion detection, tampering, defocus detection, hallway View, one way audio, built-in SD card slot (1x128GB), PoE/12VDC, white color",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "QND-7082R",
+      "item_type": "4MP IR Dome",
+      "mp_band": "4MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "QND7082R"
+      ],
+      "msrp_low": 560.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet Q network indoor dome camera, 4MP @30fps, motorized vari-focal lens 3.1x (3.2 ~ 10.0mm) (109\u00b0~33.2\u00b0), triple codec H.265/H.264/MJPEG with Wisestream II, 120dB WDR, IR LEDs range 20m (65.62'), Motion detection, Tampering, Defocus detection, Hallway view, LDC support, Built-in mic (One way aud",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "QND-8010R",
+      "item_type": "5MP Indoor IR Dome",
+      "mp_band": "5MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "QND-8010R/KAP",
+        "QND8010R"
+      ],
+      "msrp_low": 420.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet Q network indoor dome camera, 5MP @ 30fps, 2.8mm fixed focal lens (104\u00b0), triple codec H.265/H.264/MJPEG with Wisestream II, 120dB WDR, IR LEDs range 65', defocus detection, hallway View, built-in SD card slot (1x128GB), video analytics, CVBS, open platform, PoE, white color",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "QND-8011",
+      "item_type": "5MP Indoor Dome",
+      "mp_band": "5MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "QND8011"
+      ],
+      "msrp_low": 400.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet Q mini network indoor dome camera, 5MP @ 30fps, 2.8mm fixed focal lens (104\u00b0), triple codec H.265/H.264/MJPEG with Wisestream II, 120dB WDR, defocus detection, hallway View, built-in SD card slot (1x128GB), people counting, open platform, IP42, IK08, PoE, white color",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "QND-8020R",
+      "item_type": "5MP Indoor IR Dome",
+      "mp_band": "5MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "QND8020R"
+      ],
+      "msrp_low": 420.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet Q network indoor dome camera, 5MP @ 30fps, 4.0mm fixed focal lens (79\u00b0), triple codec H.265/H.264/MJPEG with Wisestream II, 120dB WDR, IR LEDs range 65', defocus detection, hallway View, built-in SD card slot (1x128GB), video analytics, CVBS, open platform, PoE, white color",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "QND-8021",
+      "item_type": "5MP Indoor Dome",
+      "mp_band": "5MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "QND8021"
+      ],
+      "msrp_low": 400.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet Q mini network indoor dome camera, 5MP @ 30fps, 4.0mm fixed focal lens (80\u00b0), triple codec H.265/H.264/MJPEG with Wisestream II, 120dB WDR, defocus detection, hallway View, built-in SD card slot (1x128GB), people counting, open platform, IP42, IK08, PoE, white color",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "QND-8080R",
+      "item_type": "5MP Indoor IR Dome",
+      "mp_band": "5MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "QND-8080R/KME",
+        "QND8080R"
+      ],
+      "msrp_low": 615.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet Q network indoor dome camera, 5MP @ 30fps, motorized vari-focal lens 3.1x (3.2 ~ 10.0mm) (100\u00b0~31\u00b0), triple codec H.265/H.264/MJPEG with Wisestream II, 120dB WDR, IR LEDs range 98', defocus detection, hallway View, built-in SD card slot (1x128GB), video analytics, CVBS, open platform, PoE, w",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "QND-C8013R",
+      "item_type": "5MP IR Indoor Dome AI camera",
+      "mp_band": "5MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "QNDC8013R"
+      ],
+      "msrp_low": 640.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet Q network indoor dome camera, 5MP @ 30fps, fix lens 3mm (H:100\u00b0/V: 73\u00b0), triple codec H.265/H.264/MJPEG with WiseStream III technology, WiseNR\u2161(Based on AI engine), WDR 120dB, IR viewable length 25m(82.02ft), built-in mic, Motion detection based on AI engine, Analytics events based on AI eng",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "QND-C8023R",
+      "item_type": "5MP IR Indoor Dome AI camera",
+      "mp_band": "5MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "QNDC8023R"
+      ],
+      "msrp_low": 640.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet Q network indoor dome camera, 5MP @ 30fps, fix lens 4mm (H:80\u00b0/V: 59\u00b0),  triple codec H.265/H.264/MJPEG with WiseStream III technology, WiseNR\u2161(Based on AI engine), WDR 120dB, IR viewable length 30m(98.42ft), built-in mic, Motion detection based on AI engine, Analytics events based on AI eng",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "QNE-8011R",
+      "item_type": "5MP IR Outdoor Flat-Eye",
+      "mp_band": "5MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "QNE8011R"
+      ],
+      "msrp_low": 510.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet Q mini network outdoor flateye camera, 5MP @ 30fps, 2.8mm fixed focal lens (104\u00b0), triple codec H.265/H.264/MJPEG with Wisestream II, 120dB WDR, IR LEDs range 65', defocus detection, hallway View, built-in SD card slot (1x128GB), video analytics, open platform, IP67, IK10, PoE, white color",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "QNE-C8013RL",
+      "item_type": "5MP Dual Light Outdoor Flat-Eye",
+      "mp_band": "5MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "QNEC8013RL"
+      ],
+      "msrp_low": 720.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet Q network outdoor flat-eye camera, 5MP @ 30fps, 3mm fixed focal lens (H: 97\u00b0 / V: 53\u00b0), triple codec H.265/H.264/MJPEG with Wisestream III, 120dB WDR, Dual Light \u2013 White LED range 30m (98ft), IR viewable length 30m (98ft), Motion Detection based on AI engine, Classified object type: Person/V",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "QNE-C9013RL",
+      "item_type": "4K Dual Light Outdoor Flat-Eye",
+      "mp_band": "5MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "QNEC9013RL"
+      ],
+      "msrp_low": 820.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet Q network outdoor flat-eye camera, 4K @ 30fps, 3mm fixed focal lens (H: 108\u00b0/ V: 59\u00b0), triple codec H.265/H.264/MJPEG with Wisestream III, 120dB WDR, Dual Light \u2013 White LED range 30m (98ft), IR viewable length 30m (98ft), Motion Detection based on AI engine, Classified object type: Person/Ve",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "QNF-8010",
+      "item_type": "6MP Indoor fisheye",
+      "mp_band": "5MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "QNF8010"
+      ],
+      "msrp_low": 775.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet Q series network Indoor fisheye dome camera, 6MP CMOS sensor, max resolution 2048x2048 @ 30fps, triple codec H.265/H.264/MJPEG with WiseStream II technology, WDR 120dB, business analytics (heatmap and people counting), built-in SD card slot (1x256GB), PoE ",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "QNF-9010",
+      "item_type": "12MP Indoor fisheye",
+      "mp_band": "4K Cameras & up",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "QNF9010"
+      ],
+      "msrp_low": 1050.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet Q series network Indoor fisheye dome camera, 12MP CMOS sensor, max resolution 3008x3008 @ 30fps, triple codec H.265/H.264/MJPEG with WiseStream II technology, WDR 120dB, business analytics (heatmap and people counting), built-in SD card slot (1x256GB), PoE",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "QNF-C9010",
+      "item_type": "12MP Indoor AI Fisheye",
+      "mp_band": "4K Cameras & up",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "QNFC9010"
+      ],
+      "msrp_low": 1095.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Q Series Network Indoor Fisheye Dome Camera, 12MP sensor, Max resolution 3008x3008 @ 20fps, 1.76mm fixed lens, H185\u00b0/V185\u00b0, H.265/H.264/MJPEG codec, WiseStreamIII (Based on AI engine), WiseNR \u2161 (Based on AI engine), extremeWDR (120dB), Digital rotation, AI based motion detection, Classified object t",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "QNF-C9010V",
+      "item_type": "12MP Outdoor AI Fisheye",
+      "mp_band": "4K Cameras & up",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "QNFC9010V"
+      ],
+      "msrp_low": 1265.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Q Series Network Outdoor Fisheye Dome Camera, 12MP sensor,  Max resolution 3008x3008 @ 20fps, 1.76mm fixed lens, H185\u00b0/V185\u00b0, H.265/H.264/MJPEG codec, WiseStreamIII (Based on AI engine), WiseNR \u2161 (Based on AI engine), extremeWDR (120dB), Digital rotation, AI based motion detection, Classified object",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "QNO-7012R",
+      "item_type": "4MP IR Bullet",
+      "mp_band": "4MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "QNO7012R"
+      ],
+      "msrp_low": 470.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet Q network outdoor vandal bullet camera, 4MP @30fps, 2.8mm fixed focal lens (107\u00b0), triple codec H.265/H.264/MJPEG with Wisestream II, 120dB WDR, IR LEDs range 65', motion detection, tampering, defocus detection, hallway View, one way audio, built-in SD card slot (1x128GB), IP66, IK10, PoE/12",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "QNO-7022R",
+      "item_type": "4MP IR Bullet",
+      "mp_band": "4MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "QNO7022R"
+      ],
+      "msrp_low": 470.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet Q network outdoor vandal bullet camera, 4MP @30fps, 4mm fixed focal lens (78\u00b0), triple codec H.265/H.264/MJPEG with Wisestream II, 120dB WDR, IR LEDs range 82', motion detection, tampering, defocus detection, hallway View, one way audio, built-in SD card slot (1x128GB), IP66, IK10, PoE/12VDC",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "QNO-7032R",
+      "item_type": "4MP IR Bullet",
+      "mp_band": "4MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "QNO7032R"
+      ],
+      "msrp_low": 470.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet Q network outdoor vandal bullet camera, 4MP @30fps, 6mm fixed focal lens (49\u00b0), triple codec H.265/H.264/MJPEG with Wisestream II, 120dB WDR, IR LEDs range 98', motion detection, tampering, defocus detection, hallway View, one way audio, built-in SD card slot (1x128GB), IP66, IK10, PoE/12VDC",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "QNO-7082R",
+      "item_type": "4MP IR Bullet",
+      "mp_band": "4MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "QNO7082R"
+      ],
+      "msrp_low": 650.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet Q network outdoor vandal bullet camera, 4MP @30fps, motorized vari-focal lens 3.1x (3.2 ~ 10.0mm) (109\u00b0~33.2\u00b0), triple codec H.265/H.264/MJPEG with Wisestream II, 120dB WDR, IR LEDs range 30m (98.42'), Motion detection, Tampering, Defocus detection, Hallway view, LDC support, One way audio -",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "QNO-8010R",
+      "item_type": "5MP IR Bullet",
+      "mp_band": "5MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "QNO8010R"
+      ],
+      "msrp_low": 510.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet Q network outdoor vandal bullet camera, 5MP @ 30fps, 2.8mm fixed focal lens (104\u00b0), triple codec H.265/H.264/MJPEG with Wisestream II, 120dB WDR, IR LEDs range 65', defocus detection, hallway View,  built-in SD card slot (1x128GB), video analytics, CVBS, open platform, IP66, IK10, PoE",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "QNO-8020R",
+      "item_type": "5MP IR Bullet",
+      "mp_band": "5MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "QNO8020R"
+      ],
+      "msrp_low": 510.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet Q network outdoor vandal bullet camera, 5MP @ 30fps, 4.0mm fixed focal lens (79\u00b0), triple codec H.265/H.264/MJPEG with Wisestream II, 120dB WDR, IR LEDs range 82', defocus detection, hallway View, built-in SD card slot (1x128GB), video analytics, CVBS, open platform, IP66, IK10, PoE",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "QNO-8080R",
+      "item_type": "5MP IR Bullet",
+      "mp_band": "5MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "QNO8080R"
+      ],
+      "msrp_low": 690.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet Q network outdoor vandal bullet camera, 5MP @ 30fps, motorized vari-focal lens 3.1x (3.2 ~ 10.0mm) (100\u00b0~31\u00b0), triple codec H.265/H.264/MJPEG with Wisestream II, 120dB WDR, IR LEDs range 98', defocus detection, hallway View, built-in SD card slot (1x128GB), video analytics, CVBS, open platfo",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "QNO-C8013R",
+      "item_type": "5MP IR Bullet AI camera",
+      "mp_band": "5MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "QNOC8013R"
+      ],
+      "msrp_low": 720.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet Q network outdoor vandal bullet camera, 5MP @ 30fps, fix lens 3mm (H:100\u00b0/V: 73\u00b0), triple codec H.265/H.264/MJPEG with WiseStream III technology, WiseNR\u2161(Based on AI engine), WDR 120dB, IR viewable length 25m(82.02ft), Motion detection based on AI engine, Analytics events based on AI engine:",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "QNO-C8023R",
+      "item_type": "5MP IR Bullet AI camera",
+      "mp_band": "5MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "QNOC8023R"
+      ],
+      "msrp_low": 720.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet Q network outdoor vandal bullet camera, 5MP @ 30fps, fix lens 4mm (H:80\u00b0/V: 59\u00b0), triple codec H.265/H.264/MJPEG with WiseStream III technology, WiseNR\u2161(Based on AI engine), WDR 120dB, IR viewable length 30m(98.42ft), Motion detection based on AI engine, Analytics events based on AI engine: ",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "QNO-C8083R",
+      "item_type": "5MP IR Bullet AI camera",
+      "mp_band": "5MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "QNOC8083R"
+      ],
+      "msrp_low": 870.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet Q network outdoor vandal bullet camera,  5MP @ 30fps, motorized vari-focal lens 3.2~10.2mm (H: 95\u00b0~29\u00b0 / V: 69\u00b0~21\u00b0), triple codec H.265/H.264/MJPEG with Wisestream III (Based on AI engine), WiseNR\u2161(Based on AI engine), WDR 120dB, IR viewable length  30m (98ft), WiseMD based on AI engine, Cl",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "QNO-C9083R",
+      "item_type": "4K IR Bullet AI camera",
+      "mp_band": "4K Cameras & up",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "QNOC9083R"
+      ],
+      "msrp_low": 970.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet Q network outdoor vandal bullet camera, 4K @ 30fps, motorized vari-focal lens 3.2~10.2mm (H: 104\u00b0~31\u00b0 / V: 55\u00b0~17\u00b0), triple codec H.265/H.264/MJPEG with Wisestream III (Based on AI engine), WiseNR\u2161(Based on AI engine), WDR 120dB, IR viewable length 30m (98ft), WiseMD based on AI engine, Clas",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "QNV-7012R",
+      "item_type": "4MP IR Vandal Dome",
+      "mp_band": "4MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "QNV7012R"
+      ],
+      "msrp_low": 470.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet Q network outdoor vandal dome camera, 4MP @30fps, 2.8mm fixed focal lens (107\u00b0), triple codec H.265/H.264/MJPEG with Wisestream II, 120dB WDR, IR LEDs range 65', motion detection, tampering, defocus detection, hallway View, one way audio, built-in SD card slot (1x128GB), IP66, IK10, PoE/12VD",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "QNV-7022R",
+      "item_type": "4MP IR Vandal Dome",
+      "mp_band": "4MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "QNV7022R"
+      ],
+      "msrp_low": 470.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet Q network outdoor vandal dome camera, 4MP @30fps, 4mm fixed focal lens (78\u00b0), triple codec H.265/H.264/MJPEG with Wisestream II, 120dB WDR, IR LEDs range 82', motion detection, tampering, defocus detection, hallway View, one way audio, built-in SD card slot (1x128GB), IP66, IK10, PoE/12VDC, ",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "QNV-7032R",
+      "item_type": "4MP IR Vandal Dome",
+      "mp_band": "4MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "QNV7032R"
+      ],
+      "msrp_low": 470.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet Q network outdoor vandal dome camera, 4MP @30fps, 6mm fixed focal lens (49\u00b0), triple codec H.265/H.264/MJPEG with Wisestream II, 120dB WDR, IR LEDs range 98', motion detection, tampering, defocus detection, hallway View, one way audio, built-in SD card slot (1x128GB), IP66, IK10, PoE/12VDC, ",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "QNV-7082R",
+      "item_type": "4MP IR Vandal Dome",
+      "mp_band": "4MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "QNV7082R"
+      ],
+      "msrp_low": 650.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet Q network outdoor vandal dome camera, 4MP @30fps, motorized vari-focal lens 3.1x (3.2 ~ 10.0mm) (109\u00b0~33.2\u00b0), triple codec H.265/H.264/MJPEG with Wisestream II, 120dB WDR, IR LEDs range 30m (98.42'), Motion detection, Tampering, Defocus detection, Hallway view, LDC support, One way audio - L",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "QNV-8010R",
+      "item_type": "5MP IR Outdoor Dome",
+      "mp_band": "5MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "QNV-8010R/KME",
+        "QNV8010R"
+      ],
+      "msrp_low": 510.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet Q network outdoor vandal dome camera, 5MP @ 30fps, 2.8mm fixed focal lens (104\u00b0), triple codec H.265/H.264/MJPEG with Wisestream II, 120dB WDR, IR LEDs range 65', defocus detection, hallway View, built-in SD card slot (1x128GB), video analytics, CVBS, open platform, IP66, IK10, PoE, white co",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "QNV-8020R",
+      "item_type": "5MP IR Outdoor Dome",
+      "mp_band": "5MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "QNV8020R"
+      ],
+      "msrp_low": 510.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet Q network outdoor vandal dome camera, 5MP @ 30fps, 4.0mm fixed focal lens (79\u00b0), triple codec H.265/H.264/MJPEG with Wisestream II, 120dB WDR, IR LEDs range 82', defocus detection, hallway View, built-in SD card slot (1x128GB), video analytics, CVBS, open platform, IP66, IK10, PoE, white col",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "QNV-8080R",
+      "item_type": "5MP IR Outdoor Dome",
+      "mp_band": "5MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "QNV-8080R/KME",
+        "QNV8080R"
+      ],
+      "msrp_low": 690.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet Q network outdoor vandal dome camera, 5MP @ 30fps, motorized vari-focal lens 3.1x (3.2 ~ 10.0mm) (100\u00b0~31\u00b0), triple codec H.265/H.264/MJPEG with Wisestream II, 120dB WDR, IR LEDs range 98', defocus detection, hallway View, built-in SD card slot (1x128GB), video analytics, CVBS, open platform",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "QNV-C8011R",
+      "item_type": "5MP IR Outdoor Vandal Dome AI Camera",
+      "mp_band": "5MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "QNVC8011R"
+      ],
+      "msrp_low": 720.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet Q mini network outdoor vandal dome camera, 5MP @ 30fps, fix lens 3mm (H:100\u00b0/V: 73\u00b0),  triple codec H.265/H.264/MJPEG with Wisestream III (Based on AI engine), WiseNR\u2161(Based on AI engine), WDR 120dB, IR viewable length 20m(65.62ft), WiseMD based on AI engine, Classified object type: Person/V",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "QNV-C8012",
+      "item_type": "5MP Outdoor Vandal Dome AI Camera",
+      "mp_band": "5MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "QNVC8012"
+      ],
+      "msrp_low": 680.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet Q mini network outdoor vandal dome camera, 5MP @ 30fps, fix lens 2.4mm (H:123\u00b0/V: 91\u00b0),  triple codec H.265/H.264/MJPEG with Wisestream III (Based on AI engine), WiseNR\u2161(Based on AI engine), WDR 120dB, WiseMD based on AI engine, Classified object type: Person/Vehicle (vehicle type: car/bus/t",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "QNV-C8013R",
+      "item_type": "5MP IR Outdoor Vandal Dome AI Camera",
+      "mp_band": "5MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "QNVC8013R"
+      ],
+      "msrp_low": 720.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet Q mini network outdoor vandal dome camera, 5MP @ 30fps, fix lens 3mm (H:100\u00b0/V: 73\u00b0), triple codec H.265/H.264/MJPEG with WiseStream III technology, WiseNR\u2161(Based on AI engine), WDR 120dB, IR viewable length 25m(82.02ft), Motion detection based on AI engine, Analytics events based on AI engi",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "QNV-C8023R",
+      "item_type": "5MP IR Outdoor Vandal Dome AI Camera",
+      "mp_band": "5MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "QNVC8023R"
+      ],
+      "msrp_low": 720.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet Q mini network outdoor vandal dome camera, 5MP @ 30fps, fix lens 4mm (H:80\u00b0/V: 59\u00b0), triple codec H.265/H.264/MJPEG with WiseStream III technology, WiseNR\u2161(Based on AI engine), WDR 120dB, IR viewable length 30m(98.42ft), Motion detection based on AI engine, Analytics events based on AI engin",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "QNV-C8083R",
+      "item_type": "5MP IR Outdoor Vandal Dome AI Camera",
+      "mp_band": "5MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "QNVC8083R"
+      ],
+      "msrp_low": 870.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet Q network outdoor vandal dome camera, 5MP @ 30fps, motorized vari-focal lens 3.2~10.2mm (H: 95\u00b0~29\u00b0 / V: 69\u00b0~21\u00b0), triple codec H.265/H.264/MJPEG with Wisestream III (Based on AI engine), WiseNR\u2161(Based on AI engine), WDR 120dB, IR viewable length 30m (98ft), WiseMD based on AI engine, Classi",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "QNV-C9011R",
+      "item_type": "4K IR Outdoor Vandal Dome AI Camera",
+      "mp_band": "4K Cameras & up",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "QNVC9011R"
+      ],
+      "msrp_low": 820.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet Q mini network outdoor vandal dome camera, 4K @ 30fps, fix lens 3mm (H:108\u00b0/V: 59\u00b0),  triple codec H.265/H.264/MJPEG with Wisestream III (Based on AI engine), WiseNR\u2161(Based on AI engine), WDR 120dB, IR viewable length 20m(65.62ft), WiseMD based on AI engine, Classified object type: Person/Ve",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "QNV-C9083R",
+      "item_type": "4K IR Outdoor Vandal Dome AI Camera",
+      "mp_band": "4K Cameras & up",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "QNV-C9083R/KEX",
+        "QNVC9083R"
+      ],
+      "msrp_low": 970.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet Q network outdoor vandal dome camera, 4K @ 30fps, motorized vari-focal lens 3.2~10.2mm (H: 104\u00b0~31\u00b0 / V: 55\u00b0~17\u00b0), triple codec H.265/H.264/MJPEG with Wisestream III (Based on AI engine), WiseNR\u2161(Based on AI engine), WDR 120dB, IR viewable length 30m (98ft), WiseMD based on AI engine, Classi",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "TNB-9000",
+      "item_type": "8K Network Box Camera",
+      "mp_band": "8K",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "TNB-9000/KUS",
+        "TNB9000"
+      ],
+      "msrp_low": 12000.0,
+      "is_limited_stock": true,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": " 43.3mm full-frame CMOS Image Sensor, Max.15fps@8K, 20fps@24MP, 30fps@15MP, 60fps@4K, Compatible with Canon EF mount Lens, Intelligent video analytics based on AI (Object detection/classification, Attribute, BestShot), HDMI (1080p 30fps) Video Output, H.265/H.264 : Main/High, MJPEG, Single Micro SD ",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "TNO-A26081",
+      "item_type": "26MP AI Bullet Camera",
+      "mp_band": "8K",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "TNO-A26081/KEX",
+        "TNOA26081"
+      ],
+      "msrp_low": 9960.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "26MP Network AI Bullet Camera, 28.3mm APS CMOS image sensor, Max. 30fps@26MP, 0.2lux@F4.0 (Color), 55~250mm (4.54x) manual varifocal lens, H.265, H.264, MJPEG codec, WiseStream\u2161, WiseStream\u2162 (Using AI engine), Installed Video Analytics based on AI [Object detection and classification (Person, Face, ",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "TNP-A7430RW",
+      "item_type": "4MP AI IR, Ruggedized PTZ Positioning Camera",
+      "mp_band": "4MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "TNP-A7430RW/KEX",
+        "TNPA7430RW"
+      ],
+      "msrp_low": 9260.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Powered by WN9, AI Ruggedized PTZ Positioning Camera, 4MP resolution @ 30FPS, 6.1mm~262.4mm(43x) autofocus lens, Adaptive Wise IR (500m), extremeWDR 120dB, Day & Night (ICR), H.265/H.264/MJPEG codec, Optical image stabilization, Handover, AI-based WiseStream, WiseNR \u2161 (using AI engine), Dynamic priv",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "TNP-A9430RW",
+      "item_type": "4K AI IR, Ruggedized PTZ Positioning Camera",
+      "mp_band": "4K Cameras & up",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "TNP-A9430RW/KEX",
+        "TNPA9430RW"
+      ],
+      "msrp_low": 11159.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Powered by WN9, AI Ruggedized PTZ Positioning Camera, 8MP resolution @ 30FPS, 6.1mm~262.4mm(43x) autofocus lens, Adaptive Wise IR (500m), extremeWDR 120dB, Day & Night (ICR), H.265/H.264/MJPEG codec, Optical image stabilization, Handover, AI-based WiseStream, WiseNR \u2161 (using AI engine), Dynamic priv",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "TNS-7000M",
+      "item_type": "3MP Mono BCR Camera",
+      "mp_band": "3MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "TNS7000M"
+      ],
+      "msrp_low": 2510.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "3MP Mono BCR camera Max 50fps @ 3MP. WiseBCR App support Barcode recognition. Currently 1D/2D Bar Code can be recognized(Code128 / Codabar / Interleaved 2 of 5) , M12 8pin Ethernet connect, IEC 60068-2-6(vibration), IEC 60068-2-27 (shock resistance). Operating temperature -40\u00b0C~+55\u00b0C, IP67, IK10, 24",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "TNS-9040IBC",
+      "item_type": "4K Dual Sensor BCR Camera",
+      "mp_band": "4K Cameras & up",
+      "sensor_hint": 2,
+      "seed_file": "multisensor",
+      "model_aliases": [
+        "TNS9040IBC"
+      ],
+      "msrp_low": 9500.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet T network BCR (Barcode Reader Camera) for Barcode Reading and Video Monitoring. Mono: 4K, Color: 4K.  Max 20fps @ 4K MONO/COLOR each. 16mm machine vision lens.  Removable and replaceable LED module (32 LEDs module is default) Track barcodes on high speed conveyor belt moving at 2m/s (6.5ft/s",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "TNS-9050IBC",
+      "item_type": "4K Dual Sensor BCR Camera",
+      "mp_band": "4K Cameras & up",
+      "sensor_hint": 2,
+      "seed_file": "multisensor",
+      "model_aliases": [
+        "TNS-9050IBC/KEX",
+        "TNS9050IBC"
+      ],
+      "msrp_low": 9500.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet T network BCR (Barcode Reader Camera) for Barcode Reading and Video Monitoring. Mono: 4K, Color: 4K.  Max 20fps @ 4K MONO/COLOR each. 25mm machine vision lens.  Removable and replaceable LED module (32 LEDs module is default) Track barcodes on high speed conveyor belt moving at 2m/s (6.5ft/s",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "TNS-9060IBC",
+      "item_type": "4K Dual Sensor BCR Camera",
+      "mp_band": "4K Cameras & up",
+      "sensor_hint": 2,
+      "seed_file": "multisensor",
+      "model_aliases": [
+        "TNS9060IBC"
+      ],
+      "msrp_low": 9500.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet T network BCR (Barcode Reader Camera) for Barcode Reading and Video Monitoring. Mono: 4K, Color: 4K.  Max 20fps @ 4K MONO/COLOR each. 35mm machine vision lens.  Removable and replaceable LED module (32 LEDs module is default) Track barcodes on high speed conveyor belt moving at 2m/s (6.5ft/s",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "TNV-8011C",
+      "item_type": "5MP Compact corner mount camera ",
+      "mp_band": "5MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "TNV-8011C/KEX",
+        "TNV8011C"
+      ],
+      "msrp_low": 900.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Compact corner mount camera, 5MP @ 30fps, triple codec,  WDR 120dB, 2.3mm fixed, USB and CVBS, true D/N, built-in SD card slot (1x128GB), hallway view, HLC, defog detection, PoE, Audio-in/Audio-out, Wisenet open platform\nIP66, IP6K9K, IK10, video analytics- Defocus, Directional, Motion, Enter/Exit, ",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "TNV-C7013RC",
+      "item_type": "3MP AI IR Vandal Corner Camera",
+      "mp_band": "3MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "TNV-C7013RC/KEX",
+        "TNVC7013RC"
+      ],
+      "msrp_low": 1725.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet T network outdoor AI, IR corner mount camera, 3MP @ 30fps, fixed lens 2.39mm (H:128\u00b0, V:100\u00b0), 940nm Wise IR 15m(49.21ft), built-in mic, triple codec H.265/H.264/MJPEG with, extreamWDR 120dB, Improve image quality based on AI (WiseStreamIII, WiseNRII, prefer shutter control) Classified objec",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "TNV-C8011RW",
+      "item_type": "5MP AI, IR Wall Mount Panoramic  Camera",
+      "mp_band": "5MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "TNVC8011RW"
+      ],
+      "msrp_low": 980.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "T Series, wall mount AI panoramic camera, 5MP @ 30 FPS, 1.6mm fixed focal lens (HFoV: 175\u00b0, VFoV: 125\u00b0), Triple codec (H.265/H.264/MJPEG) with WiseStream III (based on AI engine) support, 120dB WDR, IR viewable length 15m (49ft),WiseMD\nbased on AI engine, Classified object type: Person/Vehicle (vehi",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "TNV-C8014RM",
+      "item_type": "5MP Mobile IR Flat Camera",
+      "mp_band": "5MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "TNVC8014RM"
+      ],
+      "msrp_low": 889.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "T Series, Mobile IR vandal dome camera, 5MP, (2592x1944) 30fps, fixed focal Lens 3mm (H:100\u00b0/V: 73\u00b0), triple codec H.265/H.264/MJPEG with WiseStream III technology, WiseNR\u2161(Based on AI engine), built-in mic, 120dB WDR, IR viewable length 30m (98.43ft), Motion detection based on AI engine, Analytics ",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "TNV-C8034RM",
+      "item_type": "5MP Mobile IR Flat Camera",
+      "mp_band": "5MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "TNVC8034RM"
+      ],
+      "msrp_low": 889.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "T Series, Mobile IR vandal dome camera, 5MP, (2592x1944) 30fps, fixed focal Lens 6mm (H:50\u00b0/V: 37\u00b0), triple codec H.265/H.264/MJPEG with WiseStream III technology, WiseNR\u2161(Based on AI engine), built in mic, 120dB WDR, IR viewable length 30m(98.43ft), Motion detection based on AI engine, Analytics ev",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XNB-A8004",
+      "item_type": "5MP Box AI Camera",
+      "mp_band": "5MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XNBA8004"
+      ],
+      "msrp_low": 1250.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Powered by WN9, Box Camera, 5MP resolution @ 30FPS, H.265/H.264/MJPEG codec, USB-C port for easy installation, Selectable microphone input (mic in/line in/built-in), Day & Night (ICR), extremeWDR (120dB), DIS with built-in gyro sensor, Handover, AI-based WiseStream, WiseNR \u2161 (using AI engine), Dynam",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XNB-A9004",
+      "item_type": "8MP Box AI Camera",
+      "mp_band": "4K Cameras & up",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XNBA9004"
+      ],
+      "msrp_low": 1450.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Powered by WN9, Box Camera, 8MP resolution @ 30FPS, H.265/H.264/MJPEG codec, USB-C port for easy installation, Selectable microphone input (mic in/line in/built-in), Day & Night (ICR), extremeWDR (120dB), DIS with built-in gyro sensor, Handover, AI-based WiseStream, WiseNR \u2161 (using AI engine), Dynam",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XND-8020F",
+      "item_type": "5MP Flush Mount ",
+      "mp_band": "5MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XND8020F"
+      ],
+      "msrp_low": 660.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet X powered by Wisenet 5 network flush mount dome camera, 5MP @ 30fps, 3.7mm fixed lens (97.5\u00b0), triple codec H.265/H.264/MJPEG with WiseStream II technology, 120dB WDR, USB port for easy installation, advanced video analytics and sound classification and business analytics, built-in Mic, magn",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XND-8020R",
+      "item_type": "5MP Indoor IR Vandal Dome",
+      "mp_band": "5MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XND8020R"
+      ],
+      "msrp_low": 850.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet X powered by Wisenet 5 network IR indoor vandal dome camera, 5MP @30fps, 3.7mm fixed focal lens (97.5\u00b0), triple codec H.265/H.264/MJPEG with WiseStream II technology, 120dB WDR, USB port for easy installation, advanced video analytics and sound classification and business analytics, high pow",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XND-8030R",
+      "item_type": "5MP Indoor IR Vandal Dome",
+      "mp_band": "5MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XND8030R"
+      ],
+      "msrp_low": 850.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet X powered by Wisenet 5 network IR indoor vandal dome camera, 5MP @30fps, 4.6mm fixed focal lens (77.9\u00b0), triple codec H.265/H.264/MJPEG with WiseStream II technology, 120dB WDR, USB port for easy installation, advanced video analytics and sound classification and business analytics, high pow",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XND-8040R",
+      "item_type": "5MP Indoor IR Vandal Dome",
+      "mp_band": "5MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XND8040R"
+      ],
+      "msrp_low": 850.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet X powered by Wisenet 5 network IR indoor vandal dome camera, 5MP @30fps, 7mm fixed focal lens (50.7\u00b0), triple codec H.265/H.264/MJPEG with WiseStream II technology, 120dB WDR, USB port for easy installation, advanced video analytics and sound classification and business analytics, high power",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XND-8080RV",
+      "item_type": "5MP Indoor IR Vandal Dome",
+      "mp_band": "5MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XND8080RV"
+      ],
+      "msrp_low": 1350.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet X powered by Wisenet 5 network IR indoor vandal dome camera, 5MP @30fps, motorized vari-focal lens 2.4x (3.9~9.4mm) (92.1\u00b0~38.7\u00b0), triple codec H.265/H.264/MJPEG with WiseStream II technology, 120dB WDR, USB port for easy installation, advanced video analytics and sound classification, high ",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XND-8081REV",
+      "item_type": "5MP Indoor Dome, PoE extender camera",
+      "mp_band": "5MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XND8081REV"
+      ],
+      "msrp_low": 1700.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet X powered by Wisenet 5 network IR indoor dome camera with PoE Extender, PoE+ in PoE out, 5MP @30fps, Motorized Varifocal Lens (3.9mm ~9.4mm), triple codec H.265/H.264/MJPEG with WiseStream II technology,WDR 120dB, USB port for easy installation, advanced video analytics and sound classificat",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XND-8082RF",
+      "item_type": "6MP IR Flush Mount Dome",
+      "mp_band": "6MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XND8082RF"
+      ],
+      "msrp_low": 1550.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet 7 X-plus series network IR flush mount camera (plenum), 6MP @ 30fps, motorized vari-focal lens 3x (2.8~8.4mm), triple codec H.265/H.264/MJPEG with WiseStreamII technology, Extreme WDR, USB and CVBS port for easy installation, advanced video analytics, sound classification and business analyt",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XND-8082RV",
+      "item_type": "6MP IR Indoor Dome",
+      "mp_band": "6MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XND-8082RV/KAP",
+        "XND8082RV"
+      ],
+      "msrp_low": 1550.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet 7 X-plus series network IR vandal indoor camera, 6MP @ 30fps, motorized vari-focal lens 3x (2.8~8.4mm), triple codec H.265/H.264/MJPEG with WiseStreamII technology, Extreme WDR, USB and CVBS port for easy installation, advanced video analytics, sound classification and business analytics, hi",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XND-8083RV",
+      "item_type": "6MP IR Indoor Vandal Dome AI Camera",
+      "mp_band": "6MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XND-8083RV/KEX",
+        "XND8083RV"
+      ],
+      "msrp_low": 1650.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Powered by WN7, X-Plus series, Indoor Network AI IR Dome Camera, 6MP resolution @ 30FPS, 4.4~9.3mm(2.1x) (112.1\u00b0~47.5\u00b0) motorized varifocal lens, Triple codec (H.265/H.264/MJPEG), IR viewable length 50m (164ft), USB port for easy installation, Day & Night (ICR), extremeWDR (120dB), DIS with built-in",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XND-8083RVX",
+      "item_type": "6MP IR Indoor AI Camera Module Only",
+      "mp_band": "6MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XND8083RVX"
+      ],
+      "msrp_low": 1550.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Powered by WN7, X-Plus series, Network AI IR Indoor Camera Module, 6MP resolution @ 30FPS, 4.4~9.3mm(2.1x) (112.1\u00b0~47.5\u00b0) motorized varifocal lens, Triple codec (H.265/H.264/MJPEG), IR viewable length 50m (164ft), USB port for easy installation, Day & Night (ICR), extremeWDR (120dB), DIS with built-",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XND-8093RV",
+      "item_type": "6MP IR Indoor Dome AI Camera",
+      "mp_band": "6MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XND-8093RV/KEX",
+        "XND8093RV"
+      ],
+      "msrp_low": 1850.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Powered by WN7, X-Plus series, Indoor Network AI IR Dome Camera, 6MP resolution @ 30FPS, 10.9~29mm(2.7x) (42\u00b0~15\u00b0) motorized varifocal lens, Triple codec (H.265/H.264/MJPEG), IR viewable length 70m (229.66ft), USB port for easy installation, Day & Night (ICR), extremeWDR (120dB), DIS with built-in G",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XND-9082RF",
+      "item_type": "4K IR Flush Mount Dome",
+      "mp_band": "4K Cameras & up",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XND9082RF"
+      ],
+      "msrp_low": 1750.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet 7 X-plus series network IR flush mount camera (plenum), 4K (8MP Max) @ 30fps, motorized vari-focal lens 3x (2.8~8.4mm), triple codec H.265/H.264/MJPEG with WiseStreamII technology, Extreme WDR, USB and CVBS port for easy installation, advanced video analytics, sound classification and busine",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XND-9082RV",
+      "item_type": "4K IR Indoor Dome",
+      "mp_band": "4K Cameras & up",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XND9082RV"
+      ],
+      "msrp_low": 1750.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet 7 X-plus series network IR vandal indoor camera, 4K (8MP Max) @ 30fps, motorized vari-focal lens 3x (2.8~8.4mm), triple codec H.265/H.264/MJPEG with WiseStreamII technology, Extreme WDR, USB and CVBS port for easy installation, advanced video analytics, sound classification and business anal",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XND-9083RV",
+      "item_type": "4K IR Indoor Vandal Dome AI Camera",
+      "mp_band": "4K Cameras & up",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XND9083RV"
+      ],
+      "msrp_low": 1850.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Powered by WN7,  X-Plus series, Indoor Network AI IR Dome Camera, 4K resolution @ 30FPS, 4.4~9.3mm(2.1x) (112.1\u00b0~47.5\u00b0) motorized varifocal lens, Triple codec (H.265/H.264/MJPEG), IR viewable length 50m (164ft), USB port for easy installation, Day & Night (ICR), extremeWDR (120dB), DIS with built-in",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XND-A8084RV",
+      "item_type": "5MP IR Indoor Dome AI Camera",
+      "mp_band": "5MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XND-A8084RV/KEX",
+        "XNDA8084RV"
+      ],
+      "msrp_low": 1300.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Powered by WN9, Indoor Network AI IR Dome Camera, 5MP resolution @ 30FPS, 3.3~9.3mm (2.8x), (99\u00b0~31\u00b0) motorized varifocal lens, H.265/H.264/MJPEG codec, IR viewable length 50m (164.04ft), USB-C port for easy installation, Day & Night (ICR), extremeWDR (120dB), Hard-coated dome bubble, DIS with built",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XND-A8085RV",
+      "item_type": "5MP IR Indoor Dome AI Camera",
+      "mp_band": "5MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XNDA8085RV"
+      ],
+      "msrp_low": 1650.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Powered by WN9, X-Plus design, Indoor Network AI IR Dome Camera, 5MP resolution @ 30FPS, 3.3~9.3mm (2.8x), (99\u00b0~31\u00b0) motorized varifocal lens, H.265/H.264/MJPEG codec, IR viewable length 50m (164.04ft), USB-C port for easy installation, Selectable microphone input (mic in/line in/built-in), Day & Ni",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XND-A9084RV",
+      "item_type": "8MP IR Indoor Dome AI Camera",
+      "mp_band": "4K Cameras & up",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XND-A9084RV/KEX",
+        "XNDA9084RV"
+      ],
+      "msrp_low": 1500.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Powered by WN9, Indoor Network AI IR Dome Camera, 8MP resolution @ 30FPS, 4.4~9.3mm (2.1x), (113\u00b0~47\u00b0) motorized varifocal lens, H.265/H.264/MJPEG codec, IR viewable length 50m (164.04ft), USB-C port for easy installation, Day & Night (ICR), extremeWDR (120dB), Hard-coated dome bubble, DIS with buil",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XND-A9085RV",
+      "item_type": "8MP IR Indoor Dome AI Camera",
+      "mp_band": "4K Cameras & up",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XNDA9085RV"
+      ],
+      "msrp_low": 1850.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Powered by WN9, X-Plus design, Indoor Network AI IR Dome Camera, 8MP resolution @ 30FPS, 4.4~9.3mm (2.1x), (113\u00b0~47\u00b0) motorized varifocal lens, H.265/H.264/MJPEG codec, IR viewable length 50m (164.04ft), USB-C port for easy installation, Selectable microphone input (mic in/line in/built-in), Day & N",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XND-C7083RV",
+      "item_type": "4MP IR Indoor Vandal Dome AI Camera",
+      "mp_band": "4MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XND-C7083RV/KEX",
+        "XNDC7083RV"
+      ],
+      "msrp_low": 1300.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Powered by WN7, Indoor Network AI IR Dome Camera, 4MP resolution @ 60FPS (WDR off)/30FPS (WDR on), 2.8~10mm(3.6x) (109.7\u00b0~30.4\u00b0) motorized varifocal lens, Triple codec (H.265/H.264/MJPEG), IR viewable length 40m (131.2ft), USB port for easy installation, Day & Night (ICR), extremeWDR (120dB), DIS wi",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XND-C8083RV",
+      "item_type": "6MP IR Indoor Vandal Dome AI Camera",
+      "mp_band": "6MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XND-C8083RV/KEX",
+        "XNDC8083RV"
+      ],
+      "msrp_low": 1350.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Powered by WN7, Indoor Network AI IR Dome Camera, 6MP resolution @ 30FPS, 4.4~9.3mm(2.1x) (112.1\u00b0~47.5\u00b0) motorized varifocal lens, Triple codec (H.265/H.264/MJPEG), IR viewable length 40m (131.2ft), USB port for easy installation, Day & Night (ICR), extremeWDR (120dB), DIS with built-in Gyro sensor,",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XND-C9083RV",
+      "item_type": "4K IR Indoor Vandal Dome AI Camera",
+      "mp_band": "4K Cameras & up",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XNDC9083RV"
+      ],
+      "msrp_low": 1600.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Powered by WN7, Indoor Network AI IR Dome Camera, 4K resolution @ 30FPS, 4.4~9.3mm(2.1x) (112.1\u00b0~47.5\u00b0) motorized varifocal lens, Triple codec (H.265/H.264/MJPEG), IR viewable length 40m (131.2ft), USB port for easy installation, Day & Night (ICR), extremeWDR (120dB), DIS with built-in Gyro sensor, ",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XNF-8010R",
+      "item_type": "X-Series Indoor IR Fisheye",
+      "mp_band": "5MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XNF8010R"
+      ],
+      "msrp_low": 1050.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet X powered by Wisenet 5 network indoor fisheye, 6MP CMOS sensor, 2048x2048 @ 30fps, 1.6mm fixed lens (192\u00b0), triple codec H.265/H.264/MJPEG with WiseStream II technology, 120dB WDR, USB port for easy installation, advanced video, sound classification and business analytics, high powered IR LE",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XNF-8010RV",
+      "item_type": "X-Series Outdoor IR Fisheye",
+      "mp_band": "5MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XNF-8010RV/KME",
+        "XNF8010RV"
+      ],
+      "msrp_low": 1150.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet X powered by Wisenet 5 network outdoor vandal fisheye, 6MP CMOS sensor, 2048x2048 @ 30fps, 1.6mm fixed lens (192\u00b0), triple codec H.265/H.264/MJPEG with WiseStream II technology, 120dB WDR, USB port for easy installation, advanced video, sound classification and business analytics, high power",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XNF-8010RVM",
+      "item_type": "X-Series Mobile IR Fisheye",
+      "mp_band": "5MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XNF8010RVM"
+      ],
+      "msrp_low": 1250.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet X powered by Wisenet 5 network mobile vandal fisheye, 6MP CMOS sensor, 2048x2048 @ 30fps, 1.6mm fixed lens (192\u00b0), triple codec H.265/H.264/MJPEG with WiseStream II technology, 120dB WDR, USB port for easy installation, advanced video, sound classification and business analytics, high powere",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XNF-8010RW",
+      "item_type": "X-Series Indoor IR Fisheye\n(White Color)",
+      "mp_band": "5MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XNF8010RW"
+      ],
+      "msrp_low": 1050.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet X powered by Wisenet 5 network indoor fisheye (white color), 6MP CMOS sensor, 2048x2048 @ 30fps, 1.6mm fixed lens (192\u00b0), triple codec H.265/H.264/MJPEG with WiseStream II technology, 120dB WDR, USB port for easy installation, advanced video, sound classification and business analytics, high",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XNF-9010RS",
+      "item_type": "12MP Stainless Steel IR Fisheye Camera",
+      "mp_band": "4K Cameras & up",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XNF-9010RS/KUS",
+        "XNF9010RS"
+      ],
+      "msrp_low": 2270.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Stainless steel Fisheye, powered by WN7, 1/2.3\" 12MP CMOS, Max resolution 3008x3008 @ 30FPS, 1.08mm fixed focal lends, Stereo graphic type lens, enhanced resolution for the peripheral regions, H.265, H.264, MJPEG codec supported, Fisheye, Single panorama, Double panorama, Quad view, On board dewarpi",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XNF-9010RV",
+      "item_type": "12MP, WN7 Fisheye",
+      "mp_band": "4K Cameras & up",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XNF-9010RV/KAP",
+        "XNF9010RV"
+      ],
+      "msrp_low": 1320.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Powered by WN7, 1/2.3\" 12MP CMOS, Max resolution 3008x3008 @ 30FPS, 1.08mm fixed focal lends, Stereo graphic type lens, enhanced resolution for the peripheral regions, H.265, H.264, MJPEG codec supported, Fisheye, Single panorama, Double panorama, Quad view, On board dewarping, Digital PTZ, extreme ",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XNF-9010RVM",
+      "item_type": "12MP, WN7 Fisheye",
+      "mp_band": "4K Cameras & up",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XNF9010RVM"
+      ],
+      "msrp_low": 1400.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Powered by WN7, 1/2.3\" 12MP CMOS, Max resolution 3008x3008 @ 30FPS, 1.08mm fixed focal lends, Stereo graphic type lens, enhanced resolution for the peripheral regions, H.265, H.264, MJPEG codec supported, Fisheye, Single panorama, Double panorama, Quad view, On board dewarping, Digital PTZ, extreme ",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XNF-9013RV",
+      "item_type": "12MP, Fisheye camera with AI and IR",
+      "mp_band": "4K Cameras & up",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XNF-9013RV/KEX",
+        "XNF9013RV"
+      ],
+      "msrp_low": 1470.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Powered by WN7, 1/2.3\" 12MP CMOS, Max resolution 3008x3008 @ 30FPS, 1.08mm fixed focal lens, Stereo graphic type lens, enhanced resolution for the peripheral regions, H.265, H.264, MJPEG codec supported, Fisheye, Single panorama, Double panorama, Quad view, On board dewarping, Digital PTZ, extreme W",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XNF-A8014R",
+      "item_type": "6MP, Indoor Fisheye Camera with AI and IR",
+      "mp_band": "6MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XNFA8014R"
+      ],
+      "msrp_low": 1170.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Powered by WN9, Indoor AI IR fisheye camera, 6MP Max resolution 2560x2560 @ 30FPS, 1.76mm fixed lens, H185\u00b0/V185\u00b0, Stereo graphic type lens, H.265, H.264, MJPEG codec supported, IR viewable length 17m (55.77ft), Selectable microphone input (mic in/line in/built-in 3mics), WiseStreamIII (Based on AI ",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XNF-A8014RV",
+      "item_type": "6MP, Outdoor Fisheye Camera with AI and IR",
+      "mp_band": "6MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XNFA8014RV"
+      ],
+      "msrp_low": 1270.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Powered by WN9, Outdoor AI IR fisheye camera, 6MP Max resolution 2560x2560 @ 30FPS, 1.76mm fixed lens, H185\u00b0/V185\u00b0, Stereo graphic type lens, H.265, H.264, MJPEG codec supported, IR viewable length 17m (55.77ft), WiseStreamIII (Based on AI engine), Selectable microphone input (mic in/line in/built-i",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XNF-A9014R",
+      "item_type": "12MP, Indoor Fisheye Camera with AI and IR",
+      "mp_band": "4K Cameras & up",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XNFA9014R"
+      ],
+      "msrp_low": 1370.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Powered by WN9, Indoor AI IR fisheye camera, 12MP CMOS, Max resolution 3536x3536 @ 30FPS, 1.76mm fixed lens, H185\u00b0/V185\u00b0, Stereo graphic type lens, H.265, H.264, MJPEG codec supported, IR viewable length 20m (65.5ft), Selectable microphone input (mic in/line in/built-in 3mics), WiseStreamIII (Based ",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XNF-A9014RV",
+      "item_type": "12MP, Outdoor Fisheye Camera with AI and IR",
+      "mp_band": "4K Cameras & up",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XNFA9014RV"
+      ],
+      "msrp_low": 1470.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Powered by WN9, Outdoor AI IR fisheye camera, 12MP CMOS, Max resolution 3536x3536 @ 30FPS, 1.76mm fixed lens, H185\u00b0/V185\u00b0, Stereo graphic type lens, H.265, H.264, MJPEG codec supported, IR viewable length 20m (65.6ft), Selectable microphone input (mic in/line in/built-in 3mics), WiseStreamIII (Based",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XNO-8020R",
+      "item_type": "5MP IR Bullet",
+      "mp_band": "5MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XNO8020R"
+      ],
+      "msrp_low": 945.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet X powered by Wisenet 5 network outdoor vandal bullet camera, 5MP @30fps, 3.7mm fixed lens (97.5\u00b0), triple codec H.265/H.264/MJPEG with WiseStream II technology, 120dB WDR, USB port for easy installation, advanced video analytics and sound classification and business analytics, high powered I",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XNO-8030R",
+      "item_type": "5MP IR Bullet",
+      "mp_band": "5MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XNO8030R"
+      ],
+      "msrp_low": 945.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet X powered by Wisenet 5 network outdoor vandal bullet camera, 5MP @30fps, 4.6mm fixed lens (77.9\u00b0), triple codec H.265/H.264/MJPEG with WiseStream II technology, 120dB WDR, USB port for easy installation, advanced video analytics and sound classification and business analytics, high powered I",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XNO-8040R",
+      "item_type": "5MP IR Bullet",
+      "mp_band": "5MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XNO8040R"
+      ],
+      "msrp_low": 945.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet X powered by Wisenet 5 network outdoor vandal bullet camera, 5MP @30fps, 7mm fixed lens (50.7\u00b0), triple codec H.265/H.264/MJPEG with WiseStream II technology, 120dB WDR, USB port for easy installation, advanced video analytics and sound classification and business analytics, high powered IR ",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XNO-8080R",
+      "item_type": "5MP IR Bullet",
+      "mp_band": "5MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XNO-8080R/KME",
+        "XNO8080R"
+      ],
+      "msrp_low": 1550.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet X powered by Wisenet 5 network IR outdoor bullet camera, 5MP @30fps, motorized vari-focal lens 2.4x (3.7~9.4mm) (100.2\u00b0~38.7\u00b0), triple codec H.265/H.264/MJPEG with WiseStream II technology, 120dB WDR, USB port for easy installation, advanced video analytics and sound classification, high pow",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XNO-8082R",
+      "item_type": "6MP IR Bullet Camera",
+      "mp_band": "6MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XNO-8082R/KAP",
+        "XNO8082R"
+      ],
+      "msrp_low": 1700.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet 7 X series network IR bullet camera, 6MP @ 30fps, motorized vari-focal lens 3x (2.8~8.4mm), triple codec H.265/H.264/MJPEG with WiseStreamII technology, Extreme WDR, USB and CVBS port for easy installation, advanced video analytics, sound classification and business analytics, high powered I",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XNO-8083R",
+      "item_type": "6MP IR Bullet AI Camera",
+      "mp_band": "6MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XNO-8083R/KEX",
+        "XNO8083R"
+      ],
+      "msrp_low": 1800.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Powered by WN7, X-Plus series, Outdoor Network AI IR Bullet Camera, 6MP resolution @ 30FPS, 4.4~9.3mm(2.1x) (112.1\u00b0~47.5\u00b0) motorized varifocal lens, Triple codec (H.265/H.264/MJPEG), IR viewable length 50m (164ft), USB port for easy installation, Day & Night (ICR), extremeWDR (120dB), DIS with built",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XNO-9082R",
+      "item_type": "4K IR Bullet Camera",
+      "mp_band": "4K Cameras & up",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XNO9082R"
+      ],
+      "msrp_low": 1900.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet 7 X series network IR bullet camera, 4K (8MP Max) @ 30fps, motorized vari-focal lens 3x (2.8~8.4mm), triple codec H.265/H.264/MJPEG with WiseStreamII technology, Extreme WDR, USB and CVBS port for easy installation, advanced video analytics, sound classification and business analytics, high ",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XNO-9083R",
+      "item_type": "4K IR Bullet AI Camera",
+      "mp_band": "4K Cameras & up",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XNO-9083R/KEX",
+        "XNO9083R"
+      ],
+      "msrp_low": 2000.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Powered by WN7,  X-Plus series,  Outdoor Network AI IR Bullet Camera, 4K resolution @ 30FPS, 4.4~9.3mm(2.1x) (112.1\u00b0~47.5\u00b0) motorized varifocal lens, Triple codec (H.265/H.264/MJPEG), IR viewable length 50m (164ft), USB port for easy installation, Day & Night (ICR), extremeWDR (120dB), DIS with buil",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XNO-A8084R",
+      "item_type": "5MP IR Bullet AI Camera",
+      "mp_band": "5MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XNO-A8084R/KEX",
+        "XNOA8084R"
+      ],
+      "msrp_low": 1450.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Powered by WN9, Outdoor Network AI IR Vandal Bullet Camera, 5MP resolution @ 30FPS, 3.3~9.3mm (2.8x) (99\u00b0~31\u00b0) motorized varifocal lens, H.265/H.264/MJPEG codec, IR viewable length 50m (164.04ft), USB-C port for easy installation, Day & Night (ICR), extremeWDR (120dB), Hard-coated dome bubble, DIS w",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XNO-A9084R",
+      "item_type": "8MP IR Bullet AI Camera",
+      "mp_band": "4K Cameras & up",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XNO-A9084R/KEX",
+        "XNOA9084R"
+      ],
+      "msrp_low": 1650.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Powered by WN9, Outdoor Network AI IR Vandal Bullet Camera, 8MP resolution @ 30FPS, 4.4~9.3mm(2.1x), (113\u00b0~47\u00b0) motorized varifocal lens, H.265/H.264/MJPEG codec, IR viewable length 50m (164.04ft), USB-C port for easy installation, Day & Night (ICR), extremeWDR (120dB), Hard-coated dome bubble, DIS ",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XNO-C7083R",
+      "item_type": "4MP IR Bullet AI camera",
+      "mp_band": "4MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XNO-C7083R/KEX",
+        "XNOC7083R"
+      ],
+      "msrp_low": 1400.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Powered by WN7, Outdoor Network AI IR Bullet Camera, 4MP resolution @ 60FPS (WDR off)/30FPS (WDR on), 2.8~10mm(3.6x) (109.7\u00b0~30.4\u00b0) motorized varifocal lens, Triple codec (H.265/H.264/MJPEG), IR viewable length 40m (131.2ft), USB port for easy installation, Day & Night (ICR), extremeWDR (120dB), DIS",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XNO-C8083R",
+      "item_type": "6MP IR Bullet AI camera",
+      "mp_band": "6MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XNO-C8083R/KEX",
+        "XNOC8083R"
+      ],
+      "msrp_low": 1550.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Powered by WN7, Outdoor Network AI IR Bullet Camera, 6MP resolution @ 30FPS, 4.4~9.3mm(2.1x) (112.1\u00b0~47.5\u00b0) motorized varifocal lens, Triple codec (H.265/H.264/MJPEG), IR viewable length 40m (131.2ft), USB port for easy installation, Day & Night (ICR), extremeWDR (120dB), DIS with built-in Gyro sens",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XNO-C9083R",
+      "item_type": "4K IR Bullet AI camera",
+      "mp_band": "4K Cameras & up",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XNO-C9083R/KEX",
+        "XNOC9083R"
+      ],
+      "msrp_low": 1800.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Powered by WN7, Outdoor Network AI IR Bullet Camera, 4K resolution @ 30FPS, 4.4~9.3mm(2.1x) (112.1\u00b0~47.5\u00b0) motorized varifocal lens, Triple codec (H.265/H.264/MJPEG), IR viewable length 40m (131.2ft), USB port for easy installation, Day & Night (ICR), extremeWDR (120dB), DIS with built-in Gyro senso",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XNP-9300RW",
+      "item_type": "4K IR, Wiper PTZ",
+      "mp_band": "4K Cameras & up",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XNP9300RW"
+      ],
+      "msrp_low": 5300.0,
+      "is_limited_stock": true,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Powered by WN7, 4K @ 30FPS resolution, 5mm~150mm (30x) lens, build in wiper and adaptive Wise IR (200m),  extreme WDR 120dB, Day & Night ICR, H.265, H.264, MJPEG codec support, Intelligent Analytics, Object auto tracking (Person/Vehicle), Target lock track, BLC, HLC, SSDR, lens heater for water/snow",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XNP-C7310R",
+      "item_type": "4MP AI Focus IR, PTZ",
+      "mp_band": "4MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XNP-C7310R/KEX",
+        "XNPC7310R"
+      ],
+      "msrp_low": 4590.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Powered by WN7 and AI,4MP @ 30FPS resolution, 6.91mm~214.64mm (31x) lens with Wise AF intelligent autofocus, adaptive Wise IR (300m), extreme WDR 120dB, Day & Night ICR, H.265, H.264, MJPEG triple codec with WiseStream III (based on AI engine) support, Analytics events based on AI engine:Object dete",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XNP-C8253",
+      "item_type": "6MP AI PTZ",
+      "mp_band": "6MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XNPC8253"
+      ],
+      "msrp_low": 4550.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Powered by WN7 PTZ Plus with AI, 6MP @ 30FPS resolution, 5mm~125mm (25x) lens,\u00a0extreme WDR 120dB, Day & Night ICR, H.265, H.264, MJPEG codec support, Analytics events based on AI engine: Object detection (Person/Face/Vehicle/License plate), IVA (Virtual line/Area, Enter/Exit, Loitering, direction, i",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XNP-C8253R",
+      "item_type": "6MP AI IR, PTZ",
+      "mp_band": "6MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XNPC8253R"
+      ],
+      "msrp_low": 4800.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Powered by WN7 PTZ Plus with AI, 6MP @ 30FPS resolution, 5mm~125mm (25x) lens, adaptive Wise IR (200m),\u00a0extreme WDR 120dB, Day & Night ICR, H.265, H.264, MJPEG codec support, Analytics events based on AI engine: Object detection (Person/Face/Vehicle/License plate), IVA (Virtual line/Area, Enter/Exit",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XNP-C8303RW",
+      "item_type": "6MP AI IR, Wiper PTZ",
+      "mp_band": "6MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XNPC8303RW"
+      ],
+      "msrp_low": 5130.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Powered by WN7 PTZ Plus with AI, 6MP @ 30FPS resolution, 5mm~150mm (30x) lens, build in wiper and adaptive Wise IR (200m),  extreme WDR 120dB, Day & Night ICR, H.265, H.264, MJPEG codec support, Analytics events based on AI engine: Object detection (Person/Face/Vehicle/License plate), IVA (Virtual l",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XNP-C9253",
+      "item_type": "4K AI PTZ",
+      "mp_band": "4K Cameras & up",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XNP-C9253/KUS",
+        "XNPC9253"
+      ],
+      "msrp_low": 4860.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Powered by WN7 PTZ Plus with AI, 4K @ 30FPS resolution, 5mm~125mm (25x) lens,\u00a0extreme WDR 120dB, Day & Night ICR, H.265, H.264, MJPEG codec support, Analytics events based on AI engine: Object detection (Person/Face/Vehicle/License plate), IVA (Virtual line/Area, Enter/Exit, Loitering, direction, in",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XNP-C9253R",
+      "item_type": "4K AI IR, PTZ",
+      "mp_band": "4K Cameras & up",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XNPC9253R"
+      ],
+      "msrp_low": 5130.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Powered by WN7 PTZ Plus with AI, 4K @ 30FPS resolution, 5mm~125mm (25x) lens, adaptive Wise IR (200m),\u00a0extreme WDR 120dB, Day & Night ICR, H.265, H.264, MJPEG codec support, Analytics events based on AI engine: Object detection (Person/Face/Vehicle/License plate), IVA (Virtual line/Area, Enter/Exit,",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XNP-C9303RW",
+      "item_type": "4K AI IR, Wiper PTZ",
+      "mp_band": "4K Cameras & up",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XNPC9303RW"
+      ],
+      "msrp_low": 5500.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Powered by WN7 PTZ Plus with AI, 4K @ 30FPS resolution, 5mm~150mm (30x) lens, build in wiper and adaptive Wise IR (200m),  extreme WDR 120dB, Day & Night ICR, H.265, H.264, MJPEG codec support, Analytics events based on AI engine: Object detection (Person/Face/Vehicle/License plate), IVA (Virtual li",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XNP-C9310R",
+      "item_type": "4K AI Focus IR, PTZ",
+      "mp_band": "4K Cameras & up",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XNP-C9310R/KEX",
+        "XNPC9310R"
+      ],
+      "msrp_low": 5500.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Powered by WN7 and AI,8MP (4K UHD) @ 30FPS resolution, 6.91mm~214.64mm (31x) lens with Wise AF intelligent autofocus, adaptive Wise IR (250m), extreme WDR 120dB, Day & Night ICR, H.265, H.264, MJPEG triple codec with WiseStream III (based on AI engine) support, Analytics events based on AI engine:Ob",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XNV-8020R",
+      "item_type": "5MP IR Outdoor Dome",
+      "mp_band": "5MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XNV8020R"
+      ],
+      "msrp_low": 985.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet X powered by Wisenet 5 network IR outdoor vandal dome camera, 5MP @30fps, 3.7mm fixed focal lens (97.5\u00b0), triple codec H.265/H.264/MJPEG with WiseStream II technology, 120dB WDR, USB port for easy installation, advanced video analytics and sound classification and business analytics, high po",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XNV-8030R",
+      "item_type": "5MP IR Outdoor Dome",
+      "mp_band": "5MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XNV8030R"
+      ],
+      "msrp_low": 985.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet X powered by Wisenet 5 network IR outdoor vandal dome camera, 5MP @30fps, 4.6mm fixed focal lens (77.9\u00b0), triple codec H.265/H.264/MJPEG with WiseStream II technology, 120dB WDR, USB port for easy installation, advanced video analytics and sound classification and business analytics, high po",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XNV-8040R",
+      "item_type": "5MP IR Outdoor Dome",
+      "mp_band": "5MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XNV8040R"
+      ],
+      "msrp_low": 985.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet X powered by Wisenet 5 network IR outdoor vandal dome camera, 5MP @30fps, 7mm fixed focal lens (50.7\u00b0), triple codec H.265/H.264/MJPEG with WiseStream II technology, 120dB WDR, USB port for easy installation, advanced video analytics and sound classification and business analytics, high powe",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XNV-8080R",
+      "item_type": "5MP IR Outdoor Dome",
+      "mp_band": "5MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XNV-8080R/KME",
+        "XNV8080R"
+      ],
+      "msrp_low": 1550.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet X powered by Wisenet 5 network IR outdoor vandal dome camera, 5MP @30fps, motorized vari-focal lens 2.4x (3.9~9.4mm) (92.1\u00b0~38.7\u00b0), triple codec H.265/H.264/MJPEG with WiseStream II technology, 120dB WDR, USB port for easy installation, advanced video analytics and sound classification, high",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XNV-8080RSA",
+      "item_type": "5MP Stainless Steel IR Dome",
+      "mp_band": "5MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XNV-8080RSA/KUS",
+        "XNV8080RSA"
+      ],
+      "msrp_low": 2200.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet X powered by Wisenet 5 network IR stainless steel dome camera, 5MP @30fps, motorized vari-focal lens 2.4x (3.9~9.4mm) (92.1\u00b0~38.7\u00b0), triple codec H.265/H.264/MJPEG with WiseStream II technology, 120dB WDR, USB port for easy installation, advanced video analytics and sound classification, hig",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XNV-8081R",
+      "item_type": "5MP IR Outdoor Dome",
+      "mp_band": "5MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XNV-8081R/KAP",
+        "XNV8081R"
+      ],
+      "msrp_low": 1800.0,
+      "is_limited_stock": true,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet X series Plus powered by Wisenet 5 IR network outdoor vandal dome camera, modular structure, 5MP @ 30fps, motorized vari-focal lens 2.6x (3.6~9.4mm) (102.5\u00b0~38.7\u00b0), triple codec H.265/H.264/MJPEG with WiseStream II technology, 120dB WDR, USB port for easy installation, advanced video analyti",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XNV-8081RE",
+      "item_type": "5MP Outdoor Dome, PoE extender camera",
+      "mp_band": "5MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XNV8081RE"
+      ],
+      "msrp_low": 1950.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet X powered by Wisenet 5 network IR outdoor vandal dome camera with PoE Extender, PoE+ in PoE out, 5MP @30fps, Motorized Varifocal Lens (3.9mm ~9.4mm), triple codec H.265/H.264/MJPEG with WiseStream II technology,WDR 120dB, USB port for easy installation, advanced video analytics and sound cla",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XNV-8082R",
+      "item_type": "6MP IR Outdoor Vandal Dome",
+      "mp_band": "6MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XNV-8082R/KAP",
+        "XNV8082R"
+      ],
+      "msrp_low": 1700.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet 7 X-plus series network IR vandal outdoor camera, 6MP @ 30fps, motorized vari-focal lens 3x (2.8~8.4mm), triple codec H.265/H.264/MJPEG with WiseStreamII technology, Extreme WDR, USB and CVBS port for easy installation, advanced video analytics, sound classification and business analytics, h",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XNV-8083R",
+      "item_type": "6MP IR Outdoor Vandal Dome AI Camera",
+      "mp_band": "6MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XNV-8083R/KEX",
+        "XNV8083R"
+      ],
+      "msrp_low": 1800.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Powered by WN7, X-Plus series, Outdoor Network AI IR Vandal Dome Camera, 6MP resolution @ 30FPS, 4.4~9.3mm(2.1x) (112.1\u00b0~47.5\u00b0) motorized varifocal lens, Triple codec (H.265/H.264/MJPEG), IR viewable length 50m (164ft), USB port for easy installation, Day & Night (ICR), extremeWDR (120dB), DIS with ",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XNV-8083RX",
+      "item_type": "6MP IR Outdoor AI Camera Module Only",
+      "mp_band": "6MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XNV8083RX"
+      ],
+      "msrp_low": 1555.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Powered by WN7, X-Plus series, Network AI IR Outdoor Camera Module, 6MP resolution @ 30FPS, 4.4~9.3mm(2.1x) (112.1\u00b0~47.5\u00b0) motorized varifocal lens, Triple codec (H.265/H.264/MJPEG), IR viewable length 50m (164ft), USB port for easy installation, Day & Night (ICR), extremeWDR (120dB), DIS with built",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XNV-8083RZ",
+      "item_type": "6MP IR Outdoor Vandal Dome AI, PTRZ Camera",
+      "mp_band": "6MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XNV8083RZ"
+      ],
+      "msrp_low": 1900.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Powered by WN7, X-Plus series, Outdoor Network AI IR Vandal Dome Camera, 6MP resolution @ 30FPS, 4.4~9.3mm (4.3x) (113\u00b0~47\u00b0) motorized varifocal lens, Remote lens adjustment (PTRZ), Triple codec (H.265/H.264/MJPEG), IR Viewable Length: 15m(49.21ft) / 30m(98.43ft) based on scene, USB port for easy in",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XNV-8093R",
+      "item_type": "6MP IR Outdoor Vandal Dome AI Camera ",
+      "mp_band": "6MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XNV-8093R/KEX",
+        "XNV8093R"
+      ],
+      "msrp_low": 2000.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Powered by WN7, X-Plus series, Outdoor Network AI IR Vandal Dome Camera, 6MP resolution @ 30FPS, 10.9~29mm(2.7x) (42\u00b0~15\u00b0) motorized varifocal lens, Triple codec (H.265/H.264/MJPEG), IR viewable length 70m (229.66ft), USB port for easy installation, Day & Night (ICR), extremeWDR (120dB), DIS with bu",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XNV-9082R",
+      "item_type": "4K IR Outdoor Vandal Dome",
+      "mp_band": "4K Cameras & up",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XNV9082R"
+      ],
+      "msrp_low": 1900.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Wisenet 7 X-plus series network IR vandal outdoor camera, 4K (8MP Max) @ 30fps, motorized vari-focal lens 3x (2.8~8.4mm), triple codec H.265/H.264/MJPEG with WiseStreamII technology, Extreme WDR, USB and CVBS port for easy installation, advanced video analytics, sound classification and business ana",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XNV-9083R",
+      "item_type": " 4K IR Outdoor Vandal Dome AI Camera",
+      "mp_band": "4K Cameras & up",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XNV-9083R/KEX",
+        "XNV9083R"
+      ],
+      "msrp_low": 2000.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Powered by WN7, X-Plus series, Outdoor Network AI IR Vandal Dome Camera, 4K resolution @ 30FPS, 4.4~9.3mm(2.1x) (112.1\u00b0~47.5\u00b0) motorized varifocal lens, Triple codec (H.265/H.264/MJPEG), IR viewable length 50m (164ft), USB port for easy installation, USB port for easy installation, Day & Night (ICR)",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XNV-9083RZ",
+      "item_type": "4K IR Outdoor Vandal Dome AI, PTRZ Camera ",
+      "mp_band": "4K Cameras & up",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XNV9083RZ"
+      ],
+      "msrp_low": 2100.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Powered by WN7, X-Plus series, Outdoor Network AI IR Vandal Dome Camera, 4K resolution @ 30FPS, 4.4~9.3mm (2.1x) (113\u00b0~47\u00b0) motorized varifocal lens, Remote lens adjustment (PTRZ), Triple codec (H.265/H.264/MJPEG), IR Viewable Length: 15m(49.21ft) / 30m(98.43ft) based on scene, USB port for easy ins",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XNV-A8016R",
+      "item_type": "5MP IR Compact Outdoor Vandal Dome AI Camera",
+      "mp_band": "5MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XNVA8016R"
+      ],
+      "msrp_low": 1150.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Powered by WN9, Outdoor Network AI IR Dome Compact Camera, 5MP resolution @ 30FPS, 3mm fixed lens, FoV (H:100\u00b0, V:74\u00b0), H.265/H.264/MJPEG codec, IR viewable length 25m (82ft), USB-C port for easy installation, Day & Night (ICR), extremeWDR (120dB), Hard-coated dome bubble, Handover, AI-based WiseStr",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XNV-A8084R",
+      "item_type": "5MP IR Outdoor Vandal Dome AI Camera",
+      "mp_band": "5MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XNV-A8084R/KEX",
+        "XNVA8084R"
+      ],
+      "msrp_low": 1450.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Powered by WN9, Outdoor Network AI IR Vandal Dome Camera, 5MP resolution @ 30FPS, 3.3~9.3mm (2.8x), (99\u00b0~31\u00b0) motorized varifocal lens, H.265/H.264/MJPEG codec, IR viewable length 50m (164.04ft), USB-C port for easy installation, Day & Night (ICR), extremeWDR (120dB), Hard-coated dome bubble, DIS wi",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XNV-A8084RS",
+      "item_type": "5MP IR Stainless Steel AI Camera",
+      "mp_band": "5MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XNVA8084RS"
+      ],
+      "msrp_low": 1850.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Powered by WN9, Stainless steel dome AI IR camera, 5MP resolution @ 30FPS, 3.3~9.3mm (2.8x), (99\u00b0~31\u00b0) motorized varifocal lens, H.265/H.264/MJPEG codec, IR viewable length 50m (164.04ft), USB-C port for easy installation, Day & Night (ICR), extremeWDR (120dB), Nylon dome bubble, DIS with built-in g",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XNV-A8085R",
+      "item_type": "5MP IR Outdoor Vandal Dome AI Camera",
+      "mp_band": "5MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XNVA8085R"
+      ],
+      "msrp_low": 1800.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Powered by WN9, X-Plus design, Outdoor Network AI IR Dome Camera, 5MP resolution @ 30FPS, 3.3~9.3mm (2.8x), (99\u00b0~31\u00b0) motorized varifocal lens, H.265/H.264/MJPEG codec, IR viewable length 50m (164.04ft), USB-C port for easy installation, Selectable microphone input (mic in/line in), Day & Night (ICR",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XNV-A9016R",
+      "item_type": "8MP IR Compact Outdoor Vandal Dome AI Camera",
+      "mp_band": "4K Cameras & up",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XNVA9016R"
+      ],
+      "msrp_low": 1350.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Powered by WN9, Outdoor Network AI IR Dome Compact Camera, 8MP resolution @ 30FPS, 3mm fixed lens, FoV (H:108\u00b0, V:59\u00b0), H.265/H.264/MJPEG codec, IR viewable length 25m (82ft), USB-C port for easy installation, Day & Night (ICR), extremeWDR (120dB), Hard-coated dome bubble, Handover, AI-based WiseStr",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XNV-A9084R",
+      "item_type": "8MP IR Outdoor Vandal Dome AI Camera",
+      "mp_band": "4K Cameras & up",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XNV-A9084R/KEX",
+        "XNVA9084R"
+      ],
+      "msrp_low": 1650.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Powered by WN9, Outdoor Network AI IR Vandal Dome Camera, 8MP resolution @ 30FPS, 4.4~9.3mm (2.1x), (113\u00b0~47\u00b0) motorized varifocal lens, H.265/H.264/MJPEG codec, IR viewable length 50m (164.04ft), USB-C port for easy installation, Day & Night (ICR), extremeWDR (120dB), Hard-coated dome bubble, DIS w",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XNV-A9084RS",
+      "item_type": "8MP IR Stainless Steel AI Camera",
+      "mp_band": "4K Cameras & up",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XNVA9084RS"
+      ],
+      "msrp_low": 2100.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Powered by WN9, Stainless steel dome AI IR camera, 8MP resolution @ 30FPS, 4.4~9.3mm (2.1x), (113\u00b0~47\u00b0) motorized varifocal lens, H.265/H.264/MJPEG codec, IR viewable length 50m (164.04ft), USB-C port for easy installation, Day & Night (ICR), extremeWDR (120dB), Nylon dome bubble, DIS with built-in ",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XNV-A9085R",
+      "item_type": "8MP IR Outdoor Vandal Dome AI Camera",
+      "mp_band": "4K Cameras & up",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XNVA9085R"
+      ],
+      "msrp_low": 2000.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Powered by WN9, X-Plus design, Outdoor Network AI IR Dome Camera, 5MP resolution @ 30FPS, 4.4~9.3mm (2.1x), (113\u00b0~47\u00b0) motorized varifocal lens, H.265/H.264/MJPEG codec, IR viewable length 50m (164.04ft), USB-C port for easy installation, Selectable microphone input (mic in/line in), Day & Night (IC",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XNV-C7083R",
+      "item_type": "4MP IR Outdoor Vandal Dome AI Camera",
+      "mp_band": "4MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XNV-C7083R/KEX",
+        "XNVC7083R"
+      ],
+      "msrp_low": 1400.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Powered by WN7, Outdoor Network AI IR Vandal Dome Camera, 4MP resolution @ 60FPS (WDR off)/30FPS (WDR on), 2.8~10mm(3.6x) (109.7\u00b0~30.4\u00b0) motorized varifocal lens, Triple codec (H.265/H.264/MJPEG), IR viewable length 40m (131.2ft), USB port for easy installation, Day & Night (ICR), extremeWDR (120dB)",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XNV-C8083R",
+      "item_type": "6MP IR Outdoor Vandal Dome AI Camera",
+      "mp_band": "6MP",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XNV-C8083R/KEX",
+        "XNVC8083R"
+      ],
+      "msrp_low": 1550.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Powered by WN7, Outdoor Network AI IR Vandal Dome Camera, 6MP resolution @ 30FPS, 4.4~9.3mm(2.1x) (112.1\u00b0~47.5\u00b0) motorized varifocal lens, Triple codec (H.265/H.264/MJPEG), IR viewable length 40m (131.2ft), USB port for easy installation, Day & Night (ICR), extremeWDR (120dB), DIS with built-in Gyro",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    },
+    {
+      "model": "XNV-C9083R",
+      "item_type": "4K IR Outdoor Vandal Dome AI Camera",
+      "mp_band": "4K Cameras & up",
+      "sensor_hint": 1,
+      "seed_file": "single",
+      "model_aliases": [
+        "XNV-C9083R/KEX",
+        "XNVC9083R"
+      ],
+      "msrp_low": 1800.0,
+      "is_limited_stock": false,
+      "currently_shipping": true,
+      "eol_replacement": null,
+      "description": "Powered by WN7, Outdoor Network AI IR Vandal Dome Camera, 4K resolution @ 30FPS, 4.4~9.3mm(2.1x) (112.1\u00b0~47.5\u00b0) motorized varifocal lens, Triple codec (H.265/H.264/MJPEG), IR viewable length 40m (131.2ft), USB port for easy installation, USB port for easy installation, Day & Night (ICR), extremeWDR ",
+      "sensor_hint_source": "parsed from price-list Item Type; VERIFY against datasheet before seeding"
+    }
+  ],
+  "note_new_products": "August 2026 New Products block contains only 8 thermal bullets (TNO-C4040T/4042T/4050T/4052T/4060T/4062T/4080T/4082T), all out of scope. The 'Changes' block is limited-stock and price-change notices, not new models.",
+  "count_by_seed_file": {
+    "single": 165,
+    "multisensor": 19
+  },
+  "scope_note": "2MP band excluded per Andy 2026-08-11. Multi-sensor models with 2MP heads that sit in the 4K aggregate band (e.g. PNM-7082RVD, PNM-9084QZ1) are RETAINED, because the band reflects aggregate resolution."
+}
