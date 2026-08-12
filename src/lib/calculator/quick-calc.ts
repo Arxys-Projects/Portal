@@ -13,9 +13,10 @@
 //   * complexityIdx 2 = "Medium detail, low motion".
 //   * codecIdx 0 = H.265 (HEVC) — index 0 in CODECS both before and after the
 //     h265smart addition (ADR 0124).
-//   * The buffer is the Max disk utilization cap (ADR 0126), pinned to the 90%
-//     default here so Quick Calc stays a fixed standard. The old "+20% storage
-//     overhead" constant is gone.
+//   * The buffer is the Max disk utilization cap (ADR 0126), pinned here rather
+//     than exposed as a slider so Quick Calc stays a fixed standard. It is
+//     deliberately MORE conservative than the full calculator's 90% default —
+//     see QUICK_CALC_UTILIZATION_PCT below.
 //
 // NOT CHANGED IN PHASE A: complexityIdx stays 2 (multiplier 2.25). The audit
 // found this conflicts with the published VSR stream ratings, which were
@@ -24,6 +25,22 @@
 // vsrLoad varies with resolution only. That is decision D10 and belongs to
 // Phase C; resolving it here would fold a second large movement into Phase A's
 // golden diff and make neither attributable. Confirmed with Andy 2026-08-12.
+
+/**
+ * Max disk utilization for Quick Calc — 80%, i.e. a 20% buffer.
+ *
+ * Deliberately one notch more conservative than the full calculator's 90%
+ * default (Andy, 2026-08-12): Quick Calc takes a stream count and a retention
+ * period and nothing else, so it is a rough estimate by construction and carries
+ * more scene uncertainty than a properly configured multi-group project.
+ *
+ * NOTE the semantics — this is a CAP, not an additive margin. 80% means
+ * `÷ 0.80 = ×1.25`, so it is slightly MORE cushion than the old
+ * `STORAGE_OVERHEAD = 1.2` constant it replaces, not the same. No utilization
+ * value reproduces ×1.20 exactly (that would be 83.33%), and chasing it would
+ * mean an off-scale number in the UI for no benefit.
+ */
+export const QUICK_CALC_UTILIZATION_PCT = 80;
 
 export const QUICK_CALC_GROUP = {
   name: "Camera streams",
@@ -47,5 +64,5 @@ export const QUICK_CALC_ASSUMPTIONS = [
   "24 h / day",
   "1 stream / camera",
   "Audio + metadata recorded",
-  "90% max disk utilization",
+  "80% max disk utilization",
 ] as const;

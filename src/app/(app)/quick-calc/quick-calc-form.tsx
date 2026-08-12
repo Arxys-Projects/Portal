@@ -10,8 +10,11 @@ import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { Button, Select } from "@/app/(app)/_components/ui";
 import { VMS_OPTIONS } from "@/lib/calculator/tables";
-import { QUICK_CALC_GROUP, QUICK_CALC_ASSUMPTIONS } from "@/lib/calculator/quick-calc";
-import { UTILIZATION_DEFAULT_PCT } from "@/lib/calculator/tables";
+import {
+  QUICK_CALC_GROUP,
+  QUICK_CALC_ASSUMPTIONS,
+  QUICK_CALC_UTILIZATION_PCT,
+} from "@/lib/calculator/quick-calc";
 import { submitCalculation, type SubmissionState } from "@/app/(app)/calculator/actions";
 import type { OnBehalfPartner } from "@/app/(app)/calculator/calculator-form";
 import { quickCalcPreview, type QuickCalcPreview } from "./actions";
@@ -147,9 +150,10 @@ export function QuickCalcForm({
         vms: vms || null,
         retentionDays,
         // Quick Calc is a fixed standard — the Max disk utilization slider is
-        // not exposed, so the save pins the same default the preview used
-        // (ADR 0082 + 0126). Preview and saved estimate must never diverge.
-        utilizationPct: UTILIZATION_DEFAULT_PCT,
+        // not exposed, so the save pins the same 80% the preview used
+        // (ADR 0082 + 0126). Preview and saved estimate must never diverge, so
+        // both read this one constant.
+        utilizationPct: QUICK_CALC_UTILIZATION_PCT,
         groups: [{ ...QUICK_CALC_GROUP, cameras }],
         addOnFailoverRecorder,
         addOnManagementServer,

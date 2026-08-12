@@ -65,6 +65,17 @@ are scalar, so allocating them per group is exact.
 `VSR_FLOOR` (×1.1) **stays**. It is the camera dimension, has no storage effect,
 and the audit found no double count against it.
 
+**Quick Calc pins 80%, not the 90% default.** It is a fixed standard (ADR 0082)
+and does not expose the slider, so it needs a pinned value; Andy set it one notch
+more conservative because Quick Calc takes a stream count and a retention period
+and nothing else, carrying far more scene uncertainty than a configured
+multi-group project. Note this is `÷0.80 = ×1.25`, slightly **more** cushion than
+the `STORAGE_OVERHEAD = 1.2` it replaces there — no utilization value reproduces
+×1.20 exactly (it would be 83.33%), and chasing it would put an off-scale number
+in the UI for no benefit. One exported constant,
+`QUICK_CALC_UTILIZATION_PCT`, is read by both the preview and the save path, so
+the two can never diverge.
+
 `submissions.storage_tb` **changes meaning**: it now banks required decimal
 RAID-net capacity, buffer and binary charge (ADR 0127) included. Already-issued
 documents are safe — the audit swept for this explicitly (§Q7) and nothing

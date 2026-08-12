@@ -7,14 +7,12 @@
 
 import { z } from "zod";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import {
-  RESOLUTIONS,
-  CODECS,
-  COMPLEXITIES,
-  UTILIZATION_DEFAULT_PCT,
-} from "@/lib/calculator/tables";
+import { RESOLUTIONS, CODECS, COMPLEXITIES } from "@/lib/calculator/tables";
 import { computeGroup, vsrLoad, type GroupInput } from "@/lib/calculator/compute";
-import { QUICK_CALC_GROUP } from "@/lib/calculator/quick-calc";
+import {
+  QUICK_CALC_GROUP,
+  QUICK_CALC_UTILIZATION_PCT,
+} from "@/lib/calculator/quick-calc";
 import { recommend } from "@/lib/recommend/algorithm";
 import { loadCandidateSpecs } from "@/lib/recommend/candidates";
 import { GB_PER_TB } from "@/lib/recommend/types";
@@ -77,9 +75,11 @@ export async function quickCalcPreview(payload: unknown): Promise<QuickCalcPrevi
     motionPercent: QUICK_CALC_GROUP.motionPercent,
     recordsAudioMetadata: QUICK_CALC_GROUP.recordsAudioMetadata,
   };
-  // Quick Calc is a fixed standard, so it pins the Max disk utilization default
-  // rather than exposing the slider (ADR 0082 + 0126).
-  const computed = computeGroup(gi, retentionDays, UTILIZATION_DEFAULT_PCT);
+  // Quick Calc is a fixed standard, so it pins its own Max disk utilization
+  // rather than exposing the slider (ADR 0082 + 0126) — 80%, one notch more
+  // conservative than the full calculator's 90%, because a stream count and a
+  // retention period is all this tool gets.
+  const computed = computeGroup(gi, retentionDays, QUICK_CALC_UTILIZATION_PCT);
 
   const pool = await loadCandidateSpecs(supabase);
   if (pool.status === "db-error") {
@@ -115,7 +115,7 @@ export async function quickCalcPreview(payload: unknown): Promise<QuickCalcPrevi
         storageTb: computed.storageGb / GB_PER_TB,
         recordedStorageTb: computed.recordedStorageGb / GB_PER_TB,
       },
-      utilizationPct: UTILIZATION_DEFAULT_PCT,
+      utilizationPct: QUICK_CALC_UTILIZATION_PCT,
       warnings: recommendation.warnings,
     };
   } catch (err) {

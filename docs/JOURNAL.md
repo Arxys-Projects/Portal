@@ -33,6 +33,12 @@ verified live (all NULL on existing rows, which is the intended "version 1" read
   in `groups_payload` and redefining it would have made every already-banked row read as a codec it
   was never quoted on. `INPUT_STATE_VERSION` → 2 with a v1 codec-index remap.
 - **Audio/metadata** counted via a per-group toggle, +5%, default ON.
+- **Quick Calc pins 80%**, one notch below the full calculator's 90% default — it takes a stream
+  count and a retention period and nothing else, so Andy kept it deliberately more conservative.
+  Worth stating plainly because the cap semantics bite here: 80% is `÷0.80 = ×1.25`, slightly
+  **more** cushion than the `STORAGE_OVERHEAD = 1.2` it replaces, and no utilization value gives
+  exactly ×1.20 (that would be 83.33%). One constant feeds both the preview and the save path, so
+  they cannot diverge.
 - **Propagated to all twelve surfaces** named in the plan, plus the calculator's copy rewritten
   throughout: the summary card, per-group readouts, results table, footnote and FAQ now distinguish
   *Footage* (Milestone-comparable) from *Storage to buy*, and state that bandwidth is a peak.
