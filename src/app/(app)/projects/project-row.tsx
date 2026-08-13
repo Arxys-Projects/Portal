@@ -274,7 +274,7 @@ export function ProjectRow({
       case "download_proposal":
         return (
           <a
-            href={`/api/submissions/${task.proposal_submission_id}/project-quote/pdf?version=${task.version}&variant=customer-proposal`}
+            href={`/api/submissions/${task.proposal_submission_id}/project-quote/pdf?version=${task.version}`}
             download
             onClick={(e) => e.stopPropagation()}
             className={buttonClasses("primary", size)}

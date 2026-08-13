@@ -4,6 +4,37 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-08-13 — Fixed two Project Quote / Customer Proposal download bugs
+
+### Work done
+
+**Bug 1** — the `/projects` queue's "Download Proposal vN" button
+(`download_proposal` case, [project-row.tsx](../src/app/(app)/projects/project-row.tsx))
+hardcoded `variant=customer-proposal` on its href, so this internal/sales-facing
+queue always downloaded the stripped, end-customer document instead of the
+Project Quote (partner pricing) the label implied and the admin panel's
+equivalent link (project-quote-panel.tsx) downloads. Fix: dropped the
+`&variant=customer-proposal` param so it falls through to the route's default
+variant, `"project-quote"`.
+
+**Bug 2** — the Partner Project view (`/submissions/[id]`) never built or
+passed `projectQuotePanel` to `<SubmissionDetail>`, so partners had no way to
+download either document for their own submissions at all — a gap left when
+that page was scaffolded before ADR 0083/0089 added the partner-scoped
+download route. Added a `PartnerProjectQuotePanel` component
+([_components/project-quote-panel.tsx](../src/app/(app)/submissions/[id]/_components/project-quote-panel.tsx)),
+display-only (no generate action — that stays internal-only per
+`project-quote-actions.ts`), offering both the Project Quote and Customer
+Proposal downloads via the existing partner-scoped route
+(`/api/submissions/[id]/project-quote/pdf`, ownership-checked per ADR 0083),
+mirroring the pattern already used in `pipeline.tsx`'s quote-documents row.
+Shows a "no quote generated yet" note when `loadCurrentProjectQuote` returns
+null.
+
+No ADR — both are bug fixes restoring intended/parallel behavior, not new
+design decisions. No RUNBOOK change — the setup recipe is unaffected.
+
+
 
 ## 2026-08-12 — Calculator math Phase A: D1–D8 built, golden diff approved
 
