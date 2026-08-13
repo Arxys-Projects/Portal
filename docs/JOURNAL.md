@@ -4,6 +4,68 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-08-13 — fps bitrate term: verified against the Genetec teardown, curve held, low-fps bias recorded
+
+### Work done
+
+A black-box reverse-engineering of Genetec's StreamVault calculator solved their
+bitrate model as `MP × fps × (145.908 − 1.36487 × fps) × quality × activity` and
+raised the concern that the Arxys engine's fps term was linear — overstating
+30 fps ~30% and understating 5 fps ~22%. Read-only investigation, no code touched.
+
+**The premise was already false.** ADR 0123 replaced the linear term with
+`effective_fps = 15 × (fps/15)^0.90` the day before (`300d70b`, shipped), and
+`effectiveFps` is the only path fps takes into the math — grep confirms no second
+linear multiplication in `src`.
+
+Verified, each against the code or the source data rather than the ADRs:
+
+- **Bitrate is computed, never looked up.** `camera_specs` has no bitrate and no
+  fps column; the model picker fills resolution bucket and sensor count only.
+  Confirmed across all six seed files in `data/` — zero bitrate- or fps-shaped keys.
+- **The engine matches Milestone's measured 10/12/15/18 fps sweep to within 0.5%**
+  (+0.31 / −0.03 / 0.00 / +0.48%), and sits within ±1.2% of Genetec's own curve
+  from 5–12 fps while billing **+11.5% at 30 fps** — already the more conservative
+  of the two exactly where the concern was raised.
+- **The GOP question has a third answer.** The engine assumes no GOP structure at
+  all: a power law through the origin with a constant local exponent of 0.90. A
+  frames-based GOP implies 1.0; a seconds-based GOP implies an exponent that
+  *rises* with fps and floors at nonzero bitrate. Genetec's exponent *falls*
+  (0.95 → 0.61 across 5–30 fps). Neither tool models the constant-I-frame floor.
+- **So the exposure is at low fps, not high** — the engine bills 5 fps 19–32%
+  below a seconds-GOP model (detention, K-12), and moving to the measured-emission
+  range b=0.6–0.77 would deepen that rather than fix it.
+- **Nothing recomputes on read.** `computeGroup` has three call sites (live form,
+  submit, quick-calc), none on a render path. Sizing is frozen at three layers —
+  `submissions` scalar columns, `groups_payload.groups[].computed`, and the
+  immutable `project_quotes.snapshot` (which freezes sizing, not just Pipedrive
+  line items) — each stamped with `calc_version`. The brief's "changes historical
+  quote numbers needs its own sign-off" guardrail therefore never triggered.
+
+Decision: hold the curve, record the bias (ADR 0129). Option A was checked and is
+dead — the August 2026 Hanwha price list carries MSRP, mp_band and sensor hints,
+with frame rate appearing only as a capability ceiling inside description prose;
+no bitrate-at-fps dimension exists in the repo. Option B is retained as the
+trigger but narrowed from "refit the curve" to "measure one camera at 5/7/10 fps
+with a 1 s keyframe interval", which is the only measurement the accepted bias
+actually depends on.
+
+Baseline confirmed green before and after: 46 calculator tests pass.
+
+### Detours & fixes
+
+- **The brief's Phase 0 questions assumed a linear fps term and a possible
+  spec-table lookup; both were wrong, one by a single day.** Root cause: the
+  Genetec teardown was done 2026-08-13 against knowledge of the engine as it
+  stood before Phase A landed on 2026-08-12. Answering the questions as asked
+  ("is it linear?") would have produced a correct-but-useless yes/no; the useful
+  output came from carrying the comparison through to *where* the two curves
+  actually diverge, which relocated the defect from 30 fps to 5–7 fps.
+
+### Decisions captured
+
+- [`0129-fps-curve-verified-low-fps-bias-accepted.md`](./decisions/0129-fps-curve-verified-low-fps-bias-accepted.md)
+
 ## 2026-08-13 — Fixed two Project Quote / Customer Proposal download bugs
 
 ### Work done
@@ -34,7 +96,38 @@ null.
 No ADR — both are bug fixes restoring intended/parallel behavior, not new
 design decisions. No RUNBOOK change — the setup recipe is unaffected.
 
+## 2026-08-12 — Cornerstone Detention HQ (Williamson Co. Juvenile): real Hanwha camera list seeded into the existing submission
 
+### Work done
+
+Replaced the estimated camera groups on the existing open submission
+(`9e590cdb-d299-4757-9369-5abbb6767030`, on-behalf of Cornerstone Detention - HQ / Ken Fuller,
+Pipedrive deal 5437) with the actual as-built camera list from the vendor bandwidth report
+("Williamson County Juvenile ADC TN_1 Bandwidth.pdf"): 10 Hanwha models, 378 streams
+(30×PNM-C12083RVD, 14×PNM-C32083RVQ, 5×PNM-C34404RQPZ, 48×TNV-C7013RC, 2×TNV-C8011RW,
+96×XND-A8084RV, 28×XNF-A9014RV, 17×XNV-A8084R, 18×TNV-8011C, 7×PNM-C16013RVQ), 90-day retention.
+
+Followed the WCJ-precedent scaffold pattern ([[bid-matrix-to-calculator-prefill]] memory): a
+one-off script imported the real engine modules (`compute.ts`, `tables.ts`,
+`camera-resolution.ts`, `recommend/algorithm.ts`) rather than reimplementing the math, resolved
+each model's `resolutionIdx`/`sensorsPerCamera` from the existing `camera_specs` catalog (all 10
+models were already seeded), and wrote directly to the `submissions` row via the service-role
+client — same as a normal `submitCalculation` save, minus the Pipedrive/email side effects a
+direct DB write correctly skips. `partner_id`, on-behalf fields, `project_name`, `vms`, retention,
+and max disk utilization (90%) were left untouched; only the camera groups, totals, and
+recommendation were replaced.
+
+Two judgment calls with no source in the PDF, both defaulted rather than asked (per instruction
+to execute without further questions): scene complexity → "Medium detail, low motion" (the
+calculator's own default) for every group, no PDF equivalent exists; recording duty cycle → the
+PDF's own "15FPS / 70% MOTION" label mapped literally to `recordingMode: "motion"`,
+`motionPercent: 70`, `recordingPercent: 100` (24h scheduled, 70% event duty cycle). PTZ combo
+camera PNM-C34404RQPZ followed the catalog's existing conservative convention (ADR 0058/0071):
+all 5 sensors sized at the highest 8MP head rather than splitting the PTZ channel into its own
+group.
+
+Result: 378 cameras (was 371 estimated), 2,855.04 Mbps, 2,416.76 TB required capacity, recommends
+4× VX5-V800-864 at $468,216 list (was 4× VX5-V800-720 at $409,592 against the estimate).
 
 ## 2026-08-12 — Calculator math Phase A: D1–D8 built, golden diff approved
 
