@@ -436,6 +436,52 @@ describe("Customer Proposal rendered output", () => {
     assert.ok(pq.includes(squash("PROJECT QUOTE")));
   });
 
+  // ADR 0130 — the Customer Proposal strips the capacity bars AND the
+  // sizing-basis note that explains them (ADR 0089 §3), but still renders a Bw
+  // column. Before this change it therefore stated no bandwidth basis at all,
+  // and the internal Project Quote asserted "peak" even on a version-1 row
+  // whose banked figure was a motion-weighted average.
+  it("states the bandwidth basis in BOTH variants, not only where the bars render", () => {
+    const snap = makeSnapshot({
+      sizing: { ...makeSnapshot().sizing, calcVersion: 2, recordedStorageTb: 72.4 },
+    });
+    for (const [name, input] of [
+      ["Customer Proposal", makeCustomerInput(snap)],
+      ["Project Quote", makeProjectInput(snap)],
+    ] as const) {
+      const text = squash(renderedText(input));
+      assert.ok(
+        text.includes(squash("peak while recording")),
+        `${name} must say what its Bw column means`,
+      );
+    }
+    // Canary: the bars (and their note) really are absent from the CP, so the
+    // assertion above is being satisfied by the schedule note, not by them.
+    const cp = squash(renderedText(makeCustomerInput(snap)));
+    assert.ok(!cp.includes(squash("System capacity")), "CP must still strip the capacity bars");
+  });
+
+  it("never calls a version-1 figure the peak, in either variant", () => {
+    const base = makeSnapshot().sizing;
+    const snap = makeSnapshot({
+      sizing: { ...base, calcVersion: 1, recordedStorageTb: null },
+    });
+    for (const [name, input] of [
+      ["Customer Proposal", makeCustomerInput(snap)],
+      ["Project Quote", makeProjectInput(snap)],
+    ] as const) {
+      const text = squash(renderedText(input));
+      assert.ok(
+        !text.includes(squash("peak while recording")),
+        `${name} must NOT claim the event peak on a pre-Phase-A row`,
+      );
+      assert.ok(
+        text.includes(squash("motion-weighted")),
+        `${name} must say the figure is a motion-weighted average instead`,
+      );
+    }
+  });
+
   it("emits 3 pages for the Customer Proposal and 4 for the Project Quote", () => {
     const snap = makeSnapshot();
     const count = (input: ProjectQuotePdfInput) => {

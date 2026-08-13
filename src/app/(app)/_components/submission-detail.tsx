@@ -11,6 +11,7 @@ import {
 } from "@/app/(app)/_components/ui";
 import { PIPEDRIVE_WINDOW_TARGET } from "@/lib/pipedrive/url";
 import { codecLabel } from "@/lib/calculator/tables";
+import { bandwidthBasis } from "@/lib/calculator/compute";
 
 export type SubmissionDetailRow = {
   id: string;
@@ -161,6 +162,9 @@ export function SubmissionDetail({
   relinkPipedriveButton?: ReactNode;
 }) {
   const groups = extractGroups(submission.groups_payload);
+  // ADR 0130 — whether this row's banked Mbit/s is the event peak or the
+  // pre-Phase-A motion-weighted average. Read from the stamp, never assumed.
+  const bandwidth = bandwidthBasis(submission.calc_version);
   // Phase 2 Step 3+4: a UUID-shaped recommended_product_id signals a
   // pre-migration row whose family-UUID FK target was dropped. Render the
   // detail as "(legacy data)" so the partner / admin sees an explicit
@@ -291,8 +295,29 @@ export function SubmissionDetail({
           </KvRow>
           <KvRow label="Totals">
             {formatNumber(submission.cameras_count)} cameras ·{" "}
-            {formatNumber(submission.bandwidth_mbps, 2)} Mbit/s peak ·{" "}
+            {/* ADR 0130 — the stamp decides whether this figure is a peak. A
+                version-1 row banked a motion-weighted average, so claiming
+                "peak" on it would under-state the network by up to 64%. */}
+            {formatNumber(submission.bandwidth_mbps, 2)} Mbit/s {bandwidth.short} ·{" "}
             {formatNumber(submission.storage_tb, 2)} TB to buy
+          </KvRow>
+          <KvRow label="Network sizing">
+            {bandwidth.isEventPeak ? (
+              <>
+                {formatNumber(submission.bandwidth_mbps, 2)} Mbit/s is the peak while
+                recording — the full rate every camera streams the moment something
+                happens. Recording on motion cuts storage but not this figure, so size
+                switches and uplinks for at least this much.
+              </>
+            ) : (
+              <>
+                {formatNumber(submission.bandwidth_mbps, 2)} Mbit/s is a motion-weighted
+                average, not the network peak. The pre-2026-08 model reduced bandwidth for
+                motion-triggered groups, so the true peak is higher — up to{" "}
+                {Math.round(100 / 0.36 - 100)}% higher on a group at the 20% motion floor.
+                Re-save this quote to size it on the current model.
+              </>
+            )}
           </KvRow>
           {/* ADR 0126 — state the sizing basis in words rather than leaving the
               reader to assume one. A version-1 row predates the buffer, so it
@@ -333,7 +358,7 @@ export function SubmissionDetail({
                 <TH numeric>FPS</TH>
                 <TH numeric>Rec Hrs</TH>
                 <TH numeric>Motion %</TH>
-                <TH numeric>Mbit/s peak</TH>
+                <TH numeric>Mbit/s {bandwidth.short}</TH>
                 <TH numeric>GB to buy</TH>
               </TR>
             </THead>

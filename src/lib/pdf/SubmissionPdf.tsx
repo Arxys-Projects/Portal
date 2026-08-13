@@ -18,6 +18,7 @@ import {
 } from "./colors";
 import type { SubmissionPdfInput } from "./types";
 import { availableCapacityTb, utilizationNote } from "@/lib/capacity-utils";
+import { bandwidthBasis } from "@/lib/calculator/compute";
 
 const styles = StyleSheet.create({
   page: {
@@ -386,6 +387,9 @@ export function SubmissionPdf({ data }: { data: SubmissionPdfInput }) {
   const availableBandwidthMbps =
     serverSpec?.maxBandwidthMbps != null ? serverSpec.maxBandwidthMbps * units : null;
   const requiredBandwidthMbps = data.bandwidthMbps;
+  // ADR 0130 — is this figure the event peak, or the pre-Phase-A
+  // motion-weighted average? Read the stamp; never assert peak unconditionally.
+  const bandwidth = bandwidthBasis(data.calcVersion);
   const bandwidthPct =
     availableBandwidthMbps && availableBandwidthMbps > 0
       ? (requiredBandwidthMbps / availableBandwidthMbps) * 100
@@ -535,7 +539,10 @@ export function SubmissionPdf({ data }: { data: SubmissionPdfInput }) {
                 ? `${fmtMbps(requiredBandwidthMbps)} of ${fmtMbps(availableBandwidthMbps)} Mbit/s`
                 : `${fmtMbps(requiredBandwidthMbps)} Mbit/s required`
             }
-            note="peak while recording"
+            /* ADR 0130 — a version-1 row banked a motion-weighted average, so
+               this note reads off the stamp rather than asserting "peak" on a
+               figure that isn't one. */
+            note={bandwidth.isEventPeak ? "peak while recording" : "motion-weighted average"}
           />
           <CapacityBar
             label="System utilization"
@@ -555,11 +562,11 @@ export function SubmissionPdf({ data }: { data: SubmissionPdfInput }) {
                 `${data.maxDiskUtilizationPct ?? 90}% full, then adjusted for the capacity a ` +
                 `formatted disk presents to the VMS. That ` +
                 `${100 - (data.maxDiskUtilizationPct ?? 90)}% is the only safety margin in this ` +
-                `estimate. Bandwidth is the peak while recording, not a time-average, so it does ` +
-                `not fall for motion-triggered groups.`
+                `estimate. Network sizing: ${bandwidth.clause}.`
               : "Storage sizing: produced by the pre-2026-08 model, which applied a fixed " +
                 "internal overhead rather than a stated disk-utilization cap. Recorded-footage " +
-                "and utilization figures were not captured for this estimate."}
+                "and utilization figures were not captured for this estimate. " +
+                `Network sizing: ${bandwidth.clause}.`}
           </Text>
         </View>
 

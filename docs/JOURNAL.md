@@ -4,6 +4,65 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-08-13 — Bandwidth reporting: one figure, basis stated per calc_version
+
+### Work done
+
+Item 2 of the Genetec teardown asked for **peak ingest** and **average ingest**
+reported separately, because Genetec's single bandwidth figure silently means
+different things depending on which knob you turn. Phase 0 found the portal isn't
+in that position: there is no scene-activity input and no duty-cycle reduction on
+bandwidth (`computeBandwidthMbps` runs at duty cycle 1.0 always since ADR 0125),
+so a current-model figure already *is* the peak and there is no second number to
+show. Operation Hours and Motion % reach storage only; the complexity tier reaches
+the stream rate, so it correctly reaches both.
+
+That made this a labeling job — and the labeling had a defect the Genetec framing
+didn't predict. **The "peak" claims were unconditional while the meaning is
+version-dependent.** Pre-Phase-A `computeGroup` ran the `0.2 + 0.8·m` motion blend
+*before* computing bandwidth (verified against `300d70b^`, not the ADR's
+description), so a version-1 row banked a motion-weighted average — 20% below the
+true peak at motion 75, **64% below at the motion-20 clamp**. Continuous v1 rows
+pinned motion% to 100 and are unaffected.
+
+Three surfaces asserted "peak" on those rows anyway (detail Totals, detail group
+column header, System Estimate capacity bar). The Project Quote said nothing about
+bandwidth on its v1 branch — the one case where it matters. And the **Customer
+Proposal stated no basis in either version**, because ADR 0089 §3 strips the
+capacity bars *and the note that explains them* while still rendering a `Bw` column.
+
+Fix: one shared `bandwidthBasis(calcVersion)` helper in `compute.ts` returning
+`{ isEventPeak, short, clause }`, consumed by all four renderers, so the sentence
+exists once instead of three times. Added a **Network sizing** row to the detail
+page, and put the Customer Proposal's basis in the camera-schedule note — the only
+one of the two notes that survives the strip. No snapshot field added and the
+assembler untouched, so the discount leak guard is structurally unaffected.
+
+Deliberately unchanged: the live calculator, Quick Calc (renders no bandwidth at
+all), and the submit-time emails keep unconditional "peak" wording, since they only
+ever run the current engine; and appliance `max_bandwidth_mbps` on the Price Book,
+datasheets and VideoX/QuickCompare is hardware capability, not required ingest.
+
+Verification: `tsc --noEmit` clean, eslint clean, **785 tests pass** (up from 779).
+Six new tests, including a render-level assertion in both PDF variants and a canary
+proving the Customer Proposal check is satisfied by the schedule note rather than by
+capacity bars that are supposed to be absent.
+
+### Detours & fixes
+
+- **The brief's proposed fix would have made things worse.** Showing "Average
+  ingest" beside "Peak ingest" requires an average that no longer exists — building
+  one would have meant re-applying the duty cycle to bandwidth, which is exactly
+  the time-average ADR 0125 removed, and printing it invites sizing a switch on the
+  lower number. Root cause of the mismatch: the teardown reasoned from Genetec's
+  model, where the activity knob really does reduce reported bandwidth.
+- **Two ADR cross-reference filenames were guessed wrong** (0089 and 0067) and
+  caught by listing `docs/decisions/` rather than trusting recall.
+
+### Decisions captured
+
+- [`0130-one-bandwidth-figure-with-a-version-aware-basis.md`](./decisions/0130-one-bandwidth-figure-with-a-version-aware-basis.md)
+
 ## 2026-08-13 — fps bitrate term: verified against the Genetec teardown, curve held, low-fps bias recorded
 
 ### Work done

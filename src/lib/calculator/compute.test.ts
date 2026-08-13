@@ -1,6 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import {
+  bandwidthBasis,
   computeGroup,
   dutyCycle,
   effectiveFps,
@@ -245,5 +246,54 @@ describe("recording duty cycle (ADR 0125)", () => {
       Math.abs(c.bitrateMbps - 1.966 * 1.05) < 1e-3,
       `expected ~2.064 decimal Mbit/s, got ${c.bitrateMbps}`,
     );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// ADR 0130 — what a BANKED bandwidth figure means, per calc_version
+// ---------------------------------------------------------------------------
+//
+// The engine has no activity or duty-cycle reduction on bandwidth, so a v2
+// figure is the event peak. A v1 figure is not: pre-Phase-A computeGroup ran the
+// `0.2 + 0.8·m` motion blend BEFORE computing bandwidth. Three renderers assert
+// a basis in words, and they must all read it off the stamp rather than
+// hardcoding "peak" — that is what these tests pin.
+describe("bandwidthBasis (ADR 0130)", () => {
+  it("calls version 2 the event peak", () => {
+    const b = bandwidthBasis(2);
+    assert.equal(b.isEventPeak, true);
+    assert.equal(b.short, "peak");
+    assert.match(b.clause, /peak while recording/);
+    assert.doesNotMatch(b.clause, /motion-weighted/);
+  });
+
+  it("refuses to call a version-1 figure a peak", () => {
+    const b = bandwidthBasis(1);
+    assert.equal(b.isEventPeak, false);
+    assert.match(b.short, /avg/);
+    assert.match(b.clause, /motion-weighted average/);
+    // The trap this exists to prevent: a v1 row labeled as the network peak
+    // when it sits up to 64% below one.
+    assert.doesNotMatch(b.clause, /is the peak/);
+  });
+
+  it("treats an absent stamp as version 1, never as the current model", () => {
+    for (const absent of [null, undefined, 0]) {
+      assert.equal(
+        bandwidthBasis(absent as number | null | undefined).isEventPeak,
+        false,
+        `calc_version ${String(absent)} must not claim the event peak`,
+      );
+    }
+  });
+
+  it("matches the magnitude the v1 blend actually produced", () => {
+    // applyMotionAdjustment was 0.2 + 0.8·m, so a motion-50 v1 row banked 0.6 of
+    // the event rate and a motion-20 row banked 0.36 — 40% and 64% below peak.
+    // If this ever stops being true the copy in the clause is wrong.
+    const v1Factor = (m: number) => 0.2 + 0.8 * (m / 100);
+    assert.ok(Math.abs(v1Factor(50) - 0.6) < 1e-12);
+    assert.ok(Math.abs(v1Factor(20) - 0.36) < 1e-12);
+    assert.ok(Math.abs(v1Factor(100) - 1) < 1e-12, "continuous v1 rows are unaffected");
   });
 });

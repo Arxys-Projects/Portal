@@ -374,3 +374,56 @@ export function formatBandwidthMbps(mbps: number): string {
   if (mbps >= 1000) return `${formatNumber(mbps / 1000)} Gbit/s`;
   return `${formatNumber(mbps)} Mbit/s`;
 }
+
+// ---------------------------------------------------------------------------
+// What a BANKED bandwidth figure means (ADR 0130)
+// ---------------------------------------------------------------------------
+//
+// The engine has no scene-activity or duty-cycle reduction on bandwidth: since
+// ADR 0125 `computeBandwidthMbps` is called at duty cycle 1.0 always, so a
+// version-2 figure IS the event peak and needs no companion average.
+//
+// A version-1 figure is NOT. Pre-Phase-A `computeGroup` ran
+// `applyMotionAdjustment(frameKb, motionPercent)` — the `0.2 + 0.8·m` blend —
+// BEFORE computing bandwidth, so the banked Mbit/s was a motion-weighted
+// average. Factor 0.2+0.8m vs the peak's 1.0 puts a motion-triggered v1 row
+// 20% below the true peak at motion 75, and 64% below at the motion-20 clamp.
+// Continuous v1 rows pinned motionPercent to 100, so those are unaffected.
+//
+// Every surface that renders a STORED submission therefore has to read the
+// stamp before claiming "peak" — the label is a property of the row, not of the
+// display. The live calculator, Quick Calc, and the submit-time emails always
+// run the current engine, so they may state peak unconditionally.
+//
+// This is deliberately ONE helper: the same sentence was being written by hand
+// in three renderers and had already drifted (the Project Quote said nothing
+// about bandwidth on the v1 branch, and the Customer Proposal states no basis
+// at all).
+export type BandwidthBasis = {
+  /** True when the figure is the full event rate with no duty-cycle reduction. */
+  isEventPeak: boolean;
+  /** Terse qualifier for a value or a numeric column header. */
+  short: string;
+  /** One clause, lower-case, for appending to an existing sentence. */
+  clause: string;
+};
+
+export function bandwidthBasis(calcVersion: number | null | undefined): BandwidthBasis {
+  // An absent stamp is a pre-Phase-A row by definition (see CALC_VERSION).
+  if ((calcVersion ?? 1) >= 2) {
+    return {
+      isEventPeak: true,
+      short: "peak",
+      clause:
+        "bandwidth is the peak while recording, not a time-average, so it does not fall for " +
+        "motion-triggered groups",
+    };
+  }
+  return {
+    isEventPeak: false,
+    short: "motion-weighted avg",
+    clause:
+      "bandwidth is a motion-weighted average, not the network peak — the pre-2026-08 model " +
+      "reduced it for motion-triggered groups, so size the network above this figure",
+  };
+}

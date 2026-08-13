@@ -28,6 +28,7 @@ import type {
   ProjectQuoteTerms,
 } from "./types";
 import type { CustomerProposalCommercial } from "./customer-proposal";
+import { bandwidthBasis } from "@/lib/calculator/compute";
 
 // Fields shared by both document variants. The snapshot's sizing / showcase /
 // terms / generation are passed through as-is (they carry no partner/discount
@@ -248,11 +249,16 @@ function fmtBwCell(mbps: number): string {
 export function buildSizingBasisNote(sizing: ProjectQuoteSizing): string {
   const version = sizing.calcVersion ?? 1;
   const recorded = sizing.recordedStorageTb;
+  // ADR 0130 — the network clause is version-aware and appended on BOTH
+  // branches. It used to appear only on the v2 branch, so a pre-Phase-A quote
+  // said nothing about what its Mbit/s figure meant — the one case where it
+  // isn't a peak.
+  const network = `Network sizing: ${bandwidthBasis(version).clause}.`;
   if (version < 2 || recorded == null) {
     return (
       "Storage sizing: produced by the pre-2026-08 model, which applied a fixed internal " +
       "overhead rather than a stated disk-utilization cap. Recorded-footage and utilization " +
-      "figures were not captured for this estimate."
+      `figures were not captured for this estimate. ${network}`
     );
   }
   const util = sizing.maxDiskUtilizationPct ?? 90;
@@ -260,8 +266,7 @@ export function buildSizingBasisNote(sizing: ProjectQuoteSizing): string {
     `Storage sizing: ${fmtTb(recorded)} of recorded footage over ${sizing.retentionDays} days, ` +
     `sized so the array runs at no more than ${util}% full, then adjusted for the capacity a ` +
     `formatted disk presents to the VMS. That ${100 - util}% is the only safety margin in this ` +
-    `estimate. Bandwidth is the peak while recording, not a time-average, so it does not fall ` +
-    `for motion-triggered groups.`
+    `estimate. ${network}`
   );
 }
 
@@ -1095,6 +1100,9 @@ export function ProjectQuotePdf({ data }: { data: ProjectQuotePdfInput }) {
   // carry none of these fields, and a quote generated from a version-1
   // submission must not claim a utilization cap it was never sized against.
   const sizingBasisNote = buildSizingBasisNote(sizing);
+  // ADR 0130 — used by the camera-schedule note, which (unlike the bars) also
+  // renders in the Customer Proposal.
+  const bandwidth = bandwidthBasis(sizing.calcVersion);
 
   // Totals from the snapshot's frozen aggregates — never re-summed from rows.
   const { cameras: totalCameras, bandwidthMbps: totalBwMbps, storageGb: totalStorageGb } =
@@ -1209,10 +1217,19 @@ export function ProjectQuotePdf({ data }: { data: ProjectQuotePdfInput }) {
             </Text>
           </View>
         </View>
+        {/* ADR 0130 — this note renders in BOTH variants, unlike the capacity
+            bars and their sizing-basis note below (stripped from the Customer
+            Proposal per ADR 0089 §3). It is therefore the only place the
+            Customer Proposal can say what its Bw column means, so the bandwidth
+            basis is stated here rather than only alongside the bars. */}
         <Text style={styles.tableNote}>
-          Retention: {sizing.retentionDays} days. Figures derived from validated compression
-          modeling; actual results depend on camera models, scene conditions, and VMS
-          configuration. All figures assume even camera distribution across recording servers.
+          Retention: {sizing.retentionDays} days. The Bw column is{" "}
+          {bandwidth.isEventPeak
+            ? "the peak while recording — the full rate each group streams during an event, which is what switches and uplinks must carry"
+            : "a motion-weighted average rather than the network peak, so the true peak is higher"}
+          . Figures derived from validated compression modeling; actual results depend on camera
+          models, scene conditions, and VMS configuration. All figures assume even camera
+          distribution across recording servers.
         </Text>
         {/* System capacity (page 1) — the ORIGINAL calculator requirement vs the
             recommended server. Removed from the Customer Proposal (ADR 0089 §3):
