@@ -10,16 +10,14 @@
 > running anything: unlike the Phase A note, **the code does not depend on this
 > migration**, so the ordering constraint that governed Phase A does not apply here.
 >
-> **It also repairs a Phase A gap.** Measured live 2026-08-17: Phase A's three column
-> comments were never applied, despite its apply note saying they were (that note now
-> carries a correction). This migration comments **all four** columns, so running it
-> fixes Phase A's omission and adds the `calc_version` 3 meaning in one pass — there
-> is nothing to re-run from Phase A for the comments.
+> **It also repaired a Phase A gap.** Measured live 2026-08-17: Phase A's three column
+> comments had never been applied, despite its apply note saying they were (that note
+> now carries a correction). This migration comments **all four** columns, so it fixed
+> Phase A's omission and added the `calc_version` 3 meaning in one pass.
 >
-> **Phase A's three `NOT VALID` range guards are still unverified**, since they came
-> from the same partially-applied step. Check them with the constraint query in
-> [the Phase A note](./0123-calculator-math-phase-a.md) — that is a separate fix and
-> this migration does not touch constraints.
+> **Applied to production 2026-08-17 and verified**: all four comments non-null, and
+> Phase A's three `NOT VALID` range guards re-confirmed present with the expected
+> definitions in the same session. Nothing is outstanding on either note.
 
 | | File |
 |---|---|

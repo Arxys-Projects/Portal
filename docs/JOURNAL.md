@@ -31,21 +31,32 @@ technique was sound and the gap is real.
 No runtime impact: comments are metadata and no read or write path consults them.
 The live deploy is unaffected.
 
+Both halves of Phase A's "second step" are now measured, so the state is settled
+rather than suspected:
+
+| Half of the step | Applied 2026-08-12? | State now |
+|---|---|---|
+| Three `NOT VALID` range guards | **Yes** | Re-confirmed present, all `convalidated = false` with the expected definitions |
+| Three column comments | **No** | Applied 2026-08-17; all four columns verified non-null |
+
 ### Detours & fixes
 
-- **Root cause — a verification query that covered half a step certified the whole
-  step.** Phase A's `add column` ran on its own, then the range guards *and* the
-  comments went in as a "second step". Only the constraints were then verified, with
-  a `pg_constraint` query that says nothing about comments — so a partial run looked
-  complete, and the note's confident "Constraints confirmed present" gave the whole
-  second step an air of having been checked. The lesson generalizes past this repo:
-  **when one step does two kinds of thing, the verification has to cover both kinds,
-  or it will launder the half it does not touch.**
-- **Left explicitly unresolved rather than assumed:** the three `NOT VALID` range
-  guards from that same second step. They are the half that *was* checked, and the
-  note's claim about them is specific enough to be credible — but it came out of the
-  same partially-applied step, so both notes now flag them as needing a re-run of the
-  constraint query rather than quietly trusting or quietly doubting them.
+- **Root cause — a verification query that covered one kind of change certified every
+  other kind the same step made.** Phase A's `add column` ran on its own, then the
+  range guards *and* the comments went in as a single "second step". The
+  `pg_constraint` query then certified that step, and it says nothing about comments —
+  so the half that did not land was never looked at, and the note's confident
+  "Constraints confirmed present" lent the whole thing an air of having been checked.
+  The constraints turned out to be fine; the comments were simply never run. The
+  lesson generalizes past this repo: **when one step does two kinds of thing, the
+  verification has to cover both kinds, or it will launder the one it does not
+  touch.** The comment query in both notes now lists *every* commented column rather
+  than only the ones of interest, so a broken query and a real gap can be told apart
+  — that missing control is the whole reason this sat undetected for five days.
+- **The constraint re-check now selects `pg_get_constraintdef` as well as the name.**
+  Confirming a constraint exists by name alone would not catch one that exists under
+  the right name with the wrong definition — a smaller version of the same
+  partial-verification mistake.
 
 ---
 

@@ -1,30 +1,34 @@
 # Apply note — calculator math Phase A: `submissions` sizing-model columns
 
-> ## ⚠️ CORRECTION 2026-08-17 — the column comments were never applied
+> ## ⚠️ CORRECTION 2026-08-17 — the column comments were never applied (now fixed)
 >
 > **This note claimed below that the comments landed on 2026-08-12. They did not.**
 > Measured live on 2026-08-17: `calc_version`, `max_disk_utilization_pct` and
 > `recorded_storage_tb` all returned a NULL comment. The technique was
 > control-checked in the same query — `input_state`, `is_preferred`,
-> `parent_submission_id` and `status` *do* carry their comments — so this is a real
+> `parent_submission_id` and `status` *do* carry their comments — so it was a real
 > gap in the second step, not a bad query.
 >
-> **Root cause: the "second step" below was recorded as one unit but is two.** The
-> constraints and the comments were applied together in the note's telling, and only
-> the constraints were then verified (with the query in this note). The comments
-> were never checked, so a partial run looked complete. **A verification query that
-> covers only part of what a step did will certify the whole step.**
+> **RESOLVED 2026-08-17.** Both halves are now measured, so this is settled rather
+> than suspected:
 >
-> **Fix:** run `supabase/migrations/20260817000001_calculator_math_phase_bc.sql`
-> ([apply note](./0131-calculator-math-phase-bc.md)). It comments all four columns,
-> so it is a superset of what this migration should have left behind — it repairs
-> this gap and adds the `calc_version` 3 meaning in one pass. No runtime impact
-> either way: comments are metadata and no read or write path consults them.
+> | Half of the "second step" | Applied 2026-08-12? | State now |
+> |---|---|---|
+> | Three `NOT VALID` range guards | **Yes** | Confirmed present 2026-08-17, all three `convalidated = false` with the expected definitions |
+> | Three column comments | **No** | Applied 2026-08-17 via the Phases B/C migration; all four columns verified non-null |
 >
-> **Still unverified: the three `NOT VALID` range guards from that same step.** The
-> claim below that they were "confirmed present 2026-08-12" is specific enough to
-> be credible, and it is the half that *was* checked — but it came from the same
-> partially-applied step, so re-run the constraint query before trusting it.
+> **Root cause: the "second step" below is two kinds of thing recorded as one, and
+> only one kind was verified.** The constraints and the comments went in together in
+> this note's telling; the `pg_constraint` query below then certified the step, and
+> that query says nothing about comments. So the half that did not land was never
+> looked at. **A verification query covering one kind of change will launder every
+> other kind the same step made.**
+>
+> The comments were repaired by `supabase/migrations/20260817000001_calculator_math_phase_bc.sql`
+> ([apply note](./0131-calculator-math-phase-bc.md)), which comments all four columns
+> — a superset of what this migration should have left behind. Nothing further is
+> outstanding from Phase A. No runtime impact either way: comments are metadata and
+> no read or write path consults them.
 >
 > ---
 >
@@ -38,26 +42,27 @@
 > step. If you are replaying this on another environment, run the **whole**
 > migration file rather than the fragment below.
 >
-> Constraints recorded as confirmed present 2026-08-12 — **re-verify, see the
-> correction above**. To check:
+> Constraints confirmed present **2026-08-12 and re-confirmed 2026-08-17**. To
+> re-check:
 >
 > ```sql
-> select conname, convalidated
+> select conname, convalidated, pg_get_constraintdef(oid) as definition
 > from pg_constraint
 > where conrelid = 'public.submissions'::regclass and contype = 'c'
 > order by conname;
 > ```
 >
-> The three `submissions_*_check` rows added here should report
+> The three `submissions_*_check` rows added here report
 > **`convalidated = false`, and that is correct** — it is the `NOT VALID`
 > flag, meaning Postgres never rescanned the existing table. New writes are
 > still checked. The older constraints on this table report `true` only
-> because they were created normally, back when the table was small. If a
-> `submissions_*_check` row is **missing entirely**, that is the constraint half of
-> the same gap; re-run the Phase A migration file, which is idempotent on the
-> columns but will error on an already-present constraint name.
+> because they were created normally, back when the table was small. Selecting
+> `pg_get_constraintdef` too is the point of the re-check: a row can exist under the
+> right name with the wrong definition, and the name alone would not show it.
 >
-> To check comments — note the control columns, which is what this note was missing:
+> To check comments — **note the control columns, which is what this note was
+> missing**. Listing every commented column rather than only the ones of interest is
+> what turns "these are NULL" into either a real gap or a broken query:
 >
 > ```sql
 > select a.attname as column_name, col_description(a.attrelid, a.attnum) as comment
@@ -67,6 +72,9 @@
 >   and col_description(a.attrelid, a.attnum) is not null
 > order by a.attname;
 > ```
+>
+> `input_state`, `is_preferred`, `parent_submission_id` and `status` are the natural
+> controls — they have carried comments since well before Phase A.
 
 | | File |
 |---|---|
