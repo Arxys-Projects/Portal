@@ -4,6 +4,80 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-08-17 — Axis camera seed refresh: diff report only, no writes
+
+### Work done
+
+A prepared brief (`axis-cameras-files.zip`, containing `axis_seed_refresh_brief.md`
+and a 187-row extraction from Axis's own Q3 2026 "Comparison tables" PDF) asked
+for a diff against the existing Axis `camera_specs` rows, report-only, no
+Supabase writes — same stop-and-flag gate as the Hanwha refresh.
+
+- Banked the source extraction and brief under [`Axis Camera Seed/`](../Axis%20Camera%20Seed/),
+  mirroring the `Hanwha Camera Seed/` working-file convention.
+- Built `Axis Camera Seed/_diff.ts` querying live `camera_specs` directly
+  (not the local JSON seed files), same pattern as `Hanwha Camera Seed/_diff.ts`.
+- Result: **120 new models ready to seed** (117 single-sensor + 3 multisensor,
+  all passing `scripts/validate-camera-specs.ts` and checked for collisions
+  against the live table), **1 flagged** (`Q4809-PVE` — Axis states 4×12MP but
+  publishes no per-sensor width×height anywhere on axis.com), **1 real spec
+  drift** on an existing row (`Q1806-LE`: 2160×1512 → 2880×1620, confirmed
+  live), **10 thermal/bispectral models deferred** (see ADR 0134), **1 model
+  exceeding the resolution ceiling** (`Q1809-LE`, 41MP — the second trigger of
+  ADR 0121's "when to revisit" condition, same outcome: not seeded), and
+  **10 F-series modular sensor heads** with no standalone resolution (paired
+  with an F91xx main unit).
+- Dispatched 6 background research agents: 5 did bulk axis.com URL lookups
+  for all 119 confirmed-new models; 1 verified the 3 hardest edge cases
+  against official Axis datasheets (`Q4809-PVE` per-sensor spec, whether
+  `P1518-LE`/`P1518-E`'s "2 MP" component is a real second video sensor, and
+  whether `Q1806-LE`'s drift was a firmware change or an extraction miss).
+- Full report: [`axis_diff_report.md`](../axis_diff_report.md).
+
+### Detours & fixes
+
+- **The brief's own numbers were stale.** It referenced a "68-row" seed
+  table and a diff across all 44 PDF columns; live `camera_specs` is 260 rows
+  (post the 2026-08-11 Hanwha refresh) and has only 10 columns — none of the
+  PDF's rich spec fields (fps, lux, codecs, power, IO, etc.) have anywhere to
+  land. Diffed only what the schema actually stores: identity, resolution,
+  sensor count/detail.
+- **Model-normalization mismatch undercounted matches at first.** The
+  extraction's models all carry an "AXIS " brand prefix; most existing rows
+  don't. `norm()` needed to strip a leading `AXIS` token before comparing, or
+  36 already-seeded models looked new.
+- **Bispectral thermal+visual models hide outside the "Thermal cameras"
+  category.** `AXIS Q87` and `AXIS Q6411-LE` are filed as "Pan/tilt/zoom
+  cameras." A category-label filter alone missed them; fixed by scanning
+  every field for a thermal/bispectral keyword regardless of category.
+- **"Exceeds ceiling" and "no resolution field" are different failure
+  modes, conflated at first.** 11 F-series modular sensor heads have no
+  `max_video_resolution` at all ("See AXIS F91XX Main Units") — not because
+  they're huge, but because their resolution depends on whichever main unit
+  they're paired with. Split into its own bucket once the actual PDF text
+  was checked instead of trusting a blanket "no resolution parsed → exceeds
+  ceiling" assumption.
+- **6 of 7 "spec drift" hits were false positives**, both from the same root
+  cause: for stitched-panoramic multisensor cameras, the PDF's
+  `max_video_resolution` field gives the fused/stitched pixel count (e.g.
+  `Q3839-PVE`'s "7552x3776 (29MP)"), not the per-sensor value the existing
+  rows correctly store (3840×2160 per sensor, per ADR 0071). A second pair
+  (`Q6300-E`, `M5000-G`) tripped the sensor-count heuristic because their
+  `sensor_lens_fov` text describes a 4-sensor camera without the leading
+  `"Nx "` prefix the detector looks for — resolution matched exactly in both
+  cases, so no real drift.
+- **Batch dispatch mixup during URL research**: two of five parallel
+  research batches were composed from a stale pre-fix candidate list (still
+  containing `Q87`/`Q6411-LE`, since deferred) and one genuinely new model
+  (`Q4809-PVE`) was never sent to any batch. Caught by reconciling dispatched
+  lists against the final diff output before building candidate rows;
+  `Q4809-PVE`'s URL was recovered from the separate edge-case research
+  agent's findings, so no gap in the final report.
+
+### Decisions captured
+
+- [`0134-thermal-cameras-deferred-from-camera-specs.md`](./decisions/0134-thermal-cameras-deferred-from-camera-specs.md)
+
 ## 2026-08-17 — The retention hint broke the setup row's alignment
 
 ### Work done

@@ -1,0 +1,83 @@
+[
+  {
+    "vendor": "Axis",
+    "model": "P4708-PLVE",
+    "model_aliases": [
+      "AXIS P4708-PLVE",
+      "P4708"
+    ],
+    "sensor_count": 2,
+    "max_width": 3840,
+    "max_height": 2160,
+    "sensor_detail": {
+      "sensors": 2,
+      "per_sensor": "3840x2160",
+      "per_sensor_mp": 8,
+      "positioning": "panoramic",
+      "note": "Confirmed via official Axis datasheet: 2x 3840x2160 (2x 8MP), matches PDF extraction exactly"
+    },
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-p4708-plve",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "P1518-LE",
+    "model_aliases": [
+      "AXIS P1518-LE"
+    ],
+    "sensor_count": 2,
+    "max_width": 3840,
+    "max_height": 2160,
+    "sensor_detail": {
+      "sensors": 2,
+      "wide_sensor": {
+        "resolution": "3840x2160",
+        "mp": 8,
+        "lens": "5.9-13.8mm F1.5-2.9",
+        "hfov": "114-46 deg"
+      },
+      "telephoto_sensor": {
+        "resolution": "1920x1080",
+        "mp": 2,
+        "lens": "10.9-29mm F1.7",
+        "hfov": "29-11 deg",
+        "note": "LPR/close-up capture sensor, independent pan/tilt +/-15 deg"
+      },
+      "note": "Genuine simultaneous dual-sensor camera (wide overview + telephoto/LPR), confirmed via official Axis datasheet. Sized at the higher-resolution (8MP wide) sensor per ADR 0071; per-sensor breakdown above."
+    },
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-p1518-le",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "P1518-E",
+    "model_aliases": [
+      "AXIS P1518-E"
+    ],
+    "sensor_count": 2,
+    "max_width": 3840,
+    "max_height": 2160,
+    "sensor_detail": {
+      "sensors": 2,
+      "wide_sensor": {
+        "resolution": "3840x2160",
+        "mp": 8,
+        "lens": "5.9-13.8mm F1.5-2.9",
+        "hfov": "114-46 deg"
+      },
+      "telephoto_sensor": {
+        "resolution": "1920x1080",
+        "mp": 2,
+        "lens": "10.9-29mm F1.7",
+        "hfov": "29-11 deg",
+        "note": "LPR/close-up capture sensor, independent pan/tilt +/-15 deg"
+      },
+      "note": "Genuine simultaneous dual-sensor camera (wide overview + telephoto/LPR), confirmed via official Axis datasheet. Sized at the higher-resolution (8MP wide) sensor per ADR 0071; per-sensor breakdown above."
+    },
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-p1518-e",
+    "as_of_date": "2026-07-22"
+  }
+]

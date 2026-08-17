@@ -1,0 +1,1531 @@
+{
+  "generated": "2026-08-17",
+  "source": "axis-cameras-normalized-2026-q3.json (Axis Q3 2026 Comparison tables PDF)",
+  "live_axis_rows": 37,
+  "extracted_total": 187,
+  "in_scope": 168,
+  "thermal_deferred": 10,
+  "counts": {
+    "new_single": 119,
+    "new_multisensor": 2,
+    "alias_covered": 3,
+    "exceeds_ceiling": 1,
+    "no_standalone_resolution": 10,
+    "matched_for_drift": 7
+  },
+  "notes": [
+    "Thermal cameras (7 rows) deliberately excluded this pass — no existing precedent for simultaneous visual+thermal streams, resolution model doesn't fit the visible-light RESOLUTIONS buckets. See ADR 0134.",
+    "Explosion-protected devices and Canon network cameras were never in scope (different column schema entirely) and are not present in the in-scope filter above.",
+    "Rich PDF fields (max_fps, min_illumination_lux, zipstream_codec_support, power, io_ports, etc.) have no column in camera_specs and are not diffed — kept as raw reference on each candidate row only (_raw suffix) for the follow-up session's judgment, never written to the seed JSON as real columns.",
+    "sensor_count > 1 only for models whose sensor_lens_fov starts with an explicit 'Nx' prefix (true simultaneous multi-stream). Dual-lens-VARIANT models (pick-one-lens-at-purchase) are sensor_count=1, matching the existing Q1728-LE precedent.",
+    "max_width/max_height are the native pixel dimensions of the highest-resolution sensor (never averaged, per ADR 0071), not a RESOLUTIONS bucket value — validated to map within the bucket ceiling via mapPixelsToBucket, but stored raw.",
+    "no_standalone_resolution: AXIS F2xxx/F4xxx/F7225-RE modular sensor-unit heads have no max_video_resolution of their own ('See AXIS F91XX Main Units') — resolution is entirely determined by the paired main unit, so these are not seedable as standalone camera_specs rows. The F91xx main units themselves DO have a resolution and are diffed normally."
+  ],
+  "new_single": [
+    {
+      "model": "AXIS Q1686-DLE",
+      "category": "Box cameras",
+      "series": "AXIS Q16 Series",
+      "page": 10,
+      "sensor_count": 1,
+      "max_width": 2688,
+      "max_height": 1512,
+      "max_video_resolution_raw": "2688x1512 (4 MP)",
+      "sensor_lens_fov_raw": "1/1.8'', i-CS lens Varifocal, 9 - 50 mm, F1.5 46°- 9°"
+    },
+    {
+      "model": "AXIS Q1656-DLE",
+      "category": "Box cameras",
+      "series": "AXIS Q16 Series",
+      "page": 10,
+      "sensor_count": 1,
+      "max_width": 2688,
+      "max_height": 1512,
+      "max_video_resolution_raw": "2688x1512 (4 MP)",
+      "sensor_lens_fov_raw": "1/1.8'', i-CS lens 3.9 -10 mm, F1.5 96° - 44°"
+    },
+    {
+      "model": "AXIS Q1656-B",
+      "category": "Box cameras",
+      "series": "AXIS Q16 Series",
+      "page": 10,
+      "sensor_count": 1,
+      "max_width": 2688,
+      "max_height": 1512,
+      "max_video_resolution_raw": "2688x1512 (4 MP)",
+      "sensor_lens_fov_raw": "1/1.8”, -, -"
+    },
+    {
+      "model": "AXIS Q1656-LE",
+      "category": "Box cameras",
+      "series": "AXIS Q16 Series",
+      "page": 10,
+      "sensor_count": 1,
+      "max_width": 2688,
+      "max_height": 1512,
+      "max_video_resolution_raw": "2688x1512 (4 MP)",
+      "sensor_lens_fov_raw": "1/1.8”, i-CS lens 3.9 - 10 mm, F1.5 113° - 47°"
+    },
+    {
+      "model": "AXIS Q1656-BLE",
+      "category": "Box cameras",
+      "series": "AXIS Q16 Series",
+      "page": 10,
+      "sensor_count": 1,
+      "max_width": 2688,
+      "max_height": 1512,
+      "max_video_resolution_raw": "2688x1512 (4 MP)",
+      "sensor_lens_fov_raw": "1/1.8”, -, -"
+    },
+    {
+      "model": "AXIS Q1656-BE",
+      "category": "Box cameras",
+      "series": "AXIS Q16 Series",
+      "page": 10,
+      "sensor_count": 1,
+      "max_width": 2688,
+      "max_height": 1512,
+      "max_video_resolution_raw": "2688x1512 (4 MP)",
+      "sensor_lens_fov_raw": "1/1.8”, -, -"
+    },
+    {
+      "model": "AXIS P1518-LE",
+      "category": "Box cameras",
+      "series": "AXIS P15 Series",
+      "page": 11,
+      "sensor_count": 1,
+      "max_width": 3840,
+      "max_height": 2160,
+      "max_video_resolution_raw": "3840x2160 (8.3 MP)",
+      "sensor_lens_fov_raw": "8 MP: 1x 1/1.2'', 5.85 mm F1.5, 113.8° 2 MP: 1x 1/2.8'', 10.9 - 29 mm F1.7, 29°- 11°"
+    },
+    {
+      "model": "AXIS P1518-E",
+      "category": "Box cameras",
+      "series": "AXIS P15 Series",
+      "page": 11,
+      "sensor_count": 1,
+      "max_width": 3840,
+      "max_height": 2160,
+      "max_video_resolution_raw": "3840x2160 (8.3 MP)",
+      "sensor_lens_fov_raw": "8 MP: 1x 1/1.2'', 5.85 mm F1.5, 113.8° 2 MP: 1x 1/2.8'', 10.9 - 29 mm F1.7, 29°- 11°"
+    },
+    {
+      "model": "AXIS P1388-B",
+      "category": "Box cameras",
+      "series": "AXIS P15 Series",
+      "page": 11,
+      "sensor_count": 1,
+      "max_width": 3840,
+      "max_height": 2160,
+      "max_video_resolution_raw": "3840x2160 (8.3 MP)",
+      "sensor_lens_fov_raw": "1/1.8\", -, -"
+    },
+    {
+      "model": "AXIS P1387-B",
+      "category": "Box cameras",
+      "series": "AXIS P15 Series",
+      "page": 11,
+      "sensor_count": 1,
+      "max_width": 2592,
+      "max_height": 1944,
+      "max_video_resolution_raw": "2592x1944 (5 MP)",
+      "sensor_lens_fov_raw": "1/2.7”, - , -"
+    },
+    {
+      "model": "AXIS P1385",
+      "category": "Box cameras",
+      "series": "AXIS P13 Series",
+      "page": 12,
+      "sensor_count": 1,
+      "max_width": 1920,
+      "max_height": 1080,
+      "max_video_resolution_raw": "1920x1080 (2.1 MP)",
+      "sensor_lens_fov_raw": "1/2.8” 2.8 - 13 mm, F1.4 121° - 26°"
+    },
+    {
+      "model": "AXIS P1385-B",
+      "category": "Box cameras",
+      "series": "AXIS P13 Series",
+      "page": 12,
+      "sensor_count": 1,
+      "max_width": 1920,
+      "max_height": 1080,
+      "max_video_resolution_raw": "1920x1080 (2.1 MP)",
+      "sensor_lens_fov_raw": "1/2.8”, - , -"
+    },
+    {
+      "model": "AXIS P1388-LE",
+      "category": "Box cameras",
+      "series": "AXIS P13 Series",
+      "page": 12,
+      "sensor_count": 1,
+      "max_width": 3840,
+      "max_height": 2160,
+      "max_video_resolution_raw": "3840x2160 (8.3 MP)",
+      "sensor_lens_fov_raw": "1/1.8\" 3.9 - 10 mm, F1.5 122° - 46°"
+    },
+    {
+      "model": "AXIS P1388-BE",
+      "category": "Box cameras",
+      "series": "AXIS P13 Series",
+      "page": 12,
+      "sensor_count": 1,
+      "max_width": 3840,
+      "max_height": 2160,
+      "max_video_resolution_raw": "3840x2160 (8.3 MP)",
+      "sensor_lens_fov_raw": "1/1.8\", - , -"
+    },
+    {
+      "model": "AXIS P1387-LE",
+      "category": "Box cameras",
+      "series": "AXIS P13 Series",
+      "page": 12,
+      "sensor_count": 1,
+      "max_width": 2592,
+      "max_height": 1944,
+      "max_video_resolution_raw": "2592x1944 (5 MP)",
+      "sensor_lens_fov_raw": "1/2.7” 2.8 - 13 mm, F1.4 112° - 24°"
+    },
+    {
+      "model": "AXIS P1387-BE",
+      "category": "Box cameras",
+      "series": "AXIS P13 Series",
+      "page": 12,
+      "sensor_count": 1,
+      "max_width": 2592,
+      "max_height": 1944,
+      "max_video_resolution_raw": "2592x1944 (5 MP)",
+      "sensor_lens_fov_raw": "1/2.7”, - , -"
+    },
+    {
+      "model": "AXIS P1385-E",
+      "category": "Box cameras",
+      "series": "AXIS P13 Series",
+      "page": 12,
+      "sensor_count": 1,
+      "max_width": 1920,
+      "max_height": 1080,
+      "max_video_resolution_raw": "1920x1080 (2.1 MP)",
+      "sensor_lens_fov_raw": "1/2.8” 2.8 - 13 mm, F1.4 121° - 26°"
+    },
+    {
+      "model": "AXIS P1385-BE",
+      "category": "Box cameras",
+      "series": "AXIS P13 Series",
+      "page": 12,
+      "sensor_count": 1,
+      "max_width": 1920,
+      "max_height": 1080,
+      "max_video_resolution_raw": "1920x1080 (2.1 MP)",
+      "sensor_lens_fov_raw": "1/2.8”, - , -"
+    },
+    {
+      "model": "AXIS M1137-E Mk II",
+      "category": "Box cameras",
+      "series": "AXIS M11 Series",
+      "page": 13,
+      "sensor_count": 1,
+      "max_width": 2592,
+      "max_height": 1944,
+      "max_video_resolution_raw": "2592x1944 (5 MP)",
+      "sensor_lens_fov_raw": "1/2.7\", 2.8 - 13 mm, F1.4, 112° - 24° 1/2.7'', i-CS lens 3.5 - 10 mm, F1.8, 99° - 31°"
+    },
+    {
+      "model": "AXIS M1135-E Mk II",
+      "category": "Box cameras",
+      "series": "AXIS M11 Series",
+      "page": 13,
+      "sensor_count": 1,
+      "max_width": 1920,
+      "max_height": 1080,
+      "max_video_resolution_raw": "1920x1080 (2.1 MP)",
+      "sensor_lens_fov_raw": "1/2.9\", 3 - 10.5 mm, F1.4, 90° - 33° 1/2.9\", i-CS lens 3.5 - 10 mm, F1.8, 101° - 33°"
+    },
+    {
+      "model": "AXIS M1055-L",
+      "category": "Box cameras",
+      "series": "AXIS M11 Series",
+      "page": 13,
+      "sensor_count": 1,
+      "max_width": 1920,
+      "max_height": 1080,
+      "max_video_resolution_raw": "1920x1080 (2.1 MP)",
+      "sensor_lens_fov_raw": "1/2.9'' 3.16 mm, F2.0 103°"
+    },
+    {
+      "model": "AXIS Q1805-LE",
+      "category": "Bullet cameras",
+      "series": "AXIS Q18 Series",
+      "page": 14,
+      "sensor_count": 1,
+      "max_width": 1920,
+      "max_height": 1080,
+      "max_video_resolution_raw": "1920x1080 (2.1 MP)",
+      "sensor_lens_fov_raw": "1/2.8” 4.3 - 137 mm, F1.4 - 4.0 60° - 2.3°"
+    },
+    {
+      "model": "AXIS Q1800-LE",
+      "category": "Bullet cameras",
+      "series": "AXIS Q18 Series",
+      "page": 14,
+      "sensor_count": 1,
+      "max_width": 1920,
+      "max_height": 1080,
+      "max_video_resolution_raw": "1920x1080 (2.1 MP)",
+      "sensor_lens_fov_raw": "1/2.8\" 7 - 137 mm, F1.5 - 4.0 38° - 2.3°"
+    },
+    {
+      "model": "AXIS Q1800-LE-3",
+      "category": "Bullet cameras",
+      "series": "AXIS Q18 Series",
+      "page": 14,
+      "sensor_count": 1,
+      "max_width": 1920,
+      "max_height": 1080,
+      "max_video_resolution_raw": "1920x1080 (2.1 MP)",
+      "sensor_lens_fov_raw": "1/2.8\" 7 - 137 mm, F1.5 - 4.0 38° - 2.3°"
+    },
+    {
+      "model": "AXIS P1488-LE",
+      "category": "Bullet cameras",
+      "series": "AXIS P14 Series",
+      "page": 15,
+      "sensor_count": 1,
+      "max_width": 3840,
+      "max_height": 2160,
+      "max_video_resolution_raw": "3840x2160 (8.3 MP)",
+      "sensor_lens_fov_raw": "1/1.2” 5.9 - 13.8 mm, F1.5 - 2.8 114°- 46°"
+    },
+    {
+      "model": "AXIS P1487-LE",
+      "category": "Bullet cameras",
+      "series": "AXIS P14 Series",
+      "page": 15,
+      "sensor_count": 1,
+      "max_width": 2592,
+      "max_height": 1944,
+      "max_video_resolution_raw": "2592x1944 (5 MP)",
+      "sensor_lens_fov_raw": "1/2.8” 3 - 8.5 mm, F1.36 - 2.58 106° - 35°"
+    },
+    {
+      "model": "AXIS P1486-LE",
+      "category": "Bullet cameras",
+      "series": "AXIS P14 Series",
+      "page": 15,
+      "sensor_count": 1,
+      "max_width": 2048,
+      "max_height": 1536,
+      "max_video_resolution_raw": "2048x1536 (3 MP)",
+      "sensor_lens_fov_raw": "1/1.8'' 10 - 40 mm, F1.3 - 1.4 42˚ - 11˚"
+    },
+    {
+      "model": "AXIS P1486-LE Kit",
+      "category": "Bullet cameras",
+      "series": "AXIS P14 Series",
+      "page": 15,
+      "sensor_count": 1,
+      "max_width": 2048,
+      "max_height": 1536,
+      "max_video_resolution_raw": "2048x1536 (3 MP)",
+      "sensor_lens_fov_raw": "1/1.8'' 10 - 40 mm, F1.3 - 1.4 42˚ - 11˚"
+    },
+    {
+      "model": "AXIS P1485-LE",
+      "category": "Bullet cameras",
+      "series": "AXIS P14 Series",
+      "page": 15,
+      "sensor_count": 1,
+      "max_width": 1920,
+      "max_height": 1080,
+      "max_video_resolution_raw": "1920x1080 (2.1 MP)",
+      "sensor_lens_fov_raw": "1/2.8” 10.8 - 28.2 mm, F1.7 - 1.76 29.4° - 11°"
+    },
+    {
+      "model": "AXIS P1485-LE Kit",
+      "category": "Bullet cameras",
+      "series": "AXIS P14 Series",
+      "page": 15,
+      "sensor_count": 1,
+      "max_width": 1920,
+      "max_height": 1080,
+      "max_video_resolution_raw": "1920x1080 (2.1 MP)",
+      "sensor_lens_fov_raw": "1/2.8” 10.8 - 28.2 mm, F1.7 - 1.76 29.4° - 11°"
+    },
+    {
+      "model": "AXIS P1475-LE",
+      "category": "Bullet cameras",
+      "series": "AXIS P14 Series",
+      "page": 15,
+      "sensor_count": 1,
+      "max_width": 1920,
+      "max_height": 1080,
+      "max_video_resolution_raw": "1920x1080 (2.1 MP)",
+      "sensor_lens_fov_raw": "1/1.2\" 3.1 - 9 mm, F1.6 - 2.9 117˚ - 36˚"
+    },
+    {
+      "model": "AXIS M2048-LE",
+      "category": "Bullet cameras",
+      "series": "AXIS P14 Series",
+      "page": 15,
+      "sensor_count": 1,
+      "max_width": 3840,
+      "max_height": 2160,
+      "max_video_resolution_raw": "3840x2160 (8.3 MP)",
+      "sensor_lens_fov_raw": "1/1.8 3.7 mm, F2.0 126°"
+    },
+    {
+      "model": "AXIS M2036-LE",
+      "category": "Bullet cameras",
+      "series": "AXIS P14 Series",
+      "page": 15,
+      "sensor_count": 1,
+      "max_width": 2668,
+      "max_height": 1512,
+      "max_video_resolution_raw": "2668x1512 (4 MP)",
+      "sensor_lens_fov_raw": "1/2.7” 2.4 mm, F2.1 129°"
+    },
+    {
+      "model": "AXIS M2035-LE",
+      "category": "Bullet cameras",
+      "series": "AXIS P14 Series",
+      "page": 15,
+      "sensor_count": 1,
+      "max_width": 1920,
+      "max_height": 1080,
+      "max_video_resolution_raw": "1920x1080 (2.1 MP)",
+      "sensor_lens_fov_raw": "1/2.9”, 3.2 mm, F1.4, 101° 1/2.9”, 7.5 mm, F1.6, 39°"
+    },
+    {
+      "model": "AXIS P1275 Mk II",
+      "category": "Modular cameras",
+      "series": "AXIS P12 Series",
+      "page": 16,
+      "sensor_count": 1,
+      "max_width": 1920,
+      "max_height": 1080,
+      "max_video_resolution_raw": "1920x1080 (2.1 MP)",
+      "sensor_lens_fov_raw": "1/2.9\" 2.8 - 6mm. F2.0 99 - 35°"
+    },
+    {
+      "model": "AXIS P1245 Mk II",
+      "category": "Modular cameras",
+      "series": "AXIS P12 Series",
+      "page": 16,
+      "sensor_count": 1,
+      "max_width": 1920,
+      "max_height": 1080,
+      "max_video_resolution_raw": "1920 x1080 (2.1 MP)",
+      "sensor_lens_fov_raw": "1/2 9\" 2.8mm, F2.0 111°"
+    },
+    {
+      "model": "AXIS F9104-B Mk II",
+      "category": "Modular cameras",
+      "series": "AXIS P12 Series",
+      "page": 16,
+      "sensor_count": 1,
+      "max_width": 3840,
+      "max_height": 2160,
+      "max_video_resolution_raw": "3840x2160 (4K)",
+      "sensor_lens_fov_raw": "-"
+    },
+    {
+      "model": "AXIS F9111-R Mk II",
+      "category": "Modular cameras",
+      "series": "AXIS P12 Series",
+      "page": 16,
+      "sensor_count": 1,
+      "max_width": 3840,
+      "max_height": 2160,
+      "max_video_resolution_raw": "3840x2160 (4K)",
+      "sensor_lens_fov_raw": "-"
+    },
+    {
+      "model": "AXIS F9114-R Mk II",
+      "category": "Modular cameras",
+      "series": "AXIS P12 Series",
+      "page": 16,
+      "sensor_count": 1,
+      "max_width": 3840,
+      "max_height": 2160,
+      "max_video_resolution_raw": "3840x2160 (4K)",
+      "sensor_lens_fov_raw": "-"
+    },
+    {
+      "model": "AXIS F9114-B Mk II",
+      "category": "Modular cameras",
+      "series": "AXIS P12 Series",
+      "page": 16,
+      "sensor_count": 1,
+      "max_width": 3840,
+      "max_height": 2160,
+      "max_video_resolution_raw": "3840x2160 (4K)",
+      "sensor_lens_fov_raw": "-"
+    },
+    {
+      "model": "AXIS FA54",
+      "category": "Modular cameras",
+      "series": "AXIS FA Series",
+      "page": 18,
+      "sensor_count": 1,
+      "max_width": 1920,
+      "max_height": 1080,
+      "max_video_resolution_raw": "1920x1080 (2.1 MP)",
+      "sensor_lens_fov_raw": "-"
+    },
+    {
+      "model": "AXIS FA51-B",
+      "category": "Modular cameras",
+      "series": "AXIS FA Series",
+      "page": 18,
+      "sensor_count": 1,
+      "max_width": 1920,
+      "max_height": 1080,
+      "max_video_resolution_raw": "1920x1080 (2.1 MP)",
+      "sensor_lens_fov_raw": "-"
+    },
+    {
+      "model": "AXIS FA51",
+      "category": "Modular cameras",
+      "series": "AXIS FA Series",
+      "page": 18,
+      "sensor_count": 1,
+      "max_width": 1920,
+      "max_height": 1080,
+      "max_video_resolution_raw": "1920x1080 (2.1 MP)",
+      "sensor_lens_fov_raw": "-"
+    },
+    {
+      "model": "AXIS FA41151",
+      "category": "Modular cameras",
+      "series": "AXIS FA Series",
+      "page": 18,
+      "sensor_count": 1,
+      "max_width": 1920,
+      "max_height": 1080,
+      "max_video_resolution_raw": "1920x1080 (2.1 MP)",
+      "sensor_lens_fov_raw": "1/3” 2.8 - 6.0 mm, F2.0 99° - 53°"
+    },
+    {
+      "model": "AXIS FA3105-L1",
+      "category": "Modular cameras",
+      "series": "AXIS FA Series",
+      "page": 18,
+      "sensor_count": 1,
+      "max_width": 1920,
+      "max_height": 1080,
+      "max_video_resolution_raw": "1920x1080 (2.1 MP)",
+      "sensor_lens_fov_raw": "1/3” 3.13 mm, F2.0 103°"
+    },
+    {
+      "model": "AXIS FA11251",
+      "category": "Modular cameras",
+      "series": "AXIS FA Series",
+      "page": 18,
+      "sensor_count": 1,
+      "max_width": 1920,
+      "max_height": 1080,
+      "max_video_resolution_raw": "1920x1080 (2.1 MP)",
+      "sensor_lens_fov_raw": "1/3” 3.7 mm, F2.5 91°"
+    },
+    {
+      "model": "AXIS FA11051",
+      "category": "Modular cameras",
+      "series": "AXIS FA Series",
+      "page": 18,
+      "sensor_count": 1,
+      "max_width": 1920,
+      "max_height": 1080,
+      "max_video_resolution_raw": "1920x1080 (2.1 MP)",
+      "sensor_lens_fov_raw": "1/3” 2.8 mm, F2.0 111°"
+    },
+    {
+      "model": "AXIS Q9307-LV",
+      "category": "Dome cameras",
+      "series": "AXIS Q36 Series",
+      "page": 19,
+      "sensor_count": 1,
+      "max_width": 2592,
+      "max_height": 1944,
+      "max_video_resolution_raw": "2592x1944 (5 MP)",
+      "sensor_lens_fov_raw": "1/2.7” 3 - 8 mm, F1.3 104° - 40°"
+    },
+    {
+      "model": "AXIS Q3628-VE",
+      "category": "Dome cameras",
+      "series": "AXIS Q36 Series",
+      "page": 19,
+      "sensor_count": 1,
+      "max_width": 3840,
+      "max_height": 2160,
+      "max_video_resolution_raw": "3840x2160 (8.3 MP)",
+      "sensor_lens_fov_raw": "1/1.2” 6.2-12.9 mm, F1.6 - 2.9 103° - 48°"
+    },
+    {
+      "model": "AXIS Q3626-VE",
+      "category": "Dome cameras",
+      "series": "AXIS Q36 Series",
+      "page": 19,
+      "sensor_count": 1,
+      "max_width": 2688,
+      "max_height": 1512,
+      "max_video_resolution_raw": "2688x1512 (4.1 MP)",
+      "sensor_lens_fov_raw": "1/1.8\" 4.3 - 8-6 mm, F1.5 - 2.4 103° - 52°"
+    },
+    {
+      "model": "AXIS Q3558-LVE",
+      "category": "Dome cameras",
+      "series": "AXIS Q36 Series",
+      "page": 19,
+      "sensor_count": 1,
+      "max_width": 3840,
+      "max_height": 2160,
+      "max_video_resolution_raw": "3840x2160 (8.3 MP)",
+      "sensor_lens_fov_raw": "1/1.2\" 6.3 - 13 mm, F1.5 - 2.9 104° - 48°"
+    },
+    {
+      "model": "AXIS Q3556-LVE",
+      "category": "Dome cameras",
+      "series": "AXIS Q36 Series",
+      "page": 19,
+      "sensor_count": 1,
+      "max_width": 2688,
+      "max_height": 1512,
+      "max_video_resolution_raw": "2688x1512 (4.1 MP)",
+      "sensor_lens_fov_raw": "1/1.8\" 4.7 - 10 mm, F1.1 - 1.2 101° - 44°"
+    },
+    {
+      "model": "AXIS Q3548-LVE",
+      "category": "Dome cameras",
+      "series": "AXIS Q36 Series",
+      "page": 19,
+      "sensor_count": 1,
+      "max_width": 3840,
+      "max_height": 2160,
+      "max_video_resolution_raw": "3840x2160 (8.3 MP)",
+      "sensor_lens_fov_raw": "1/1.2\" 6.3 - 13 mm, F1.5 - 2.9 104° - 48°"
+    },
+    {
+      "model": "AXIS Q3546-LVE",
+      "category": "Dome cameras",
+      "series": "AXIS Q36 Series",
+      "page": 19,
+      "sensor_count": 1,
+      "max_width": 2688,
+      "max_height": 1512,
+      "max_video_resolution_raw": "2688x1512 (4.1 MP)",
+      "sensor_lens_fov_raw": "1/1.8\" 4.7 -10 mm, F1.1 - 1.2 101° - 44°"
+    },
+    {
+      "model": "AXIS Q3538-SLVE",
+      "category": "Dome cameras",
+      "series": "AXIS Q36 Series",
+      "page": 19,
+      "sensor_count": 1,
+      "max_width": 3840,
+      "max_height": 2160,
+      "max_video_resolution_raw": "3840x2160 (8.3 MP)",
+      "sensor_lens_fov_raw": "1/1.2” 6.2 -12.9 mm, F1.6 - 2.9 103° - 49°"
+    },
+    {
+      "model": "AXIS P9117-PV",
+      "category": "Dome cameras",
+      "series": "AXIS P39 Series",
+      "page": 20,
+      "sensor_count": 1,
+      "max_width": 2160,
+      "max_height": 2160,
+      "max_video_resolution_raw": "2160x2160 (6 MP)",
+      "sensor_lens_fov_raw": "1/1.8” 1.1 mm, F2.2 182°"
+    },
+    {
+      "model": "AXIS P3935-LR",
+      "category": "Dome cameras",
+      "series": "AXIS P39 Series",
+      "page": 20,
+      "sensor_count": 1,
+      "max_width": 1920,
+      "max_height": 1080,
+      "max_video_resolution_raw": "1920x1080 (2.1 MP)",
+      "sensor_lens_fov_raw": "1/2.9” 2.8 mm, F1.6 110°"
+    },
+    {
+      "model": "AXIS P3925-R",
+      "category": "Dome cameras",
+      "series": "AXIS P39 Series",
+      "page": 20,
+      "sensor_count": 1,
+      "max_width": 1920,
+      "max_height": 1080,
+      "max_video_resolution_raw": "1920x1080 (2.1 MP)",
+      "sensor_lens_fov_raw": "1/2.9” 2.8 mm, F1.6 110°"
+    },
+    {
+      "model": "AXIS P3925-LRE",
+      "category": "Dome cameras",
+      "series": "AXIS P39 Series",
+      "page": 20,
+      "sensor_count": 1,
+      "max_width": 1920,
+      "max_height": 1080,
+      "max_video_resolution_raw": "1920x1080 (2.1 MP)",
+      "sensor_lens_fov_raw": "1/2.9” 6.0 mm, F1.9 56°"
+    },
+    {
+      "model": "AXIS P3905-R Mk III",
+      "category": "Dome cameras",
+      "series": "AXIS P39 Series",
+      "page": 20,
+      "sensor_count": 1,
+      "max_width": 1920,
+      "max_height": 1080,
+      "max_video_resolution_raw": "1920x1080 (2.1 MP)",
+      "sensor_lens_fov_raw": "1/2.9”, 3.6 mm, F2.0, 88° 1/2.9”, 2.8 mm, F1.5, 107°"
+    },
+    {
+      "model": "AXIS P3288-LVE",
+      "category": "Dome cameras",
+      "series": "AXIS P32 Series",
+      "page": 21,
+      "sensor_count": 1,
+      "max_width": 3840,
+      "max_height": 2160,
+      "max_video_resolution_raw": "3840x2160 (8.3 MP)",
+      "sensor_lens_fov_raw": "1/1.8” 4.4 - 14.6 mm, F1.65 - 3.65 103°- 29°"
+    },
+    {
+      "model": "AXIS P3288-LV",
+      "category": "Dome cameras",
+      "series": "AXIS P32 Series",
+      "page": 21,
+      "sensor_count": 1,
+      "max_width": 3840,
+      "max_height": 2160,
+      "max_video_resolution_raw": "3840x2160 (8.3 MP)",
+      "sensor_lens_fov_raw": "1/1.8” 4.4 - 14.6 mm, F1.65 - 3.65 103°- 29°"
+    },
+    {
+      "model": "AXIS P3287-LVE",
+      "category": "Dome cameras",
+      "series": "AXIS P32 Series",
+      "page": 21,
+      "sensor_count": 1,
+      "max_width": 2592,
+      "max_height": 1944,
+      "max_video_resolution_raw": "2592x1944 (5 MP)",
+      "sensor_lens_fov_raw": "1/2.8” 3.0 - 8.5 mm, F1.38 - 2.58 104°- 34°"
+    },
+    {
+      "model": "AXIS P3287-LV",
+      "category": "Dome cameras",
+      "series": "AXIS P32 Series",
+      "page": 21,
+      "sensor_count": 1,
+      "max_width": 2592,
+      "max_height": 1944,
+      "max_video_resolution_raw": "2592x1944 (5 MP)",
+      "sensor_lens_fov_raw": "1/2.8” 3.0 - 8.5 mm, F1.38 - 2.58 104°- 34°"
+    },
+    {
+      "model": "AXIS P3285-LVE",
+      "category": "Dome cameras",
+      "series": "AXIS P32 Series",
+      "page": 21,
+      "sensor_count": 1,
+      "max_width": 1920,
+      "max_height": 1080,
+      "max_video_resolution_raw": "1920x1080 (2.1 MP)",
+      "sensor_lens_fov_raw": "10 mm: 1/2.8”, 3.4 - 9.8 mm F1.4 - 2.7, 100°- 32° 29 mm: 1/2.8”, 10.8- 28.2 mm F1.70 - 1.76, 29.1°- 11°"
+    },
+    {
+      "model": "AXIS P3285-LVE Kit",
+      "category": "Dome cameras",
+      "series": "AXIS P32 Series",
+      "page": 21,
+      "sensor_count": 1,
+      "max_width": 1920,
+      "max_height": 1080,
+      "max_video_resolution_raw": "1920x1080 (2.1 MP)",
+      "sensor_lens_fov_raw": "1/2.8” 3.4 - 9.8 mm, F1.4 - 2.7 100°- 32°"
+    },
+    {
+      "model": "AXIS P3285-LV",
+      "category": "Dome cameras",
+      "series": "AXIS P32 Series",
+      "page": 21,
+      "sensor_count": 1,
+      "max_width": 1920,
+      "max_height": 1080,
+      "max_video_resolution_raw": "1920x1080 (2.1 MP)",
+      "sensor_lens_fov_raw": "1/2.8” 3.4 - 9.8 mm, F1.4 - 2.7 100°- 32°"
+    },
+    {
+      "model": "AXIS P3278-LVE",
+      "category": "Dome cameras",
+      "series": "AXIS P32 Series",
+      "page": 22,
+      "sensor_count": 1,
+      "max_width": 3840,
+      "max_height": 2160,
+      "max_video_resolution_raw": "3840x2160 (8.3 MP)",
+      "sensor_lens_fov_raw": "1/1.8” 4.4-14.6 mm, F1.65-3.65 103°- 29°"
+    },
+    {
+      "model": "AXIS P3278-LV",
+      "category": "Dome cameras",
+      "series": "AXIS P32 Series",
+      "page": 22,
+      "sensor_count": 1,
+      "max_width": 3840,
+      "max_height": 2160,
+      "max_video_resolution_raw": "3840x2160 (8.3 MP)",
+      "sensor_lens_fov_raw": "1/1.8” 4.4-14.6 mm, F1.65-3.65 103°- 29°"
+    },
+    {
+      "model": "AXIS P3277-LV",
+      "category": "Dome cameras",
+      "series": "AXIS P32 Series",
+      "page": 22,
+      "sensor_count": 1,
+      "max_width": 2592,
+      "max_height": 1944,
+      "max_video_resolution_raw": "2592x1944 (5 MP)",
+      "sensor_lens_fov_raw": "1/2.8” 3.0-8.5 mm, F1.38-2.58 104°- 34°"
+    },
+    {
+      "model": "AXIS P3275-LVE",
+      "category": "Dome cameras",
+      "series": "AXIS P32 Series",
+      "page": 22,
+      "sensor_count": 1,
+      "max_width": 1920,
+      "max_height": 1080,
+      "max_video_resolution_raw": "1920x1080 (2.1 MP)",
+      "sensor_lens_fov_raw": "10 mm: 1/2.8”, 3.4 - 9.8 mm F1.4 - 2.7, 100°- 32° 29 mm: 1/2.8”, 10.8 - 28.2 mm F1.70 - 1.76, 29.1°- 11°"
+    },
+    {
+      "model": "AXIS P3275-LV",
+      "category": "Dome cameras",
+      "series": "AXIS P32 Series",
+      "page": 22,
+      "sensor_count": 1,
+      "max_width": 1920,
+      "max_height": 1080,
+      "max_video_resolution_raw": "1920x1080 (2.1 MP)",
+      "sensor_lens_fov_raw": "1/2.8” 3.4 - 9.8 mm, F1.4 - 2.7 100°- 32°"
+    },
+    {
+      "model": "AXIS P3275-V",
+      "category": "Dome cameras",
+      "series": "AXIS P32 Series",
+      "page": 22,
+      "sensor_count": 1,
+      "max_width": 1920,
+      "max_height": 1080,
+      "max_video_resolution_raw": "1920x1080 (2.1 MP)",
+      "sensor_lens_fov_raw": "1/2.8” 3.4 - 9.8 mm, F1.4 - 2.7 100°- 32°"
+    },
+    {
+      "model": "AXIS P3268-SLVE",
+      "category": "Dome cameras",
+      "series": "AXIS P32 Series",
+      "page": 22,
+      "sensor_count": 1,
+      "max_width": 3840,
+      "max_height": 2160,
+      "max_video_resolution_raw": "3840x2160 (8.3 MP)",
+      "sensor_lens_fov_raw": "1/1.8” 4.3 - 8.6 mm, F1.5 100°- 53°"
+    },
+    {
+      "model": "AXIS M3905-R",
+      "category": "Dome cameras",
+      "series": "AXIS P32 Series",
+      "page": 22,
+      "sensor_count": 1,
+      "max_width": 1920,
+      "max_height": 1080,
+      "max_video_resolution_raw": "1920x1080 (2.1 MP)",
+      "sensor_lens_fov_raw": "1/2.9”, 3.6 mm, F2.0, 88° 1/2.9”, 2.8 mm, F1.5, 107°"
+    },
+    {
+      "model": "AXIS M3216-LVE",
+      "category": "Dome cameras",
+      "series": "AXIS M32 Series",
+      "page": 23,
+      "sensor_count": 1,
+      "max_width": 2688,
+      "max_height": 1512,
+      "max_video_resolution_raw": "2688x1512 (4.1 MP)",
+      "sensor_lens_fov_raw": "1/2.7” 2.9 mm, F2.0 102°"
+    },
+    {
+      "model": "AXIS M3215-LVE",
+      "category": "Dome cameras",
+      "series": "AXIS M32 Series",
+      "page": 23,
+      "sensor_count": 1,
+      "max_width": 1920,
+      "max_height": 1080,
+      "max_video_resolution_raw": "1920x1080 (2.1 MP)",
+      "sensor_lens_fov_raw": "1/2.9” 3.1 mm, F2.0 101°"
+    },
+    {
+      "model": "AXIS M3138-LVE",
+      "category": "Dome cameras",
+      "series": "AXIS M32 Series",
+      "page": 23,
+      "sensor_count": 1,
+      "max_width": 3840,
+      "max_height": 2160,
+      "max_video_resolution_raw": "3840x2160 (8 MP)",
+      "sensor_lens_fov_raw": "1/1.8\" 3.7 mm, F2.0 126°"
+    },
+    {
+      "model": "AXIS M3128-LVE (black and white)",
+      "category": "Dome cameras",
+      "series": "AXIS M32 Series",
+      "page": 23,
+      "sensor_count": 1,
+      "max_width": 3840,
+      "max_height": 2160,
+      "max_video_resolution_raw": "3840x2160 (8.3 MP)",
+      "sensor_lens_fov_raw": "1/2.8\" 2.9 mm, F2.0 110°"
+    },
+    {
+      "model": "AXIS M3126-LVE (black and white)",
+      "category": "Dome cameras",
+      "series": "AXIS M32 Series",
+      "page": 23,
+      "sensor_count": 1,
+      "max_width": 2688,
+      "max_height": 1512,
+      "max_video_resolution_raw": "2688x1512 (4.1 MP)",
+      "sensor_lens_fov_raw": "1/2.7” 2.4 mm, F2.1 130°"
+    },
+    {
+      "model": "AXIS M3125-LVE (black and white)",
+      "category": "Dome cameras",
+      "series": "AXIS M32 Series",
+      "page": 23,
+      "sensor_count": 1,
+      "max_width": 1920,
+      "max_height": 1080,
+      "max_video_resolution_raw": "1920x1080 (2.1 MP)",
+      "sensor_lens_fov_raw": "1/2.8” 2.9 mm, F2.0 110°"
+    },
+    {
+      "model": "AXIS M3098-V",
+      "category": "Dome cameras",
+      "series": "AXIS M32 Series",
+      "page": 23,
+      "sensor_count": 1,
+      "max_width": 3840,
+      "max_height": 2160,
+      "max_video_resolution_raw": "3840x2160 (8.2 MP)",
+      "sensor_lens_fov_raw": "1/1.8\" 3.76 mm, F2.0 124°"
+    },
+    {
+      "model": "AXIS M3098-LV",
+      "category": "Dome cameras",
+      "series": "AXIS M32 Series",
+      "page": 23,
+      "sensor_count": 1,
+      "max_width": 3840,
+      "max_height": 2160,
+      "max_video_resolution_raw": "3840x2160 (8.2 MP)",
+      "sensor_lens_fov_raw": "1/1.8\" 3.76 mm, F2.0 124°"
+    },
+    {
+      "model": "AXIS M3098-H",
+      "category": "Dome cameras",
+      "series": "AXIS M32 Series",
+      "page": 23,
+      "sensor_count": 1,
+      "max_width": 3840,
+      "max_height": 2160,
+      "max_video_resolution_raw": "3840x2160 (8.2 MP)",
+      "sensor_lens_fov_raw": "1/1.8\" 3.76 mm, F2.0 124°"
+    },
+    {
+      "model": "AXIS M3086-V",
+      "category": "Dome cameras",
+      "series": "AXIS M32 Series",
+      "page": 23,
+      "sensor_count": 1,
+      "max_width": 2688,
+      "max_height": 1512,
+      "max_video_resolution_raw": "2688x1512 (4.1 MP)",
+      "sensor_lens_fov_raw": "1/2.7\" 2.4 mm, F2.1 130°"
+    },
+    {
+      "model": "AXIS M4228-LVE",
+      "category": "Dome cameras",
+      "series": "AXIS M42 Series",
+      "page": 24,
+      "sensor_count": 1,
+      "max_width": 3840,
+      "max_height": 2160,
+      "max_video_resolution_raw": "3840x2160 (8.3 MP)",
+      "sensor_lens_fov_raw": "1/2.8\", 3.2-7.2 mm F1.6-2.7, 100°-38°"
+    },
+    {
+      "model": "AXIS M4227-LVE",
+      "category": "Dome cameras",
+      "series": "AXIS M42 Series",
+      "page": 24,
+      "sensor_count": 1,
+      "max_width": 2592,
+      "max_height": 1944,
+      "max_video_resolution_raw": "2592x1944 (5 MP)",
+      "sensor_lens_fov_raw": "1/2.7\", 3.2-7.2 mm F1.6-2.7, 98°-38°"
+    },
+    {
+      "model": "AXIS M4225-LVE",
+      "category": "Dome cameras",
+      "series": "AXIS M42 Series",
+      "page": 24,
+      "sensor_count": 1,
+      "max_width": 1920,
+      "max_height": 1080,
+      "max_video_resolution_raw": "1920x1080 (2.1 MP)",
+      "sensor_lens_fov_raw": "1/2.8\", 3.2-7.2 mm F1.6-2.7, 100°-38°"
+    },
+    {
+      "model": "AXIS M4218-LV",
+      "category": "Dome cameras",
+      "series": "AXIS M42 Series",
+      "page": 24,
+      "sensor_count": 1,
+      "max_width": 3840,
+      "max_height": 2160,
+      "max_video_resolution_raw": "3840x2160 (8.3 MP)",
+      "sensor_lens_fov_raw": "1/2.8\", 3.5-6.6 mm F1.7-2.6, 93°-47°"
+    },
+    {
+      "model": "AXIS M4218-V",
+      "category": "Dome cameras",
+      "series": "AXIS M42 Series",
+      "page": 24,
+      "sensor_count": 1,
+      "max_width": 3840,
+      "max_height": 2160,
+      "max_video_resolution_raw": "3840x2160 (8.3 MP)",
+      "sensor_lens_fov_raw": "1/2.8\", 3.5-6.6 mm F1.7-2.6, 93°-47°"
+    },
+    {
+      "model": "AXIS M4216-V",
+      "category": "Dome cameras",
+      "series": "AXIS M42 Series",
+      "page": 24,
+      "sensor_count": 1,
+      "max_width": 2304,
+      "max_height": 1728,
+      "max_video_resolution_raw": "2304x1728 (4 MP)",
+      "sensor_lens_fov_raw": "1/2.7\", 3-6 mm F1.9-2.7, 100°-45°"
+    },
+    {
+      "model": "AXIS M4215-LV",
+      "category": "Dome cameras",
+      "series": "AXIS M42 Series",
+      "page": 24,
+      "sensor_count": 1,
+      "max_width": 1920,
+      "max_height": 1080,
+      "max_video_resolution_raw": "1920x1080 (2.1 MP)",
+      "sensor_lens_fov_raw": "1/2.8\", 3.5-6.6 mm F1.7-2.6, 93°-47°"
+    },
+    {
+      "model": "AXIS M4215-V",
+      "category": "Dome cameras",
+      "series": "AXIS M42 Series",
+      "page": 24,
+      "sensor_count": 1,
+      "max_width": 1920,
+      "max_height": 1080,
+      "max_video_resolution_raw": "1920x1080 (2.1 MP)",
+      "sensor_lens_fov_raw": "1/2.8\", 3.5-6.6 mm F1.7-2.6, 93°-47°"
+    },
+    {
+      "model": "AXIS M4328-P",
+      "category": "Panoramic cameras",
+      "series": "AXIS P37 Series",
+      "page": 26,
+      "sensor_count": 1,
+      "max_width": 2992,
+      "max_height": 2992,
+      "max_video_resolution_raw": "2992x2992 (12 MP)",
+      "sensor_lens_fov_raw": "1/2.3” 1.2 mm, F2.2 182°"
+    },
+    {
+      "model": "AXIS M4327-P",
+      "category": "Panoramic cameras",
+      "series": "AXIS P37 Series",
+      "page": 26,
+      "sensor_count": 1,
+      "max_width": 2160,
+      "max_height": 2160,
+      "max_video_resolution_raw": "2160x2160 (6 MP)",
+      "sensor_lens_fov_raw": "1/1.8” 1.1 mm, F2.2 182°"
+    },
+    {
+      "model": "AXIS M4348-PLVE",
+      "category": "Panoramic cameras",
+      "series": "AXIS M43 Series",
+      "page": 27,
+      "sensor_count": 1,
+      "max_width": 3536,
+      "max_height": 3536,
+      "max_video_resolution_raw": "3536x3536 (12.5 MP)",
+      "sensor_lens_fov_raw": "1/1.6” 1.7 mm, F2 185°"
+    },
+    {
+      "model": "AXIS M4347-PLVE",
+      "category": "Panoramic cameras",
+      "series": "AXIS M43 Series",
+      "page": 27,
+      "sensor_count": 1,
+      "max_width": 2464,
+      "max_height": 2464,
+      "max_video_resolution_raw": "2464x2464 (6 MP)",
+      "sensor_lens_fov_raw": "1/1.6” 1.7 mm, F2 185°"
+    },
+    {
+      "model": "AXIS M4338-PLVE",
+      "category": "Panoramic cameras",
+      "series": "AXIS M43 Series",
+      "page": 27,
+      "sensor_count": 1,
+      "max_width": 3536,
+      "max_height": 3536,
+      "max_video_resolution_raw": "3536x3536 (12.5 MP)",
+      "sensor_lens_fov_raw": "1/1.6” 1.7 mm, F2 185°"
+    },
+    {
+      "model": "AXIS M4337-PLVE",
+      "category": "Panoramic cameras",
+      "series": "AXIS M43 Series",
+      "page": 27,
+      "sensor_count": 1,
+      "max_width": 2464,
+      "max_height": 2464,
+      "max_video_resolution_raw": "2464x2464 (6 MP)",
+      "sensor_lens_fov_raw": "1/1.6” 1.7 mm, F2 185°"
+    },
+    {
+      "model": "AXIS M4337-SPLVE",
+      "category": "Panoramic cameras",
+      "series": "AXIS M43 Series",
+      "page": 27,
+      "sensor_count": 1,
+      "max_width": 2464,
+      "max_height": 2464,
+      "max_video_resolution_raw": "2464x2464 (6 MP)",
+      "sensor_lens_fov_raw": "1/1.6” 1.7 mm, F2 185°"
+    },
+    {
+      "model": "AXIS M4318-PLR",
+      "category": "Panoramic cameras",
+      "series": "AXIS M43 Series",
+      "page": 27,
+      "sensor_count": 1,
+      "max_width": 2992,
+      "max_height": 2992,
+      "max_video_resolution_raw": "2992x2992 (12 MP)",
+      "sensor_lens_fov_raw": "1/2.3” 1.2 mm, F2.2 182°"
+    },
+    {
+      "model": "AXIS M4317-PLR",
+      "category": "Panoramic cameras",
+      "series": "AXIS M43 Series",
+      "page": 27,
+      "sensor_count": 1,
+      "max_width": 2160,
+      "max_height": 2160,
+      "max_video_resolution_raw": "2160x2160 (6 MP)",
+      "sensor_lens_fov_raw": "1/1.8” 1.1 mm, F2.2 182°"
+    },
+    {
+      "model": "AXIS M3057-PLR Mk II",
+      "category": "Panoramic cameras",
+      "series": "AXIS M43 Series",
+      "page": 27,
+      "sensor_count": 1,
+      "max_width": 2048,
+      "max_height": 2048,
+      "max_video_resolution_raw": "2048x2048 (6 MP)",
+      "sensor_lens_fov_raw": "1/1.8” 1.56 mm, F2.0 185°"
+    },
+    {
+      "model": "AXIS Q6358-LE",
+      "category": "Pan/tilt/zoom cameras",
+      "series": "AXIS Q64 Series",
+      "page": 29,
+      "sensor_count": 1,
+      "max_width": 3840,
+      "max_height": 2160,
+      "max_video_resolution_raw": "3840x2160 (8 MP)",
+      "sensor_lens_fov_raw": "1/2\" 6.91 - 214.64 mm, F1.36 - 4.6 58.5° - 2.3°"
+    },
+    {
+      "model": "AXIS Q6355-LE",
+      "category": "Pan/tilt/zoom cameras",
+      "series": "AXIS Q64 Series",
+      "page": 29,
+      "sensor_count": 1,
+      "max_width": 1920,
+      "max_height": 1080,
+      "max_video_resolution_raw": "1920x1080 (2.1 MP)",
+      "sensor_lens_fov_raw": "1/2\" 6.91 - 214.64 mm, F1.36 - 4.6 60.6° - 2.0°"
+    },
+    {
+      "model": "AXIS Q6325-LE",
+      "category": "Pan/tilt/zoom cameras",
+      "series": "AXIS Q64 Series",
+      "page": 29,
+      "sensor_count": 1,
+      "max_width": 1920,
+      "max_height": 1080,
+      "max_video_resolution_raw": "1920x1080 (2.1 MP)",
+      "sensor_lens_fov_raw": "1/2\" 6.91 - 214.64 mm, F1.36 - 4.6 60.6° - 2.0°"
+    },
+    {
+      "model": "AXIS Q6225-LE",
+      "category": "Pan/tilt/zoom cameras",
+      "series": "AXIS Q64 Series",
+      "page": 29,
+      "sensor_count": 1,
+      "max_width": 1920,
+      "max_height": 1080,
+      "max_video_resolution_raw": "1920x1080 (2.1 MP)",
+      "sensor_lens_fov_raw": "1/2\" 6.91 - 214.64 mm, F1.36 - 4.6 63.8° - 2.2°"
+    },
+    {
+      "model": "AXIS Q6086-E",
+      "category": "Pan/tilt/zoom cameras",
+      "series": "AXIS Q60 Series",
+      "page": 30,
+      "sensor_count": 1,
+      "max_width": 2688,
+      "max_height": 1512,
+      "max_video_resolution_raw": "2688x1512 (4 MP)",
+      "sensor_lens_fov_raw": "1/1.2\" 6.64 - 225.5 mm, F1.7 - 5.1 61.5° - 2.0°"
+    },
+    {
+      "model": "AXIS Q6088-E",
+      "category": "Pan/tilt/zoom cameras",
+      "series": "AXIS Q60 Series",
+      "page": 30,
+      "sensor_count": 1,
+      "max_width": 3840,
+      "max_height": 2160,
+      "max_video_resolution_raw": "3840x2160 (8 MP)",
+      "sensor_lens_fov_raw": "1/2\" 6.64 - 225.5 mm, F1.7 - 5.1 60.8° - 2.0°"
+    },
+    {
+      "model": "AXIS Q6020-E",
+      "category": "Pan/tilt/zoom cameras",
+      "series": "AXIS Q60 Series",
+      "page": 30,
+      "sensor_count": 1,
+      "max_width": 2592,
+      "max_height": 1944,
+      "max_video_resolution_raw": "2592x1944 (20.4 MP)",
+      "sensor_lens_fov_raw": "1/2\" 3.7mm, F3.7 360°"
+    },
+    {
+      "model": "AXIS V5938",
+      "category": "Pan/tilt/zoom cameras",
+      "series": "AXIS V59 Series",
+      "page": 31,
+      "sensor_count": 1,
+      "max_width": 3840,
+      "max_height": 2160,
+      "max_video_resolution_raw": "3840x2160 (8 MP)",
+      "sensor_lens_fov_raw": "1/2.5\", 4.4 - 88 mm, F2.0 - 3.8, 70.2°- 4.1°"
+    },
+    {
+      "model": "AXIS V5925",
+      "category": "Pan/tilt/zoom cameras",
+      "series": "AXIS V59 Series",
+      "page": 31,
+      "sensor_count": 1,
+      "max_width": 1920,
+      "max_height": 1080,
+      "max_video_resolution_raw": "1920x1080 (2.1 MP)",
+      "sensor_lens_fov_raw": "1/2.8\", 4.4 - 132 mm, F1.4 - 4.6 62°- 2.3°"
+    },
+    {
+      "model": "AXIS P5676-LE",
+      "category": "Pan/tilt/zoom cameras",
+      "series": "AXIS V59 Series",
+      "page": 31,
+      "sensor_count": 1,
+      "max_width": 2688,
+      "max_height": 1512,
+      "max_video_resolution_raw": "2688x1512 (4 MP)",
+      "sensor_lens_fov_raw": "1/2.9, 4.5 - 135 mm, F1.6 - 4.6 57.1° - 2.1°"
+    },
+    {
+      "model": "AXIS P5655-E",
+      "category": "Pan/tilt/zoom cameras",
+      "series": "AXIS V59 Series",
+      "page": 31,
+      "sensor_count": 1,
+      "max_width": 1920,
+      "max_height": 1080,
+      "max_video_resolution_raw": "1920x1080 (2.1 MP)",
+      "sensor_lens_fov_raw": "1/2.8” 4.3 - 137.6 mm, F1.4 - 4.0 58.7° - 2.4°"
+    },
+    {
+      "model": "AXIS P5654-E MkII",
+      "category": "Pan/tilt/zoom cameras",
+      "series": "AXIS V59 Series",
+      "page": 31,
+      "sensor_count": 1,
+      "max_width": 1920,
+      "max_height": 1080,
+      "max_video_resolution_raw": "1280x720 (1 MP) 1920x1080 (2.1 MP)",
+      "sensor_lens_fov_raw": "1/2.8” 4.0 - 84.6 mm, F1.6 - 4.5 77.0° - 3.6°"
+    },
+    {
+      "model": "AXIS M5526-E",
+      "category": "Pan/tilt/zoom cameras",
+      "series": "AXIS M50 Series",
+      "page": 32,
+      "sensor_count": 1,
+      "max_width": 2688,
+      "max_height": 1512,
+      "max_video_resolution_raw": "2688x1512 (4 MP)"
+    },
+    {
+      "model": "AXIS M5075-G",
+      "category": "Pan/tilt/zoom cameras",
+      "series": "AXIS M50 Series",
+      "page": 32,
+      "sensor_count": 1,
+      "max_width": 1920,
+      "max_height": 1080,
+      "max_video_resolution_raw": "1920x1080 (2.1 MP)"
+    },
+    {
+      "model": "AXIS M5075",
+      "category": "Pan/tilt/zoom cameras",
+      "series": "AXIS M50 Series",
+      "page": 32,
+      "sensor_count": 1,
+      "max_width": 1920,
+      "max_height": 1080,
+      "max_video_resolution_raw": "1920x1080 (2.1 MP)"
+    },
+    {
+      "model": "AXIS M5074",
+      "category": "Pan/tilt/zoom cameras",
+      "series": "AXIS M50 Series",
+      "page": 32,
+      "sensor_count": 1,
+      "max_width": 1280,
+      "max_height": 720,
+      "max_video_resolution_raw": "1280x720 (1 MP)"
+    }
+  ],
+  "new_multisensor": [
+    {
+      "model": "AXIS Q4809-PVE",
+      "category": "Panoramic cameras",
+      "series": "AXIS Q38 Series",
+      "page": 25,
+      "sensor_count": 4,
+      "max_width": 10240,
+      "max_height": 2560,
+      "max_video_resolution_raw": "10240x2560 (26 MP)",
+      "sensor_lens_fov_raw": "4x 1/2.3\", 5.05 mm F1.7, 180°"
+    },
+    {
+      "model": "AXIS P4708-PLVE",
+      "category": "Panoramic cameras",
+      "series": "AXIS Q38 Series",
+      "page": 25,
+      "sensor_count": 2,
+      "max_width": 3840,
+      "max_height": 2160,
+      "max_video_resolution_raw": "2x 3840x2160 (2x 8 MP)",
+      "sensor_lens_fov_raw": "2x 1/2.8\", 3.3-8.1 mm F1.9-3.2, 108°-40°"
+    }
+  ],
+  "alias_covered": [
+    {
+      "extracted_model": "AXIS Q1728",
+      "existing_row": "Q1728-LE"
+    },
+    {
+      "extracted_model": "AXIS Q1726",
+      "existing_row": "Q1726-LE"
+    },
+    {
+      "extracted_model": "AXIS M5000",
+      "existing_row": "M5000-G"
+    }
+  ],
+  "exceeds_ceiling": [
+    {
+      "model": "AXIS Q1809-LE",
+      "category": "Bullet cameras",
+      "native": "7424x5568",
+      "pixels": 41336832,
+      "largest_bucket": "6576x4384",
+      "reason": "exceeds RESOLUTIONS ceiling — precedent ADR 0121, do not seed this pass"
+    }
+  ],
+  "no_standalone_resolution": [
+    {
+      "model": "AXIS F2105-RE",
+      "category": "Modular cameras",
+      "reason": "See AXIS F91XX Main Units"
+    },
+    {
+      "model": "AXIS F2107-RE",
+      "category": "Modular cameras",
+      "reason": "See AXIS F91XX Main Units"
+    },
+    {
+      "model": "AXIS F2108",
+      "category": "Modular cameras",
+      "reason": "See AXIS F91XX Main Units"
+    },
+    {
+      "model": "AXIS F2115-R",
+      "category": "Modular cameras",
+      "reason": "See AXIS F91XX Main Units"
+    },
+    {
+      "model": "AXIS F2135-RE",
+      "category": "Modular cameras",
+      "reason": "See AXIS F91XX Main Units"
+    },
+    {
+      "model": "AXIS F2137-RE",
+      "category": "Modular cameras",
+      "reason": "See AXIS F91XX Main Units"
+    },
+    {
+      "model": "AXIS F4108",
+      "category": "Modular cameras",
+      "reason": "See AXIS F91XX Main Units"
+    },
+    {
+      "model": "AXIS F4105-SLRE",
+      "category": "Modular cameras",
+      "reason": "See AXIS F91XX Main Units"
+    },
+    {
+      "model": "AXIS F4105-LRE",
+      "category": "Modular cameras",
+      "reason": "See AXIS F91XX Main Units"
+    },
+    {
+      "model": "AXIS F7225-RE",
+      "category": "Modular cameras",
+      "reason": "See AXIS F91XX Main Units"
+    }
+  ],
+  "matched_for_drift": [
+    {
+      "model": "AXIS Q1806-LE",
+      "existing": {
+        "sensor_count": 1,
+        "max_width": 2160,
+        "max_height": 1512
+      },
+      "extracted": {
+        "sensor_count": 1,
+        "max_width": 2880,
+        "max_height": 1620,
+        "exceeds_ceiling": false
+      }
+    },
+    {
+      "model": "AXIS Q3839-SPVE",
+      "existing": {
+        "sensor_count": 4,
+        "max_width": 3840,
+        "max_height": 2160
+      },
+      "extracted": {
+        "sensor_count": 4,
+        "max_width": 7552,
+        "max_height": 3776,
+        "exceeds_ceiling": false
+      }
+    },
+    {
+      "model": "AXIS Q3839-PVE",
+      "existing": {
+        "sensor_count": 4,
+        "max_width": 3840,
+        "max_height": 2160
+      },
+      "extracted": {
+        "sensor_count": 4,
+        "max_width": 7552,
+        "max_height": 3776,
+        "exceeds_ceiling": false
+      }
+    },
+    {
+      "model": "AXIS P3827-PVE",
+      "existing": {
+        "sensor_count": 4,
+        "max_width": 928,
+        "max_height": 1856
+      },
+      "extracted": {
+        "sensor_count": 4,
+        "max_width": 3712,
+        "max_height": 1856,
+        "exceeds_ceiling": false
+      }
+    },
+    {
+      "model": "AXIS P3818-PVE",
+      "existing": {
+        "sensor_count": 3,
+        "max_width": 2592,
+        "max_height": 1944
+      },
+      "extracted": {
+        "sensor_count": 3,
+        "max_width": 5120,
+        "max_height": 2560,
+        "exceeds_ceiling": false
+      }
+    },
+    {
+      "model": "AXIS Q6300-E",
+      "existing": {
+        "sensor_count": 4,
+        "max_width": 2592,
+        "max_height": 1944
+      },
+      "extracted": {
+        "sensor_count": 1,
+        "max_width": 2592,
+        "max_height": 1944,
+        "exceeds_ceiling": false
+      }
+    },
+    {
+      "model": "AXIS M5000-G",
+      "existing": {
+        "sensor_count": 4,
+        "max_width": 2592,
+        "max_height": 1944
+      },
+      "extracted": {
+        "sensor_count": 1,
+        "max_width": 2592,
+        "max_height": 1944,
+        "exceeds_ceiling": false
+      }
+    }
+  ]
+}

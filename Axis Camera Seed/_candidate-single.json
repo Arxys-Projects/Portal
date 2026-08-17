@@ -1,0 +1,1644 @@
+[
+  {
+    "vendor": "Axis",
+    "model": "Q1686-DLE",
+    "model_aliases": [
+      "AXIS Q1686-DLE"
+    ],
+    "sensor_count": 1,
+    "max_width": 2688,
+    "max_height": 1512,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-q1686-dle",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "Q1656-DLE",
+    "model_aliases": [
+      "AXIS Q1656-DLE"
+    ],
+    "sensor_count": 1,
+    "max_width": 2688,
+    "max_height": 1512,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-q1656-dle",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "Q1656-B",
+    "model_aliases": [
+      "AXIS Q1656-B"
+    ],
+    "sensor_count": 1,
+    "max_width": 2688,
+    "max_height": 1512,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-q1656-b",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "Q1656-LE",
+    "model_aliases": [
+      "AXIS Q1656-LE"
+    ],
+    "sensor_count": 1,
+    "max_width": 2688,
+    "max_height": 1512,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-q1656-le",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "Q1656-BLE",
+    "model_aliases": [
+      "AXIS Q1656-BLE"
+    ],
+    "sensor_count": 1,
+    "max_width": 2688,
+    "max_height": 1512,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-q1656-ble",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "Q1656-BE",
+    "model_aliases": [
+      "AXIS Q1656-BE"
+    ],
+    "sensor_count": 1,
+    "max_width": 2688,
+    "max_height": 1512,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-q1656-be",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "P1388-B",
+    "model_aliases": [
+      "AXIS P1388-B"
+    ],
+    "sensor_count": 1,
+    "max_width": 3840,
+    "max_height": 2160,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-p1388-b",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "P1387-B",
+    "model_aliases": [
+      "AXIS P1387-B"
+    ],
+    "sensor_count": 1,
+    "max_width": 2592,
+    "max_height": 1944,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-p1387-b",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "P1385",
+    "model_aliases": [
+      "AXIS P1385"
+    ],
+    "sensor_count": 1,
+    "max_width": 1920,
+    "max_height": 1080,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-p1385",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "P1385-B",
+    "model_aliases": [
+      "AXIS P1385-B"
+    ],
+    "sensor_count": 1,
+    "max_width": 1920,
+    "max_height": 1080,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-p1385-b",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "P1388-LE",
+    "model_aliases": [
+      "AXIS P1388-LE"
+    ],
+    "sensor_count": 1,
+    "max_width": 3840,
+    "max_height": 2160,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-p1388-le",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "P1388-BE",
+    "model_aliases": [
+      "AXIS P1388-BE"
+    ],
+    "sensor_count": 1,
+    "max_width": 3840,
+    "max_height": 2160,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-p1388-be",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "P1387-LE",
+    "model_aliases": [
+      "AXIS P1387-LE"
+    ],
+    "sensor_count": 1,
+    "max_width": 2592,
+    "max_height": 1944,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-p1387-le",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "P1387-BE",
+    "model_aliases": [
+      "AXIS P1387-BE"
+    ],
+    "sensor_count": 1,
+    "max_width": 2592,
+    "max_height": 1944,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-p1387-be",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "P1385-E",
+    "model_aliases": [
+      "AXIS P1385-E"
+    ],
+    "sensor_count": 1,
+    "max_width": 1920,
+    "max_height": 1080,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-p1385-e",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "P1385-BE",
+    "model_aliases": [
+      "AXIS P1385-BE"
+    ],
+    "sensor_count": 1,
+    "max_width": 1920,
+    "max_height": 1080,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-p1385-be",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "M1137-E Mk II",
+    "model_aliases": [
+      "AXIS M1137-E Mk II"
+    ],
+    "sensor_count": 1,
+    "max_width": 2592,
+    "max_height": 1944,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-m1137-e-mk-ii",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "M1135-E Mk II",
+    "model_aliases": [
+      "AXIS M1135-E Mk II"
+    ],
+    "sensor_count": 1,
+    "max_width": 1920,
+    "max_height": 1080,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-m1135-e-mk-ii",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "M1055-L",
+    "model_aliases": [
+      "AXIS M1055-L"
+    ],
+    "sensor_count": 1,
+    "max_width": 1920,
+    "max_height": 1080,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-m1055-l",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "Q1805-LE",
+    "model_aliases": [
+      "AXIS Q1805-LE"
+    ],
+    "sensor_count": 1,
+    "max_width": 1920,
+    "max_height": 1080,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-q1805-le",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "Q1800-LE",
+    "model_aliases": [
+      "AXIS Q1800-LE"
+    ],
+    "sensor_count": 1,
+    "max_width": 1920,
+    "max_height": 1080,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-q1800-le",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "Q1800-LE-3",
+    "model_aliases": [
+      "AXIS Q1800-LE-3"
+    ],
+    "sensor_count": 1,
+    "max_width": 1920,
+    "max_height": 1080,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-q1800-le-3",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "P1488-LE",
+    "model_aliases": [
+      "AXIS P1488-LE"
+    ],
+    "sensor_count": 1,
+    "max_width": 3840,
+    "max_height": 2160,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-p1488-le",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "P1487-LE",
+    "model_aliases": [
+      "AXIS P1487-LE"
+    ],
+    "sensor_count": 1,
+    "max_width": 2592,
+    "max_height": 1944,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-p1487-le",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "P1486-LE",
+    "model_aliases": [
+      "AXIS P1486-LE"
+    ],
+    "sensor_count": 1,
+    "max_width": 2048,
+    "max_height": 1536,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-p1486-le",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "P1486-LE Kit",
+    "model_aliases": [
+      "AXIS P1486-LE Kit"
+    ],
+    "sensor_count": 1,
+    "max_width": 2048,
+    "max_height": 1536,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-p1486-le-kit",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "P1485-LE",
+    "model_aliases": [
+      "AXIS P1485-LE"
+    ],
+    "sensor_count": 1,
+    "max_width": 1920,
+    "max_height": 1080,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-p1485-le",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "P1485-LE Kit",
+    "model_aliases": [
+      "AXIS P1485-LE Kit"
+    ],
+    "sensor_count": 1,
+    "max_width": 1920,
+    "max_height": 1080,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-p1485-le-kit",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "P1475-LE",
+    "model_aliases": [
+      "AXIS P1475-LE"
+    ],
+    "sensor_count": 1,
+    "max_width": 1920,
+    "max_height": 1080,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-p1475-le",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "M2048-LE",
+    "model_aliases": [
+      "AXIS M2048-LE"
+    ],
+    "sensor_count": 1,
+    "max_width": 3840,
+    "max_height": 2160,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-m2048-le",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "M2036-LE",
+    "model_aliases": [
+      "AXIS M2036-LE"
+    ],
+    "sensor_count": 1,
+    "max_width": 2668,
+    "max_height": 1512,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-m2036-le",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "M2035-LE",
+    "model_aliases": [
+      "AXIS M2035-LE"
+    ],
+    "sensor_count": 1,
+    "max_width": 1920,
+    "max_height": 1080,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-m2035-le",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "P1275 Mk II",
+    "model_aliases": [
+      "AXIS P1275 Mk II"
+    ],
+    "sensor_count": 1,
+    "max_width": 1920,
+    "max_height": 1080,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-p1275-mk-ii",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "P1245 Mk II",
+    "model_aliases": [
+      "AXIS P1245 Mk II"
+    ],
+    "sensor_count": 1,
+    "max_width": 1920,
+    "max_height": 1080,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-p1245-mk-ii",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "F9104-B Mk II",
+    "model_aliases": [
+      "AXIS F9104-B Mk II"
+    ],
+    "sensor_count": 1,
+    "max_width": 3840,
+    "max_height": 2160,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-f9104-b-mk-ii-main-unit",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "F9111-R Mk II",
+    "model_aliases": [
+      "AXIS F9111-R Mk II"
+    ],
+    "sensor_count": 1,
+    "max_width": 3840,
+    "max_height": 2160,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-f9111-r-mk-ii-main-unit",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "F9114-R Mk II",
+    "model_aliases": [
+      "AXIS F9114-R Mk II"
+    ],
+    "sensor_count": 1,
+    "max_width": 3840,
+    "max_height": 2160,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-f9114-r-mk-ii-main-unit",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "F9114-B Mk II",
+    "model_aliases": [
+      "AXIS F9114-B Mk II"
+    ],
+    "sensor_count": 1,
+    "max_width": 3840,
+    "max_height": 2160,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-f9114-b-mk-ii-main-unit",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "FA54",
+    "model_aliases": [
+      "AXIS FA54"
+    ],
+    "sensor_count": 1,
+    "max_width": 1920,
+    "max_height": 1080,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-fa54-main-unit",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "FA51-B",
+    "model_aliases": [
+      "AXIS FA51-B"
+    ],
+    "sensor_count": 1,
+    "max_width": 1920,
+    "max_height": 1080,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-fa51-b-main-unit",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "FA51",
+    "model_aliases": [
+      "AXIS FA51"
+    ],
+    "sensor_count": 1,
+    "max_width": 1920,
+    "max_height": 1080,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-fa51-main-unit",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "FA4115",
+    "model_aliases": [
+      "AXIS FA4115",
+      "AXIS FA41151"
+    ],
+    "sensor_count": 1,
+    "max_width": 1920,
+    "max_height": 1080,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-fa4115-dome-sensor-unit",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "FA3105-L",
+    "model_aliases": [
+      "AXIS FA3105-L",
+      "AXIS FA3105-L1"
+    ],
+    "sensor_count": 1,
+    "max_width": 1920,
+    "max_height": 1080,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-fa3105-l-eyeball-sensor-unit",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "FA1125",
+    "model_aliases": [
+      "AXIS FA1125",
+      "AXIS FA11251"
+    ],
+    "sensor_count": 1,
+    "max_width": 1920,
+    "max_height": 1080,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-fa1125-sensor-unit",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "FA1105",
+    "model_aliases": [
+      "AXIS FA1105",
+      "AXIS FA11051"
+    ],
+    "sensor_count": 1,
+    "max_width": 1920,
+    "max_height": 1080,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-fa1105-sensor-unit",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "Q9307-LV",
+    "model_aliases": [
+      "AXIS Q9307-LV"
+    ],
+    "sensor_count": 1,
+    "max_width": 2592,
+    "max_height": 1944,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-q9307-lv",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "Q3628-VE",
+    "model_aliases": [
+      "AXIS Q3628-VE"
+    ],
+    "sensor_count": 1,
+    "max_width": 3840,
+    "max_height": 2160,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-q3628-ve",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "Q3626-VE",
+    "model_aliases": [
+      "AXIS Q3626-VE"
+    ],
+    "sensor_count": 1,
+    "max_width": 2688,
+    "max_height": 1512,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-q3626-ve",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "Q3558-LVE",
+    "model_aliases": [
+      "AXIS Q3558-LVE"
+    ],
+    "sensor_count": 1,
+    "max_width": 3840,
+    "max_height": 2160,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-q3558-lve",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "Q3556-LVE",
+    "model_aliases": [
+      "AXIS Q3556-LVE"
+    ],
+    "sensor_count": 1,
+    "max_width": 2688,
+    "max_height": 1512,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-q3556-lve",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "Q3548-LVE",
+    "model_aliases": [
+      "AXIS Q3548-LVE"
+    ],
+    "sensor_count": 1,
+    "max_width": 3840,
+    "max_height": 2160,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-q3548-lve",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "Q3546-LVE",
+    "model_aliases": [
+      "AXIS Q3546-LVE"
+    ],
+    "sensor_count": 1,
+    "max_width": 2688,
+    "max_height": 1512,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-q3546-lve",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "Q3538-SLVE",
+    "model_aliases": [
+      "AXIS Q3538-SLVE"
+    ],
+    "sensor_count": 1,
+    "max_width": 3840,
+    "max_height": 2160,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-q3538-slve",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "P9117-PV",
+    "model_aliases": [
+      "AXIS P9117-PV"
+    ],
+    "sensor_count": 1,
+    "max_width": 2160,
+    "max_height": 2160,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-p9117-pv",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "P3935-LR",
+    "model_aliases": [
+      "AXIS P3935-LR"
+    ],
+    "sensor_count": 1,
+    "max_width": 1920,
+    "max_height": 1080,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-p3935-lr",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "P3925-R",
+    "model_aliases": [
+      "AXIS P3925-R"
+    ],
+    "sensor_count": 1,
+    "max_width": 1920,
+    "max_height": 1080,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-p3925-r",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "P3925-LRE",
+    "model_aliases": [
+      "AXIS P3925-LRE"
+    ],
+    "sensor_count": 1,
+    "max_width": 1920,
+    "max_height": 1080,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-p3925-lre",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "P3905-R Mk III",
+    "model_aliases": [
+      "AXIS P3905-R Mk III"
+    ],
+    "sensor_count": 1,
+    "max_width": 1920,
+    "max_height": 1080,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-p3905-r-mk-iii",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "P3288-LVE",
+    "model_aliases": [
+      "AXIS P3288-LVE"
+    ],
+    "sensor_count": 1,
+    "max_width": 3840,
+    "max_height": 2160,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-p3288-lve",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "P3288-LV",
+    "model_aliases": [
+      "AXIS P3288-LV"
+    ],
+    "sensor_count": 1,
+    "max_width": 3840,
+    "max_height": 2160,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-p3288-lv",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "P3287-LVE",
+    "model_aliases": [
+      "AXIS P3287-LVE"
+    ],
+    "sensor_count": 1,
+    "max_width": 2592,
+    "max_height": 1944,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-p3287-lve",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "P3287-LV",
+    "model_aliases": [
+      "AXIS P3287-LV"
+    ],
+    "sensor_count": 1,
+    "max_width": 2592,
+    "max_height": 1944,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-p3287-lv",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "P3285-LVE",
+    "model_aliases": [
+      "AXIS P3285-LVE"
+    ],
+    "sensor_count": 1,
+    "max_width": 1920,
+    "max_height": 1080,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-p3285-lve",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "P3285-LVE Kit",
+    "model_aliases": [
+      "AXIS P3285-LVE Kit"
+    ],
+    "sensor_count": 1,
+    "max_width": 1920,
+    "max_height": 1080,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-p3285-lve-kit",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "P3285-LV",
+    "model_aliases": [
+      "AXIS P3285-LV"
+    ],
+    "sensor_count": 1,
+    "max_width": 1920,
+    "max_height": 1080,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-p3285-lv",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "P3278-LVE",
+    "model_aliases": [
+      "AXIS P3278-LVE"
+    ],
+    "sensor_count": 1,
+    "max_width": 3840,
+    "max_height": 2160,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-p3278-lve",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "P3278-LV",
+    "model_aliases": [
+      "AXIS P3278-LV"
+    ],
+    "sensor_count": 1,
+    "max_width": 3840,
+    "max_height": 2160,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-p3278-lv",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "P3277-LV",
+    "model_aliases": [
+      "AXIS P3277-LV"
+    ],
+    "sensor_count": 1,
+    "max_width": 2592,
+    "max_height": 1944,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-p3277-lv",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "P3275-LVE",
+    "model_aliases": [
+      "AXIS P3275-LVE"
+    ],
+    "sensor_count": 1,
+    "max_width": 1920,
+    "max_height": 1080,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-p3275-lve",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "P3275-LV",
+    "model_aliases": [
+      "AXIS P3275-LV"
+    ],
+    "sensor_count": 1,
+    "max_width": 1920,
+    "max_height": 1080,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-p3275-lv",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "P3275-V",
+    "model_aliases": [
+      "AXIS P3275-V"
+    ],
+    "sensor_count": 1,
+    "max_width": 1920,
+    "max_height": 1080,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-p3275-v",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "P3268-SLVE",
+    "model_aliases": [
+      "AXIS P3268-SLVE"
+    ],
+    "sensor_count": 1,
+    "max_width": 3840,
+    "max_height": 2160,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-p3268-slve",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "M3905-R",
+    "model_aliases": [
+      "AXIS M3905-R"
+    ],
+    "sensor_count": 1,
+    "max_width": 1920,
+    "max_height": 1080,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-m3905-r",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "M3216-LVE",
+    "model_aliases": [
+      "AXIS M3216-LVE"
+    ],
+    "sensor_count": 1,
+    "max_width": 2688,
+    "max_height": 1512,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-m3216-lve",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "M3215-LVE",
+    "model_aliases": [
+      "AXIS M3215-LVE"
+    ],
+    "sensor_count": 1,
+    "max_width": 1920,
+    "max_height": 1080,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-m3215-lve",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "M3138-LVE",
+    "model_aliases": [
+      "AXIS M3138-LVE"
+    ],
+    "sensor_count": 1,
+    "max_width": 3840,
+    "max_height": 2160,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-m3138-lve",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "M3128-LVE",
+    "model_aliases": [
+      "AXIS M3128-LVE"
+    ],
+    "sensor_count": 1,
+    "max_width": 3840,
+    "max_height": 2160,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-m3128-lve",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "M3126-LVE",
+    "model_aliases": [
+      "AXIS M3126-LVE"
+    ],
+    "sensor_count": 1,
+    "max_width": 2688,
+    "max_height": 1512,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-m3126-lve",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "M3125-LVE",
+    "model_aliases": [
+      "AXIS M3125-LVE"
+    ],
+    "sensor_count": 1,
+    "max_width": 1920,
+    "max_height": 1080,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-m3125-lve",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "M3098-V",
+    "model_aliases": [
+      "AXIS M3098-V"
+    ],
+    "sensor_count": 1,
+    "max_width": 3840,
+    "max_height": 2160,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-m3098-v",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "M3098-LV",
+    "model_aliases": [
+      "AXIS M3098-LV"
+    ],
+    "sensor_count": 1,
+    "max_width": 3840,
+    "max_height": 2160,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-m3098-lv",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "M3098-H",
+    "model_aliases": [
+      "AXIS M3098-H"
+    ],
+    "sensor_count": 1,
+    "max_width": 3840,
+    "max_height": 2160,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-m3098-h",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "M3086-V",
+    "model_aliases": [
+      "AXIS M3086-V"
+    ],
+    "sensor_count": 1,
+    "max_width": 2688,
+    "max_height": 1512,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-m3086-v",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "M4228-LVE",
+    "model_aliases": [
+      "AXIS M4228-LVE"
+    ],
+    "sensor_count": 1,
+    "max_width": 3840,
+    "max_height": 2160,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-m4228-lve",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "M4227-LVE",
+    "model_aliases": [
+      "AXIS M4227-LVE"
+    ],
+    "sensor_count": 1,
+    "max_width": 2592,
+    "max_height": 1944,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-m4227-lve",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "M4225-LVE",
+    "model_aliases": [
+      "AXIS M4225-LVE"
+    ],
+    "sensor_count": 1,
+    "max_width": 1920,
+    "max_height": 1080,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-m4225-lve",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "M4218-LV",
+    "model_aliases": [
+      "AXIS M4218-LV"
+    ],
+    "sensor_count": 1,
+    "max_width": 3840,
+    "max_height": 2160,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-m4218-lv",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "M4218-V",
+    "model_aliases": [
+      "AXIS M4218-V"
+    ],
+    "sensor_count": 1,
+    "max_width": 3840,
+    "max_height": 2160,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-m4218-v",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "M4216-V",
+    "model_aliases": [
+      "AXIS M4216-V"
+    ],
+    "sensor_count": 1,
+    "max_width": 2304,
+    "max_height": 1728,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-m4216-v",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "M4215-LV",
+    "model_aliases": [
+      "AXIS M4215-LV"
+    ],
+    "sensor_count": 1,
+    "max_width": 1920,
+    "max_height": 1080,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-m4215-lv",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "M4215-V",
+    "model_aliases": [
+      "AXIS M4215-V"
+    ],
+    "sensor_count": 1,
+    "max_width": 1920,
+    "max_height": 1080,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-m4215-v",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "M4328-P",
+    "model_aliases": [
+      "AXIS M4328-P"
+    ],
+    "sensor_count": 1,
+    "max_width": 2992,
+    "max_height": 2992,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-m4328-p",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "M4327-P",
+    "model_aliases": [
+      "AXIS M4327-P"
+    ],
+    "sensor_count": 1,
+    "max_width": 2160,
+    "max_height": 2160,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-m4327-p",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "M4348-PLVE",
+    "model_aliases": [
+      "AXIS M4348-PLVE"
+    ],
+    "sensor_count": 1,
+    "max_width": 3536,
+    "max_height": 3536,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-m4348-plve",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "M4347-PLVE",
+    "model_aliases": [
+      "AXIS M4347-PLVE"
+    ],
+    "sensor_count": 1,
+    "max_width": 2464,
+    "max_height": 2464,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-m4347-plve",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "M4338-PLVE",
+    "model_aliases": [
+      "AXIS M4338-PLVE"
+    ],
+    "sensor_count": 1,
+    "max_width": 3536,
+    "max_height": 3536,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-m4338-plve",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "M4337-PLVE",
+    "model_aliases": [
+      "AXIS M4337-PLVE"
+    ],
+    "sensor_count": 1,
+    "max_width": 2464,
+    "max_height": 2464,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-m4337-plve",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "M4337-SPLVE",
+    "model_aliases": [
+      "AXIS M4337-SPLVE"
+    ],
+    "sensor_count": 1,
+    "max_width": 2464,
+    "max_height": 2464,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-m4337-splve",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "M4318-PLR",
+    "model_aliases": [
+      "AXIS M4318-PLR"
+    ],
+    "sensor_count": 1,
+    "max_width": 2992,
+    "max_height": 2992,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-m4318-plr",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "M4317-PLR",
+    "model_aliases": [
+      "AXIS M4317-PLR"
+    ],
+    "sensor_count": 1,
+    "max_width": 2160,
+    "max_height": 2160,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-m4317-plr",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "M3057-PLR Mk II",
+    "model_aliases": [
+      "AXIS M3057-PLR Mk II"
+    ],
+    "sensor_count": 1,
+    "max_width": 2048,
+    "max_height": 2048,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-m3057-plr-mk-ii",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "Q6358-LE",
+    "model_aliases": [
+      "AXIS Q6358-LE"
+    ],
+    "sensor_count": 1,
+    "max_width": 3840,
+    "max_height": 2160,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-q6358-le",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "Q6355-LE",
+    "model_aliases": [
+      "AXIS Q6355-LE"
+    ],
+    "sensor_count": 1,
+    "max_width": 1920,
+    "max_height": 1080,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-q6355-le",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "Q6325-LE",
+    "model_aliases": [
+      "AXIS Q6325-LE"
+    ],
+    "sensor_count": 1,
+    "max_width": 1920,
+    "max_height": 1080,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-q6325-le",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "Q6225-LE",
+    "model_aliases": [
+      "AXIS Q6225-LE"
+    ],
+    "sensor_count": 1,
+    "max_width": 1920,
+    "max_height": 1080,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-q6225-le",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "Q6086-E",
+    "model_aliases": [
+      "AXIS Q6086-E"
+    ],
+    "sensor_count": 1,
+    "max_width": 2688,
+    "max_height": 1512,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-q6086-e",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "Q6088-E",
+    "model_aliases": [
+      "AXIS Q6088-E"
+    ],
+    "sensor_count": 1,
+    "max_width": 3840,
+    "max_height": 2160,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-q6088-e",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "Q6020-E",
+    "model_aliases": [
+      "AXIS Q6020-E"
+    ],
+    "sensor_count": 1,
+    "max_width": 2592,
+    "max_height": 1944,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-q6020-e",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "V5938",
+    "model_aliases": [
+      "AXIS V5938"
+    ],
+    "sensor_count": 1,
+    "max_width": 3840,
+    "max_height": 2160,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-v5938",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "V5925",
+    "model_aliases": [
+      "AXIS V5925"
+    ],
+    "sensor_count": 1,
+    "max_width": 1920,
+    "max_height": 1080,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-v5925",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "P5676-LE",
+    "model_aliases": [
+      "AXIS P5676-LE"
+    ],
+    "sensor_count": 1,
+    "max_width": 2688,
+    "max_height": 1512,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-p5676-le",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "P5655-E",
+    "model_aliases": [
+      "AXIS P5655-E"
+    ],
+    "sensor_count": 1,
+    "max_width": 1920,
+    "max_height": 1080,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-p5655-e",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "P5654-E MkII",
+    "model_aliases": [
+      "AXIS P5654-E MkII"
+    ],
+    "sensor_count": 1,
+    "max_width": 1920,
+    "max_height": 1080,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-p5654-e-mk-ii",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "M5526-E",
+    "model_aliases": [
+      "AXIS M5526-E"
+    ],
+    "sensor_count": 1,
+    "max_width": 2688,
+    "max_height": 1512,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-m5526-e",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "M5075-G",
+    "model_aliases": [
+      "AXIS M5075-G"
+    ],
+    "sensor_count": 1,
+    "max_width": 1920,
+    "max_height": 1080,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-m5075-g",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "M5075",
+    "model_aliases": [
+      "AXIS M5075"
+    ],
+    "sensor_count": 1,
+    "max_width": 1920,
+    "max_height": 1080,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-m5075",
+    "as_of_date": "2026-07-22"
+  },
+  {
+    "vendor": "Axis",
+    "model": "M5074",
+    "model_aliases": [
+      "AXIS M5074"
+    ],
+    "sensor_count": 1,
+    "max_width": 1280,
+    "max_height": 720,
+    "sensor_detail": null,
+    "currently_shipping": true,
+    "source_url": "https://www.axis.com/products/axis-m5074",
+    "as_of_date": "2026-07-22"
+  }
+]
