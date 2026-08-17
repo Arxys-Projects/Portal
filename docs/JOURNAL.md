@@ -4,6 +4,51 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-08-17 — Phase A's column comments were never applied; the apply note said they were
+
+### Work done
+
+Ran the Phases B/C post-deploy verification query against production and all four
+`submissions` column comments came back NULL — including the three
+(`calc_version`, `max_disk_utilization_pct`, `recorded_storage_tb`) that
+[the Phase A apply note](./apply-notes/0123-calculator-math-phase-a.md) recorded as
+applied on 2026-08-12.
+
+Control-checked before concluding anything, by listing every commented column on the
+table rather than only the four of interest: `input_state`, `is_preferred`,
+`parent_submission_id` and `status` all returned their comments fine. So the query
+technique was sound and the gap is real.
+
+- Corrected the Phase A apply note with a prominent correction block rather than
+  editing the false claim away — the wrong claim and why it was wrong are the useful
+  part.
+- Noted in the Phases B/C apply note that its migration **repairs** the gap: it
+  comments all four columns, so it is a superset of what Phase A should have left
+  behind and there is nothing separate to re-run.
+- Added the control-column version of the comment query to both notes, since the
+  missing control is what allowed this to go unnoticed.
+
+No runtime impact: comments are metadata and no read or write path consults them.
+The live deploy is unaffected.
+
+### Detours & fixes
+
+- **Root cause — a verification query that covered half a step certified the whole
+  step.** Phase A's `add column` ran on its own, then the range guards *and* the
+  comments went in as a "second step". Only the constraints were then verified, with
+  a `pg_constraint` query that says nothing about comments — so a partial run looked
+  complete, and the note's confident "Constraints confirmed present" gave the whole
+  second step an air of having been checked. The lesson generalizes past this repo:
+  **when one step does two kinds of thing, the verification has to cover both kinds,
+  or it will launder the half it does not touch.**
+- **Left explicitly unresolved rather than assumed:** the three `NOT VALID` range
+  guards from that same second step. They are the half that *was* checked, and the
+  note's claim about them is specific enough to be credible — but it came out of the
+  same partially-applied step, so both notes now flag them as needing a re-run of the
+  constraint query rather than quietly trusting or quietly doubting them.
+
+---
+
 ## 2026-08-17 — Phase C (D10): VSR rating basis recorded, profile copy consolidated
 
 ### Work done
