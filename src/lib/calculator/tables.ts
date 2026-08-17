@@ -145,14 +145,29 @@ export const VMS_OPTIONS: readonly string[] = [
 // Labeled "Max disk utilization" exactly as Milestone labels it, so the number
 // is directly comparable against a Milestone or Genetec proposal set beside it.
 //
-// The default sits at the FLOOR of the range on purpose: every adjustment a
-// user can make adds margin, never removes it. Evidence for 90%: Milestone
-// defaults Max Disk Utilization to 90% on auto-select; Genetec Security Center
-// applies 10%, partner-adjustable 10–30%. Both reference tools default to a
-// 10% buffer. See audit §C5 and §8.
+// The default sits at the CEILING of the range on purpose — the least-margin end.
+// Every adjustment a user can make adds margin, never removes it, so the slider
+// is one-directional by construction and a partner cannot make a quote more
+// aggressive than the default. That property is why MAX and DEFAULT are the same
+// number and must stay so; raising MAX above DEFAULT would reopen exactly the
+// hole it closes.
+//
+// 88%, NOT the 90% both reference tools default to (ADR 0131). Milestone defaults
+// Max Disk Utilization to 90% on auto-select; Genetec Security Center applies
+// 10%, partner-adjustable 10–30% (audit §C5 and §8). The two extra points are
+// where the reversed audio/metadata term went: ÷0.88 vs ÷0.90 is ×1.0227, a
+// +2.27% storage-only cushion covering general estimate uncertainty. It is
+// deliberately NOT a second multiplier — ADR 0126 said the default moves rather
+// than a second constant reappearing, and this is that.
+//
+// The step is 4 so the grid (60·64·68·72·76·80·84·88) lands exactly on the
+// default. With the old step of 5 an 88 ceiling would be unreachable by the
+// slider, since a range input clamps to the largest step-aligned value at or
+// below max — it would have stopped at 85.
 export const UTILIZATION_MIN_PCT = 60;
-export const UTILIZATION_MAX_PCT = 90;
-export const UTILIZATION_DEFAULT_PCT = 90;
+export const UTILIZATION_MAX_PCT = 88;
+export const UTILIZATION_DEFAULT_PCT = 88;
+export const UTILIZATION_STEP_PCT = 4;
 
 export function clampUtilizationPct(value: unknown): number {
   const n = typeof value === "number" ? value : Number(value);

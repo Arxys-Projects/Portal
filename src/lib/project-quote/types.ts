@@ -56,6 +56,11 @@ export type ProjectQuoteSizing = {
   // single VMS name (for example "Milestone"); there is no separate "edition"
   // field on the submission today (see the Step 5a report flag).
   vms: string | null;
+  // The submission's `retention_days`: one flat value on calc_version 1/2, the
+  // LONGEST group retention on version 3 (ADR 0132). The renderer derives its
+  // uniform/range wording from `cameraSchedule[].retentionDays` instead of
+  // printing this, so a mixed project never states one number as if it applied
+  // to every group.
   retentionDays: number;
   // Aggregate totals frozen off the submission row (consistent with what was
   // emailed and saved), not re-summed from the rows at render.

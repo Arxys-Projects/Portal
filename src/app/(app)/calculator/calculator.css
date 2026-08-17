@@ -328,8 +328,10 @@
    input row (kept out of the flex row so it can't break baseline alignment). */
 #arxys-calc-root .ax-cx-ex { padding: 0 20px 10px; font-size: 12px; color: var(--td); line-height: 1.4; }
 #arxys-calc-root .ax-cx-ex strong { color: var(--ts); font-weight: 700; }
-/* Per-group audio / analytics metadata toggle (ADR 0128). */
-#arxys-calc-root .ax-cx-extras { padding: 0 20px 12px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+/* Per-group extras row, beneath the example-scene line. Holds the per-group
+   Retention field (ADR 0132), which replaced the audio/metadata toggle the row
+   was introduced for (ADR 0128, reversed by ADR 0131). */
+#arxys-calc-root .ax-cx-extras { padding: 0 20px 12px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 /* Retired-codec warning, shown only when a revived quote still carries one. */
 #arxys-calc-root .ax-cx-warn { margin-top: 6px; font-size: 11px; line-height: 1.45; color: #92400e; background: #fffbeb; border: 1px solid #fcd34d; border-radius: 6px; padding: 6px 8px; }
 #arxys-calc-root .ax-cx-warn strong { font-weight: 700; }

@@ -135,7 +135,7 @@ export async function loadSubmissionPdfInput(
   const partnerEmail = userRes?.user?.email ?? "(no email on file)";
 
   const generatedAt = new Date();
-  const groups = mapGroups(submission.groups_payload);
+  const groups = mapGroups(submission.groups_payload, submission.retention_days);
   const recommendedUnits = submission.recommended_units;
   // Phase 2 Step 3+4: after the SKU-PK migration, pre-migration submissions
   // carry a UUID-shaped TEXT recommended_product_id that points at no row.
@@ -242,6 +242,10 @@ type GroupsPayload = {
     complexityLabel?: string;
     recordingMode?: "constant" | "motion";
     fps?: number;
+    // ADR 0132 — banked per group from calc_version 3 on. Absent on every
+    // earlier row, where the row-level `retention_days` was the retention for
+    // every group.
+    retentionDays?: number;
     recordingPercent?: number;
     motionPercent?: number;
     computed?: { bandwidthMbps?: number; storageGb?: number };
@@ -265,7 +269,14 @@ function fallbackComplexityLabel(tier: string | undefined): string {
   }
 }
 
-function mapGroups(payload: GroupsPayload | null): SubmissionPdfGroup[] {
+// `rowRetentionDays` is the submission's own `retention_days`, used as the
+// per-group fallback: a calc_version 1/2 row banked no per-group retention
+// because there was none to bank — every group was sized at that one figure. So
+// filling it here is a faithful read of the banked row, not a recomputation.
+function mapGroups(
+  payload: GroupsPayload | null,
+  rowRetentionDays: number,
+): SubmissionPdfGroup[] {
   if (!payload?.groups) return [];
   return payload.groups.map((g) => ({
     name: g.name ?? "Group",
@@ -275,6 +286,7 @@ function mapGroups(payload: GroupsPayload | null): SubmissionPdfGroup[] {
     fps: g.fps ?? 0,
     complexityLabel: g.complexityLabel ?? fallbackComplexityLabel(g.complexity),
     recordingMode: g.recordingMode === "motion" ? "motion" : "constant",
+    retentionDays: g.retentionDays ?? rowRetentionDays,
     hoursPerDay: Math.round(((g.recordingPercent ?? 0) / 100) * 24),
     motionPercent: g.motionPercent ?? 0,
     bandwidthMbps: g.computed?.bandwidthMbps ?? 0,

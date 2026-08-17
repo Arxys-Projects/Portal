@@ -34,10 +34,12 @@ describe("normalizeInputState", () => {
       codecIdx: 0,
       complexityIdx: 2,
       fps: 15,
+      // ADR 0132 — a group with no retention of its own inherits the
+      // submission-level value, which for an empty blob is the 30-day default.
+      retentionDays: 30,
       recordingMode: "constant",
       recordingPercent: 100,
       motionPercent: 100,
-      recordsAudioMetadata: true,
       // Phase 10 Step 3 — no model loaded by default.
       cameraVendor: null,
       cameraModel: null,
@@ -257,12 +259,54 @@ describe("fromStoredSubmission", () => {
   // ADR 0126 — pre-v2 rows carry no buffer setting and must open at the default
   // rather than being back-fitted to the old ×1.44.
   it("defaults the utilization buffer on pre-v2 rows and honors it on v2 rows", () => {
-    assert.equal(normalizeInputState({ version: 1 }).utilizationPct, 90);
-    assert.equal(normalizeInputState({ version: 1, utilizationPct: 70 }).utilizationPct, 90);
+    assert.equal(normalizeInputState({ version: 1 }).utilizationPct, 88);
+    assert.equal(normalizeInputState({ version: 1, utilizationPct: 70 }).utilizationPct, 88);
     assert.equal(normalizeInputState({ version: 2, utilizationPct: 70 }).utilizationPct, 70);
-    // Out-of-range values clamp into 60–90 rather than being trusted.
+    // Out-of-range values clamp into 60–88 rather than being trusted. Note the
+    // ceiling moved 90 → 88 in ADR 0131, so a v2 row banked at the old 90%
+    // default reopens at 88 — MORE storage, never less, which is the only
+    // direction a clamp change is allowed to move a revision.
     assert.equal(normalizeInputState({ version: 2, utilizationPct: 10 }).utilizationPct, 60);
-    assert.equal(normalizeInputState({ version: 2, utilizationPct: 99 }).utilizationPct, 90);
+    assert.equal(normalizeInputState({ version: 2, utilizationPct: 99 }).utilizationPct, 88);
+    assert.equal(normalizeInputState({ version: 2, utilizationPct: 90 }).utilizationPct, 88);
+  });
+
+  // ADR 0132 — per-group retention. A group inherits the submission-level value
+  // when it carries none (every v1/v2 row), and keeps its own when it does.
+  it("inherits retention per group, and honors a per-group value when present", () => {
+    const inherited = normalizeInputState({
+      version: 2,
+      retentionDays: 45,
+      groups: [{ cameras: 4 }, { cameras: 8 }],
+    });
+    assert.deepEqual(
+      inherited.groups.map((g) => g.retentionDays),
+      [45, 45],
+      "a pre-0132 row's single retention applies to every group",
+    );
+
+    const perGroup = normalizeInputState({
+      version: 3,
+      retentionDays: 30,
+      groups: [{ cameras: 4, retentionDays: 15 }, { cameras: 8, retentionDays: 90 }, { cameras: 2 }],
+    });
+    assert.deepEqual(
+      perGroup.groups.map((g) => g.retentionDays),
+      [15, 90, 30],
+      "banked per-group values win; a group without one still inherits",
+    );
+
+    // Out-of-range per-group values clamp rather than being trusted, and fall
+    // back to the project value rather than a constant.
+    const clamped = normalizeInputState({
+      version: 3,
+      retentionDays: 60,
+      groups: [{ retentionDays: 9999 }, { retentionDays: 0 }, { retentionDays: "nope" }],
+    });
+    assert.deepEqual(
+      clamped.groups.map((g) => g.retentionDays),
+      [730, 1, 60],
+    );
   });
 
   it("rehydrates a pre-add-on (version 0) row with add-ons defaulted off", () => {
@@ -387,6 +431,30 @@ describe("camera-model fields (Phase 10 Step 3)", () => {
     assert.equal(g.units, 4);
     assert.equal(g.sensorsPerCamera, 2);
     assert.equal(g.cameraModelModified, true);
+  });
+
+  // ADR 0132 — the banked groups_payload retention is the figure the math
+  // actually used, so it is preferred over the input_state copy, the same way
+  // resolution / codec / complexity already are.
+  it("prefers the banked per-group retention over the input_state copy", () => {
+    const row = {
+      input_state: {
+        version: 3,
+        retentionDays: 30,
+        groups: [{ cameras: 4, retentionDays: 15 }, { cameras: 6 }],
+      },
+      groups_payload: {
+        groups: [
+          // Disagrees with input_state; the banked resolved value wins.
+          { resolutionLabel: "4MP (2560×1440)", retentionDays: 21 },
+          // No banked retention → the inherited project value carries through.
+          { resolutionLabel: "4MP (2560×1440)" },
+        ],
+      },
+    };
+    const groups = fromStoredSubmission(row).groups;
+    assert.equal(groups[0].retentionDays, 21);
+    assert.equal(groups[1].retentionDays, 30);
   });
 
   it("coerces bad units/sensors/vendor/model/modified values", () => {

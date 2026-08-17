@@ -11,9 +11,12 @@
 //   UPDATE_GOLDEN=1 npm test
 //
 // Files under __golden__/:
-//   matrix.csv                  — full input matrix at 100 cameras/group
-//   specs-pool.json             — frozen live SKU pool (captured 2026-08-12)
-//   fixture-mixed-project.json  — the five-scene / 300-camera named fixture
+//   matrix.csv                    — full input matrix at 100 cameras/group
+//   specs-pool.json               — frozen live SKU pool (captured 2026-08-12)
+//   fixture-mixed-project.json    — the five-scene / 300-camera named fixture
+//   fixture-mixed-retention.json  — the same five groups at REGULATED retentions
+//                                   (ADR 0132), the only fixture that exercises
+//                                   the per-group retention path
 //
 // See docs/audits/calculator-math-audit.md for what each number means.
 
@@ -64,9 +67,9 @@ const fmt = (n: number): string => n.toPrecision(7);
 // no-idle-floor duty-cycle behavior (ADR 0125): it must bill zero storage while
 // still reporting the full event-peak bandwidth.
 //
-// Every row records audio/metadata (ADR 0128 default ON); the toggle is a clean
-// ×1.05 on the stream rate, so a second sweep of it would double the file for a
-// scalar nobody needs to diff.
+// The `ret` sweep is now each row's own per-group retention (ADR 0132) rather
+// than a submission-wide argument. Single-group rows cannot show a mixed-retention
+// project, so that path is pinned by fixture-mixed-retention.json instead.
 //
 // The codec sweep is an EXPLICIT ordered list rather than an iteration over
 // CODECS, for two reasons. First, it insulates the golden from a picker
@@ -96,10 +99,14 @@ function generateMatrixCsv(): string {
     `# calculator golden matrix — cameras=${MATRIX_CAMERAS} per row; units = recommended`,
     `# unit count for ${REPRESENTATIVE_SKU} alone (VSR floor 1.1; no storage floor —`,
     `# storageGb already carries the utilization buffer and the binary charge).`,
-    `# storageGb = required decimal RAID-net at the 90% default Max disk utilization.`,
+    `# storageGb = required decimal RAID-net at the ${UTILIZATION_DEFAULT_PCT}% default Max disk utilization.`,
+    `# recordedStorageGb = modeled video over the row's retention, no buffer, no`,
+    `# binary charge. The separate rawStorageGb column is gone: ADR 0131 removed the`,
+    `# +5% audio/metadata term that was the only difference between the two.`,
     `# bitrateMbps / bandwidthMbps are DECIMAL and at the event peak (duty cycle 1.0).`,
+    `# ret = the row's own per-group retention in days (ADR 0132).`,
     `# resIdx = index into RESOLUTIONS; cxIdx = index into COMPLEXITIES.`,
-    "resIdx,fps,codec,cxIdx,motion,ret,rec,frameKb,bitrateMbps,bandwidthMbps,rawStorageGb,recordedStorageGb,storageGb,units",
+    "resIdx,fps,codec,cxIdx,motion,ret,rec,frameKb,bitrateMbps,bandwidthMbps,recordedStorageGb,storageGb,units",
   ];
   for (let resIdx = 0; resIdx < RESOLUTIONS.length; resIdx++) {
     const resolution = RESOLUTIONS[resIdx];
@@ -117,10 +124,11 @@ function generateMatrixCsv(): string {
                   codec,
                   complexity: COMPLEXITIES[cxIdx],
                   fps,
+                  retentionDays: ret,
                   recordingPercent: rec,
                   motionPercent: motion,
                 };
-                const c = computeGroup(gi, ret);
+                const c = computeGroup(gi);
                 const { winner } = recommend(
                   {
                     totalCameras: MATRIX_CAMERAS,
@@ -141,7 +149,6 @@ function generateMatrixCsv(): string {
                     fmt(c.frameKb),
                     fmt(c.bitrateMbps),
                     fmt(c.bandwidthMbps),
-                    fmt(c.rawStorageGb),
                     fmt(c.recordedStorageGb),
                     fmt(c.storageGb),
                     winner.units,
@@ -158,10 +165,12 @@ function generateMatrixCsv(): string {
 }
 
 // ---------------------------------------------------------------------------
-// Named fixture: "five-scene mixed project" — 300 cameras across five groups,
-// 30-day retention. Defined by the 2026-08 math audit as the canonical
-// realistic deal, so coefficient changes can be read as TB and appliance count
-// on a real quote rather than as abstract percentages.
+// Named fixtures: "five-scene mixed project" — 300 cameras across five groups.
+// Defined by the 2026-08 math audit as the canonical realistic deal, so
+// coefficient changes can be read as TB and appliance count on a real quote
+// rather than as abstract percentages. Rendered twice: once at a uniform 30-day
+// retention (the canonical file, unchanged in shape since Phase 1) and once at
+// five regulated per-group retentions (ADR 0132).
 // ---------------------------------------------------------------------------
 type FixtureGroup = {
   name: string;
@@ -192,27 +201,59 @@ export const FIXTURE_GROUPS: readonly FixtureGroup[] = [
   { name: "Back offices", cameras: 30, resolutionIdx: 8, codec: "h265", complexityIdx: 0, fps: 15, recordingMode: "motion", recordingPercent: 100, motionPercent: 25 },
 ];
 
-function generateFixtureJson(): string {
-  const groups = FIXTURE_GROUPS.map((g) => {
+// Regulated per-group retentions for the mixed-retention fixture (ADR 0132),
+// mapped onto the same five groups so the two fixtures differ in ONE dimension
+// and the effect of per-group retention is readable by subtraction.
+//
+// The values are the regulated figures the ADR cites, read as ONE coherent deal —
+// a gaming property — rather than five numbers scattered across the groups:
+//
+//   Perimeter & parking       15   Nevada gaming's 7→15 day statutory floor
+//   Lobby & entries           90   PCI/PII, point-of-sale sightlines
+//   Warehouse floor           30   back-of-house general policy
+//   Loading dock               7   operational monitoring only, no regulated hold
+//   Back offices             180   count room / records area, the longest hold
+//
+// This assignment is also the best-BALANCED of the plausible ones, which is what
+// makes it useful as a regression fixture: the five groups take 19 / 29 / 34 / 16
+// / 3 percent of project footage, so a fault in any one group's retention moves
+// the total visibly. Putting the 180 on the loading dock instead — 4K at
+// complexity 5, the heaviest group per camera-day — would have made that single
+// group 83% of the file and left the other four unable to show a regression.
+//
+// Deliberately a SECOND fixture rather than retention added to the canonical one:
+// changing FIXTURE_GROUPS would move the audit's reference deal for a reason
+// unrelated to the coefficient changes landing alongside it, and the plan's whole
+// sequencing rule is that a golden movement must stay attributable.
+const FIXTURE_RETENTION_BY_GROUP: readonly number[] = [15, 90, 30, 7, 180];
+
+function buildFixture(retentionFor: (index: number) => number) {
+  const groups = FIXTURE_GROUPS.map((g, i) => {
+    const retentionDays = retentionFor(i);
     const gi: GroupInput = {
       cameras: g.cameras,
       resolution: RESOLUTIONS[g.resolutionIdx],
       codec: codecByValue(g.codec),
       complexity: COMPLEXITIES[g.complexityIdx],
       fps: g.fps,
+      retentionDays,
       recordingMode: g.recordingMode,
       recordingPercent: g.recordingPercent,
       motionPercent: g.motionPercent,
     };
-    const computed = computeGroup(gi, FIXTURE_RETENTION_DAYS);
+    const computed = computeGroup(gi);
     return {
-      input: { ...g, resolutionLabel: RESOLUTIONS[g.resolutionIdx].label, complexityLabel: COMPLEXITIES[g.complexityIdx].label },
+      input: {
+        ...g,
+        retentionDays,
+        resolutionLabel: RESOLUTIONS[g.resolutionIdx].label,
+        complexityLabel: COMPLEXITIES[g.complexityIdx].label,
+      },
       vsr: Number(fmt(vsrLoad(g.cameras, RESOLUTIONS[g.resolutionIdx]))),
       computed: {
         frameKb: Number(fmt(computed.frameKb)),
         bitrateMbps: Number(fmt(computed.bitrateMbps)),
         bandwidthMbps: Number(fmt(computed.bandwidthMbps)),
-        rawStorageGb: Number(fmt(computed.rawStorageGb)),
         recordedStorageGb: Number(fmt(computed.recordedStorageGb)),
         storageGb: Number(fmt(computed.storageGb)),
       },
@@ -223,13 +264,12 @@ function generateFixtureJson(): string {
     (acc, g) => {
       acc.cameras += g.input.cameras;
       acc.bandwidthMbps += g.computed.bandwidthMbps;
-      acc.rawStorageGb += g.computed.rawStorageGb;
       acc.recordedStorageGb += g.computed.recordedStorageGb;
       acc.storageGb += g.computed.storageGb;
       acc.vsr += g.vsr;
       return acc;
     },
-    { cameras: 0, bandwidthMbps: 0, rawStorageGb: 0, recordedStorageGb: 0, storageGb: 0, vsr: 0 },
+    { cameras: 0, bandwidthMbps: 0, recordedStorageGb: 0, storageGb: 0, vsr: 0 },
   );
 
   const rec = recommend(
@@ -237,29 +277,36 @@ function generateFixtureJson(): string {
     POOL,
   );
 
+  return { groups, totals, rec };
+}
+
+function serializeFixture(
+  note: string,
+  retention: { label: string; perGroup: readonly number[] | null },
+  built: ReturnType<typeof buildFixture>,
+): string {
+  const { groups, totals, rec } = built;
   return (
     JSON.stringify(
       {
-        note:
-          "Five-scene / 300-camera mixed project — canonical audit fixture. " +
-          `Retention ${FIXTURE_RETENTION_DAYS} days. Recommendation sized against the frozen 2026-08-12 pool. ` +
-          "storageGb is required decimal RAID-net at the 90% default Max disk utilization; " +
-          "recordedStorageGb is the Milestone-comparable recorded-data figure; " +
-          "bandwidth is the event peak (duty cycle 1.0).",
-        retentionDays: FIXTURE_RETENTION_DAYS,
+        note,
+        retention: retention.label,
+        retentionByGroup: retention.perGroup,
         utilizationPct: UTILIZATION_DEFAULT_PCT,
         groups,
         totals: {
           cameras: totals.cameras,
           vsr: Number(fmt(totals.vsr)),
           bandwidthMbps: Number(fmt(totals.bandwidthMbps)),
-          rawStorageGb: Number(fmt(totals.rawStorageGb)),
           recordedStorageGb: Number(fmt(totals.recordedStorageGb)),
           storageGb: Number(fmt(totals.storageGb)),
           storageTb: Number(fmt(totals.storageGb / 1000)),
           // The headline the plan tracks: required drive nameplate over modeled
-          // raw video, before ceil/SKU granularity. ×1.499 pre-Phase-A → ×1.306.
-          multiplierOverRawVideo: Number(fmt(totals.storageGb / totals.rawStorageGb)),
+          // video, before ceil/SKU granularity. ×1.499 pre-Phase-A → ×1.306 at
+          // Phase A's 90% default → ×1.336 at the 88% default (ADR 0131). Since
+          // ADR 0131 removed the audio term, modeled video and recorded data are
+          // the same quantity, so this is exactly 1 / (util × 0.8931).
+          multiplierOverRawVideo: Number(fmt(totals.storageGb / totals.recordedStorageGb)),
         },
         recommendation: {
           winner: rec.winner,
@@ -273,12 +320,46 @@ function generateFixtureJson(): string {
   );
 }
 
+function generateFixtureJson(): string {
+  return serializeFixture(
+    "Five-scene / 300-camera mixed project — canonical audit fixture. " +
+      `Uniform retention ${FIXTURE_RETENTION_DAYS} days. Recommendation sized against the frozen 2026-08-12 pool. ` +
+      `storageGb is required decimal RAID-net at the ${UTILIZATION_DEFAULT_PCT}% default Max disk utilization; ` +
+      "recordedStorageGb is the Milestone-comparable recorded-data figure; " +
+      "bandwidth is the event peak (duty cycle 1.0).",
+    { label: `${FIXTURE_RETENTION_DAYS} days (uniform)`, perGroup: null },
+    buildFixture(() => FIXTURE_RETENTION_DAYS),
+  );
+}
+
+// The same five groups at five DIFFERENT retentions — the only fixture that
+// exercises per-group retention (ADR 0132). Under the old submission-wide model
+// this project could only have been quoted at its longest requirement (180 days
+// on every group), so the gap between this file's storageGb and that is the whole
+// value of D9.
+function generateMixedRetentionFixtureJson(): string {
+  return serializeFixture(
+    "Five-scene / 300-camera gaming-property deal at REGULATED per-group retentions " +
+      `(ADR 0132): ${FIXTURE_RETENTION_BY_GROUP.join(" / ")} days, group order as listed. Same five ` +
+      "groups as fixture-mixed-project.json, so the two differ in retention alone. The pre-D9 " +
+      "model could only have quoted this project at its longest requirement on every group; each " +
+      "group here is sized at its own, and the group storageGb figures sum exactly to the total " +
+      "because the buffer and the binary charge are both scalar.",
+    {
+      label: `${Math.min(...FIXTURE_RETENTION_BY_GROUP)}–${Math.max(...FIXTURE_RETENTION_BY_GROUP)} days (per group)`,
+      perGroup: FIXTURE_RETENTION_BY_GROUP,
+    },
+    buildFixture((i) => FIXTURE_RETENTION_BY_GROUP[i]),
+  );
+}
+
 // ---------------------------------------------------------------------------
 
 describe("golden-file regression harness (calculator math audit)", () => {
   const cases: ReadonlyArray<{ file: string; generate: () => string }> = [
     { file: "matrix.csv", generate: generateMatrixCsv },
     { file: "fixture-mixed-project.json", generate: generateFixtureJson },
+    { file: "fixture-mixed-retention.json", generate: generateMixedRetentionFixtureJson },
   ];
 
   for (const { file, generate } of cases) {

@@ -135,6 +135,42 @@ export const LEDGER_VSR_CAPTION =
   "Max VSR is camera streams, not cameras — a multisensor device presents several streams. If a recording parameter changes, revise the calculation. Validated for Avigilon, Milestone, Hanwha/NXWitness and Genetec; other platforms vary.";
 
 /**
+ * The VSR parameter strip as one line of running text, for surfaces that have a
+ * sentence rather than room for the label/value table.
+ *
+ * This exists so the price book stops carrying its own hand-written version of
+ * the profile (ADR 0133). It had drifted into stating parameters that are not in
+ * `LEDGER_VSR_PARAMETERS` at all — "h.264.20 & h.265.20 CODEC (~3–5 Mb video
+ * file)" against the canonical "H.265-20 (Good) · ~3.2 Mbit/s" — and no
+ * resolution at all, in two separate places that had also drifted from each
+ * other. The stream ratings are only defensible if every surface quoting them
+ * quotes the same profile, so this is DERIVED from the array above rather than
+ * written out again: change a parameter and every surface follows.
+ *
+ * Pairs are joined with "; " rather than ", " because two of the canonical VALUES
+ * contain their own comma ("On motion, VMD + metadata") or their own mid-dot
+ * ("4MP · 2560×1440"). A comma or mid-dot separator would make the parameter
+ * boundaries ambiguous — which is how a reader ends up thinking "metadata" is a
+ * separate parameter from "recording".
+ */
+export function ledgerVsrProfileSentence(): string {
+  return LEDGER_VSR_PARAMETERS.map((p, i) =>
+    // Only the leading label is capitalized; the rest run on inside the sentence.
+    `${i === 0 ? p.label : p.label.toLowerCase()} ${runOn(p.value)}`,
+  ).join("; ");
+}
+
+// De-capitalize a value that is an ordinary word ("On motion, …" → "on motion, …")
+// so it reads as part of a sentence. Deliberately narrow: it fires only on an
+// initial capital followed by a lower-case letter, which leaves every measurement
+// and initialism in the table alone — "4MP", "15 fps", "H.265-20", "75%", "30
+// days" are all untouched. A broader `toLowerCase()` on the first character would
+// have written "h.265-20".
+function runOn(value: string): string {
+  return /^[A-Z][a-z]/.test(value) ? value[0].toLowerCase() + value.slice(1) : value;
+}
+
+/**
  * The orderable-configurations caption. The RAID level is interpolated, never
  * literal: the handoff calls it "a template variable, not a constant" and names
  * it the single most important gotcha in the whole design. `raidAlt` carries the

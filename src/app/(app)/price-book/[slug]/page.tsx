@@ -15,6 +15,13 @@ import {
   type ProductRow,
   type ProductSpecLite,
 } from "@/lib/price-book/cell-value";
+// ADR 0133 — the single source for the VSR rating profile. The price book used to
+// hand-write its own description of it in two places; both now render from here.
+import {
+  LEDGER_VSR_CAPTION,
+  LEDGER_VSR_PARAMETERS,
+  ledgerVsrProfileSentence,
+} from "@/lib/datasheet/copy";
 
 function SkuTable({
   columns,
@@ -240,13 +247,26 @@ export default async function FamilyDetailPage({
                         <summary className="cursor-help list-none text-[#c17f10] font-bold leading-none">
                           ⓘ
                         </summary>
+                        {/* ADR 0133 — the rating profile is rendered from
+                            LEDGER_VSR_PARAMETERS, the same source the datasheet
+                            strip uses. It used to be hand-written here (and again
+                            in the fine print below), and the two copies had
+                            drifted from the canonical values and from each other.
+                            As label/value lines rather than a sentence: this is a
+                            small tooltip read by non-specialists, and the pairs
+                            are easier to scan than running text. */}
                         <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 w-64 bg-[#14346b] text-white text-xs font-normal text-left p-3 rounded shadow-lg z-10 normal-case tracking-normal">
                           <strong className="text-[#fbb040]">
                             VSR (Video Stream Rate):
-                          </strong>{" "}
-                          4MP @ 15 fps, record on motion, with VMD + metadata,
-                          75% motion activity, 30-day retention, h.264.20 &
-                          h.265.20 CODEC (~3–5 Mb video file).
+                          </strong>
+                          <dl className="mt-1.5 space-y-0.5">
+                            {LEDGER_VSR_PARAMETERS.map((p) => (
+                              <div key={p.label} className="flex gap-1.5">
+                                <dt className="shrink-0 text-white/70">{p.label}</dt>
+                                <dd className="font-semibold">{p.value}</dd>
+                              </div>
+                            ))}
+                          </dl>
                         </div>
                       </details>
                     )}
@@ -420,11 +440,12 @@ export default async function FamilyDetailPage({
       {/* Fine print */}
       <section className="pb-12">
         <div className="rounded-lg bg-neutral-50 border border-line p-5 text-xs text-ink-soft leading-relaxed">
+          {/* ADR 0133 — same canonical source as the KPI tooltip above and the
+              datasheet's parameter strip. Running text here, so it takes the
+              derived sentence rather than the label/value lines. */}
           <p>
-            <span className="font-semibold">VSR (Video Stream Rate):</span> 4MP
-            @ 15fps, record on motion, with VMD & metadata capture, 75% motion
-            activity, 30-day retention, h.264.20 & h.265.20 CODEC. ~3-5 Mb
-            video file.
+            <span className="font-semibold">VSR (Video Stream Rate):</span>{" "}
+            {ledgerVsrProfileSentence()}. {LEDGER_VSR_CAPTION}
           </p>
           <p className="mt-2">
             For installations with less than 300 cameras, free SQL Server

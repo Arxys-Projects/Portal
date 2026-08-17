@@ -17,6 +17,11 @@ export type SubmissionPdfGroup = {
   // "constant" = continuous 24/7 recording; "motion" = event-triggered. Rows
   // that predate the Recording-mode field default to "constant" in render.ts.
   recordingMode: "constant" | "motion";
+  // Days of footage kept for THIS group (ADR 0132). On a calc_version 1/2 row
+  // groups banked no retention of their own, so render.ts fills every group with
+  // the row's single `retention_days` — which is what that row was sized at,
+  // uniformly. The schedule column therefore reads correctly on old rows too.
+  retentionDays: number;
   hoursPerDay: number;
   motionPercent: number;
   // Event-peak network load for the group, decimal Mbit/s (ADR 0125).
@@ -36,6 +41,10 @@ export type SubmissionPdfInput = {
   };
   projectName: string | null;
   vms: string | null;
+  // The row's `retention_days`: one flat value on calc_version 1/2, the LONGEST
+  // group retention on version 3 (ADR 0132). The template does not print it
+  // directly — it derives uniform/range wording from the per-group figures, so a
+  // mixed project never claims one number.
   retentionDays: number;
   totals: {
     cameras: number;

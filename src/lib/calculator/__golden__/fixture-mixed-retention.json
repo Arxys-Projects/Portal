@@ -1,7 +1,13 @@
 {
-  "note": "Five-scene / 300-camera mixed project — canonical audit fixture. Uniform retention 30 days. Recommendation sized against the frozen 2026-08-12 pool. storageGb is required decimal RAID-net at the 88% default Max disk utilization; recordedStorageGb is the Milestone-comparable recorded-data figure; bandwidth is the event peak (duty cycle 1.0).",
-  "retention": "30 days (uniform)",
-  "retentionByGroup": null,
+  "note": "Five-scene / 300-camera gaming-property deal at REGULATED per-group retentions (ADR 0132): 15 / 90 / 30 / 7 / 180 days, group order as listed. Same five groups as fixture-mixed-project.json, so the two differ in retention alone. The pre-D9 model could only have quoted this project at its longest requirement on every group; each group here is sized at its own, and the group storageGb figures sum exactly to the total because the buffer and the binary charge are both scalar.",
+  "retention": "7–180 days (per group)",
+  "retentionByGroup": [
+    15,
+    90,
+    30,
+    7,
+    180
+  ],
   "utilizationPct": 88,
   "groups": [
     {
@@ -15,7 +21,7 @@
         "recordingMode": "constant",
         "recordingPercent": 100,
         "motionPercent": 100,
-        "retentionDays": 30,
+        "retentionDays": 15,
         "resolutionLabel": "4MP (2560×1440)",
         "complexityLabel": "Medium detail, low motion"
       },
@@ -24,8 +30,8 @@
         "frameKb": 35.99854,
         "bitrateMbps": 3.618654,
         "bandwidthMbps": 289.4923,
-        "recordedStorageGb": 93795.5,
-        "storageGb": 119343.6
+        "recordedStorageGb": 46897.75,
+        "storageGb": 59671.82
       }
     },
     {
@@ -39,7 +45,7 @@
         "recordingMode": "motion",
         "recordingPercent": 100,
         "motionPercent": 75,
-        "retentionDays": 30,
+        "retentionDays": 90,
         "resolutionLabel": "1080p Full HD (1920×1080)",
         "complexityLabel": "Low detail, high motion"
       },
@@ -48,8 +54,8 @@
         "frameKb": 13.49945,
         "bitrateMbps": 1.658813,
         "bandwidthMbps": 99.52875,
-        "recordedStorageGb": 24185.49,
-        "storageGb": 30773.16
+        "recordedStorageGb": 72556.46,
+        "storageGb": 92319.47
       }
     },
     {
@@ -87,7 +93,7 @@
         "recordingMode": "constant",
         "recordingPercent": 50,
         "motionPercent": 100,
-        "retentionDays": 30,
+        "retentionDays": 7,
         "resolutionLabel": "4K/8MP (3840×2160)",
         "complexityLabel": "High detail, low motion"
       },
@@ -96,8 +102,8 @@
         "frameKb": 310.3074,
         "bitrateMbps": 26.47227,
         "bandwidthMbps": 1058.891,
-        "recordedStorageGb": 171540.3,
-        "storageGb": 218264.7
+        "recordedStorageGb": 40026.07,
+        "storageGb": 50928.42
       }
     },
     {
@@ -111,7 +117,7 @@
         "recordingMode": "motion",
         "recordingPercent": 100,
         "motionPercent": 25,
-        "retentionDays": 30,
+        "retentionDays": 180,
         "resolutionLabel": "720p HD (1280×720)",
         "complexityLabel": "Low detail, low motion"
       },
@@ -120,8 +126,8 @@
         "frameKb": 3.999837,
         "bitrateMbps": 0.4915,
         "bandwidthMbps": 14.745,
-        "recordedStorageGb": 1194.345,
-        "storageGb": 1519.662
+        "recordedStorageGb": 7166.07,
+        "storageGb": 9117.973
       }
     }
   ],
@@ -129,24 +135,35 @@
     "cameras": 300,
     "vsr": 286.6176,
     "bandwidthMbps": 1992.15,
-    "recordedStorageGb": 376493.5,
-    "storageGb": 479043.2,
-    "storageTb": 479.0432,
+    "recordedStorageGb": 252424.2,
+    "storageGb": 321179.8,
+    "storageTb": 321.1798,
     "multiplierOverRawVideo": 1.272381
   },
   "recommendation": {
     "winner": {
-      "sku": "VX5-V700-576",
+      "sku": "VX5-V700-480",
       "productGroup": "V700",
-      "productName": "VideoX V700 576TB 4U 24Bay Rack - Net usable 480TB - V5 Video & Analytics Server - 5yr Warranty",
+      "productName": "VideoX V700 480TB 4U 24Bay Rack - Net usable 400TB - V5 Video & Analytics Server - 5yr Warranty",
       "units": 1,
-      "unitMsrp": 85766,
-      "totalCostUsd": 85766,
+      "unitMsrp": 75995,
+      "totalCostUsd": 75995,
       "coveredCameras": 325,
-      "coveredStorageTb": 480,
+      "coveredStorageTb": 400,
       "driverDimension": "storage"
     },
     "alternativesTop3": [
+      {
+        "sku": "VX5-V700-576",
+        "productGroup": "V700",
+        "productName": "VideoX V700 576TB 4U 24Bay Rack - Net usable 480TB - V5 Video & Analytics Server - 5yr Warranty",
+        "units": 1,
+        "unitMsrp": 85766,
+        "totalCostUsd": 85766,
+        "coveredCameras": 325,
+        "coveredStorageTb": 480,
+        "driverDimension": "storage"
+      },
       {
         "sku": "VX5-V800-576",
         "productGroup": "V800",
@@ -159,25 +176,14 @@
         "driverDimension": "storage"
       },
       {
-        "sku": "VX5-V800-720",
-        "productGroup": "V800",
-        "productName": "VideoX V800 720TB 4U 36Bay Rack - Net usable 600TB - V5 Video & Analytics Server - 5yr Warranty",
-        "units": 1,
-        "unitMsrp": 102398,
-        "totalCostUsd": 102398,
-        "coveredCameras": 325,
-        "coveredStorageTb": 600,
-        "driverDimension": "storage"
-      },
-      {
-        "sku": "VX5-V500-288",
+        "sku": "VX5-V500-240",
         "productGroup": "V500",
-        "productName": "VideoX V500 288TB 2U 12Bay Rack - Net usable 240TB - V5 Video & Analytics Server - 5yr Warranty",
+        "productName": "VideoX V500 240TB 2U 12Bay Rack - Net usable 200TB- V5 Video & Analytics Server - 5yr Warranty",
         "units": 2,
-        "unitMsrp": 52220,
-        "totalCostUsd": 104440,
+        "unitMsrp": 47334,
+        "totalCostUsd": 94668,
         "coveredCameras": 550,
-        "coveredStorageTb": 480,
+        "coveredStorageTb": 400,
         "driverDimension": "storage"
       }
     ],

@@ -1,6 +1,6 @@
 # 0128 — Audio and analytics metadata are counted data, via a per-group toggle
 
-- **Status**: Accepted.
+- **Status**: **Superseded by [#0131](./0131-audio-metadata-reversed-into-the-buffer.md)** (2026-08-17). The toggle and its +5% were withdrawn entirely, from bandwidth and storage alike: audio and metadata are fixed kbit/s add-ons, not a percentage of video bitrate, so a flat percentage is wrong in both directions at once. A ~2% storage-only cushion went into the buffer default (90% → 88%) instead. The "when to revisit" note at the bottom of this ADR is what came true.
 - **Date**: 2026-08-12
 
 ## Context

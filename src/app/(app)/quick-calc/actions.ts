@@ -70,16 +70,18 @@ export async function quickCalcPreview(payload: unknown): Promise<QuickCalcPrevi
     codec: CODECS[QUICK_CALC_GROUP.codecIdx],
     complexity: COMPLEXITIES[QUICK_CALC_GROUP.complexityIdx],
     fps: QUICK_CALC_GROUP.fps,
+    // One group, so the tool's single retention input is this group's own
+    // retention (ADR 0132).
+    retentionDays,
     recordingMode: QUICK_CALC_GROUP.recordingMode,
     recordingPercent: QUICK_CALC_GROUP.recordingPercent,
     motionPercent: QUICK_CALC_GROUP.motionPercent,
-    recordsAudioMetadata: QUICK_CALC_GROUP.recordsAudioMetadata,
   };
   // Quick Calc is a fixed standard, so it pins its own Max disk utilization
-  // rather than exposing the slider (ADR 0082 + 0126) — 80%, one notch more
-  // conservative than the full calculator's 90%, because a stream count and a
+  // rather than exposing the slider (ADR 0082 + 0126) — 80%, more conservative
+  // than the full calculator's 88% default, because a stream count and a
   // retention period is all this tool gets.
-  const computed = computeGroup(gi, retentionDays, QUICK_CALC_UTILIZATION_PCT);
+  const computed = computeGroup(gi, QUICK_CALC_UTILIZATION_PCT);
 
   const pool = await loadCandidateSpecs(supabase);
   if (pool.status === "db-error") {

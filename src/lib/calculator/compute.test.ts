@@ -9,6 +9,7 @@ import {
   formatNumber,
   formatStorageGb,
   formatBandwidthMbps,
+  retentionSummary,
   vsrLoad,
   type GroupInput,
 } from "./compute";
@@ -206,6 +207,7 @@ describe("recording duty cycle (ADR 0125)", () => {
     codec,
     complexity,
     fps: 15,
+    retentionDays: 30,
     recordingPercent: 100,
     motionPercent: 100,
     ...over,
@@ -221,11 +223,8 @@ describe("recording duty cycle (ADR 0125)", () => {
   });
 
   it("scales storage linearly with the duty cycle and leaves bandwidth at the peak", () => {
-    const full = computeGroup(group({ recordingMode: "constant" }), 30);
-    const half = computeGroup(
-      group({ recordingMode: "motion", motionPercent: 50 }),
-      30,
-    );
+    const full = computeGroup(group({ recordingMode: "constant" }));
+    const half = computeGroup(group({ recordingMode: "motion", motionPercent: 50 }));
     assert.ok(
       Math.abs(half.storageGb / full.storageGb - 0.5) < 1e-12,
       `motion 50% must bill exactly half the storage, got ${half.storageGb / full.storageGb}`,
@@ -238,14 +237,81 @@ describe("recording duty cycle (ADR 0125)", () => {
   });
 
   it("keeps bitrateMbps as bandwidth per camera, in decimal Mbit/s", () => {
-    const c = computeGroup(group({}), 30);
+    const c = computeGroup(group({}));
     assert.ok(Math.abs(c.bitrateMbps * 10 - c.bandwidthMbps) < 1e-12);
-    // 4MP/15/H.265/cx1.0 + 5% audio ⇒ ~2.064 decimal Mbit/s per camera. The
-    // pre-Phase-A display value was binary Mibit (1.874) labeled Mbit.
+    // 4MP/15/H.265/cx1.0 ⇒ the anchor itself, 1.966 decimal Mbit/s per camera.
+    // ADR 0131 removed the +5% audio/metadata uplift that used to sit on top of
+    // this (2.064), so the displayed bitrate is now the anchor exactly — which is
+    // the point: nothing pads the stream rate any more. The pre-Phase-A display
+    // value was binary Mibit (1.874) labeled Mbit.
     assert.ok(
-      Math.abs(c.bitrateMbps - 1.966 * 1.05) < 1e-3,
-      `expected ~2.064 decimal Mbit/s, got ${c.bitrateMbps}`,
+      Math.abs(c.bitrateMbps - 1.966) < 1e-3,
+      `expected ~1.966 decimal Mbit/s, got ${c.bitrateMbps}`,
     );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// ADR 0132 — per-group retention
+// ---------------------------------------------------------------------------
+describe("per-group retention (ADR 0132)", () => {
+  const ref = RESOLUTIONS.find((r) => r.width === 2560 && r.height === 1440)!;
+  const codec = CODECS.find((c) => c.value === "h265")!;
+  const complexity = COMPLEXITIES.find((c) => c.label === "Low detail, low motion")!;
+  const group = (retentionDays: number): GroupInput => ({
+    cameras: 10,
+    resolution: ref,
+    codec,
+    complexity,
+    fps: 15,
+    retentionDays,
+    recordingPercent: 100,
+    motionPercent: 100,
+  });
+
+  it("scales storage linearly with the group's own retention and leaves bandwidth alone", () => {
+    const short = computeGroup(group(30));
+    const long = computeGroup(group(90));
+    assert.ok(
+      Math.abs(long.recordedStorageGb / short.recordedStorageGb - 3) < 1e-9,
+      "3× the retention must bill exactly 3× the footage",
+    );
+    assert.ok(
+      Math.abs(long.bandwidthMbps - short.bandwidthMbps) < 1e-12,
+      "retention must not touch bandwidth",
+    );
+  });
+
+  it("sums a mixed project exactly, rather than sizing every group at the longest", () => {
+    // The whole point of D9: a 7-day group beside a 90-day group must cost the
+    // sum of the two, not 2 × the 90-day figure.
+    const mixed =
+      computeGroup(group(7)).storageGb + computeGroup(group(90)).storageGb;
+    const uniformAtLongest = 2 * computeGroup(group(90)).storageGb;
+    const oneGroupAt97 = computeGroup(group(97)).storageGb;
+    assert.ok(
+      Math.abs(mixed - oneGroupAt97) < 1e-9,
+      "7 + 90 days of one identical group must equal 97 days of it",
+    );
+    assert.ok(mixed < uniformAtLongest, "mixed retention must cost less than the old model");
+  });
+
+  it("summarizes uniform and mixed projects without inventing an average", () => {
+    assert.deepEqual(retentionSummary([30, 30, 30]), {
+      min: 30,
+      max: 30,
+      uniform: true,
+      label: "30 days",
+    });
+    assert.deepEqual(retentionSummary([90, 7, 30]), {
+      min: 7,
+      max: 90,
+      uniform: false,
+      label: "7–90 days",
+    });
+    // Nothing usable in, nothing asserted out — never a fabricated "0 days".
+    assert.equal(retentionSummary([]).label, "—");
+    assert.equal(retentionSummary([Number.NaN, 0, 45]).label, "45 days");
   });
 });
 

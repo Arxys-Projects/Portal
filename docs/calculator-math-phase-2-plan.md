@@ -1,7 +1,11 @@
 # Calculator math — Phase 2 implementation plan
 
 - **Date**: 2026-08-12
-- **Status**: Decisions made, not built. This document is the authority for what Phase 2 implements.
+- **Status**: **All three phases built. Superseded by its own ADRs where they differ — read those for what shipped.** This document records the reasoning that led into the work; it was the authority for what got built, and is no longer the authority for what the engine does. One decision was **reversed after shipping**:
+  - **D8 is WITHDRAWN** ([ADR 0131](./decisions/0131-audio-metadata-reversed-into-the-buffer.md), 2026-08-17). The audio/metadata toggle and its +5% are gone from bandwidth and storage alike — audio and metadata are fixed kbit/s add-ons, not a percentage of video bitrate. A ~2% storage-only cushion sits in the buffer default instead, which moved **90% → 88%** (so D3's stated default below is stale, and the range ceiling moved with it).
+  - **D9 built** ([ADR 0132](./decisions/0132-retention-moves-to-the-camera-group.md)) — retention per camera group.
+  - **D10 built** ([ADR 0133](./decisions/0133-vsr-rating-basis-is-complexity-tier-2.md)) — tier 2 recorded as the rating basis, profile copy consolidated. **The Quick Calc complexity conflict it raises is still open for Andy.**
+  - Phase A (D1–D7) shipped as written; see ADRs [0123](./decisions/0123-bitrate-reanchor-and-sublinear-fps.md)–[0127](./decisions/0127-charge-decimal-to-binary-conversion.md) and [0129](./decisions/0129-fps-curve-verified-low-fps-bias-accepted.md)–[0130](./decisions/0130-one-bandwidth-figure-with-a-version-aware-basis.md).
 - **Source**: [`docs/audits/calculator-math-audit.md`](./audits/calculator-math-audit.md) — Phase 1 findings (read it before writing code; §7 is the decision list this plan answers, §8 is the live Milestone re-audit that supplies most of the target numbers).
 - **Phase 1 landed**: the golden regression harness ([`src/lib/calculator/golden.test.ts`](../src/lib/calculator/golden.test.ts) + `__golden__/`). Every change below must be diffed through it.
 
@@ -124,7 +128,16 @@ effective_fps = 15 × (fps / 15) ^ 0.90
 - Storage: keeps the duty cycle. These two now deliberately differ; say so in the copy next to the figure.
 - Also fix the display bug while here: `bitrateMbps` ([`compute.ts:148`](../src/lib/calculator/compute.ts)) is binary Mibit labeled Mbit, 4.63% below what the engine bills, and [`calculator-form.tsx:1040`](../src/app/(app)/calculator/calculator-form.tsx) then ×1000s it to print "Kbit/s". Make both decimal.
 
-### D8 — Audio and metadata are counted, not absorbed
+### D8 — Audio and metadata are counted, not absorbed — ❌ WITHDRAWN
+
+> **Reversed 2026-08-17, [ADR 0131](./decisions/0131-audio-metadata-reversed-into-the-buffer.md).**
+> Everything below shipped and was then taken back out. The error was one of *shape*,
+> not magnitude: audio (G.711 64 kbit/s flat, AAC ~16–128) and analytics metadata
+> (4–100 kbit/s) are **fixed kbit/s add-ons**, so a flat percentage is simultaneously
+> too small on a low-resolution stream and too large on 4K H.265. It also should
+> never have reached bandwidth. The honest storage-only magnitude is ~0–4% skewed
+> low, now carried by the buffer default (90% → 88%) rather than a toggle. The
+> "revisit if" note in ADR 0128 is what came true. Kept here for the reasoning trail.
 
 Unmodeled today (grep-verified). Audio 24–64 kbit/s/camera = 0.6–3.2%; analytics metadata 4–100 kbit/s = 0.5–5%. Combined **2–8%** undercount where those streams record.
 

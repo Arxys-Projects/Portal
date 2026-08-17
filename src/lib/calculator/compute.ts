@@ -9,13 +9,13 @@ import {
 import { AVAILABLE_CAPACITY_FACTOR } from "../capacity-utils";
 
 // ---------------------------------------------------------------------------
-// The sizing stack (Phase A of the calculator math rework, ADRs 0123–0128)
+// The sizing stack (calculator math rework, ADRs 0123–0133)
 // ---------------------------------------------------------------------------
 //
-//   modeled raw video          ← accurate: anchor, fps curve, codec, duty cycle
-//     × audio/metadata (0128)  ← counted data, not buffer
+//   modeled video            ← accurate: anchor, fps curve, codec, duty cycle,
+//                               each group at ITS OWN retention (0132)
 //     = required recorded data ← the Milestone-comparable figure
-//     ÷ utilization%  (0126)   ← THE ONE BUFFER
+//     ÷ utilization%  (0126)   ← THE ONE BUFFER, default 88% (0131)
 //     ÷ 0.8931        (0127)   ← physics: decimal → VMS-visible
 //     = required decimal RAID-net capacity
 //     ÷ parity ratio (usableCapacityTb, unchanged)
@@ -27,6 +27,13 @@ import { AVAILABLE_CAPACITY_FACTOR } from "../capacity-utils";
 // was four overlapping margins — a +4.07% bitrate bias, a ×1.2 "database
 // overhead", a ×1.2 hardware floor, and an unsourced 0.2 motion floor — none
 // individually stated and none ever multiplied together.
+//
+// The Phase A stack had one more term: a per-group audio/metadata toggle
+// applying +5% to the stream rate. ADR 0131 reversed it — audio and analytics
+// metadata are fixed kbit/s add-ons, not a percentage of video bitrate, so a
+// flat percentage was wrong in both directions at once and the honest combined
+// magnitude (0–4%, skewed low) does not earn a UI control. It is gone from
+// bandwidth entirely and folded into the buffer default on storage.
 // See docs/audits/calculator-math-audit.md and docs/calculator-math-phase-2-plan.md.
 
 /**
@@ -36,14 +43,24 @@ import { AVAILABLE_CAPACITY_FACTOR } from "../capacity-utils";
  *   1 — everything before Phase A. Raw video at the +4.07% binary/decimal
  *       anchor, ×1.2 STORAGE_OVERHEAD, ×1.2 STORAGE_FLOOR in the recommender,
  *       the `0.2 + 0.8·m` motion blend, no binary charge, no audio term.
- *   2 — Phase A (ADRs 0123–0128). The stack at the top of this file.
+ *   2 — Phase A (ADRs 0123–0128). Re-anchored bitrate, motion as an exact duty
+ *       cycle, one Max disk utilization buffer defaulting to 90%, the
+ *       decimal→binary charge, and a +5% audio/metadata term on the stream rate.
+ *   3 — Phases B + the D8 reversal (ADRs 0131–0133). The audio/metadata term is
+ *       gone; the buffer default tightened 90% → 88% to carry a small
+ *       storage-only cushion in its place; retention is PER CAMERA GROUP.
  *
- * `storage_tb` means something different either side of this line, so nothing
- * should compare the column across it without checking the stamp. Existing rows
- * are version 1 and are NOT backfilled — no single utilization value reproduces
- * the old ×1.44 under the new semantics.
+ * `storage_tb` means something different at each of these boundaries, so nothing
+ * should compare the column across one without checking the stamp. `retention_days`
+ * also changes meaning at 3: on a version 1/2 row it is the single retention
+ * every group was sized at, and on a version 3 row it is the LONGEST group
+ * retention, with the per-group values in `groups_payload`.
+ *
+ * Nothing is ever backfilled across a boundary — no single utilization value
+ * reproduces the old ×1.44 under version-2 semantics, and version 1/2 rows carry
+ * no per-group retention to recover. Banked rows render their banked values.
  */
-export const CALC_VERSION = 2;
+export const CALC_VERSION = 3;
 
 // ---------------------------------------------------------------------------
 // Bitrate anchor (ADR 0123, D5)
@@ -126,23 +143,46 @@ export function effectiveFps(fps: number): number {
 }
 
 // ---------------------------------------------------------------------------
-// Audio / analytics metadata (ADR 0128, D8)
+// Retention (ADR 0132, D9)
 // ---------------------------------------------------------------------------
-//
-// Unmodeled before Phase A (grep-verified). Audio 24–64 kbit/s per camera =
-// 0.6–3.2% of a 2–4 Mbit/s stream; analytics metadata 4–100 kbit/s = 0.5–5%.
-// Combined 2–8% undercount wherever those streams record.
-//
-// Default ON because the published VSR rating profile itself specifies
-// "On motion, VMD + metadata" — metadata is part of the profile the boxes were
-// rated against. A per-group toggle rather than a blanket adder keeps the math
-// accurate when those streams genuinely are not recorded.
-//
-// This is COUNTED DATA, not a second buffer. No other margin may be stacked
-// alongside it. It is applied to the stream rate, so it reaches bitrate,
-// bandwidth and storage identically — keeping the storage↔bandwidth identity
-// the audit verified to 15 digits (§C4) intact.
-export const AUDIO_METADATA_UPLIFT = 1.05;
+
+/**
+ * How a project's retention reads as one figure when its groups disagree.
+ *
+ * Retention is per camera group since ADR 0132, so every surface that used to
+ * print one submission-wide number needs a way to say "these groups differ"
+ * without inventing an average. Regulated ranges make mixed projects the point
+ * of the feature, not an edge case: Nevada gaming 7→15 days, cannabis 30–180 by
+ * state, PCI/PII 90.
+ *
+ * `max` is the figure banked in `submissions.retention_days` on a version-3 row
+ * — the longest requirement the project has to satisfy, and the only single
+ * number that is never an under-statement.
+ */
+export type RetentionSummary = {
+  min: number;
+  max: number;
+  /** True when every group shares one retention (so `label` is a bare figure). */
+  uniform: boolean;
+  /** Display form: "30 days" when uniform, "7–90 days" when not. */
+  label: string;
+};
+
+export function retentionSummary(days: readonly number[]): RetentionSummary {
+  const valid = days.filter((d) => Number.isFinite(d) && d > 0);
+  if (valid.length === 0) {
+    return { min: 0, max: 0, uniform: true, label: "—" };
+  }
+  const min = Math.min(...valid);
+  const max = Math.max(...valid);
+  const uniform = min === max;
+  return {
+    min,
+    max,
+    uniform,
+    label: uniform ? `${max} days` : `${min}–${max} days`,
+  };
+}
 
 /**
  * VSR (Video Surveillance Reference) load for a camera group: a
@@ -237,8 +277,8 @@ export function computeBandwidthMbps(
 }
 
 /**
- * Raw modeled video (decimal GB) for a single camera group over `retentionDays`,
- * before audio/metadata, the utilization buffer, or the binary conversion.
+ * Modeled video (decimal GB) for a single camera group over `retentionDays`,
+ * before the utilization buffer or the binary conversion.
  *
  *   storage_gb_raw =
  *     (frame_kb × 1024 × effective_fps × cameras × days × 86400
@@ -278,10 +318,16 @@ export type GroupComputed = {
   bitrateMbps: number;
   // Group network load, decimal Mbit/s, at the event rate (duty cycle 1.0).
   bandwidthMbps: number;
-  // Modeled video only — no audio/metadata, no buffer, no binary charge.
-  rawStorageGb: number;
-  // Video + audio/metadata. This is "required recorded data": the figure that
-  // is directly comparable to a Milestone proposal's "Total storage" line.
+  // Modeled video over this group's own retention — no buffer, no binary charge.
+  // This is "required recorded data": the figure directly comparable to a
+  // Milestone proposal's "Total storage" line, and the one every surface calls
+  // "footage".
+  //
+  // Phase A also carried a separate `rawStorageGb` (video before the +5%
+  // audio/metadata term). ADR 0131 removed that term, which made the two fields
+  // identical by definition — so the split is gone rather than left as two names
+  // for one number. If counted-data terms ever return properly measured in
+  // kbit/s, re-introduce the split then.
   recordedStorageGb: number;
   // Required decimal RAID-net capacity: recorded data ÷ utilization ÷ 0.8931.
   // This is what the recommender sizes against and what submissions.storage_tb
@@ -295,20 +341,20 @@ export type GroupInput = {
   codec: Codec;
   complexity: Complexity;
   fps: number;
+  // Days of footage kept for THIS group (ADR 0132, D9). Required rather than
+  // defaulted on purpose: it used to be one submission-wide argument, and a
+  // silent default here would let a caller size a group at the wrong retention
+  // with nothing failing. Every call site has to state it.
+  retentionDays: number;
   recordingPercent: number;  // Operation Hours as a percent of the day, 0–100
   motionPercent: number;     // 0–100; read only under recordingMode "motion"
   // Absent means "honor motionPercent" — every pre-Phase-A caller pinned
   // motionPercent to 100 under Continuous, so the two agree.
   recordingMode?: "constant" | "motion";
-  // Records audio and/or analytics metadata alongside video (ADR 0128).
-  // Absent defaults to true, matching the form default and the VSR rating
-  // profile these boxes were rated against.
-  recordsAudioMetadata?: boolean;
 };
 
 export function computeGroup(
   input: GroupInput,
-  retentionDays: number,
   utilizationPct: number = UTILIZATION_DEFAULT_PCT,
 ): GroupComputed {
   const frameKb = estimateFrameKb(
@@ -316,28 +362,24 @@ export function computeGroup(
     input.codec.value,
     input.complexity.multiplier,
   );
-  // Audio/metadata is a stream-rate adder, so it rides on bitrate, bandwidth and
-  // storage alike rather than being bolted onto storage alone.
-  const uplift = input.recordsAudioMetadata === false ? 1 : AUDIO_METADATA_UPLIFT;
-  const streamFrameKb = frameKb * uplift;
 
-  const bandwidthMbps = computeBandwidthMbps(streamFrameKb, input.fps, input.cameras);
+  const bandwidthMbps = computeBandwidthMbps(frameKb, input.fps, input.cameras);
   const bitrateMbps = input.cameras > 0 ? bandwidthMbps / input.cameras : 0;
 
   const duty = dutyCycle(input);
-  const rawStorageGb = computeRawStorageGb(
+  const recordedStorageGb = computeRawStorageGb(
     frameKb,
     input.fps,
     input.cameras,
-    retentionDays,
+    input.retentionDays,
     input.recordingPercent,
     duty,
   );
-  const recordedStorageGb = rawStorageGb * uplift;
 
   // The one buffer, then the physics. Applied per group so the group column on
   // every table and PDF still sums to the project total — both steps are scalar,
-  // so allocating them per group is exact.
+  // so allocating them per group is exact. This is also what makes per-group
+  // retention exact: each group divides its own footage, and the totals sum.
   const utilization = clampUtilizationPct(utilizationPct) / 100;
   const storageGb = recordedStorageGb / utilization / AVAILABLE_CAPACITY_FACTOR;
 
@@ -345,7 +387,6 @@ export function computeGroup(
     frameKb,
     bitrateMbps,
     bandwidthMbps,
-    rawStorageGb,
     recordedStorageGb,
     storageGb,
   };

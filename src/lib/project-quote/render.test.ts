@@ -113,6 +113,7 @@ function makeSnapshot(overrides: Partial<ProjectQuoteSnapshot> = {}): ProjectQuo
           fps: 15,
           complexityLabel: "Medium detail, low motion",
           recordingMode: "constant",
+          retentionDays: 30,
           hoursPerDay: 24,
           motionPercent: 0,
           bandwidthMbps: 144.5,
@@ -131,6 +132,7 @@ function makeSnapshot(overrides: Partial<ProjectQuoteSnapshot> = {}): ProjectQuo
           fps: 10,
           complexityLabel: "Low detail, high motion",
           recordingMode: "motion",
+          retentionDays: 30,
           hoursPerDay: 18,
           motionPercent: 40,
           bandwidthMbps: 288,
@@ -526,6 +528,8 @@ describe("buildCameraColumns — the two layouts", () => {
     "FPS",
     "Scene complexity",
     "Operation hrs",
+    // Retention joined the schedule when it became per-group (ADR 0132).
+    "Retention (days)",
     "Bw (Mbit/s)",
     "Storage (TB)",
   ];
@@ -535,7 +539,7 @@ describe("buildCameraColumns — the two layouts", () => {
     return cols.reduce((s, c) => s + parseFloat(c.width), 0);
   }
 
-  it("Layout A (no vendor/model) is exactly the 7 sizing columns", () => {
+  it("Layout A (no vendor/model) is exactly the 8 sizing columns", () => {
     const headers = buildCameraColumns(false).map((c) => c.header);
     assert.deepEqual(headers, SIZING_HEADERS);
   });
@@ -553,7 +557,12 @@ describe("buildCameraColumns — the two layouts", () => {
   it("right-aligns the numeric columns and left-aligns text columns", () => {
     for (const cols of [buildCameraColumns(false), buildCameraColumns(true)]) {
       const rightAligned = cols.filter((c) => c.align === "right").map((c) => c.header);
-      assert.deepEqual(rightAligned, ["FPS", "Bw (Mbit/s)", "Storage (TB)"]);
+      assert.deepEqual(rightAligned, [
+        "FPS",
+        "Retention (days)",
+        "Bw (Mbit/s)",
+        "Storage (TB)",
+      ]);
     }
   });
 });

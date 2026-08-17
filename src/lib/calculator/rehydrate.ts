@@ -33,7 +33,16 @@ import {
 //     semantics — so they open at the new default rather than being back-fitted.
 //   * `codecIdx` changed index space when CODECS gained `h265smart`. See
 //     LEGACY_CODEC_IDX below.
-export const INPUT_STATE_VERSION = 2;
+//
+// v3 = Phase B + the D8 reversal (ADRs 0131–0133). The GROUP shape changed twice:
+// `retentionDays` moved onto each group, and `recordsAudioMetadata` was removed.
+// Neither needs a version branch, because absence is self-describing in both
+// directions — a group with no retention of its own inherits the submission-level
+// value (which is exactly "the single retention applied uniformly", the correct
+// reading of every v1/v2 row), and a stray `recordsAudioMetadata` on an older row
+// is simply not read. The stamp is bumped so the banked shape still identifies
+// itself.
+export const INPUT_STATE_VERSION = 3;
 
 // v1 CODECS was [h265, h264, smart]; v2 is [h265, h265smart, h264, smart].
 // A banked `codecIdx` is only ever consulted when groups_payload carries no
@@ -64,11 +73,6 @@ const GROUP_DEFAULTS = {
   recordingMode: "constant" as const,
   recordingPercent: 100, // 24 h/day
   motionPercent: 100, // N/A under Constant; the safe default mode
-  // ADR 0128 — audio / analytics metadata. Default ON, matching the profile the
-  // published VSR stream ratings were established against. Pre-Phase-A rows were
-  // computed with no audio term at all; they rehydrate ON like everything else,
-  // because a revision is new work sized under the current model, not a replay.
-  recordsAudioMetadata: true,
   // Phase 10 Step 3 — camera-model picker. Pre-feature rows have none of these,
   // so they default to the no-model path: cameras stays the direct input, and
   // the group renders exactly as it did before the feature existed.
@@ -88,10 +92,12 @@ export type InitialGroup = {
   codecIdx: number;
   complexityIdx: number;
   fps: number;
+  // Per-group retention (ADR 0132). A v1/v2 row carries none, so it inherits the
+  // submission-level value — which IS what that row was sized at, uniformly.
+  retentionDays: number;
   recordingMode: "constant" | "motion";
   recordingPercent: number;
   motionPercent: number;
-  recordsAudioMetadata: boolean;
   // Phase 10 Step 3 — null vendor/model = no model loaded (no-model path).
   cameraVendor: string | null;
   cameraModel: string | null;
@@ -103,6 +109,8 @@ export type InitialGroup = {
 export type CalculatorInitialState = {
   projectName: string;
   vms: string;
+  // The project-level retention. Since ADR 0132 this is the value a NEW group
+  // inherits, not the value the math reads — sizing reads each group's own.
   retentionDays: number;
   // Max disk utilization % (ADR 0126). Per project, not per group.
   utilizationPct: number;
@@ -161,7 +169,12 @@ function coerceCameraModel(value: unknown): string | null {
   return typeof value === "string" && value.trim() ? value : null;
 }
 
-function normalizeGroup(g: RawGroup, i: number, version: number): InitialGroup {
+function normalizeGroup(
+  g: RawGroup,
+  i: number,
+  version: number,
+  inheritedRetentionDays: number,
+): InitialGroup {
   const name = typeof g.name === "string" && g.name.trim() ? g.name : `Camera Group ${i + 1}`;
   return {
     name,
@@ -174,14 +187,15 @@ function normalizeGroup(g: RawGroup, i: number, version: number): InitialGroup {
     ),
     complexityIdx: clampIdx(g.complexityIdx, COMPLEXITIES.length, GROUP_DEFAULTS.complexityIdx),
     fps: clampInt(g.fps, 1, 60, GROUP_DEFAULTS.fps),
+    // ADR 0132 — a group with no retention of its own inherits the submission's.
+    // On a v1/v2 row that is not a guess: those rows were sized with one flat
+    // retention across every group, so inheritance reproduces them exactly.
+    retentionDays: clampInt(g.retentionDays, 1, 730, inheritedRetentionDays),
     recordingMode: coerceRecordingMode(g.recordingMode),
     recordingPercent: clampInt(g.recordingPercent, 1, 100, GROUP_DEFAULTS.recordingPercent),
     // Motion floor is 20 (UI domain); a stray sub-20 value from an old row
     // clamps up rather than tripping the submit-side schema on resubmission.
     motionPercent: clampInt(g.motionPercent, 20, 100, GROUP_DEFAULTS.motionPercent),
-    // Only an explicit stored `false` turns it off — an absent field (every
-    // pre-Phase-A row) reads as the ON default.
-    recordsAudioMetadata: g.recordsAudioMetadata !== false,
     // Phase 10 Step 3 — camera-model picker fields. units/sensors are finite
     // ints >= 1; cameras itself is NOT recomputed from them here (a banked
     // quote's cameras is authoritative). cameraModelModified is a stored fact,
@@ -198,9 +212,15 @@ export function normalizeInputState(raw: unknown): NormalizedInputState {
   const obj = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
   const version = typeof obj.version === "number" ? obj.version : 0;
 
+  // Resolved before the groups, because each group inherits it when it carries
+  // no retention of its own (every v1/v2 row).
+  const retentionDays = clampInt(obj.retentionDays, 1, 730, RETENTION_DEFAULT);
+
   const rawGroups = Array.isArray(obj.groups) ? (obj.groups as RawGroup[]) : [];
   const source = rawGroups.length > 0 ? rawGroups : [{}];
-  const groups = source.map((g, i) => normalizeGroup((g ?? {}) as RawGroup, i, version));
+  const groups = source.map((g, i) =>
+    normalizeGroup((g ?? {}) as RawGroup, i, version, retentionDays),
+  );
 
   // The add-on booleans arrived in v1 (Phase 4 Step 2). For older / absent
   // versions they were never stored, so we ignore any stray value and default
@@ -211,7 +231,7 @@ export function normalizeInputState(raw: unknown): NormalizedInputState {
     version,
     projectName: typeof obj.projectName === "string" ? obj.projectName.slice(0, 50) : "",
     vms: coerceVms(obj.vms),
-    retentionDays: clampInt(obj.retentionDays, 1, 730, RETENTION_DEFAULT),
+    retentionDays,
     // Pre-v2 rows carry no buffer setting. They open at the default rather than
     // being back-fitted: the old ×1.44 was two constants in two files under
     // different semantics, and no single utilization value reproduces it.
@@ -228,6 +248,10 @@ type BankedGroup = {
   codec?: string;
   complexity?: string;      // tier (low/med/high) — legacy, ambiguous across 6 levels
   complexityLabel?: string; // unique label — preferred for exact 1-of-6 recovery
+  // ADR 0132 — the RESOLVED retention this group was actually sized at, banked
+  // per group from v3 on. Preferred over the input_state copy for the same reason
+  // resolution/codec/complexity are: it is the value the math used.
+  retentionDays?: number;
   // Phase 10 Step 3 — camera-model picker. Banked resolved into groups_payload
   // (preferred on rehydration over the raw input_state copy), undefined when the
   // row predates the feature.
@@ -249,6 +273,7 @@ function extractBankedGroups(payload: unknown): BankedGroup[] {
       codec: typeof o.codec === "string" ? o.codec : undefined,
       complexity: typeof o.complexity === "string" ? o.complexity : undefined,
       complexityLabel: typeof o.complexityLabel === "string" ? o.complexityLabel : undefined,
+      retentionDays: typeof o.retentionDays === "number" ? o.retentionDays : undefined,
       // Present only on rows written by Step 3+. `has` distinguishes "banked as
       // absent/null" (a no-model group) from "field never written" (pre-feature
       // row) so the raw fallback only kicks in for the latter.
@@ -309,6 +334,12 @@ export function fromStoredSubmission(row: StoredSubmissionRow): CalculatorInitia
       resolutionIdx: resolveResolutionIdx(b.resolutionLabel, g.resolutionIdx),
       codecIdx: resolveCodecIdx(b.codec, g.codecIdx),
       complexityIdx: resolveComplexityIdx(b.complexityLabel, b.complexity, g.complexityIdx),
+      // `undefined` = a pre-v3 row that never banked a per-group retention, so
+      // the inherited submission-level value already in `g` carries through.
+      retentionDays:
+        b.retentionDays !== undefined
+          ? clampInt(b.retentionDays, 1, 730, g.retentionDays)
+          : g.retentionDays,
       // Prefer the banked resolved camera fields over the raw input_state copy
       // (same robustness pattern as resolution/codec/complexity). `undefined`
       // means a pre-feature row that never banked them, so the raw value (which

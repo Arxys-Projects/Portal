@@ -109,6 +109,7 @@ function makeSnapshot(overrides: Partial<ProjectQuoteSnapshot> = {}): ProjectQuo
           fps: 15,
           complexityLabel: "Medium detail",
           recordingMode: "constant",
+          retentionDays: 30,
           hoursPerDay: 24,
           motionPercent: 0,
           bandwidthMbps: 144.5,

@@ -28,7 +28,7 @@ import type {
   ProjectQuoteTerms,
 } from "./types";
 import type { CustomerProposalCommercial } from "./customer-proposal";
-import { bandwidthBasis } from "@/lib/calculator/compute";
+import { bandwidthBasis, retentionSummary } from "@/lib/calculator/compute";
 
 // Fields shared by both document variants. The snapshot's sizing / showcase /
 // terms / generation are passed through as-is (they carry no partner/discount
@@ -262,8 +262,14 @@ export function buildSizingBasisNote(sizing: ProjectQuoteSizing): string {
     );
   }
   const util = sizing.maxDiskUtilizationPct ?? 90;
+  // ADR 0132 — read off the per-group figures, not sizing.retentionDays, so a
+  // mixed-retention project states its range. On a quote frozen from a
+  // calc_version 1/2 row every group carries the same value, so this reads
+  // exactly as it always did.
+  const retention = retentionSummary(sizing.cameraSchedule.map((g) => g.retentionDays));
   return (
-    `Storage sizing: ${fmtTb(recorded)} of recorded footage over ${sizing.retentionDays} days, ` +
+    `Storage sizing: ${fmtTb(recorded)} of recorded footage over ${retention.label}` +
+    `${retention.uniform ? "" : " (set per camera group)"}, ` +
     `sized so the array runs at no more than ${util}% full, then adjusted for the capacity a ` +
     `formatted disk presents to the VMS. That ${100 - util}% is the only safety margin in this ` +
     `estimate. ${network}`
@@ -289,6 +295,7 @@ export function buildCameraColumns(showVendorModel: boolean): CameraColumn[] {
         { header: "FPS", width: CAMB_FPS, align: "right", cell: (g) => (g.fps > 0 ? String(g.fps) : "—") },
         { header: "Scene complexity", width: CAMB_COMPLEXITY, cell: (g) => g.complexityLabel || "—" },
         { header: "Operation hrs", width: CAMB_OPHRS, cell: formatOperationHrs },
+        { header: "Retention (days)", width: CAMB_RET, align: "right", cell: (g) => String(g.retentionDays) },
         { header: "Bw (Mbit/s)", width: CAMB_BW, align: "right", cell: (g) => fmtBwCell(g.bandwidthMbps) },
         { header: "Storage (TB)", width: CAMB_STORE, align: "right", cell: (g) => fmtStorageCell(g.storageGb) },
       ]
@@ -298,6 +305,7 @@ export function buildCameraColumns(showVendorModel: boolean): CameraColumn[] {
         { header: "FPS", width: CAMA_FPS, align: "right", cell: (g) => (g.fps > 0 ? String(g.fps) : "—") },
         { header: "Scene complexity", width: CAMA_COMPLEXITY, cell: (g) => g.complexityLabel || "—" },
         { header: "Operation hrs", width: CAMA_OPHRS, cell: formatOperationHrs },
+        { header: "Retention (days)", width: CAMA_RET, align: "right", cell: (g) => String(g.retentionDays) },
         { header: "Bw (Mbit/s)", width: CAMA_BW, align: "right", cell: (g) => fmtBwCell(g.bandwidthMbps) },
         { header: "Storage (TB)", width: CAMA_STORE, align: "right", cell: (g) => fmtStorageCell(g.storageGb) },
       ];
@@ -364,27 +372,33 @@ export const CUSTOMER_PROPOSAL_COLUMNS: CommercialColumn[] = [
 // column is left-aligned.
 //
 // Layout A — no group carries vendor/model data. The submission-detail sizing
-// column set, 7 columns: Resolution / Codec / FPS / Scene complexity /
-// Operation hrs / Bw / Storage.
-const CAMA_RES = "17%";
+// column set, 8 columns: Resolution / Codec / FPS / Scene complexity /
+// Operation hrs / Retention / Bw / Storage.
+//
+// Retention joined the set in ADR 0132; Resolution, Scene complexity and
+// Operation hrs each gave up width for it in both layouts, and both still sum to
+// exactly 100%.
+const CAMA_RES = "16%";
 const CAMA_CODEC = "10%";
 const CAMA_FPS = "8%";
-const CAMA_COMPLEXITY = "24%";
-const CAMA_OPHRS = "15%";
+const CAMA_COMPLEXITY = "18%";
+const CAMA_OPHRS = "13%";
+const CAMA_RET = "9%";
 const CAMA_BW = "13%";
 const CAMA_STORE = "13%";
 // Totals-row label spans everything except the Bw and Storage cells.
 const CAMA_TOTALS_LABEL = "74%"; // 100 - CAMA_BW - CAMA_STORE
 
 // Layout B — at least one group carries vendor/model data. Vendor and Model
-// are prepended to the same sizing set, 9 columns.
+// are prepended to the same sizing set, 10 columns.
 const CAMB_VENDOR = "9%";
-const CAMB_MODEL = "12%";
-const CAMB_RES = "13%";
+const CAMB_MODEL = "11%";
+const CAMB_RES = "12%";
 const CAMB_CODEC = "8%";
 const CAMB_FPS = "6.5%";
-const CAMB_COMPLEXITY = "17%";
-const CAMB_OPHRS = "12%";
+const CAMB_COMPLEXITY = "13%";
+const CAMB_OPHRS = "10%";
+const CAMB_RET = "8%";
 const CAMB_BW = "10.5%";
 const CAMB_STORE = "12%";
 const CAMB_TOTALS_LABEL = "77.5%"; // 100 - CAMB_BW - CAMB_STORE
@@ -1103,6 +1117,9 @@ export function ProjectQuotePdf({ data }: { data: ProjectQuotePdfInput }) {
   // ADR 0130 — used by the camera-schedule note, which (unlike the bars) also
   // renders in the Customer Proposal.
   const bandwidth = bandwidthBasis(sizing.calcVersion);
+  // ADR 0132 — retention is per group, so the parameters block and the schedule
+  // note read the frozen per-group figures rather than the row-level scalar.
+  const retention = retentionSummary(sizing.cameraSchedule.map((g) => g.retentionDays));
 
   // Totals from the snapshot's frozen aggregates — never re-summed from rows.
   const { cameras: totalCameras, bandwidthMbps: totalBwMbps, storageGb: totalStorageGb } =
@@ -1151,7 +1168,9 @@ export function ProjectQuotePdf({ data }: { data: ProjectQuotePdfInput }) {
           </View>
           <View style={styles.paramCol}>
             <Text style={styles.paramLabel}>Retention</Text>
-            <Text style={styles.paramValue}>{sizing.retentionDays} days</Text>
+            {/* A range when the groups differ (ADR 0132) — the schedule below
+                carries the per-group figures. */}
+            <Text style={styles.paramValue}>{retention.label}</Text>
           </View>
           <View style={styles.paramCol}>
             <Text style={styles.paramLabel}>Quote ref</Text>
@@ -1223,7 +1242,9 @@ export function ProjectQuotePdf({ data }: { data: ProjectQuotePdfInput }) {
             Customer Proposal can say what its Bw column means, so the bandwidth
             basis is stated here rather than only alongside the bars. */}
         <Text style={styles.tableNote}>
-          Retention: {sizing.retentionDays} days. The Bw column is{" "}
+          Retention: {retention.label}
+          {retention.uniform ? "" : ", set per camera group — see the Retention column"}. The Bw
+          column is{" "}
           {bandwidth.isEventPeak
             ? "the peak while recording — the full rate each group streams during an event, which is what switches and uplinks must carry"
             : "a motion-weighted average rather than the network peak, so the true peak is higher"}

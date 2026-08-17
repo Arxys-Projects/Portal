@@ -94,7 +94,16 @@ Using `--token` bypasses the browser-based login flow, which has been unreliable
 
 ## 6. Supabase: apply the schema
 
-The migrations live in `supabase/migrations/` (21 files as of 2026-06-16; applied in timestamp order by `db push`):
+The migrations live in `supabase/migrations/` (40 files as of 2026-08-17; applied in timestamp order by `db push`):
+
+> **On a FRESH project, `db push` applies all of them and this section is the whole
+> story.** On the **existing cloud project** it is not: several later migrations were
+> applied **by hand via the dashboard SQL editor** and were never recorded in remote
+> migration history, so a `db push` there would try to re-run them. Each one has an
+> apply note in [`apply-notes/`](./apply-notes/) stating what was run and how it was
+> verified — check there before pushing anything at an environment that already has
+> data. See [the migration-history desync note](./apply-notes/) and ADR
+> [0004](./decisions/0004-supabase-cli-migrations.md).
 
 **Foundation (2026-05)**
 - `20260515193702_initial_schema.sql` — `partners`, `products` (placeholder), `server_specs` (placeholder), `submissions`, RLS, `is_admin()`.

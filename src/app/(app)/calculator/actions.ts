@@ -15,6 +15,7 @@ import {
 import {
   CALC_VERSION,
   computeGroup,
+  retentionSummary,
   vsrLoad,
   type GroupInput,
 } from "@/lib/calculator/compute";
@@ -50,11 +51,12 @@ const groupSchema = z.object({
   // floor (ADR 0125). The 20–100 clamp here and at the UI is now the only limit
   // on how aggressive a user can be: the old 0.2 math-side floor is gone.
   motionPercent: z.number().int().min(20).max(100),
-  // ADR 0128 — records audio and/or analytics metadata (+5% on the stream rate).
-  // Defaults ON, matching the form and the profile the VSR ratings were
-  // established against; a pre-Phase-A client payload therefore parses to the
-  // same value the current form sends.
-  recordsAudioMetadata: z.boolean().optional().default(true),
+  // ADR 0132 — per-group retention. Optional with NO default: a stale client tab
+  // that predates the field sends nothing, and the resolver below falls back to
+  // the submission-level value, which is precisely what such a payload meant. A
+  // zod default would have to be a constant and would silently override the
+  // project's own setting.
+  retentionDays: z.number().int().min(1).max(730).optional(),
   // Phase 10 Step 3 — camera-model picker. `cameras` above stays the engine
   // input and equals units × sensorsPerCamera only on the model-loaded path;
   // these five fields are banked for rehydration + display, never read by the
@@ -81,6 +83,10 @@ const submissionSchema = z.object({
   onBehalfOfPartnerId: z.string().uuid().optional().nullable(),
   onBehalfOfCompanyName: z.string().trim().max(120).optional().nullable(),
   vms: z.string().max(40).optional().nullable(),
+  // The PROJECT-level retention. Since ADR 0132 this is the value a group with no
+  // retention of its own inherits, not the value the sizing math reads — that is
+  // per group. Kept required: it is still the project default the form edits and
+  // the fallback every legacy payload relies on.
   retentionDays: z.number().int().min(1).max(730),
   // Max disk utilization % — THE ONE BUFFER (ADR 0126). Per project. Optional so
   // a stale client tab still submits; it lands on the default, which is also the
@@ -290,6 +296,12 @@ export async function submitCalculation(
   // PDF, and Pipedrive sync all display the figure the math actually used.
   for (const g of input.groups) {
     if (g.recordingMode === "constant") g.motionPercent = 100;
+    // ADR 0132 — resolve each group's retention ONCE, here, before anything
+    // computes or banks. A group that sent none inherits the project value, and
+    // from this point on `g.retentionDays` is the effective figure the math used,
+    // so the engine, groups_payload, input_state, the PDF and the deal all state
+    // the same number by construction rather than by three separate `??` chains.
+    g.retentionDays ??= input.retentionDays;
   }
   const computed = input.groups.map((g) => {
     const gi: GroupInput = {
@@ -298,14 +310,14 @@ export async function submitCalculation(
       codec: CODECS[g.codecIdx],
       complexity: COMPLEXITIES[g.complexityIdx],
       fps: g.fps,
+      retentionDays: g.retentionDays!,
       recordingMode: g.recordingMode,
       recordingPercent: g.recordingPercent,
       motionPercent: g.motionPercent,
-      recordsAudioMetadata: g.recordsAudioMetadata,
     };
     return {
       input: g,
-      computed: computeGroup(gi, input.retentionDays, input.utilizationPct),
+      computed: computeGroup(gi, input.utilizationPct),
     };
   });
   const totals = computed.reduce(
@@ -318,6 +330,15 @@ export async function submitCalculation(
     },
     { cameras: 0, bandwidthMbps: 0, recordedStorageGb: 0, storageGb: 0 },
   );
+
+  // ADR 0132 — what the scalar `retention_days` column means from calc_version 3
+  // on: the LONGEST group retention, not the project default. For a uniform
+  // project (every row before this change, and most after) the two are the same
+  // number. For a mixed one, the max is the only single figure that is never an
+  // under-statement of what the system has to hold, which is what the column
+  // feeds — the admin list, the Pipedrive "Retention Days" field, and a relink.
+  // Per-group values live in groups_payload; surfaces that can show a range do.
+  const retention = retentionSummary(input.groups.map((g) => g.retentionDays!));
 
   // Candidate pool — shared with the Quick Calc preview (ADR 0082) so both
   // tools size against exactly the same SKU set (query filters + net-usable
@@ -363,11 +384,12 @@ export async function submitCalculation(
       addOnFailoverRecorder: input.addOnFailoverRecorder,
       addOnManagementServer: input.addOnManagementServer,
     },
-    // ADR 0126 — the sizing model this row was produced by. Version 1 is
-    // everything before Phase A of the calculator math rework; version 2 is
-    // the re-anchored engine with the single Max disk utilization buffer.
-    // storage_tb changes MEANING across that boundary (see below), so the
-    // column is not comparable without this stamp.
+    // The sizing model this row was produced by (see CALC_VERSION). Version 1 is
+    // everything before Phase A; 2 is the re-anchored engine with the single Max
+    // disk utilization buffer and a +5% audio/metadata term; 3 drops that term,
+    // tightens the buffer default to 88%, and makes retention per group. Both
+    // storage_tb and retention_days change MEANING across those boundaries (see
+    // below), so neither column is comparable without this stamp.
     calc_version: CALC_VERSION,
     max_disk_utilization_pct: input.utilizationPct,
     // ADR 0081: new submissions start Open (the default state). Won/Lost are
@@ -386,7 +408,10 @@ export async function submitCalculation(
     codec: CODECS[primary.input.codecIdx].value,
     complexity: COMPLEXITIES[primary.input.complexityIdx].tier,
     vms: input.vms || null,
-    retention_days: input.retentionDays,
+    // CHANGED MEANING at calc_version 3 (ADR 0132): the longest group retention,
+    // not the project default. Identical on a uniform project. See `retention`
+    // above for why max rather than the default.
+    retention_days: retention.max,
     bandwidth_mbps: Number(totals.bandwidthMbps.toFixed(2)),
     // CHANGED MEANING at calc_version 2 (ADR 0126/0127). It used to bank raw
     // video × 1.2, with the recommender's second ×1.2 applied later and the
@@ -405,6 +430,9 @@ export async function submitCalculation(
     recommended_units: recommendation.winner.units,
     total_list_price_usd: Number(recommendation.winner.totalCostUsd.toFixed(2)),
     groups_payload: {
+      // The project-level default a new group inherits (ADR 0132). Kept for
+      // readers that want the project setting; the per-group `retentionDays`
+      // inside each group below is what the math used.
       retentionDays: input.retentionDays,
       // Banked alongside the groups so every document rendered from this row can
       // state the buffer it was sized at without reaching into input_state.
@@ -422,10 +450,13 @@ export async function submitCalculation(
         complexity: COMPLEXITIES[r.input.complexityIdx].tier,
         complexityLabel: COMPLEXITIES[r.input.complexityIdx].label,
         fps: r.input.fps,
+        // The RESOLVED retention this group was sized at (ADR 0132) — never the
+        // project default unless they happen to agree. Every render surface reads
+        // it from here.
+        retentionDays: r.input.retentionDays,
         recordingMode: r.input.recordingMode,
         recordingPercent: r.input.recordingPercent,
         motionPercent: r.input.motionPercent,
-        recordsAudioMetadata: r.input.recordsAudioMetadata,
         // Phase 10 Step 3 — resolved camera-model provenance for the display
         // path (PDF / submission view, Step 4) and preferred on rehydration.
         // `cameras` above already carries the derived count; these explain it.
@@ -492,7 +523,9 @@ export async function submitCalculation(
     },
     projectName: submissionRow.project_name,
     vms: submissionRow.vms,
-    retentionDays: input.retentionDays,
+    // Matches the banked column: the longest group retention. The template
+    // derives its own uniform/range wording from the per-group figures below.
+    retentionDays: retention.max,
     totals: {
       cameras: totals.cameras,
       bandwidthMbps: totals.bandwidthMbps,
@@ -511,6 +544,7 @@ export async function submitCalculation(
       complexityLabel: COMPLEXITIES[r.input.complexityIdx].label,
       recordingMode: r.input.recordingMode,
       fps: r.input.fps,
+      retentionDays: r.input.retentionDays!,
       hoursPerDay: Math.round((r.input.recordingPercent / 100) * 24),
       motionPercent: r.input.motionPercent,
       bandwidthMbps: r.computed.bandwidthMbps,
@@ -560,7 +594,9 @@ export async function submitCalculation(
           bandwidthMbps: totals.bandwidthMbps,
           storageGb: totals.storageGb,
           recordedStorageGb: totals.recordedStorageGb,
-          retentionDays: input.retentionDays,
+          // A range on a mixed-retention project ("7–90 days"), a bare figure on
+          // a uniform one (ADR 0132) — sales reads this line to size the deal.
+          retentionLabel: retention.label,
         },
         utilizationPct: input.utilizationPct,
         vms: submissionRow.vms,
@@ -597,7 +633,10 @@ export async function submitCalculation(
     ).padStart(2, "0")}-${String(pdfInput.generatedAt.getDate()).padStart(2, "0")}`,
     projectName: submissionRow.project_name,
     vms: submissionRow.vms,
-    retentionDays: input.retentionDays,
+    // The Pipedrive "Retention Days" field is a single number, so it gets the
+    // longest group retention — the same value banked on the row, so a relink
+    // rebuilt from that column reproduces this deal exactly (ADR 0132).
+    retentionDays: retention.max,
     totals: {
       cameras: totals.cameras,
       bandwidthMbps: totals.bandwidthMbps,

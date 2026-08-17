@@ -177,6 +177,9 @@ type RawGroupsPayload = {
     complexityLabel?: string;
     recordingMode?: "constant" | "motion";
     fps?: number;
+    // ADR 0132 — banked per group from calc_version 3 on; absent on earlier rows,
+    // where the row's single `retention_days` was every group's retention.
+    retentionDays?: number;
     recordingPercent?: number;
     motionPercent?: number;
     cameraVendor?: string | null;
@@ -213,7 +216,14 @@ function fallbackComplexityLabel(tier: string | undefined): string {
 // Phase 10 camera-model fields. Indices are never read, so a later lookup-table
 // reorder cannot corrupt an old quote. Missing labels freeze as "" and 5b
 // applies its dash placeholder at render (the System Estimate idiom).
-function buildCameraSchedule(payload: unknown): ProjectQuoteCameraRow[] {
+// `rowRetentionDays` is the submission's own `retention_days`, the per-group
+// fallback for a calc_version 1/2 row — those rows banked no per-group retention
+// because there was none, so every group was sized at that one figure. Filling it
+// reads the banked row faithfully rather than recomputing anything.
+function buildCameraSchedule(
+  payload: unknown,
+  rowRetentionDays: number,
+): ProjectQuoteCameraRow[] {
   const groups = asGroupsPayload(payload).groups ?? [];
   return groups.map((g) => ({
     name: g.name ?? "Group",
@@ -223,6 +233,7 @@ function buildCameraSchedule(payload: unknown): ProjectQuoteCameraRow[] {
     fps: g.fps ?? 0,
     complexityLabel: g.complexityLabel ?? fallbackComplexityLabel(g.complexity),
     recordingMode: g.recordingMode === "motion" ? "motion" : "constant",
+    retentionDays: g.retentionDays ?? rowRetentionDays,
     hoursPerDay: Math.round(((g.recordingPercent ?? 0) / 100) * 24),
     motionPercent: g.motionPercent ?? 0,
     bandwidthMbps: g.computed?.bandwidthMbps ?? 0,
@@ -335,7 +346,7 @@ export function buildSizingFromSubmission(input: {
     recordedStorageTb:
       submission.recorded_storage_tb == null ? null : Number(submission.recorded_storage_tb),
     maxDiskUtilizationPct: submission.max_disk_utilization_pct ?? null,
-    cameraSchedule: buildCameraSchedule(submission.groups_payload),
+    cameraSchedule: buildCameraSchedule(submission.groups_payload, submission.retention_days),
     recommendation: {
       units,
       modelCode,

@@ -18,7 +18,7 @@ import {
 } from "./colors";
 import type { SubmissionPdfInput } from "./types";
 import { availableCapacityTb, utilizationNote } from "@/lib/capacity-utils";
-import { bandwidthBasis } from "@/lib/calculator/compute";
+import { bandwidthBasis, retentionSummary } from "@/lib/calculator/compute";
 
 const styles = StyleSheet.create({
   page: {
@@ -129,8 +129,11 @@ const styles = StyleSheet.create({
   colRes: { width: "15%" },
   colCodec: { width: "12%" },
   colFps: { width: "7%", textAlign: "right" },
-  colScene: { width: "26%" },
-  colHrs: { width: "16%" },
+  // Scene and Operation hrs each gave up width for the Retention column added in
+  // ADR 0132; the eight widths still total 100%.
+  colScene: { width: "18%" },
+  colHrs: { width: "14%" },
+  colRet: { width: "10%", textAlign: "right" },
   colBw: { width: "12%", textAlign: "right" },
   colSt: { width: "12%", textAlign: "right" },
   colTotalsLabel: { width: "76%" },
@@ -305,6 +308,10 @@ export const SCHEDULE_COLUMNS: ReadonlyArray<{ key: keyof typeof styles; label: 
   { key: "colFps", label: "FPS" },
   { key: "colScene", label: "Scene complexity" },
   { key: "colHrs", label: "Operation hrs" },
+  // Per group since ADR 0132. Present on every row: a calc_version 1/2 row fills
+  // it with the single retention it was sized at, so the column reads the same
+  // figure on every line rather than being blank on older quotes.
+  { key: "colRet", label: "Retention (days)" },
   { key: "colBw", label: "Bandwidth (Mbit/s)" },
   { key: "colSt", label: "Storage (TB)" },
 ];
@@ -390,6 +397,11 @@ export function SubmissionPdf({ data }: { data: SubmissionPdfInput }) {
   // ADR 0130 — is this figure the event peak, or the pre-Phase-A
   // motion-weighted average? Read the stamp; never assert peak unconditionally.
   const bandwidth = bandwidthBasis(data.calcVersion);
+  // ADR 0132 — derived from the per-group figures, not from data.retentionDays,
+  // so a mixed-retention project states a range instead of one group's number.
+  // A calc_version 1/2 row has every group on the same value, so this collapses
+  // to the single figure those quotes have always printed.
+  const retention = retentionSummary(data.groups.map((g) => g.retentionDays));
   const bandwidthPct =
     availableBandwidthMbps && availableBandwidthMbps > 0
       ? (requiredBandwidthMbps / availableBandwidthMbps) * 100
@@ -486,6 +498,7 @@ export function SubmissionPdf({ data }: { data: SubmissionPdfInput }) {
                 <Text style={[styles.td, styles.colFps]}>{g.fps}</Text>
                 <Text style={[styles.td, styles.colScene]}>{g.complexityLabel}</Text>
                 <Text style={[styles.td, styles.colHrs]}>{operationHoursText(g)}</Text>
+                <Text style={[styles.td, styles.colRet]}>{g.retentionDays}</Text>
                 <Text style={[styles.td, styles.colBw]}>{fmtMbps(g.bandwidthMbps)}</Text>
                 <Text style={[styles.td, styles.colSt]}>
                   {(g.storageGb / 1000).toLocaleString("en-US", {
@@ -512,8 +525,11 @@ export function SubmissionPdf({ data }: { data: SubmissionPdfInput }) {
           </View>
         </View>
         <Text style={styles.tableNote}>
-          Retention period: {data.retentionDays} days. All figures assume even
-          camera distribution across recording servers.
+          {retention.uniform
+            ? `Retention period: ${retention.label}.`
+            : `Retention period: ${retention.label}, set per camera group — see the ` +
+              `Retention column above.`}{" "}
+          All figures assume even camera distribution across recording servers.
         </Text>
 
         {/* 3. Capacity bars */}
@@ -558,7 +574,7 @@ export function SubmissionPdf({ data }: { data: SubmissionPdfInput }) {
           <Text style={styles.tableNote}>
             {data.calcVersion >= 2 && data.recordedStorageTb != null
               ? `Storage sizing: ${fmtTb(data.recordedStorageTb)} of recorded footage over ` +
-                `${data.retentionDays} days, sized so the array runs at no more than ` +
+                `${retention.label}, sized so the array runs at no more than ` +
                 `${data.maxDiskUtilizationPct ?? 90}% full, then adjusted for the capacity a ` +
                 `formatted disk presents to the VMS. That ` +
                 `${100 - (data.maxDiskUtilizationPct ?? 90)}% is the only safety margin in this ` +

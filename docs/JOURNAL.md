@@ -4,6 +4,208 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-08-17 — Phase C (D10): VSR rating basis recorded, profile copy consolidated
+
+### Work done
+
+No math change, as scoped. Two deliverables plus one open question.
+
+**The rating basis is complexity tier 2** ([ADR 0133](./decisions/0133-vsr-rating-basis-is-complexity-tier-2.md)).
+Audit §7.9's "no document traces these ratings" is answered — the profile is in-repo
+in `LEDGER_VSR_PARAMETERS`. The published 3.2 Mbit/s is the reliable part of that
+strip, because the tier *labels* predate the ADR 0049/0050 retier: 3.2 sits +8.5%
+above re-anchored tier 2 (2.95) and −27.6% below tier 3 (4.42), and tier 2 is the
+only tier within 10%. `vsrLoad`, the complexity table and `VSR_FLOOR` are untouched.
+
+**Profile copy consolidated to one source.** The price book stated its own version
+of the profile in two places and both had drifted — from the canonical values and
+from each other. Both said *"h.264.20 & h.265.20 CODEC (~3–5 Mb video file)"*, a
+codec pair and bitrate range appearing nowhere in `LEDGER_VSR_PARAMETERS`
+(canonically "H.265-20 (Good) · ~3.2 Mbit/s"), and neither stated the resolution at
+all — the parameter the ratings are most sensitive to. Both now render from the
+canonical array: the KPI tooltip as label/value lines (easier to scan in a small
+tooltip for a non-specialist reader), the fine print via a derived
+`ledgerVsrProfileSentence()`.
+
+**Left open for Andy, deliberately not resolved in code:** ADR 0082 pins Quick Calc
+to this same profile at complexity 2.25, so Quick Calc bills streams ~38% heavier
+than the basis the ratings were established at, while producing an identical VSR
+load. The ADR costs both routes — move Quick Calc to 1.5, or derate the ratings for
+higher tiers — and picks neither, because whether stream capacity scales with
+bitrate is a bench question (decode-bound vs write-bound vs bitrate-bound), not a
+coefficient. The ADR carries the bench protocol needed to decide it.
+
+### Detours & fixes
+
+- **A mechanical `label + value` join produced ambiguous copy.** Joining the six
+  canonical pairs with `", "` read as *"...recording On motion, VMD + metadata, motion
+  activity 75%..."* — two of the canonical values contain their own comma or mid-dot
+  (`On motion, VMD + metadata`, `4MP · 2560×1440`), so a comma or mid-dot separator
+  makes the parameter boundaries ambiguous and "metadata" reads as its own
+  parameter. Switched the separator to `"; "`. The leading capital in the value
+  needed handling too, and a blanket `toLowerCase()` on the first character would
+  have written "h.265-20" — so the de-capitalization fires only on an initial
+  capital followed by a lower-case letter, which leaves every measurement and
+  initialism (`4MP`, `15 fps`, `H.265-20`, `75%`, `30 days`) alone.
+
+### Decisions captured
+
+- [`0133-vsr-rating-basis-is-complexity-tier-2.md`](./decisions/0133-vsr-rating-basis-is-complexity-tier-2.md)
+
+---
+
+## 2026-08-17 — Phase B (D9): retention moves to the camera group
+
+### Work done
+
+`retentionDays` moved from the submission to each camera group
+([ADR 0132](./decisions/0132-retention-moves-to-the-camera-group.md)). A mixed
+project could previously only be quoted at its **longest** requirement, over-sizing
+every other group to match — and regulated ranges make that the normal shape of a
+deal, not an edge case (Nevada gaming 7→15 days, cannabis 30–180 by state, PCI/PII
+90).
+
+- **`retentionDays` is a required field of `GroupInput`**, and the old
+  `computeGroup(input, retentionDays, utilizationPct)` third argument is gone.
+  Deliberately required rather than defaulted: a defaulted field would let a caller
+  size a group at the wrong retention with nothing failing, whereas this way every
+  call site failed to compile until updated, and a stale 3-argument call fails on
+  arity too. Both halves compile-caught rather than trusted.
+- **The submission value survives as the inherited default** for new groups,
+  resolved once server-side before anything computes or banks — so the engine,
+  `input_state`, `groups_payload`, both PDFs and the Pipedrive deal state the same
+  figure by construction instead of each re-deriving it through its own `??` chain.
+- **`submissions.retention_days` now banks the longest group retention**, not the
+  project default: the column feeds single-value consumers (admin list, Pipedrive
+  "Retention Days", a relink) and the max is the only single figure that is never an
+  under-statement. Identical on a uniform project, so the change is monotone.
+- **One `retentionSummary()` helper** returns `{min, max, uniform, label}` and every
+  surface derives its wording from the **per-group** figures, never the row scalar —
+  "30 days" when the groups agree, "7–90 days" when they do not. Per-group Retention
+  columns added to the calculator results table, the submission-detail breakdown, the
+  System Estimate PDF schedule, and both Project Quote layouts (widths rebalanced;
+  each layout still sums to exactly 100%).
+- **Project daily-footage total is now a sum of per-group daily rates**, not project
+  footage ÷ one retention — the latter is wrong the moment two groups differ.
+- **Old rows read as uniform, exactly rather than approximately.** A v1/v2 row banked
+  no per-group retention because there was none; every group was sized at the row's
+  single figure, so filling each group with it reproduces the row faithfully.
+  Verified against synthetic v1 / v2 / unstamped rows: banked bandwidth and storage
+  pass through untouched, `uniform` comes out true, and a v2 row still displays its
+  own banked 90% utilization rather than the new default.
+
+**Golden:** added `fixture-mixed-retention.json` — the same five canonical groups at
+five regulated retentions (15 / 90 / 30 / 7 / 180), read as one coherent
+gaming-property deal. The canonical `fixture-mixed-project.json` was left at a
+uniform 30 days on purpose: adding retention to it would have moved the audit's
+reference deal for a reason unrelated to the coefficient change landing in the same
+commit, and the plan's whole sequencing rule is that a golden movement stays
+attributable. Confirmed on the new fixture that per-group storage figures sum exactly
+to the total (the buffer and binary charge are both scalar) and that bandwidth is
+byte-identical to the uniform fixture — retention must not touch it.
+
+### Detours & fixes
+
+- **The first retention-to-group assignment made the fixture measure one group.**
+  Mapping 180 days onto the loading dock — 4K at complexity 5.0, the heaviest group
+  per camera-day — gave that single group **83%** of project footage and left the
+  other four unable to show a regression at all. Computed per-day footage for all
+  five groups and evaluated five candidate assignments; the chosen one spreads them
+  19 / 29 / 34 / 16 / 3 percent, so a fault in any one group's retention moves the
+  total visibly. It is also the assignment that reads as a real deal: perimeter at
+  the gaming floor's 15, entries at 90 for PCI, back-of-house at 30, dock at 7
+  operational, count room at 180.
+
+### Decisions captured
+
+- [`0132-retention-moves-to-the-camera-group.md`](./decisions/0132-retention-moves-to-the-camera-group.md)
+
+---
+
+## 2026-08-17 — D8 reversed: the audio/metadata term is gone, the buffer carries a cushion
+
+### Work done
+
+Correctness fix to already-shipped Phase A code, not new scope. ADR 0128's per-group
+"records audio / analytics metadata" toggle (+5% on the stream rate, default ON) is
+**withdrawn entirely** — [ADR 0131](./decisions/0131-audio-metadata-reversed-into-the-buffer.md)
+supersedes it.
+
+The toggle conflated two errors that no amount of retuning fixes. **Wrong shape:**
+audio and analytics metadata are fixed kbit/s add-ons (G.711 64 kbit/s flat, AAC
+~16–128, metadata 4–100), not a percentage of video bitrate, so a flat percentage
+errs in *both directions at once* — too small on a low-res stream, too large on 4K
+H.265. ADR 0128's own "when to revisit" note had already spotted this and shipped
+anyway. **Wrong surface:** it should never have reached bandwidth, which ADR 0128
+argued from consistency — sound in the abstract, but it answered "how do we apply
+this everywhere" rather than "should we apply it". And even confined to storage, the
+honest combined magnitude is ~0–4% skewed low, so 5% overstates the common case. No
+vendor calculator (Genetec, Milestone, Axis) exposes this as a line item.
+
+- Toggle removed from the UI entirely — not hidden, not defaulted off. Field, schema
+  entry, form state, tooltip, FAQ bullet, Quick Calc assumption pill and CSS comment
+  all gone; the `+5%` removed from both the storage and the bandwidth path.
+- **Not backfilled or stripped from banked rows** — old rows keep what they recorded,
+  nothing reads the field, and a `jsonb` rewrite of the whole table to delete a dead
+  key would be all risk and no benefit. Same `calc_version`-gated pattern as D5/D7.
+- **The cushion goes into the buffer default: 90% → 88%.** ADR 0126 decided this in
+  advance — *"the default moves rather than a second constant reappearing… any
+  proposal to add a second storage multiplier anywhere in the stack should be read as
+  a regression of this ADR"* — so a fixed multiplier was off the table. ÷0.88 vs
+  ÷0.90 is **×1.0227, +2.27%**, storage only.
+- **`rawStorageGb` / `recordedStorageGb` collapsed to one field.** The +5% was the
+  only difference between them; with it gone they were one number under two names.
+- **Quick Calc held at 80%** — at ×1.25 against the calculator's ×1.136 it already
+  carries more than double the margin, so it takes the full −4.76% of the removed
+  uplift with nothing back and stays the more conservative tool.
+
+**Golden diff, verified line by line rather than accepted.** Every ratio is exact
+across all 112,320 matrix rows:
+
+| Figure | new/old | equals |
+|---|---|---|
+| `frameKb` | 1.000000 | untouched — the uplift never reached it |
+| bitrate · bandwidth · footage | 0.952381 | `1 / 1.05` |
+| storage to buy | 0.974026 | `1 / 1.05 × 90 / 88` |
+
+2,560 of 112,320 rows changed recommended unit count, **every one downward**, none
+up. On the canonical fixture: footage −4.76% to 376,493.5 GB — which is *exactly*
+the old `rawStorageGb`, an independent confirmation that removing the uplift returns
+the figure to modeled video — storage-to-buy −2.60%, buffer multiplier 1.3063 →
+1.2724.
+
+### Detours & fixes
+
+- **Moving only the default would have quietly broken ADR 0126's one-directional
+  slider.** The brief said to move the default 90 → 88; leaving `UTILIZATION_MAX_PCT`
+  at 90 would have let a partner comparing against a Milestone proposal nudge the
+  slider to match its 90% and silently delete the cushion just added — the exact
+  failure mode ADR 0126's "the default sits at the least-margin end" property exists
+  to prevent. Moved the ceiling with the default. Two consequences fell out and were
+  checked rather than assumed: the **slider step had to move 5 → 4**, because a range
+  input clamps to the largest step-aligned value at or below max, so 60–88 at step 5
+  would have stopped at 85 and made the default unreachable; and
+  `clampUtilizationPct` now returns 88 for a banked 90, so **revising a version-2
+  quote reopens at 88** — verified that this moves storage *up*, never down, which is
+  the only acceptable direction for a clamp change.
+- **A real commercial consequence worth flagging:** the −2.6% move drops the
+  canonical fixture a SKU tier, VX5-V800-720 → VX5-V700-576, **−$16,632**. It lands
+  at 479.04 TB required against a 480 TB box — 0.2% nameplate headroom, which looks
+  alarming and is not: 376.49 TB of footage into 480 × 0.8931 = 428.69 TB
+  VMS-visible is 87.8% full, i.e. sitting just under the 88% cap by construction.
+  That is the design working, but deals near a boundary will reprice and Andy should
+  see the number before this ships.
+
+### Decisions captured
+
+- [`0131-audio-metadata-reversed-into-the-buffer.md`](./decisions/0131-audio-metadata-reversed-into-the-buffer.md)
+  (supersedes [0128](./decisions/0128-audio-metadata-counted.md), amends [0126](./decisions/0126-one-buffer-max-disk-utilization.md))
+- Schema meaning changes recorded in [`docs/apply-notes/0131-calculator-math-phase-bc.md`](./apply-notes/0131-calculator-math-phase-bc.md) —
+  **comments only, no structural change**, so unlike Phase A the code does not depend
+  on it being applied first.
+
+---
+
 ## 2026-08-13 — Bandwidth reporting: one figure, basis stated per calc_version
 
 ### Work done

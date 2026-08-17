@@ -11,7 +11,7 @@ import {
 } from "@/app/(app)/_components/ui";
 import { PIPEDRIVE_WINDOW_TARGET } from "@/lib/pipedrive/url";
 import { codecLabel } from "@/lib/calculator/tables";
-import { bandwidthBasis } from "@/lib/calculator/compute";
+import { bandwidthBasis, retentionSummary } from "@/lib/calculator/compute";
 
 export type SubmissionDetailRow = {
   id: string;
@@ -60,6 +60,9 @@ type GroupRow = {
   complexity?: string;
   complexityLabel?: string;
   fps?: number;
+  // ADR 0132 — banked per group from calc_version 3 on. Absent on earlier rows,
+  // where the row's single retention_days applied to every group.
+  retentionDays?: number;
   recordingPercent?: number;
   motionPercent?: number;
   computed?: {
@@ -165,6 +168,13 @@ export function SubmissionDetail({
   // ADR 0130 — whether this row's banked Mbit/s is the event peak or the
   // pre-Phase-A motion-weighted average. Read from the stamp, never assumed.
   const bandwidth = bandwidthBasis(submission.calc_version);
+  // ADR 0132 — retention is per group. A row that banked none (calc_version 1/2)
+  // has retention_days as every group's retention, so falling back to it renders
+  // those rows exactly as before rather than as a gap.
+  const groupRetentions = groups.map((g) => g.retentionDays ?? submission.retention_days);
+  const retention = retentionSummary(
+    groupRetentions.length > 0 ? groupRetentions : [submission.retention_days],
+  );
   // Phase 2 Step 3+4: a UUID-shaped recommended_product_id signals a
   // pre-migration row whose family-UUID FK target was dropped. Render the
   // detail as "(legacy data)" so the partner / admin sees an explicit
@@ -286,7 +296,18 @@ export function SubmissionDetail({
         <h2 className="text-base font-bold text-ink">Calculator inputs</h2>
         <KvTable>
           <KvRow label="VMS">{submission.vms ?? "—"}</KvRow>
-          <KvRow label="Retention (days)">{submission.retention_days}</KvRow>
+          {/* ADR 0132 — one figure when every group agrees, otherwise the range
+              plus a pointer to the per-group column, rather than a single number
+              that is only true of the longest group. */}
+          <KvRow label="Retention">
+            {retention.uniform ? (
+              retention.label
+            ) : (
+              <>
+                {retention.label} — set per camera group, shown in the breakdown below
+              </>
+            )}
+          </KvRow>
           <KvRow label="Primary resolution">{submission.resolution_code}</KvRow>
           <KvRow label="Primary codec / complexity">
             {codecLabel(submission.codec)} ·{" "}
@@ -325,8 +346,8 @@ export function SubmissionDetail({
           <KvRow label="Storage sizing">
             {submission.calc_version >= 2 && submission.recorded_storage_tb != null ? (
               <>
-                {formatNumber(submission.recorded_storage_tb, 2)} TB of recorded footage,
-                sized to run at no more than{" "}
+                {formatNumber(submission.recorded_storage_tb, 2)} TB of recorded footage over{" "}
+                {retention.label}, sized to run at no more than{" "}
                 {submission.max_disk_utilization_pct ?? 90}% full — then adjusted for the
                 capacity a formatted disk presents to the VMS. That{" "}
                 {100 - (submission.max_disk_utilization_pct ?? 90)}% is the only safety
@@ -358,6 +379,7 @@ export function SubmissionDetail({
                 <TH numeric>FPS</TH>
                 <TH numeric>Rec Hrs</TH>
                 <TH numeric>Motion %</TH>
+                <TH numeric>Retention (days)</TH>
                 <TH numeric>Mbit/s {bandwidth.short}</TH>
                 <TH numeric>GB to buy</TH>
               </TR>
@@ -376,6 +398,9 @@ export function SubmissionDetail({
                   <TD numeric>{formatNumber(g.fps)}</TD>
                   <TD numeric>{Math.round(((g.recordingPercent ?? 0) / 100) * 24)}</TD>
                   <TD numeric>{formatNumber(g.motionPercent)}</TD>
+                  {/* Falls back to the row scalar for a pre-0132 row, which had
+                      exactly this retention on every group. */}
+                  <TD numeric>{formatNumber(g.retentionDays ?? submission.retention_days)}</TD>
                   <TD numeric>{formatNumber(g.computed?.bandwidthMbps, 2)}</TD>
                   <TD numeric>{formatNumber(g.computed?.storageGb, 2)}</TD>
                 </TR>

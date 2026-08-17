@@ -10,6 +10,7 @@ import {
   UTILIZATION_DEFAULT_PCT,
   UTILIZATION_MAX_PCT,
   UTILIZATION_MIN_PCT,
+  UTILIZATION_STEP_PCT,
   VMS_OPTIONS,
 } from "@/lib/calculator/tables";
 import { mapPixelsToBucket } from "@/lib/calculator/camera-resolution";
@@ -18,6 +19,7 @@ import {
   formatBandwidthMbps,
   formatNumber,
   formatStorageGb,
+  retentionSummary,
   type GroupInput,
 } from "@/lib/calculator/compute";
 import {
@@ -65,8 +67,10 @@ type Group = {
   recordingMode: "constant" | "motion";
   recordingPercent: number; // Operation Hours, encoded as (hours / 24) × 100
   motionPercent: number;    // Motion/Event % (20–100); only live under "motion"
-  // Records audio and/or analytics metadata alongside video (+5%, ADR 0128).
-  recordsAudioMetadata: boolean;
+  // Days of footage kept for THIS group (ADR 0132). A new group inherits the
+  // project-level Retention field; changing that field afterwards does not move
+  // groups the user has already set, which is the point of per-group retention.
+  retentionDays: number;
   // Phase 10 Step 3 — camera-model picker. null vendor/model = no model loaded,
   // in which case `cameras` is the direct editable input and the group behaves
   // exactly as before the feature. When a model IS loaded, `cameras` is derived
@@ -86,7 +90,7 @@ function freshId(): string {
   return `g-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-function newGroup(seqNumber: number): Group {
+function newGroup(seqNumber: number, retentionDays: number): Group {
   return {
     id: freshId(),
     name: `Camera Group ${seqNumber}`,
@@ -98,9 +102,9 @@ function newGroup(seqNumber: number): Group {
     recordingMode: "constant", // safe default: Continuous, 24 h, 100%
     recordingPercent: 100,     // 24 h/day
     motionPercent: 100,
-    // Default ON — the profile the published VSR stream ratings were
-    // established against records VMD + metadata (ADR 0128).
-    recordsAudioMetadata: true,
+    // Inherited from the project-level Retention field at the moment the group is
+    // added (ADR 0132), then independently editable.
+    retentionDays,
     // No model loaded by default — the no-model (direct-cameras) path.
     cameraVendor: null,
     cameraModel: null,
@@ -138,10 +142,16 @@ function percentFromHours(hours: number): number {
 
 // Rehydration (Phase 4 Step 3): turn a stored group into a form Group, minting
 // a fresh client-side id. Falls back to one default group for an empty state.
-function groupsFromInitial(initial: InitialGroup[] | undefined): Group[] {
-  if (!initial || initial.length === 0) return [newGroup(1)];
+function groupsFromInitial(
+  initial: InitialGroup[] | undefined,
+  retentionDays: number,
+): Group[] {
+  if (!initial || initial.length === 0) return [newGroup(1, retentionDays)];
   return initial.map((g) => ({ id: freshId(), ...g }));
 }
+
+// The project-level Retention default, and the fallback for a fresh form.
+const RETENTION_DEFAULT = 30;
 
 function Tooltip({ text, side = "l" }: { text: string; side?: "l" | "r" }) {
   return (
@@ -185,11 +195,13 @@ export function CalculatorForm({
   initialOnBehalfPartnerId?: string | null;
   initialOnBehalfCompanyName?: string | null;
 }) {
-  const [groups, setGroups] = useState<Group[]>(() =>
-    groupsFromInitial(initialState?.groups),
-  );
+  // The project-level Retention field. Since ADR 0132 it is the value a NEW group
+  // inherits, not a value the math reads — each group carries its own.
   const [retentionDays, setRetentionDays] = useState(
-    () => initialState?.retentionDays ?? 30,
+    () => initialState?.retentionDays ?? RETENTION_DEFAULT,
+  );
+  const [groups, setGroups] = useState<Group[]>(() =>
+    groupsFromInitial(initialState?.groups, initialState?.retentionDays ?? RETENTION_DEFAULT),
   );
   // Max disk utilization — the project's ONE buffer (ADR 0126). A cap on how
   // full the array is designed to run, not an additive margin: 90% ⇒ ÷0.90.
@@ -286,7 +298,8 @@ export function CalculatorForm({
 
   const addGroup = () => {
     touch();
-    setGroups((p) => [...p, newGroup(p.length + 1)]);
+    // Inherits the project Retention as it stands right now (ADR 0132).
+    setGroups((p) => [...p, newGroup(p.length + 1, retentionDays)]);
   };
   const removeGroup = (id: string) => {
     touch();
@@ -393,8 +406,8 @@ export function CalculatorForm({
   };
 
   const reset = () => {
-    setGroups([newGroup(1)]);
-    setRetentionDays(30);
+    setGroups([newGroup(1, RETENTION_DEFAULT)]);
+    setRetentionDays(RETENTION_DEFAULT);
     setUtilizationPct(UTILIZATION_DEFAULT_PCT);
     setVms("");
     setProjectName("");
@@ -451,7 +464,7 @@ export function CalculatorForm({
         // ADR 0125 the mode already means duty cycle 1.0, so this only keeps the
         // banked/displayed value honest.
         motionPercent: g.recordingMode === "constant" ? 100 : g.motionPercent,
-        recordsAudioMetadata: g.recordsAudioMetadata,
+        retentionDays: g.retentionDays,
         // Phase 10 Step 3 — banked for rehydration (input_state) + display
         // (groups_payload). The engine contract is unchanged; these are extra.
         cameraVendor: g.cameraVendor,
@@ -477,17 +490,19 @@ export function CalculatorForm({
           codec: CODECS[g.codecIdx],
           complexity: COMPLEXITIES[g.complexityIdx],
           fps: Math.max(1, g.fps),
+          retentionDays: Math.max(1, Math.floor(g.retentionDays || 1)),
           recordingMode: g.recordingMode,
           recordingPercent: g.recordingPercent,
           motionPercent: g.recordingMode === "constant" ? 100 : g.motionPercent,
-          recordsAudioMetadata: g.recordsAudioMetadata,
         };
         return {
           group: g,
-          computed: computeGroup(input, retentionDays, utilizationPct),
+          computed: computeGroup(input, utilizationPct),
         };
       }),
-    [groups, retentionDays, utilizationPct],
+    // No longer depends on the project-level retentionDays: it only seeds a new
+    // group's value at creation, and each group's own figure drives the math.
+    [groups, utilizationPct],
   );
 
   const totals = useMemo(() => {
@@ -504,9 +519,22 @@ export function CalculatorForm({
       0,
     );
     const cameras = groupResults.reduce((s, r) => s + r.group.cameras, 0);
-    const dailyGb = recordedStorageGb / Math.max(retentionDays, 1);
+    // ADR 0132 — sum each group's OWN daily rate. Dividing the project footage by
+    // a single retention would be wrong the moment two groups differ: a 7-day
+    // group and a 90-day group write very different amounts per day for the same
+    // stored total.
+    const dailyGb = groupResults.reduce(
+      (s, r) => s + r.computed.recordedStorageGb / Math.max(r.group.retentionDays, 1),
+      0,
+    );
     return { bandwidthMbps, storageGb, recordedStorageGb, cameras, dailyGb };
-  }, [groupResults, retentionDays]);
+  }, [groupResults]);
+
+  // One figure when every group agrees, a range when they do not (ADR 0132).
+  const retention = useMemo(
+    () => retentionSummary(groups.map((g) => g.retentionDays)),
+    [groups],
+  );
 
   return (
     <div id="arxys-calc-root">
@@ -668,7 +696,7 @@ export function CalculatorForm({
             <div className="ax-f ax-f-ret">
               <label className="ax-fl">
                 Retention
-                <Tooltip text="Days of footage to store." />
+                <Tooltip text="Days of footage to store. This is the starting value for each new camera group — every group then has its own Retention box, so a project can keep 15 days on the gaming floor and 90 on the till points. Changing this does not move groups you have already added." />
               </label>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <input
@@ -687,11 +715,18 @@ export function CalculatorForm({
                   onBlur={(e) => {
                     clearDraft("retention");
                     const n = parseInt(e.target.value, 10);
-                    setRetentionDays(isNaN(n) ? 30 : Math.max(1, Math.min(730, n)));
+                    setRetentionDays(
+                      isNaN(n) ? RETENTION_DEFAULT : Math.max(1, Math.min(730, n)),
+                    );
                   }}
                   style={{ width: 80 }}
                 />
                 <span style={{ color: "var(--td)", fontSize: 13 }}>days</span>
+              </div>
+              <div style={{ fontSize: 11, color: "var(--td)", marginTop: 4 }}>
+                {retention.uniform
+                  ? "Starting value for each new group. Every group can be changed on its own."
+                  : `Groups currently keep ${retention.label} — set per group below.`}
               </div>
             </div>
           </div>
@@ -700,7 +735,7 @@ export function CalculatorForm({
           <div className="ax-buffer-row">
             <label className="ax-fl" htmlFor="ax-utilization">
               Max disk utilization
-              <Tooltip text="How full the storage is designed to run. At 90% we size for the footage to fill no more than 90% of the array, leaving 10% spare. Lower it to leave more room to grow. This is the only safety margin in the estimate — everything else models the real footage as accurately as we can." />
+              <Tooltip text="How full the storage is designed to run. At 88% we size for the footage to fill no more than 88% of the array, leaving 12% spare. Lower it to leave more room to grow. This is the only safety margin in the estimate — everything else models the real footage as accurately as we can." />
             </label>
             <div className="ax-buffer-control">
               <input
@@ -708,7 +743,7 @@ export function CalculatorForm({
                 type="range"
                 min={UTILIZATION_MIN_PCT}
                 max={UTILIZATION_MAX_PCT}
-                step={5}
+                step={UTILIZATION_STEP_PCT}
                 value={utilizationPct}
                 onChange={(e) => {
                   touch();
@@ -716,9 +751,13 @@ export function CalculatorForm({
                 }}
               />
               <span className="ax-buffer-value">{utilizationPct}%</span>
+              {/* The default is 88, not the 90% Milestone and Genetec both use:
+                  the two extra points are a general allowance for how much a
+                  scene estimate can be out by (ADR 0131). Say that plainly, or a
+                  partner comparing tools reads it as a mismatch. */}
               <span className="ax-buffer-note">
                 {utilizationPct === UTILIZATION_DEFAULT_PCT
-                  ? "Default. Matches Milestone's 90% and Genetec's 10% buffer, so this estimate lines up with a proposal from either."
+                  ? "Default. Milestone and Genetec both design to 90%; we hold 2 points tighter as a small allowance for estimate uncertainty."
                   : `${100 - utilizationPct}% of the array left spare.`}
               </span>
             </div>
@@ -1098,22 +1137,46 @@ export function CalculatorForm({
               {COMPLEXITIES[group.complexityIdx].example}
             </div>
 
-            {/* Audio / analytics metadata — counted data, not a safety margin
-                (ADR 0128). Default ON: the profile these appliances were rated
-                against records VMD + metadata. */}
+            {/* Per-group retention (ADR 0132). Regulated ranges make mixed
+                projects normal, not exceptional — Nevada gaming 7→15 days,
+                cannabis 30–180 by state, PCI/PII 90 — so a single project-wide
+                figure over-quoted every project at its longest requirement. */}
             <div className="ax-cx-extras">
-              <label className="ax-addon-chk">
-                <input
-                  type="checkbox"
-                  checked={group.recordsAudioMetadata}
-                  onChange={(e) => {
-                    touch();
-                    updateGroup(group.id, { recordsAudioMetadata: e.target.checked });
-                  }}
-                />
-                Records audio / analytics metadata
-                <Tooltip text="Most deployments record an audio track, analytics metadata (object and motion data), or both alongside the video, and those streams take space too. Adds 5%. Untick it only if this group genuinely records video and nothing else." />
+              <label className="ax-fl" htmlFor={`ax-ret-${group.id}`}>
+                Retention for this group
+                <Tooltip text="Days of footage to keep for these cameras. Set it per group when different areas have different requirements — a gaming floor may need 15 days where the till points need 90. Storage scales with it in a straight line." />
               </label>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <input
+                  id={`ax-ret-${group.id}`}
+                  type="number"
+                  min={1}
+                  max={730}
+                  value={getDraft(`${group.id}.retention`, group.retentionDays)}
+                  aria-label={`Retention in days for ${group.name}`}
+                  onChange={(e) => {
+                    setDraft(`${group.id}.retention`, e.target.value);
+                    touch();
+                    const n = parseInt(e.target.value, 10);
+                    if (!isNaN(n)) {
+                      updateGroup(group.id, {
+                        retentionDays: Math.max(1, Math.min(730, n)),
+                      });
+                    }
+                  }}
+                  onBlur={(e) => {
+                    clearDraft(`${group.id}.retention`);
+                    const n = parseInt(e.target.value, 10);
+                    updateGroup(group.id, {
+                      retentionDays: isNaN(n)
+                        ? RETENTION_DEFAULT
+                        : Math.max(1, Math.min(730, n)),
+                    });
+                  }}
+                  style={{ width: 72, textAlign: "center" }}
+                />
+                <span style={{ fontSize: 12, color: "var(--td)" }}>days</span>
+              </div>
             </div>
 
             <div className="ax-cr">
@@ -1161,7 +1224,10 @@ export function CalculatorForm({
                   <Tooltip text="How much footage this group records each day. Multiply by your retention days to get the footage figure." side="r" />
                 </span>
                 <span className="ax-civ" style={{ color: "var(--ac)" }}>
-                  {formatStorageGb(computed.recordedStorageGb / Math.max(retentionDays, 1))}/day
+                  {formatStorageGb(
+                    computed.recordedStorageGb / Math.max(group.retentionDays, 1),
+                  )}
+                  /day
                 </span>
               </div>
             </div>
@@ -1183,6 +1249,7 @@ export function CalculatorForm({
               <th>Codec</th>
               <th>FPS</th>
               <th>Rec</th>
+              <th>Retention</th>
               <th>Bandwidth (peak)</th>
               <th>Footage</th>
               <th>Storage to buy</th>
@@ -1200,6 +1267,7 @@ export function CalculatorForm({
                 <td>{CODECS[group.codecIdx].label}</td>
                 <td className="m">{group.fps}</td>
                 <td className="m">{Math.round((group.recordingPercent / 100) * 24)} hrs</td>
+                <td className="m">{group.retentionDays} days</td>
                 <td className="m" style={{ color: "var(--ac)" }}>
                   {formatBandwidthMbps(computed.bandwidthMbps)}
                 </td>
@@ -1210,7 +1278,9 @@ export function CalculatorForm({
                   {formatStorageGb(computed.storageGb)}
                 </td>
                 <td className="m" style={{ color: "var(--ac)" }}>
-                  {formatStorageGb(computed.recordedStorageGb / Math.max(retentionDays, 1))}
+                  {formatStorageGb(
+                    computed.recordedStorageGb / Math.max(group.retentionDays, 1),
+                  )}
                 </td>
               </tr>
             ))}
@@ -1219,7 +1289,8 @@ export function CalculatorForm({
             <tr>
               <td>Total</td>
               <td className="m">{totals.cameras}</td>
-              <td colSpan={4}></td>
+              {/* Resolution · Codec · FPS · Rec · Retention — no meaningful total */}
+              <td colSpan={5}></td>
               <td className="m" style={{ color: "var(--ac)" }}>
                 {formatBandwidthMbps(totals.bandwidthMbps)}
               </td>
@@ -1311,8 +1382,8 @@ export function CalculatorForm({
             <ul>
               <li><strong>Project Name</strong> — a label so you can find and revise this estimate later. Doesn&apos;t change the math.</li>
               <li><strong>Which VMS?</strong> — the recording software (Milestone, Genetec, etc.). Each compresses video a bit differently, so picking yours keeps the estimate realistic.</li>
-              <li><strong>Retention</strong> — how many days of footage you keep before it&apos;s overwritten. More days = more storage, in a straight line.</li>
-              <li><strong>Max disk utilization</strong> — how full the storage is designed to run. At the 90% default we size so the footage fills no more than 90% of the array. This is the <em>only</em> safety margin in the estimate; everything else models the real footage as accurately as the evidence allows. Milestone and Genetec both default to the same 10% spare, so an estimate at 90% lines up with a proposal from either. Lower it if you want more room to grow.</li>
+              <li><strong>Retention</strong> — how many days of footage you keep before it&apos;s overwritten. More days = more storage, in a straight line. The box in the project panel sets the starting value for each <em>new</em> group; each group then has its own, so one project can keep 15 days on a gaming floor and 90 on the till points without over-quoting either.</li>
+              <li><strong>Max disk utilization</strong> — how full the storage is designed to run. At the 88% default we size so the footage fills no more than 88% of the array. This is the <em>only</em> safety margin in the estimate; everything else models the real footage as accurately as the evidence allows. Milestone and Genetec both design to 90%; we hold 2 points tighter as a small allowance for how far a scene estimate can be out. Lower it if you want more room to grow.</li>
               <li><strong>Add-ons</strong> — optional hardware. <em>Failover Recorder</em> is a standby that takes over if a recorder dies; <em>Management Server</em> runs the VMS separately from the recorders on bigger systems.</li>
               <li><strong>Camera Model Lookup</strong>: Pick a vendor, then type a model name to auto-fill resolution and sensor count. Optional. Every field stays editable by hand; the manual path works exactly as before. <em>Units vs. sensors:</em> units is how many cameras, sensors is lenses per camera. A multisensor camera has multiple lenses in one housing, and each lens counts as a stream. Example: 10 units of a 4-sensor camera gives 40 video streams. Resolution fills to the closest matching level and stays editable. If a model does not appear in the search, enter the specs manually.</li>
               <li><strong>Video Streams</strong> — how many cameras share these settings. Everything below multiplies by this count.</li>
@@ -1323,7 +1394,7 @@ export function CalculatorForm({
               <li><strong>Recording</strong> — <em>Continuous</em> records every operating hour. <em>Motion-triggered</em> records only while something is happening, and saves storage in direct proportion: 50% motion stores half as much.</li>
               <li><strong>Operation</strong> — hours per day the cameras actually record. Fewer hours cuts storage proportionally.</li>
               <li><strong>Motion/Event %</strong> — on Motion-triggered, how much of the operating hours something is actually happening. Storage scales with it exactly. Bandwidth does not — the network still has to carry the full rate the moment an event starts.</li>
-              <li><strong>Records audio / analytics metadata</strong> — most systems record an audio track, analytics metadata, or both alongside the video. Those streams take space, so we count 5% for them. Untick it for a group that records video and nothing else.</li>
+              <li><strong>Retention for this group</strong> — days of footage kept for these cameras specifically. Different areas often have different requirements, so each group carries its own figure and the project total adds them up at their own retention rather than sizing everything to the longest one.</li>
             </ul>
           </div>
           <div className="ax-faq-col">
@@ -1331,9 +1402,9 @@ export function CalculatorForm({
             <ul>
               <li><strong>Bitrate</strong> — the data one camera produces per second while recording. The building block for everything else; resolution, FPS, codec, and complexity all feed into it.</li>
               <li><strong>Bandwidth</strong> — network speed a group (or the whole system) needs at once, at the peak. Make sure your switches and uplinks can carry the total. It is deliberately <em>not</em> reduced by motion recording: an average would under-size the network for the moment an event actually starts.</li>
-              <li><strong>Footage</strong> — what the cameras really record over the retention period, with no margin added. This is the number to set beside a Milestone or Genetec proposal.</li>
+              <li><strong>Footage</strong> — what the cameras really record over each group&apos;s own retention period, with no margin added. This is the number to set beside a Milestone or Genetec proposal.</li>
               <li><strong>Storage to buy</strong> — footage, plus the room to keep the array at or under your Max disk utilization setting, plus the difference between what a drive is sold as and what a formatted disk actually presents to the VMS.</li>
-              <li><strong>Daily</strong> — footage recorded per day. A quick gut-check: daily × retention days ≈ the footage figure.</li>
+              <li><strong>Daily</strong> — footage recorded per day. A quick gut-check on a single group: daily × that group&apos;s retention ≈ its footage figure.</li>
               <li><strong>Totals</strong> — the summary cards at the top add up every group, so you see the project-wide camera count, bandwidth, and storage at a glance.</li>
               <li><strong>Recommendation</strong> — after you save, we match these totals to the Arxys appliance that fits, plus alternatives and room to grow.</li>
             </ul>

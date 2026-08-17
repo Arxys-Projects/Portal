@@ -14,7 +14,11 @@ export type SubmissionNotificationInput = {
     storageGb: number;
     // Recorded footage only; the Milestone-comparable figure.
     recordedStorageGb: number;
-    retentionDays: number;
+    // Already-formatted retention, because retention is per group (ADR 0132) and
+    // a mixed project has no single number: "30 days" when every group agrees,
+    // "7–90 days" when they do not. Pre-formatted rather than a min/max pair so
+    // the two bodies below cannot drift in how they word it.
+    retentionLabel: string;
   };
   // Max disk utilization the quote was sized at (ADR 0126).
   utilizationPct: number;
@@ -54,7 +58,7 @@ function buildSalesBody(input: SubmissionNotificationInput): string {
     `  Bandwidth:  ${fmtNumber(totals.bandwidthMbps)} Mbit/s (peak while recording, not an average)`,
     `  Footage:    ${fmtNumber(totals.recordedStorageGb)} GB recorded`,
     `  Storage:    ${fmtNumber(totals.storageGb)} GB to buy (at ${input.utilizationPct}% max disk utilization)`,
-    `  Retention:  ${totals.retentionDays} days`,
+    `  Retention:  ${totals.retentionLabel}`,
     `  VMS:        ${vms ?? "(not specified)"}`,
     "",
     "Recommended configuration",
@@ -83,7 +87,7 @@ function buildPartnerBody(input: SubmissionNotificationInput): string {
     "Workload totals",
     `  Cameras:    ${totals.cameras}`,
     `  Bandwidth:  ${fmtNumber(totals.bandwidthMbps)} Mbit/s`,
-    `  Footage:    ${fmtNumber(totals.recordedStorageGb)} GB over ${totals.retentionDays} days`,
+    `  Footage:    ${fmtNumber(totals.recordedStorageGb)} GB over ${totals.retentionLabel}`,
     `  Storage:    ${fmtNumber(totals.storageGb)} GB to buy`,
     "",
     `Bandwidth is the peak while recording, so size your network for it even if`,
