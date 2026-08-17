@@ -4,6 +4,45 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-08-17 — The retention hint broke the setup row's alignment
+
+### Work done
+
+The per-group retention note added in the last calculator change
+(`Groups currently keep 15–91 days — set per group below.`) sat *inside* the retention
+field's own column, which is pinned at `flex: 0 0 130px`. Seventy-odd characters of 11px
+text wrapped to three lines, so that column ran ~45px taller than Project Name and Which
+VMS. Because `.ax-setup-row` is `align-items: flex-end`, the tall column kept its bottom
+edge level with the inputs and pushed its own label *up* — the Retention label and field
+visibly floated above the other two — and the extra height shoved the max-disk-utilization
+row and everything below it down the page.
+
+Moved the note out of the column and made it a fourth item in the row, beside Retention:
+
+- `.ax-f-project` goes from `flex: 1 1 240px` to `flex: 0 1 300px` — it no longer absorbs
+  all the leftover width, so Which VMS and Retention shift left.
+- The note (`.ax-setup-note`) takes the leftover instead at `flex: 1 1 220px` — roughly
+  424px at full panel width, which holds the longer of the two strings in one or two lines.
+  Two lines of 11px text is shorter than a 40px input, so the row height is back to what it
+  was and nothing below moves.
+- Wording unchanged in both states; `days` still sits immediately right of the number input.
+
+Below ~1000px viewport the note wraps onto its own line under the three fields, which is
+the intended degrade — the three labels stay aligned either way. Quick-calc has no
+equivalent hint, so it was left alone.
+
+### Detours & fixes
+
+- **The mobile breakpoint would have given the note a 220px height.** `.ax-setup-row`
+  becomes `flex-direction: column` under 768px, and in a column `flex-basis` is the *main*
+  size — i.e. height. `flex: 1 1 220px` would have reserved 220px of vertical space for two
+  lines of text. Reset to `flex: 0 0 auto` inside the existing mobile media query.
+
+Verified with `tsc --noEmit` and a production build; the layout arithmetic was checked
+against the panel's measured inner width rather than in a browser (no dev server here).
+
+---
+
 ## 2026-08-17 — Phase A's column comments were never applied; the apply note said they were
 
 ### Work done

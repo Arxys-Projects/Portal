@@ -86,9 +86,12 @@
 
 /* Band 2 — project setup */
 #arxys-calc-root .ax-setup-row { display: flex; align-items: flex-end; gap: 14px; flex-wrap: wrap; }
-#arxys-calc-root .ax-setup-row .ax-f-project { flex: 1 1 240px; min-width: 200px; }
+/* Project name is capped rather than greedy so the retention note is the item
+   that absorbs the leftover width, on the same line as the three fields. */
+#arxys-calc-root .ax-setup-row .ax-f-project { flex: 0 1 300px; min-width: 200px; }
 #arxys-calc-root .ax-setup-row .ax-f-vms { flex: 0 1 180px; }
 #arxys-calc-root .ax-setup-row .ax-f-ret { flex: 0 0 130px; }
+#arxys-calc-root .ax-setup-note { flex: 1 1 220px; font-size: 11px; color: var(--td); line-height: 1.45; padding-bottom: 4px; }
 /* Max disk utilization — the project's one buffer (ADR 0126). Given its own
    row rather than a slot in ax-setup-row because it is the single number a
    partner compares against a Milestone or Genetec proposal, and it deserves
@@ -599,6 +602,8 @@
   #arxys-calc-root .ax-gl .ax-f { width: 100% !important; flex-basis: auto !important; }
   #arxys-calc-root .ax-attr-grid { grid-template-columns: 1fr; }
   #arxys-calc-root .ax-setup-row { flex-direction: column; align-items: stretch; }
+  /* Column direction reads flex-basis as height — reset it or the note claims 220px of it. */
+  #arxys-calc-root .ax-setup-note { flex: 0 0 auto; padding-bottom: 0; }
   #arxys-calc-root .ax-action-row { flex-direction: column; align-items: stretch; }
   #arxys-calc-root .ax-action-btns { margin-left: 0; }
   #arxys-calc-root .ax-sv { font-size: 22px; }

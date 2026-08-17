@@ -723,11 +723,14 @@ export function CalculatorForm({
                 />
                 <span style={{ color: "var(--td)", fontSize: 13 }}>days</span>
               </div>
-              <div style={{ fontSize: 11, color: "var(--td)", marginTop: 4 }}>
-                {retention.uniform
-                  ? "Starting value for each new group. Every group can be changed on its own."
-                  : `Groups currently keep ${retention.label} — set per group below.`}
-              </div>
+            </div>
+            {/* Sits beside Retention, not under it: inside the 130px column this
+                wrapped to three lines, which made the column taller than its
+                neighbours and pushed the rest of the band down. */}
+            <div className="ax-setup-note">
+              {retention.uniform
+                ? "Starting value for each new group. Every group can be changed on its own."
+                : `Groups currently keep ${retention.label} — set per group below.`}
             </div>
           </div>
 
