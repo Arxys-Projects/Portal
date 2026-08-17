@@ -18,6 +18,23 @@
 > **Applied to production 2026-08-17 and verified**: all four comments non-null, and
 > Phase A's three `NOT VALID` range guards re-confirmed present with the expected
 > definitions in the same session. Nothing is outstanding on either note.
+>
+> **Code verified live 2026-08-17** on a real two-group submission (15 and 91 days).
+> The observed row, for anyone comparing against it later:
+>
+> | Field | Observed | Confirms |
+> |---|---|---|
+> | `calc_version` | `3` | the deploy is writing the new model |
+> | `retention_days` | `91` | the **longest** group retention, not the project default (ADR 0132) |
+> | `max_disk_utilization_pct` | `88` | the tightened default (ADR 0131) |
+> | `storage_tb / recorded_storage_tb` | `1.2724` | `1 / (0.88 × 0.8931)` = 1.27239 — the whole buffer plus the binary charge, and nothing else |
+> | per-group `retentionDays` | `[15, 91]` | retention banked per group |
+> | `recordsAudioMetadata` present | `false` | the withdrawn term is no longer written |
+>
+> The pre-deploy row checked in the same session read `calc_version 2`, `util 90`,
+> ratio `1.2442` (= `1 / (0.90 × 0.8931)`) with the audio field still present —
+> real-data confirmation that historical rows did not shift, alongside the synthetic
+> v1/v2 checks run before the deploy.
 
 | | File |
 |---|---|

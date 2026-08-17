@@ -31,6 +31,16 @@ technique was sound and the gap is real.
 No runtime impact: comments are metadata and no read or write path consults them.
 The live deploy is unaffected.
 
+**Post-deploy verification then completed on production**, on a real two-group
+submission at 15 and 91 days: `calc_version 3`, `retention_days 91` (the longest, not
+the project default), `util 88`, `storage_tb / recorded_storage_tb = 1.2724`
+(= `1 / (0.88 × 0.8931)`, the buffer and binary charge and nothing else), per-group
+`retentionDays [15, 91]`, and no `recordsAudioMetadata` written. The newest
+pre-deploy row read `calc_version 2` / `util 90` / ratio `1.2442` with the audio field
+intact — real-data confirmation that historical rows did not shift, which until then
+rested only on synthetic v1/v2 probes. Figures recorded in
+[the apply note](./apply-notes/0131-calculator-math-phase-bc.md).
+
 Both halves of Phase A's "second step" are now measured, so the state is settled
 rather than suspected:
 
