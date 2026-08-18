@@ -117,6 +117,7 @@ export async function loadCandidateSpecs(
     .select("sku, product_name, product_group, msrp, price_type")
     .eq("active", true)
     .eq("price_type", "numeric")
+    .eq("hidden_from_catalog", false)
     .order("sort_order");
   if (productError) {
     return { status: "db-error", context: "load products", error: productError };

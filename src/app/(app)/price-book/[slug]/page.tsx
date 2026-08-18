@@ -116,6 +116,7 @@ export default async function FamilyDetailPage({
     .select("sku, product_name, msrp, price_type")
     .in("product_group", allPrimaryGroups)
     .eq("active", true)
+    .eq("hidden_from_catalog", false)
     .order("sort_order");
 
   // Tier section products
@@ -126,6 +127,7 @@ export default async function FamilyDetailPage({
       .select("sku, product_name, msrp, price_type")
       .in("product_group", tier.productGroups)
       .eq("active", true)
+      .eq("hidden_from_catalog", false)
       .order("sort_order");
     tierProductsMap.set(tier.title, (tierRows ?? []) as ProductRow[]);
   }
@@ -138,6 +140,7 @@ export default async function FamilyDetailPage({
           .select("sku, product_name, msrp, price_type")
           .in("sku", family.upgradeSkus)
           .eq("active", true)
+          .eq("hidden_from_catalog", false)
       : { data: [] };
 
   const rows = (primaryProducts ?? []) as ProductRow[];

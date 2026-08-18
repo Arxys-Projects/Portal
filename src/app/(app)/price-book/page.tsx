@@ -30,6 +30,7 @@ export default async function PriceBookIndexPage() {
     .from("current_products")
     .select("product_group, msrp, price_type, effective_date")
     .eq("active", true)
+    .eq("hidden_from_catalog", false)
     .in("product_group", allGroups);
 
   // "Effective" date = the most recent effective_date among the currently-in-effect

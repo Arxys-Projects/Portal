@@ -27,6 +27,7 @@ export async function GET() {
     .from("current_products")
     .select("sku, product_name, product_group, msrp, price_type")
     .eq("active", true)
+    .eq("hidden_from_catalog", false)
     .order("sort_order");
   if (error) {
     return NextResponse.json({ error: dbError(error, "price-book load products") }, { status: 500 });

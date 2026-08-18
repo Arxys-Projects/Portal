@@ -4,6 +4,64 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-08-18 — "-NCD" SKUs hidden from the price list and recommender
+
+### Work done
+
+- The 3 semi-custom "-NCD" SKUs (below) are exclusive to one partner and must
+  never appear on the price list, its Excel export, or be suggested by the
+  calculator's recommendation engine — but must still render correctly on any
+  quote/Pipedrive deal that already references the exact SKU.
+- Ruled out `products.active = false`: that column is RLS-gated
+  (`products_select_active_or_admin` — "active = true or is_admin") and
+  `current_products` is a `security_invoker` view, so it would hide the row
+  from the very partner whose own quote references it, since quote rendering
+  runs as that signed-in user, not an admin.
+- Added a new `hidden_from_catalog` boolean column instead, carrying no RLS
+  meaning — set `true` only for the 3 SKUs, filtered by the price-book pages,
+  the price-book xlsx export, and the recommender's candidate query. Quote
+  rendering (`src/lib/project-quote/assemble.ts`) resolves catalog rows by
+  exact SKU with no such filter, so it's unaffected either way. See
+  [`0138-hidden-from-catalog-not-active-false.md`](./decisions/0138-hidden-from-catalog-not-active-false.md).
+- `current_products` has an explicit column list (not `select *`), so the
+  view had to be recreated to expose the new column.
+- Migration: `supabase/migrations/20260818000002_hide_ncd_skus_from_catalog.sql`
+  (STOP-AND-FLAG — apply by hand via the Supabase dashboard SQL editor).
+
+### Decisions captured
+
+- [`0138-hidden-from-catalog-not-active-false.md`](./decisions/0138-hidden-from-catalog-not-active-false.md)
+
+---
+
+## 2026-08-18 — Semi-custom "-NCD" SKUs mapped to their core products
+
+### Work done
+
+- Added 3 semi-custom SKUs that were live in Pipedrive but missing from the
+  catalog — a gap first flagged in the 2026-06-12 entry. Each is the same
+  base build as an existing core product with an upgraded NIC and GPU baked
+  into one bundled MSRP:
+  `VX5-V500-288-NCD` (base `VX5-V500-288`, $52,220 → $54,981),
+  `VX5-V400-192-NCD` (base `VX5-V400-192`, $37,463 → $40,244),
+  `VX5-V400-128-NCD` (base `VX5-V400-128`, $31,034 → $33,796).
+- Confirmed the join between `products`/`current_products` and `product_specs`
+  is literal string equality on SKU with no FK and no aliasing mechanism, so
+  each new SKU needed its own `product_specs` row (a duplicate of its base
+  SKU's row) to be visible to the recommendation engine and quote spec
+  rendering — see [`0137-semi-custom-ncd-skus-as-duplicated-rows.md`](./decisions/0137-semi-custom-ncd-skus-as-duplicated-rows.md).
+- Migration file: `supabase/migrations/20260818000001_semi_custom_ncd_upgraded_nic_gpu_skus.sql`.
+  Follows the project's STOP-AND-FLAG convention — apply by hand via the
+  Supabase dashboard SQL editor, not `supabase db push`, since this repo's
+  remote migration history is known to be desynced from some hand-applied
+  migrations.
+
+### Decisions captured
+
+- [`0137-semi-custom-ncd-skus-as-duplicated-rows.md`](./decisions/0137-semi-custom-ncd-skus-as-duplicated-rows.md)
+
+---
+
 ## 2026-08-18 — Website calculator: codec re-anchor, motion model restructure, h265smart fix
 
 ### Work done
