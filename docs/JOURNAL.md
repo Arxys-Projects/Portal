@@ -4,6 +4,117 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-08-18 — Website calculator: codec re-anchor, motion model restructure, h265smart fix
+
+### Work done
+
+Brought the public marketing-site calculator (`reference/Arxys-React-calculator.clean.html`,
+a standalone file, not the Partner Portal) closer to the portal's
+Milestone-anchored math on three specific points, per brief:
+
+- Re-anchored `eFK`'s codec bitrate constants to `h265:.037, h264:.0634` (from
+  `compute.ts`), replacing the old unsourced `.07/.12` pair that ran ~2x hot.
+- Restructured the motion model: motion is now a storage-only recording duty
+  cycle (`mot/100`, straight linear, no floor) instead of a bitrate weight
+  with a `0.3 + 0.7×` floor that also inflated bandwidth. Bandwidth now always
+  reflects the full event-peak rate regardless of motion%. Updated the Motion
+  tooltip copy to match ("Fraction of time the scene is actively recording…").
+- Retired the `smart` codec key; replaced with `h265smart = h265 × 0.80`
+  (`.0296`), relabeled `"H.265 + Smart Compression"` in the `COD` array,
+  resolving the naming collision with the portal's own `h265smart` lineage.
+- Confirmed the three protected integration surfaces are untouched: `sendEmail`'s
+  FormData field/key shape, the `fm`/`fS`/`fB` formatters, and the
+  `videoxServers`/`findRecommendedServer` fetch (still unused, left as-is).
+  Full diff against the pre-change file touches exactly four regions: `COD`,
+  `eFK`'s `b` object, the `res` useMemo body, and the one Motion tooltip
+  string.
+- Verified by hand: 4MP/15fps/H.265/Low computes to ~999 Kbit/s vs. Milestone's
+  1,966 Kbit/s anchor (−49%, expected — website's 3-level complexity scale
+  doesn't match the six-level scale behind that anchor); bandwidth is
+  byte-identical across motion=20 vs. motion=100 for an otherwise-identical
+  group; storage at motion=10 is exactly 10% of motion=100 (previously a
+  37%-floor-inflated ratio).
+
+### Detours & fixes
+
+- **File duplication**: `reference/Arxys-React-calculator.html` and `.rtf` are
+  byte-identical legacy artifacts (the original file was actually RTF content
+  saved with a `.html` extension — see earlier journal entry). Only
+  `.clean.html` is the de-RTF'd source actually used elsewhere in this repo
+  (CSS extraction, `tables.ts`, math audit references), so only that file was
+  edited; the RTF duplicates were left untouched as historical artifacts.
+
+### Decisions captured
+
+- [`0136-website-calculator-codec-motion-reanchor.md`](./decisions/0136-website-calculator-codec-motion-reanchor.md) —
+  also flags a real downstream risk found during verification: the PHP
+  handler forwards the codec label as-is into a **Pipedrive dropdown custom
+  field** with no mapping. The label rename means `"H.265 + Smart
+  Compression"` needs to be added as a valid option on that Pipedrive field
+  (key `30bdd73ed2f44f0293629099dfb19899c93fc2af`) or that field will start
+  failing for quotes using that codec. This is a Pipedrive-admin action, out
+  of scope for this front-end-only brief.
+
+---
+
+## 2026-08-17 — Williamson Co. ADC Site 2: new submission, one model excluded
+
+### Work done
+
+A brief asked for a 12-model camera BOM to be applied to submission `1081ead5`
+("WCJ Adult Detention Center"). Investigation before any write showed:
+
+- 11 of the 12 models were already seeded in `camera_specs` (260-row live
+  table). Only `PNM-A16084RVD` (qty 44) was missing, and it turned out to be
+  a **nonexistent model number** — see [`0135-nonexistent-model-number-excluded-not-fabricated.md`](./decisions/0135-nonexistent-model-number-excluded-not-fabricated.md).
+  Excluded, not fabricated.
+- The 12-model BOM did not match submission `1081ead5`'s actual 25 groups at
+  all (only `PNM-C32083RVQ` overlapped, at qty 1 instead of the expected 66
+  across 8 configs; the "originally quoted 3MP camera" `TNV-C7013RC` wasn't
+  in that submission — it has `TNV-8010C` instead). `1081ead5` was the wrong
+  target.
+- Andy clarified: the BOM is for a **brand-new project**, "Williamson Co. ADC
+  Site 2," for partner **Cornerstone Detention - HQ** (contact Ken Fuller,
+  `partners.id dafa0dfe-00e1-4604-a2f9-2fbbc51fd16a`) — a sibling site to the
+  already-open "Williamson Co. Juvenile" submissions on the same partner
+  (Pipedrive deal 5437).
+- Confirmed "project" has no dedicated table — it's `submissions.project_name`
+  grouped ad hoc, per `docs/decisions/claude-code-brief-projects-page-schema-and-query-layer.md`.
+  Built the new submission the same way the WCJ scaffold was built (see
+  [[bid-matrix-to-calculator-prefill]] memory): ran the actual engine
+  (`computeGroup`, `recommend`, `mapPixelsToBucket` — imported directly, not
+  reimplemented) against the 11 confirmed-real camera lines to derive real
+  `bandwidth_mbps`/`storage_tb`/`recommended_units`, then inserted via
+  service-role script. Both `Axis Q9227-SLV` lines (225 FUTURE-scope, 95
+  current-scope) were kept as separate groups per instruction — no schema
+  flag exists for "FUTURE," so it's recorded only in each group's free-text
+  name, and both count fully toward totals (confirmed no exclusion mechanism
+  exists).
+  Codec/complexity/retention/fps/recording-mode defaults were inherited from
+  the most recent "Williamson Co. Juvenile" sibling submission (h265smart,
+  medium/low-motion, 90-day retention, motion-triggered @ 70%), with
+  `max_disk_utilization_pct` set to the CURRENT default (88%, not the
+  sibling's stale 90% — ADR 0131 tightened this after that sibling was
+  written).
+- New submission: `ce0946e5-6789-4a34-81ef-0786f5b18226` — 908 cameras across
+  11 groups, 5,943.82 Mbps, 5,145.73 TB, recommends 9× `VX5-V800-720`
+  (~$921.6K list). Open at `/calculator?revise=ce0946e5-6789-4a34-81ef-0786f5b18226`
+  for Andy to review/adjust the assumed defaults and Save.
+
+### Detours & fixes
+
+- **The brief's submission ID was stale/wrong.** No amount of reconciling
+  the BOM against `1081ead5`'s groups worked because the BOM was never meant
+  for that submission — it was for a new project under the same customer.
+  Confirmed via a prior memory ([[bid-matrix-to-calculator-prefill]]) that
+  recognized the "WCJ Adult Detention Center" project shape before Andy's
+  clarification landed.
+- **Verifying a nonexistent model number**: Hanwha's product-details route
+  silently redirects unknown slugs to a generic category page instead of
+  404ing — easy to mistake for a slow-loading real page. Confirmed by
+  diffing that behavior against known-real models and a deliberately fake
+  slug before concluding `PNM-A16084RVD` doesn't exist.
+
 ## 2026-08-17 — Axis camera seed refresh: diff report only, no writes
 
 ### Work done

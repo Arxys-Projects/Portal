@@ -239,7 +239,7 @@ const RES=[
 const COD=[
   {l:"H.265 (HEVC)",v:"h265",t:"30-50% more efficient"},
   {l:"H.264 (AVC)",v:"h264",t:"Standard codec"},
-  {l:"H.264-Smart",v:"smart",t:"Axis Zipstream / Avigilon HDSM"}
+  {l:"H.265 + Smart Compression",v:"h265smart",t:"Axis Zipstream / Avigilon HDSM / Hanwha WiseStream, applied over H.265"}
 ];
 const CX=[
   {l:"Low (office)",v:.5},
@@ -249,7 +249,7 @@ const CX=[
 const VL=["Milestone","Avigilon","Genetec","Hanwha","NX Witness","Other"];
 const OH=1.20;
 
-function eFK(r,c,cx){const p=r.w*r.h;const b={h265:.07,h264:.12,smart:.084};return(p*(b[c]||.12)*cx)/8/1024;}
+function eFK(r,c,cx){const p=r.w*r.h;const b={h265:.037,h264:.0634,h265smart:.037*.8};return(p*(b[c]||.12)*cx)/8/1024;}
 function cBW(f,fps,n){return(f*1024*8*fps*n)/1e6;}
 function cST(f,fps,n,d,r){return(f*1024*fps*n*d*24*3600*(r/100))/1e9;}
 const fm=(n,d=2)=>n>=1e3?(n).toFixed(1).replace(/\B(?=(\d{3})+(?!\d))/g,","):n.toFixed(d);
@@ -290,9 +290,10 @@ const reset=()=>{setCs([mk(1)]);setRet(30);setVms("");setProj("");setFo(false);}
 
 const res=useMemo(()=>cs.map(c=>{
   const r=RES[c.ri],cod=COD[c.ci].v,cx=CX[c.cx].v;
-  let fk=eFK(r,cod,cx);
-  if(["h264","h265","smart"].includes(cod))fk*=.3+.7*(c.mot/100);
-  const bw=cBW(fk,c.fps,c.n),raw=cST(fk,c.fps,c.n,ret,c.rec),st=raw*OH;
+  const fk=eFK(r,cod,cx);
+  const bw=cBW(fk,c.fps,c.n);
+  const dutyCycle=c.mot/100;
+  const raw=cST(fk,c.fps,c.n,ret,c.rec)*dutyCycle,st=raw*OH;
   return{...c,rl:r.l,cl:COD[c.ci].l,fk,bw,st,br:fk*8*c.fps};
 }),[cs,ret]);
 
@@ -463,7 +464,7 @@ return(<div>
       </div>
     </div>
     <div className="ax-f wm">
-      <label className="ax-fl">Motion<Tp t="Scene motion level" a="r"/></label>
+      <label className="ax-fl">Motion<Tp t="Fraction of time the scene is actively recording (motion-triggered systems)" a="r"/></label>
       <div className="ax-sr">
         <input type="range" min="1" max="100" value={c.mot} onChange={e=>up(c.id,"mot",+e.target.value)} style={{maxWidth:80}}/>
         <span className="ax-svl">{c.mot}%</span>
