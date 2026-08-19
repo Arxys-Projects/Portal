@@ -4,6 +4,57 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-08-19 — Avigilon VSA catalog: PTZ, H5 Pro, Fisheye, Corner, H5M added to camera_specs
+
+### Work done
+
+- Andy supplied the full 18-page Avigilon VSA Product Catalog to seed new
+  camera models. Cross-checked it against the existing
+  `data/avigilon-camera-specs.json` / `-multisensor.json` first — H6A/H6X,
+  H6SL, H6M, and the H5A/H6A Multisensor and Dual Head lines were already
+  seeded and verified, so only H5 Pro, H5A Fisheye, H5A Corner, H5M, and the
+  PTZ lines (H6A PTZ, H5A PTZ, H5A IR PTZ) were genuinely new.
+- Confirmed the camera_specs schema only stores `max_width`/`max_height` and
+  `sensor_count` — no IR distance, FOV, environmental rating, or PoE fields
+  exist, so "lens options don't matter" (per Andy) simplified to: real active
+  pixel resolution per MP tier is the only thing that needs sourcing.
+- Pulled real per-model pixel dimensions from Avigilon's own datasheets for
+  every new line (never from the summary catalog's MP labels, per ADR 0062)
+  — WebFetch couldn't parse these PDFs directly (FlateDecode binary), so each
+  was fetched to a local file and re-read with the PDF-capable Read tool.
+- PTZ cameras were initially left out per ADR 0062's phase-1 PTZ exclusion;
+  Andy asked mid-task to include them, so H6A PTZ / H5A PTZ / H5A IR PTZ were
+  sourced and added after all. Thermal and H5A Modular stay excluded — Avigilon
+  hits both existing exclusion reasons (ADR 0134 thermal, ADR 0062
+  modular-sensor) squarely, and nothing about this request touches them.
+- Added 16 new single-sensor rows to `data/avigilon-camera-specs.json`
+  (35 rows total, all passing `scripts/validate-camera-specs.ts`).
+- `scripts/validate-camera-specs.ts` caught that H5 Pro's 40MP and 61MP tiers
+  exceed the calculator's largest resolution bucket (29MP, ADR 0058) under
+  either selectable aspect mode — deferred both rather than extend the shared
+  `tables.ts` bucket table as a side effect of a camera-seed task.
+- Did **not** run `scripts/load-camera-specs.ts` — that's a separate, manual,
+  typed-CONFIRM step per its own gate; only the seed JSON was drafted and
+  validated this session.
+
+### Detours & fixes
+
+- **A third-party AI-generated pixel-dimension table the user pasted turned
+  out to have confirmed errors** against the catalog PDF already in hand
+  (wrong H5 Pro MP tier, a nonexistent 4×6MP multisensor combo, and fisheye
+  pixel counts that didn't match the catalog's own printed "Active Pixels"
+  row) — caught by cross-checking against the primary source before using it,
+  not used for any seeded value.
+- **H6A PTZ's WebFetch redirected to a docs.avigilon.com URL that served only
+  nav/footer content**, not the PDF — worked around by finding a mirrored
+  copy of the same datasheet on a distributor site and reading that instead.
+
+### Decisions captured
+
+- [`0139-avigilon-vsa-catalog-camera-additions.md`](./decisions/0139-avigilon-vsa-catalog-camera-additions.md)
+
+---
+
 ## 2026-08-18 — "-NCD" SKUs hidden from the price list and recommender
 
 ### Work done
