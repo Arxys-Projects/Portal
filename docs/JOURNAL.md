@@ -4,6 +4,43 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-08-19 — Step 2: fix calculator's first-group retention silently not following the project default
+
+### Work done
+
+- Andy reported: changing the upper Retention field on the calculator never
+  updates camera group 1, no matter when you edit it — but any group added
+  *after* changing the field does get the right value. He clarified partway
+  through that the first group is auto-created on page load, not something
+  the user explicitly adds, and that this had nearly caused a real quote to
+  understate storage by ~600 TB (90-day project, first group silently stuck
+  at the 30-day default).
+- Traced it to [ADR 0132](decisions/0132-retention-moves-to-the-camera-group.md):
+  `newGroup()` bakes in the current project-level retention once, at creation
+  time, and nothing ever re-syncs it afterward. 0132's stated rule was "does
+  not retroactively move groups the user has already set" — but the
+  implementation applied that to every group that merely *exists*, including
+  the auto-created first group nobody has touched yet.
+- Fixed in [`calculator-form.tsx`](../src/app/(app)/calculator/calculator-form.tsx):
+  each `Group` now carries a client-only `retentionTouched` flag (false by
+  default). While false, editing the upper Retention field also updates that
+  group's `retentionDays`; editing a group's own Retention box directly flips
+  it to `true` and detaches that group for good, matching 0132's original
+  intent for groups the user has actually customized. Groups rehydrated from
+  a saved submission (revising an existing quote) start `retentionTouched:
+  true` unconditionally, since a saved submission's per-group values may
+  already deliberately differ and there's no way to tell which were
+  customized versus left at the default.
+- Updated both Retention tooltips' copy to describe the new sync-until-touched
+  behavior. Ran `npx tsc --noEmit`, `npx eslint`, and the full `npm test`
+  suite (791 tests) — all clean.
+
+### Decisions captured
+
+- [`0140-retention-sync-until-group-touched.md`](decisions/0140-retention-sync-until-group-touched.md)
+
+---
+
 ## 2026-08-19 — Avigilon VSA catalog: PTZ, H5 Pro, Fisheye, Corner, H5M added to camera_specs
 
 ### Work done

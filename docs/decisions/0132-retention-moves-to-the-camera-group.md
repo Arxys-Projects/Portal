@@ -1,6 +1,9 @@
 # 0132 — Retention moves to the camera group
 
-- **Status**: Accepted.
+- **Status**: Accepted. The "does not retroactively move groups the user has
+  already set" rule was amended by [0140](./0140-retention-sync-until-group-touched.md) —
+  a group only detaches from the project default once the user edits that
+  group's own Retention box, not merely by existing.
 - **Date**: 2026-08-17
 
 ## Context

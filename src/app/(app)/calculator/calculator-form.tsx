@@ -71,6 +71,14 @@ type Group = {
   // project-level Retention field; changing that field afterwards does not move
   // groups the user has already set, which is the point of per-group retention.
   retentionDays: number;
+  // Client-only: has the user ever edited THIS group's own Retention box
+  // (ADR 0132 amendment)? While false, the upper Retention field keeps this
+  // group's retentionDays in sync — the auto-created first group, and any
+  // group added but never individually touched, is not something the user
+  // has "set" yet. Editing this group's own box flips it true and detaches it
+  // for good. Never persisted; rehydrated groups start true (frozen), since a
+  // saved submission's per-group values may already differ deliberately.
+  retentionTouched: boolean;
   // Phase 10 Step 3 — camera-model picker. null vendor/model = no model loaded,
   // in which case `cameras` is the direct editable input and the group behaves
   // exactly as before the feature. When a model IS loaded, `cameras` is derived
@@ -90,7 +98,11 @@ function freshId(): string {
   return `g-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-function newGroup(seqNumber: number, retentionDays: number): Group {
+function newGroup(
+  seqNumber: number,
+  retentionDays: number,
+  retentionTouched = false,
+): Group {
   return {
     id: freshId(),
     name: `Camera Group ${seqNumber}`,
@@ -105,6 +117,7 @@ function newGroup(seqNumber: number, retentionDays: number): Group {
     // Inherited from the project-level Retention field at the moment the group is
     // added (ADR 0132), then independently editable.
     retentionDays,
+    retentionTouched,
     // No model loaded by default — the no-model (direct-cameras) path.
     cameraVendor: null,
     cameraModel: null,
@@ -147,7 +160,10 @@ function groupsFromInitial(
   retentionDays: number,
 ): Group[] {
   if (!initial || initial.length === 0) return [newGroup(1, retentionDays)];
-  return initial.map((g) => ({ id: freshId(), ...g }));
+  // Rehydrated groups may already carry deliberately different retentionDays
+  // (that's the whole point of ADR 0132) — start them frozen so nudging the
+  // upper field while revising can't silently overwrite that divergence.
+  return initial.map((g) => ({ id: freshId(), ...g, retentionTouched: true }));
 }
 
 // The project-level Retention default, and the fallback for a fresh form.
@@ -300,6 +316,15 @@ export function CalculatorForm({
     touch();
     // Inherits the project Retention as it stands right now (ADR 0132).
     setGroups((p) => [...p, newGroup(p.length + 1, retentionDays)]);
+  };
+  // Carries the upper Retention field into every group the user hasn't
+  // individually customized yet. Groups with retentionTouched: true (the
+  // user edited that group's own box) are left alone — that's the point of
+  // per-group retention (ADR 0132).
+  const syncUntouchedGroupRetention = (days: number) => {
+    setGroups((p) =>
+      p.map((g) => (g.retentionTouched ? g : { ...g, retentionDays: days })),
+    );
   };
   const removeGroup = (id: string) => {
     touch();
@@ -696,7 +721,7 @@ export function CalculatorForm({
             <div className="ax-f ax-f-ret">
               <label className="ax-fl">
                 Retention
-                <Tooltip text="Days of footage to store. This is the starting value for each new camera group — every group then has its own Retention box, so a project can keep 15 days on the gaming floor and 90 on the till points. Changing this does not move groups you have already added." />
+                <Tooltip text="Days of footage to store. Every camera group has its own Retention box, so a project can keep 15 days on the gaming floor and 90 on the till points — changing this here updates any group you haven't customized yet, but leaves a group alone once you've edited its own box directly." />
               </label>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <input
@@ -709,15 +734,19 @@ export function CalculatorForm({
                     setDraft("retention", e.target.value);
                     const n = parseInt(e.target.value, 10);
                     if (!isNaN(n)) {
-                      setRetentionDays(Math.max(1, Math.min(730, n)));
+                      const clamped = Math.max(1, Math.min(730, n));
+                      setRetentionDays(clamped);
+                      syncUntouchedGroupRetention(clamped);
                     }
                   }}
                   onBlur={(e) => {
                     clearDraft("retention");
                     const n = parseInt(e.target.value, 10);
-                    setRetentionDays(
-                      isNaN(n) ? RETENTION_DEFAULT : Math.max(1, Math.min(730, n)),
-                    );
+                    const clamped = isNaN(n)
+                      ? RETENTION_DEFAULT
+                      : Math.max(1, Math.min(730, n));
+                    setRetentionDays(clamped);
+                    syncUntouchedGroupRetention(clamped);
                   }}
                   style={{ width: 80 }}
                 />
@@ -1164,6 +1193,7 @@ export function CalculatorForm({
                     if (!isNaN(n)) {
                       updateGroup(group.id, {
                         retentionDays: Math.max(1, Math.min(730, n)),
+                        retentionTouched: true,
                       });
                     }
                   }}
@@ -1174,6 +1204,7 @@ export function CalculatorForm({
                       retentionDays: isNaN(n)
                         ? RETENTION_DEFAULT
                         : Math.max(1, Math.min(730, n)),
+                      retentionTouched: true,
                     });
                   }}
                   style={{ width: 72, textAlign: "center" }}
