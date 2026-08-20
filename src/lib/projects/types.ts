@@ -418,9 +418,13 @@ export type BuildProjectQueueInput = {
   viewerId: string;
   // Injected so every derived age and "today" is testable. Callers pass new Date().
   now: Date;
-  // max(effective_date) across `current_products` — "when pricing was last
-  // updated" as one global date, since a portal price update
-  // (scripts/push-prices.ts) stamps every changed SKU in one run with the same
-  // effective_date. Null when the products table has never been read/seeded.
+  // "When pricing was last updated" as one global date, since a portal price
+  // update (scripts/push-prices.ts) stamps every changed SKU in one run with
+  // the same effective_date. Specifically the effective_date of the newest row
+  // that REPRICED an existing SKU, not max(effective_date) — a new SKU's debut
+  // row is also its newest version, and adding a product to the catalog cannot
+  // make an older quote's prices stale (ADR 0141). Computed by
+  // lastRepricingDate in price-effectivity.ts. Null when no SKU has ever been
+  // repriced, or when the price read failed.
   latestPriceEffectiveDate: string | null;
 };

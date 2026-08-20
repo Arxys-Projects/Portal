@@ -15,6 +15,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { groupIntoDeals } from "@/lib/pipeline/forecast";
 import { fingerprintSnapshotLineItems } from "./line-items";
+import { lastRepricingDate } from "./price-effectivity";
+import type { PriceVersionRow } from "./price-effectivity";
 import { readDealCache, refreshDealCache } from "./pipedrive-cache";
 import { buildProjectQueue, pickCurrentQuote } from "./rows";
 import type {
@@ -66,7 +68,7 @@ export async function loadProjectQueue(
     await Promise.all([
       supabase.from("submissions").select(SUBMISSION_COLUMNS).order("created_at", { ascending: false }),
       supabase.from("partners").select("id, company_name, contact_name, is_internal"),
-      loadLatestPriceEffectiveDate(supabase),
+      loadLatestPriceEffectiveDate(supabase, now),
     ]);
 
   if (submissionError) {
@@ -134,13 +136,19 @@ export async function loadProjectQueue(
 }
 
 // "When pricing was last updated," as one global date: every SKU changed by a
-// single scripts/push-prices.ts run shares the same effective_date, so the max
-// across current_products is that run's date. Scoped to current_products
-// (effective_date <= today) rather than the raw append-only products table, so
-// a price change staged for a future date does not flag quotes as stale before
-// it actually takes effect.
-async function loadLatestPriceEffectiveDate(supabase: SupabaseClient): Promise<string | null> {
-  const { data, error } = await supabase.from("current_products").select("effective_date");
+// single scripts/push-prices.ts run shares the same effective_date, so one date
+// covers the whole run.
+//
+// Reads the full append-only history from `products` — the one direct read of
+// that table in src/ — because the answer is a version-to-version delta, and
+// current_products has already collapsed each SKU to a single row. Which row is
+// newest cannot distinguish a repricing from a brand-new SKU's debut, and only
+// the former makes an existing quote stale. See lastRepricingDate and ADR 0141.
+async function loadLatestPriceEffectiveDate(
+  supabase: SupabaseClient,
+  now: Date,
+): Promise<string | null> {
+  const { data, error } = await supabase.from("products").select("sku, msrp, effective_date");
 
   if (error) {
     // Degrade to "no flag": every quote reads as priced-current rather than
@@ -149,10 +157,7 @@ async function loadLatestPriceEffectiveDate(supabase: SupabaseClient): Promise<s
     return null;
   }
 
-  return (data ?? []).reduce<string | null>((max, row) => {
-    const effectiveDate = (row as { effective_date: string | null }).effective_date;
-    return effectiveDate && (!max || effectiveDate > max) ? effectiveDate : max;
-  }, null);
+  return lastRepricingDate((data ?? []) as PriceVersionRow[], now);
 }
 
 // Proposal metadata for every submission in hand. Deliberately does not select

@@ -4,6 +4,86 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-08-20 — Every quote falsely flagging `needs_price_update`
+
+### Work done
+
+Reported as: a SKU-match update was pushed to the price list this week and reverted, but
+every quote still flags `needs_price_update` even though the priced content is unchanged
+from the 2026-07-02 list. The expected cause was stray rows left behind by the revert —
+append-only versioning (ADR 0076) means a "revert" cannot undo an insert, so a surviving
+row dated after 2026-07-02 would keep `max(effective_date)` pinned to this week.
+
+**The symptom was real and reproduced exactly; the cause was not what it looked like.**
+
+- **Three rows exist with `effective_date > '2026-07-02'`** — ids 74/75/76, all dated
+  `2026-08-18`: `VX5-V500-288-NCD` ($54,981), `VX5-V400-192-NCD` ($40,244),
+  `VX5-V400-128-NCD` ($33,796). All `active = true`, `hidden_from_catalog = true`,
+  `pushed_to_pipedrive_at` null. Whole-table census: `2026-05-05` 36 rows, `2026-07-02`
+  31 rows, `2026-08-18` 3 rows, 70 total — nothing else is later-dated anywhere.
+- **They are not strays and nothing was reverted.** Each has exactly *one* version row, so
+  there is no 2026-07-02 counterpart they could duplicate — these are three brand-new SKUs
+  making their debut, not a re-version of anything. They are `9fa8280` (2026-08-18), still
+  in `main`, with migrations `20260818000001`/`20260818000002`, ADRs 0137/0138, and two
+  JOURNAL entries behind them. `hidden_from_catalog` exists *specifically* so they can be
+  in the table without appearing on the price list. Their MSRPs differ from their base SKUs
+  (bundled NIC/GPU upgrade), so they are not duplicate content either.
+- **Confirmed the mechanism.** `current_products` returns all three as the current row for
+  their SKU, `loadLatestPriceEffectiveDate` reduces to `2026-08-18`, and reproducing
+  `rows.ts`'s comparison (`generatedAt < latestPriceMs && deal_status === "open"`) across
+  all 139 quote rows / 99 current quotes gave **34 of 34 open-deal quotes flagged**. At
+  `2026-07-02` the same computation flags 1 — a genuinely pre-July quote.
+- **Verified no pricing content was altered.** Of the 67 rows dated `<= 2026-07-02`, *zero*
+  have an `updated_at` in August or later (distribution: `2026-07-02` 36, `2026-07-06` 31 —
+  the July push). `pushed_to_pipedrive_at` is set on exactly 31 rows, all
+  `2026-07-06T21:18:54.505Z`, and null on the other 39. The three base SKUs still hold both
+  their May and July versions at the correct MSRPs.
+- **Fixed the query, deleted nothing.** The defect is the *definition* of "the last price
+  update": a row is newest for its SKU either because the SKU was repriced or because it
+  was born, and only the former can make an existing quote stale. New pure module
+  [`src/lib/projects/price-effectivity.ts`](../src/lib/projects/price-effectivity.ts) —
+  `lastRepricingDate` walks each SKU's versions in effective order and keeps the newest date
+  at which `msrp` differs from the version it supersedes. `queue.ts` now reads the
+  `products` history (`sku, msrp, effective_date`) instead of `current_products`, the one
+  deliberate direct `products` read in `src/`. No migration, no data write.
+- **Verified against production**: `lastRepricingDate` returns `2026-07-02` (was
+  `2026-08-18`) and the flag count goes **34 → 1**, the survivor being the pre-July-2 quote
+  that should flag. Spot-checked a formerly-false-positive quote (`generated_at`
+  `2026-08-13T21:13:34Z`): now reads `needs_price_update = false`. Re-asserted post-change
+  that the 3 later-dated rows are still present and untouched, no `<= 2026-07-02` row has an
+  August `updated_at`, and all 31 `pushed_to_pipedrive_at` stamps are unchanged.
+- 805 tests pass (14 new, including the exact 2026-08-18 regression), `tsc --noEmit` clean,
+  `next build` clean.
+
+### Detours & fixes
+
+- **The reported diagnosis was wrong in a way worth recording, because the proposed fix was
+  destructive.** Deleting the three later-dated rows would have removed three live SKUs —
+  one partner's quoted products among them — to work around a query bug, and the next
+  legitimate new SKU would have re-broken the flag identically. Stopped at the gate and
+  reported the contradiction rather than executing. The tell was cheap and generic: a stray
+  left by a reverted re-version would have a *sibling* row for the same SKU at the earlier
+  date. These had none, which says "new SKU," not "duplicate." Worth checking version
+  *count per SKU* before reading a later date as evidence of a bad push.
+- **Editing `effective_date` in place was ruled out on the model's own terms**, as the brief
+  anticipated: under append-only versioning the date is part of the row's identity, it would
+  collide with `unique (sku, effective_date)` for any SKU that already has a July row, and
+  it would assert something false — these prices genuinely did take effect 2026-08-18.
+- **Misread the next free ADR number as 0136 while at the gate.** 0136 is the website
+  calculator codec re-anchor; ADRs run to 0140. The new one is 0141, and the three code
+  comments that had been written against 0136 were corrected. `ls docs/decisions/ | tail`
+  is not a reliable read of the maximum — `grep -oE '^[0-9]{4}' | sort -n | tail -1` is.
+- **Doing this in SQL was considered and rejected for now.** A view or RPC would carry the
+  same semantics, but `products` migrations in this repo are STOP-AND-FLAG (hand-applied via
+  the dashboard), so the fix would not have been live until applied by hand. Recorded in
+  0141 as the condition for revisiting.
+
+### Decisions captured
+
+- [`0141-price-staleness-means-repricing-not-newest-row.md`](./decisions/0141-price-staleness-means-repricing-not-newest-row.md)
+
+---
+
 ## 2026-08-19 — Step 2: fix calculator's first-group retention silently not following the project default
 
 ### Work done
