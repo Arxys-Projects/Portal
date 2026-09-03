@@ -320,7 +320,7 @@ export function SubmissionDetail({
                 version-1 row banked a motion-weighted average, so claiming
                 "peak" on it would under-state the network by up to 64%. */}
             {formatNumber(submission.bandwidth_mbps, 2)} Mbit/s {bandwidth.short} ·{" "}
-            {formatNumber(submission.storage_tb, 2)} TB to buy
+            {formatNumber(submission.storage_tb, 2)} TB net usable needed
           </KvRow>
           <KvRow label="Network sizing">
             {bandwidth.isEventPeak ? (
@@ -348,8 +348,14 @@ export function SubmissionDetail({
               <>
                 {formatNumber(submission.recorded_storage_tb, 2)} TB of recorded footage over{" "}
                 {retention.label}, sized to run at no more than{" "}
-                {submission.max_disk_utilization_pct ?? 90}% full — then adjusted for the
-                capacity a formatted disk presents to the VMS. That{" "}
+                {submission.max_disk_utilization_pct ?? 90}% full and adjusted for the
+                capacity a formatted disk presents to the VMS, needs{" "}
+                <strong className="font-semibold text-ink">
+                  {formatNumber(submission.storage_tb, 2)} TB of net usable storage
+                </strong>{" "}
+                — the figure to match against a server&apos;s Net Usable rating. RAID
+                parity is not included in it, because Net Usable is already stated after
+                parity drives: compare the two directly and add nothing. That{" "}
                 {100 - (submission.max_disk_utilization_pct ?? 90)}% is the only safety
                 margin in this estimate.
               </>

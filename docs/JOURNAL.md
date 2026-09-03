@@ -4,6 +4,71 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-09-03 — Summary-tile tooltips rendered as empty boxes; storage stack re-confirmed
+
+### Work done
+
+Andy reported that the tooltips on all three calculator summary tiles (Total Cameras,
+Total Bandwidth, Total Storage) showed "an odd shadow box but no content". Root cause
+was `overflow: hidden` on `.ax-s` in `calculator.css`, present only to clip the 3px
+`::before` accent rule to the card's 14px radius. `.ax-tt` is absolutely positioned at
+`bottom: calc(100% + 10px)` above a label that sits at the very top of a short card, so
+the clip removed the entire tooltip body and left only its bottom edge and shadow
+visible. `z-index: 99999` cannot escape an ancestor clip.
+
+Fixed by giving `.ax-s::before` its own `border-radius: 13px 13px 0 0` (the card's inner
+radius, inside the 1px border) and dropping `overflow: hidden` from `.ax-s`. No other
+`overflow` rule in the file clips the tile chain, and `#arxys-calc-root` sets none.
+
+Also walked the storage stack end to end for Andy against a live 82-camera project
+(50.59 TB footage, 88% cap, 64.37 TB shown). Confirmed the engine matches ADRs 0126/0127
+exactly and that the requirement and net-usable figures share a basis:
+
+    50.59  footage (camera calc)
+    ÷0.88  max disk utilization      -> 57.49  required VMS-visible
+    ÷0.8931 decimal→binary+formatting -> 64.37  required decimal RAID-net
+                                          72.00  V200-96 net usable, 96 × (4-1)/4
+
+Both 64.37 and 72.00 are decimal, post-parity, pre-formatting, so the comparison is
+apples-to-apples and formatting is charged exactly once. Combined footage→displayed
+factor is ×1.2724 at the 88% default.
+
+The clarifying finding: **RAID parity is not inside the displayed 64.37 TB figure.**
+It is applied downstream at SKU selection in `candidates.ts`, which only offers boxes
+whose `usableCapacityTb()` clears the requirement. Three copy changes followed from it:
+
+- **View Project → Storage sizing** now lands on the number. It previously named the
+  footage and the utilization cap but never stated the result, so a rep had to re-open
+  the quote in the calculator to read the figure the sentence described. It now ends in
+  the net-usable requirement in bold and says plainly that RAID parity is not in it and
+  nothing should be added on top.
+- **View Project → Totals** relabelled `TB to buy` → `TB net usable needed`. Nobody buys
+  64.37 TB; that is the post-parity requirement, and the old label invited a rep to add
+  ~20% for RAID and over-quote a tier.
+- **Calculator Total Storage tooltip** opened with "Drive space to buy" — the same false
+  claim, and newly consequential now that the tooltip renders at all. Rewritten to name
+  the figure correctly and to state the RAID point explicitly.
+
+Deliberately NOT changed, per Andy: raw drive nameplate TB is not surfaced anywhere, and
+the recommender's SKU-side reporting is untouched. Stating what the displayed number *is*
+was the requirement; a second capacity basis on screen would be one more figure to
+misread. Customer-facing PDF copy (`SubmissionPdf.tsx`, `ProjectQuotePdf.tsx`) carries the
+older sentence and was left alone — worth revisiting only if the page/PDF divergence
+causes a question in the field.
+
+### Detours & fixes
+
+- **Second occurrence of the same clip pattern.** `calculator.css:153` already carries a
+  comment recording that `overflow: hidden` on the camera-group cards clipped the
+  column-header tooltips, "the bug that previously forced single-line tooltip copy". The
+  fix there was the same: let children round their own corners so tooltips can escape.
+  The summary tiles were simply never revisited. Any new rounded card in this stylesheet
+  that carries a tooltip should round its accent child rather than clip the parent.
+- **Not visually verified.** This project runs no dev server or browser tools, so the fix
+  is reasoned from the cascade plus the 1:153 precedent rather than screenshotted.
+
+---
+
 ## 2026-09-03 — Axis PTZ camera_specs seed: 15 current-model additions
 
 ### Work done

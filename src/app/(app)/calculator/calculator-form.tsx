@@ -585,7 +585,7 @@ export function CalculatorForm({
         <div className="ax-s gn">
           <div className="ax-sl">
             Total Storage
-            <Tooltip text="Drive space to buy. It starts from the footage itself, then adds room to run the array at no more than your Max disk utilization setting, then accounts for the capacity a formatted disk actually presents to the VMS." side="r" />
+            <Tooltip text="Net usable storage this project needs. It starts from the footage itself, then adds room to run the array at no more than your Max disk utilization setting, then accounts for the capacity a formatted disk actually presents to the VMS. RAID parity is NOT included — match this figure straight against a server's Net Usable rating, which is already stated after parity drives. Add nothing on top." side="r" />
           </div>
           <div className="ax-sv gn">{formatStorageGb(totals.storageGb)}</div>
           <div style={{ fontSize: 11, color: "var(--td)", marginTop: 4 }}>

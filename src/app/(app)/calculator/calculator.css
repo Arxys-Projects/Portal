@@ -57,8 +57,12 @@
 
 /* Summary Cards */
 #arxys-calc-root .ax-sum { display: grid; grid-template-columns: repeat(3, 1fr); gap: 25px; margin-bottom: 10px; }
-#arxys-calc-root .ax-s { background: var(--bg); border: 1px solid #d7dce3; border-radius: 14px; padding: 6px 2px; text-align: center; overflow: hidden; position: relative; }
-#arxys-calc-root .ax-s::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+#arxys-calc-root .ax-s { background: var(--bg); border: 1px solid #d7dce3; border-radius: 14px; padding: 6px 2px; text-align: center; position: relative; }
+/* The top accent is rounded to the card's inner radius rather than clipped by
+   an overflow:hidden on .ax-s. That clip also ate the summary-tile tooltips —
+   .ax-tt sits above a label at the very top of a short card, so every one of
+   the three tiles rendered as an empty shadow box regardless of z-index. */
+#arxys-calc-root .ax-s::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px; border-radius: 13px 13px 0 0; }
 /* Single-accent top rule (ADR 0075) — solid navy on white totals cards. */
 #arxys-calc-root .ax-s.bl::before { background: #14346b; }
 #arxys-calc-root .ax-s.gn::before { background: #14346b; }
