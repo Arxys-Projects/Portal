@@ -4,6 +4,49 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-09-03 — Axis PTZ camera_specs seed: 15 current-model additions
+
+### Work done
+
+Andy asked whether four specific Axis models (P3225-LVE Mk II, P3227-LVE, P3719-PLE,
+Q6358-LE) were in the camera_specs seed — none were, all four only existed in
+`Axis Camera Seed/` (an untracked-in-app scratch folder holding a prior research pass: 187
+Axis models extracted from Axis's own Q3 2026 comparison-table PDF, per
+`Axis Camera Seed/axis_seed_refresh_brief.md`). Checked each of the four directly against
+axis.com: P3225-LVE Mk II, P3227-LVE, and P3719-PLE are EOL (discontinued, replaced by
+P3275/P3285-LVE, P3277/P3287-LVE, and P3737-PLE respectively); Q6358-LE is current.
+
+Andy then asked how many PTZ cameras in that scratch folder were missing from the real
+seed (`data/axis-camera-specs.json` / `-multisensor.json`, the files
+`scripts/load-camera-specs.ts` actually loads into Supabase). Of 21 rows tagged
+`"Pan/tilt/zoom cameras"` in the normalized extraction, only 2 were already seeded
+(Q6300-E, M5000-G). Filtered the other 19 down to "normal, current model" PTZ per Andy's
+instruction to ignore thermals: excluded Q6411-LE (bispectral thermal+visual) and "AXIS
+Q87" (a bispectral row with no specific model suffix — reads like a series/family entry,
+not one sellable SKU). Also excluded Q6020-E, which the PDF table categorizes as PTZ but
+which axis.com's own product page confirms is actually a 4-sensor 360° overview camera sold
+as a companion to a *separate* PTZ head — same shape as the already-seeded Q6300-E, not a
+single-sensor row.
+
+Verified the remaining 16 individually against their live axis.com support pages (no
+"Product end of support" notice, current AXIS OS support dates 2033–2035) and pulled
+max resolution from each page's own Technical Specifications table rather than trusting the
+PDF extraction — this is what caught Q6020-E's true multisensor nature, which the PDF row
+alone didn't reveal. Added 15 rows to `data/axis-camera-specs.json`: M5074, M5075, M5075-G,
+M5526-E, P5654-E Mk II, P5655-E, P5676-LE, Q6086-E, Q6088-E, Q6225-LE, Q6325-LE, Q6355-LE,
+Q6358-LE, V5925, V5938. `scripts/validate-camera-specs.ts` passes clean (43 rows, all
+checks PASS).
+
+Did **not** run `load-camera-specs.ts` against production Supabase — that step requires the
+service-role key and a typed `CONFIRM` by design (mirrors the price-pipeline gate) and is
+left for Andy to run.
+
+### Decisions captured
+
+- [`0144-axis-ptz-seed-refresh-process-and-additions.md`](./decisions/0144-axis-ptz-seed-refresh-process-and-additions.md)
+
+---
+
 ## 2026-08-20 — Every quote falsely flagging `needs_price_update`
 
 ### Work done
