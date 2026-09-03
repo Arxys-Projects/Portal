@@ -47,6 +47,189 @@ left for Andy to run.
 
 ---
 
+## 2026-09-01 — JCT Solutions / Monmouth County: 4 new + 1 revised submission
+
+### Work done
+
+Seeded four new calculator submissions and revised one existing submission for **JCT
+Solutions** (contact Robert DiGeronimo), filed by internal sales rep **Richard Kershaw**
+on-behalf-of, via a one-off script mirroring `submitCalculation()`
+(`src/app/(app)/calculator/actions.ts`) directly against production — same technique as the
+WCJ/Williamson scaffolds (see memory `bid-matrix-to-calculator-prefill`), but this time run
+to completion (real insert, real PDF/email, real Pipedrive sync) rather than left as a
+prefill scaffold for Andy to Save by hand, since the brief gave exact final camera counts
+with nothing left to fill in interactively.
+
+All five share: **H.265 plain** (`CODECS[0]`, not Smart, not H.264), **15 fps**, **100%
+recording percentage** (24h operation), **motion-triggered recording at 50% duty cycle**
+(`recordingMode: "motion"`, `motionPercent: 50` — "Scene activity 50% Average" in the brief;
+confirmed against the live Monmouth County Jail row, which already uses exactly this
+setting), **complexity "Medium detail, low motion"** (`COMPLEXITIES[2]`, the codebase's own
+documented default for "a realistic typical scene," not specified in the brief), and **Max
+disk utilization 70%** (see [`0143-over-provisioning-maps-to-free-disk-space.md`](decisions/0143-over-provisioning-maps-to-free-disk-space.md)
+— "30% over-provisioning" in the brief meant 30% free disk space, not a ×1.3 storage
+multiplier). VMS inherited as "Genetec" from the Monmouth County Jail sibling row across
+all five, since the brief didn't specify it for the four new ones.
+
+Camera rows were entered as generic resolution-class rows (not camera-model lookups, per
+the brief) and mapped to `RESOLUTIONS` buckets via `mapPixelsToBucket()` — the same
+round-up rule (ADR 0058) the app applies to real camera specs. One row surfaced a
+non-obvious mapping: **Sheriff's Office (2500)'s 11 "20MP" cameras at native 5472×3648
+round UP to the 29MP (6576×4384) bucket**, not the nominally-matching-sounding "20MP
+(5120×3840)" entry, because 5472×3648's 19.96 Mpx exceeds the 20MP bucket's 19.66 Mpx. Every
+other given resolution (1920×1080, 2560×1440, 2592×1944, 3840×2160, 4000×3000) was an exact
+bucket match.
+
+Results:
+
+| Project | Submission | Cameras | Retention | Storage | Recommendation | Pipedrive deal |
+|---|---|---:|---:|---:|---|---:|
+| Monmouth County Jail (revision) | [`2d5ebb05`](https://portal.arxys.com/submissions/2d5ebb05-8603-4ce3-8bbb-f635400ad400) | 420 | 90d | 1,286.31 TB | 2× VX5-V800-864 ($234,108) | 5458 (updated in place) |
+| Monmouth County Courthouse (Rev2) | [`f8b57cd5`](https://portal.arxys.com/submissions/f8b57cd5-d65c-4283-b535-f490472093d2) | 300 | 31d | 838.81 TB | 3× VX5-V600-320 ($169,383) | 5502 |
+| Monmouth Co. Sheriff's Office (2500) Rev2 | [`1824d075`](https://portal.arxys.com/submissions/1824d075-5e6f-448f-96ed-fb91d5929d8c) | 248 | 31d | 734.70 TB | 2× VX5-V700-480 ($151,990) | 5503 |
+| Monmouth Co. Sheriff's Office (SACC) Rev2 | [`514fd357`](https://portal.arxys.com/submissions/514fd357-d930-46d6-bfc2-15393ef2e047) | 21 | 31d | 55.97 TB | 1× VX5-V200-80 ($22,056) | 5504 |
+| Seaview Square Complex | [`3cbafafe`](https://portal.arxys.com/submissions/3cbafafe-7415-4f2f-9f32-fe61183fd0fc) | 68 | 30d | 107.56 TB | 1× VX5-V400-160 ($34,206) | 5505 |
+
+The Jail revision inserted a new row with `parent_submission_id` pointing at the source
+(`d63b5ee5-9a8a-441f-8281-56264902bcc5`, calc_version-null/pre-Phase-A) and updated the
+same live Pipedrive deal (5458) in place via `updateDealFromRevision`, per the app's normal
+revision flow — no new deal, no new email/PDF (`submitCalculation()` skips both on a
+revision). The revision's numbers do **not** reproduce the old row's figures (1,286.31 TB
+vs. the old 2,064.93 TB, 2 vs. 4 recommended units) because the old row predates the
+calc_version-3 math rework (ADRs 0123–0133) — re-running current math on the same camera
+counts is not a re-derivation of the old quote, it's a re-size under the current model, as
+expected for any revision of a pre-Phase-A row.
+
+### Detours & fixes
+
+- **`import "server-only"` unconditionally throws under plain Node/tsx**, breaking direct
+  imports of `src/lib/pdf/render.ts`, `pdf/assets.ts`, `email/submission-notification.ts`,
+  and `email/transport.ts` from a script (the guard package's `index.js` just throws
+  regardless of environment — it relies on a bundler substituting it, which a plain `tsx`
+  run never does). Fixed by running with **`node --conditions=react-server`**: the
+  `server-only` package ships a `"react-server"` export condition pointing at a genuinely
+  empty `empty.js`, so this flag makes Node pick that variant instead of `index.js` with no
+  code changes anywhere. Needed for any future scaffold script that imports these modules —
+  updating memory `bid-matrix-to-calculator-prefill` with this.
+- **PDF generation itself still failed** even with the above fix — `@react-pdf/renderer`'s
+  reconciler threw `TypeError: Cannot read properties of undefined (reading 'S')` deep in
+  its minified bundle, for all four new submissions. Root cause not chased down (likely a
+  React/scheduler version mismatch specific to running `@react-pdf/renderer` outside
+  Next.js's bundled runtime); `submitCalculation()`'s own designed fallback ("a PDF render
+  failure must not block submission or the email") absorbed it — the four new submissions'
+  sales-notification emails sent without a PDF attached. The in-app Download button renders
+  through the real Next.js/Vercel runtime (not this script's plain-Node context), so it
+  should be unaffected — **not independently verified this session**; worth a spot-check
+  next time one of these five is opened in the portal.
+- **A Pipedrive custom field lookup ("Recording New") failed by name during the Jail
+  revision's deal update** — logged as a warning, not fatal; `updateDealFromRevision`
+  updated every other field and reported "deal value locked by attached products" (a known,
+  benign variant — see memory `pipedrive-soft-delete-revise-bug`). Not investigated further
+  since it didn't block the sync.
+
+### Decisions captured
+
+- [`0143-over-provisioning-maps-to-free-disk-space.md`](decisions/0143-over-provisioning-maps-to-free-disk-space.md)
+
+---
+
+## 2026-08-26 — Travis AFB dorm camera RFQ: Projects 1 & 2 built in the live calculator
+
+### Work done
+
+Following the Phase 0 findings below, built the two funded-scope submissions through the
+production calculator UI at `portal.arxys.com/calculator` (real inserts, real Pipedrive
+push — not the read-only Phase 0 pass). On behalf of **VastGlobe Logistics** (free-text
+company, per the Q4 finding — no partner row, no Pipedrive Person, org-only).
+
+- **Project 1 — "Travis AFB Dorms — Funded Base Primary"**
+  (`0dfd2c45-6238-40f5-b37e-072fdc36f39e`), 90-day retention. Recommended
+  **1× VideoX V700-576TB** (net usable 480TB), **$85,766**.
+- **Project 2 — "Travis AFB Dorms — Funded Base Failover"**
+  (`af611959-083b-41aa-ae47-23fab88268a4`), identical camera groups, 30-day retention.
+  Recommended **1× VideoX V500-192TB** (net usable 160TB), **$42,577**. Built as a fully
+  independent submission, not a `?revise=` of Project 1 — a revise would have marked the
+  primary "Superseded" (Q5 finding).
+- Each project models the RFQ's dual-rate profile (5fps continuous baseline → 15fps on
+  motion) as **six groups**, per the Phase 0 Q1/Q2 workaround: three physical camera
+  populations (Ground Floor 5MP ×27 @ 50% motion, Floors 2–3 5MP ×51 @ 25% motion, Exterior
+  4K ×8 @ 50% motion) each split into a baseline group (5fps, motion% = 100 − stated%) and
+  an event group (15fps, motion% = stated%). Storage sums exactly correct this way (duty
+  cycle is linear in the storage product); two known distortions do not self-correct and are
+  recorded in [`0142-dual-rate-two-group-workaround.md`](decisions/0142-dual-rate-two-group-workaround.md).
+- Verified the live engine output against the Phase 0 hand-checks before saving: per-group
+  bitrates (2.25 / 6.05 Mbit/s at 5MP 5/15fps, 3.70 / 9.95 at 4K 5/15fps) matched the Q1
+  research exactly.
+
+### Detours & fixes
+
+- **`projectName` has a 50-char cap (`actions.ts:75`, `z.string().trim().max(50)`) that the
+  UI does not surface until submit.** The first save attempt used a 54-char name including
+  the solicitation number and failed with a generic "Some inputs are invalid" banner with no
+  field-level detail anywhere in the client response — had to read the schema directly to
+  find the actual constraint. Shortened both project names to drop the solicitation number;
+  it's recorded in each submission's "on behalf of" note instead.
+
+### Decisions captured
+
+- [`0142-dual-rate-two-group-workaround.md`](decisions/0142-dual-rate-two-group-workaround.md)
+
+---
+
+## 2026-08-26 — Travis AFB dorm camera RFQ: Phase 0 discovery, no writes
+
+### Work done
+
+A brief (solicitation FA442726Q1131, 60 CONS, via broker VastGlobe Logistics) asked whether
+the portal could reproduce a hand-calculated 270-camera dormitory sizing at Travis AFB, and
+raised seven hypotheses about schema/RLS gaps before any code got touched. Read-only
+investigation only — no migration, insert, seed change, or calculator edit.
+
+- **Q1 (fps curve)**: confirmed sublinear (`effective_fps = 15×(fps/15)^0.90`,
+  `compute.ts:137-143`), matching ADR 0123. A proposed "blend motion% into a single continuous
+  fps" substitution errs only ~1.3% on storage but **31–50% on bandwidth**, because motion% is
+  a pure recording-duty-cycle scalar (ADR 0125) that never touches bitrate — the substitution
+  is a category error, not a curve-fitting one. Also found: fps is integer-only in the product
+  (`actions.ts:43`), so a 25%-motion blend (7.5fps) isn't even enterable.
+- **Q2 (dual-rate profile)**: confirmed XOR — `recordingMode: "constant" | "motion"`, one fps
+  field, no baseline/event split. `rehydrate.test.ts:111` proves this was deliberate (a
+  Milestone "Speedup" mode was named and excluded). ADR 0125 had already flagged this exact
+  gap as a future item. Scoped a fix at ~14 source + ~9 test files, no DDL required.
+- **Q3 (generic camera rows)**: **non-issue**. Neither the compute engine nor the VSR check
+  ever reads `camera_specs`; manual entry (no seeded model) is the pre-existing default path,
+  and both RFQ resolutions (2592×1944, 3840×2160) are exact zero-error entries already in the
+  resolution table. Adding generic seed rows would violate ADR 0062's curation policy and a DB
+  CHECK constraint on `vendor`.
+- **Q4 (partner without an auth user)**: `partners.id` is unconditionally FK'd to
+  `auth.users(id)` — no standalone row is possible — but the existing on-behalf-of free-text
+  path (ADR 0045/0054, `on_behalf_of_company_name`) already covers exactly this case, and was
+  purpose-built to avoid the CRM-pollution concern the brief raised (no Pipedrive Person is
+  created on that path, only a search-first Organization).
+- **Q5 (retention scope)**: confirmed per-camera-group (ADR 0132/0140), but that solves a
+  different problem than primary-vs-failover sizing. One submission always sums every group
+  into one recommendation, so the 90-day primary and 30-day failover need two independent
+  submissions — not a `?revise=` pair, which would falsely mark the primary "Superseded."
+  Failover is currently a Pipedrive-note-only checkbox with zero sizing impact.
+- **Q6 (24TB pricing currency)**: there is no drive-level price at all — cost is
+  `units × wholeApplianceMsrp` with no BOM rollup. The 24TB-tier appliance SKUs' last actual
+  repricing was 2026-07-02, ~8 weeks stale as of today; flagged given HDD volatility.
+- **Q7 (`effective_date` bug)**: confirmed fixed by the 2026-08-20 change below, and — more
+  to the point — neither PDF generator ever had a staleness check on this path to begin with.
+
+Full findings, with file:line citations: [`travis-afb-phase0-findings.md`](../travis-afb-phase0-findings.md).
+
+### Detours & fixes
+
+- **The brief's own reading list was stale.** It pointed at ADRs 0049/0050 as load-bearing;
+  those are superseded by 0123/0125/0129 (bitrate/fps/motion) and 0132/0140 (retention),
+  none of which were in the brief. Read the current ADR set instead of trusting the brief's
+  citations at face value.
+- **Three of the five hypothesized schema gaps turned out to be non-issues** (Q3 generic
+  cameras, Q4 partner record, Q7 effective_date) — each had an existing, purpose-built
+  mechanism or was already fixed. Reported that plainly rather than scoping work for them.
+
+---
+
 ## 2026-08-20 — Every quote falsely flagging `needs_price_update`
 
 ### Work done
