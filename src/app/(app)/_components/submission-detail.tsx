@@ -39,6 +39,10 @@ export type SubmissionDetailRow = {
   total_list_price_usd: number | null;
   total_partner_price_usd: number | null;
   pipedrive_deal_id: number | null;
+  // null when the sales/partner notification email was never sent (or the
+  // send failed and was swallowed — ADR 0027). Admin-only affordance to
+  // resend reads this to show status; the button itself works either way.
+  email_sent_at: string | null;
   created_at: string;
   groups_payload: unknown;
   // null when the recommended_product_id is a legacy UUID with no matching
@@ -152,6 +156,7 @@ export function SubmissionDetail({
   projectQuotePanel,
   lineage,
   relinkPipedriveButton,
+  resendNotificationButton,
 }: {
   submission: SubmissionDetailRow;
   partner?: SubmissionPartnerSummary;
@@ -163,6 +168,11 @@ export function SubmissionDetail({
   // ADR 0093 step 3 — "Retry Pipedrive link" control, supplied by the admin
   // page when the viewer may act on it. Replaces the bare "no deal linked" text.
   relinkPipedriveButton?: ReactNode;
+  // "Resend notification email" control, supplied by the admin page for
+  // internal/admin viewers. Recovers from the silent-failure gap where a
+  // submission's sales+partner email never sent and there was previously no
+  // way to retry it short of a one-off script.
+  resendNotificationButton?: ReactNode;
 }) {
   const groups = extractGroups(submission.groups_payload);
   // ADR 0130 — whether this row's banked Mbit/s is the event peak or the
@@ -287,7 +297,16 @@ export function SubmissionDetail({
                 </span>
               ))
             : null}
+          {mode === "admin" ? resendNotificationButton : null}
         </div>
+        {mode === "admin" ? (
+          <p className="mt-2 text-xs text-ink-soft">
+            Notification email:{" "}
+            {submission.email_sent_at
+              ? `sent ${formatDate(submission.email_sent_at)}`
+              : "never sent"}
+          </p>
+        ) : null}
       </header>
 
       {projectQuotePanel}

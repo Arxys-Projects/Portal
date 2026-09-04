@@ -16,6 +16,7 @@ import {
   type CurrentQuoteSummary,
 } from "./_components/project-quote-panel";
 import { RelinkPipedriveButton } from "./_components/relink-pipedrive-button";
+import { ResendNotificationButton } from "./_components/resend-notification-button";
 
 export default async function AdminSubmissionDetailPage({
   params,
@@ -138,6 +139,9 @@ export default async function AdminSubmissionDetailPage({
           isInternal && !submission.pipedrive_deal_id ? (
             <RelinkPipedriveButton submissionId={id} />
           ) : undefined
+        }
+        resendNotificationButton={
+          isInternal ? <ResendNotificationButton submissionId={id} /> : undefined
         }
         generateQuoteButton={
           isInternal ? (

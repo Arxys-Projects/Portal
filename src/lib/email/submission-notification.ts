@@ -1,7 +1,6 @@
 import "server-only";
 import { env } from "@/lib/env";
 import { getMailer } from "./transport";
-import type { RecommendationResult } from "@/lib/recommend/types";
 
 export type SubmissionNotificationInput = {
   partner: { companyName: string; contactName: string; email: string };
@@ -23,7 +22,19 @@ export type SubmissionNotificationInput = {
   // Max disk utilization the quote was sized at (ADR 0126).
   utilizationPct: number;
   vms: string | null;
-  recommendation: RecommendationResult;
+  // Narrowed to the fields the email bodies actually read (not the full
+  // RecommendationResult) so a resend built from a persisted submission row —
+  // which has no live RecommendationCandidate, only its banked equivalents —
+  // can satisfy this type without fabricating unused fields.
+  recommendation: {
+    winner: {
+      units: number;
+      productGroup: string;
+      coveredCameras: number;
+      coveredStorageTb: number;
+    };
+    warnings: string[];
+  };
   submissionId: string;
   // Optional PDF attachment. Same buffer is attached to both sales and
   // partner messages when present. Step 6 (PDF generation) wires this in;

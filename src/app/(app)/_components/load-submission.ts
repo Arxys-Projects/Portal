@@ -56,7 +56,7 @@ export async function loadSubmissionDetail(
        retention_days, bandwidth_mbps, storage_tb, recorded_storage_tb,
        calc_version, max_disk_utilization_pct, recommended_product_id,
        recommended_units, total_list_price_usd, total_partner_price_usd,
-       pipedrive_deal_id, created_at, groups_payload`,
+       pipedrive_deal_id, email_sent_at, created_at, groups_payload`,
     )
     .eq("id", id)
     .maybeSingle<SubmissionBase & { recommended_product_id: string | null }>();
@@ -86,6 +86,7 @@ export async function loadSubmissionDetail(
     total_partner_price_usd:
       data.total_partner_price_usd === null ? null : Number(data.total_partner_price_usd),
     pipedrive_deal_id: data.pipedrive_deal_id,
+    email_sent_at: data.email_sent_at,
     created_at: data.created_at,
     groups_payload: data.groups_payload,
   };

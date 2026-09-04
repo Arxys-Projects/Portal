@@ -4,6 +4,48 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-09-04 — Missing submission notification email; added admin resend action
+
+### Work done
+
+Investigated a report that submission `5a5f15d3-ca75-48de-8d8f-3fbca88dd4e9`
+("Warinanco Park") synced to Pipedrive (deal #5510) but never sent its sales +
+partner notification email. Confirmed via Supabase that the submission is a
+fresh submit, not a revision (`parent_submission_id` null, so ADR 0040's
+deliberate revision-skip doesn't apply), and `email_sent_at` was null — meaning
+`sendSubmissionNotification` threw and was silently swallowed by the outer
+try/catch in `calculator/actions.ts` (ADR 0027's intentional non-blocking
+behavior). Vercel's request-log retention had already rolled past the
+submission's timestamp by the time this was investigated (~20 min of history
+under normal traffic), so the original error itself could not be recovered.
+Production SMTP env vars were confirmed present and unchanged for 109 days, so
+a rotated/expired credential looks unlikely, but the exact cause stays unknown.
+
+Since there was no way for an admin to recover from this short of a one-off
+script — a gap the original code comment anticipated ("admins can re-send
+later") but never built — added a proper "Resend notification email" action
+on the admin submission detail page. It reconstructs the notification's view
+model from the persisted submission row via the existing
+`loadSubmissionPdfInput` helper (already used by the PDF download route),
+resolves the correct recipient identity via the same on-behalf-of resolution
+the Pipedrive relink action uses, and re-sends. The page also now shows a
+plain "Notification email: sent \<date\> / never sent" status line so this
+doesn't require checking the database to notice.
+
+### Detours & fixes
+
+- **Vercel CLI auth mismatch**: `vercel whoami` initially failed with "Not
+  authorized" even after a successful device-code login — the logged-in
+  account wasn't a member of the team that owns this project
+  (`team_dQazYl992mdsRfOrZ4241qPd`). Needed to log in with the correct Arxys
+  account before `vercel logs` / `vercel env ls` would work.
+
+### Decisions captured
+
+- [`0145-admin-resend-submission-notification.md`](./decisions/0145-admin-resend-submission-notification.md)
+
+---
+
 ## 2026-09-03 — Summary-tile tooltips rendered as empty boxes; storage stack re-confirmed
 
 ### Work done
