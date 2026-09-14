@@ -6,9 +6,10 @@ import { usableCapacityTb } from "@/lib/capacity-utils";
 
 // Matches the Phase 2 Step 3+4 seed (one mid-tier SKU per V-family) — real
 // MSRPs from the Master Sheet, family-level max_cameras carried forward from
-// the old server_specs (Q3(b) decision), then re-tiered by the 2026-09-14
-// EPYC 9015 refresh (V400 200->150; V700/V800 325->275, joining V500/V600 on
-// one CPU tier). usableStorageTb is the RAID net-usable figure derived from
+// the old server_specs (Q3(b) decision), then re-tiered by the 2026-09-14 CPU
+// refresh: the V400 moved to the 8C/16T EPYC 9015 and dropped 200->150, while
+// V700/V800 dropped 325->275 to join V500/V600, which all share one 16C/32T
+// part. usableStorageTb is the RAID net-usable figure derived from
 // the real product_specs config (hdd_count +
 // raid_level_display, post the 2026-06-05 fix migration) — sizing divides
 // against this, not the raw nameplate maxStorageTb. See ADR 0068.
@@ -53,8 +54,8 @@ describe("recommend (storage-first, ADR 0068)", () => {
     // V700: storage ceil(100/400)=1; vsr ceil(165/275)=1 -> 1 * $54512 = $54,512
     // V800: storage ceil(100/640)=1; vsr ceil(165/275)=1 -> 1 * $74048 = $74,048
     //
-    // This was "1x VX5-V400-160 at $26,910" until the 2026-09-14 EPYC 9015
-    // refresh dropped the V400's camera ceiling from 200 to 150. At 200 the
+    // This was "1x VX5-V400-160 at $26,910" until the 2026-09-14 CPU refresh
+    // dropped the V400's camera ceiling from 200 to 150. At 200 the
     // V400 absorbed the 165 VSR floor in a single box; at 150 it cannot, and
     // the second box doubles its cost past two stacked V200s. The flip is the
     // correct consequence of the new ceiling, not a regression.

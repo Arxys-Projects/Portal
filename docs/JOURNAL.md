@@ -4,6 +4,66 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-09-14 — Correction: V700 / V800 belong on the V500's CPU, not the 9015
+
+### Work done
+
+`20260914000001` (entry below) moved V400, V700 and V800 all onto the AMD EPYC
+9015. That was right for the V400 and **wrong for the V700 and V800**. V500
+through V800 share one CPU tier, and that tier is the **16C/32T** part V500 and
+V600 already carried — not the V400's new 8C/16T part. Only the V400 moves to
+the 9015.
+
+Wrote and applied `20260914000002_v700_v800_match_v500_cpu.sql`, which copies
+the V500's eight CPU columns onto V700 and V800 verbatim, after confirming all
+seven V500/V600 rows agreed with each other column for column. `max_cameras` and
+`max_cameras_h265` were **not** touched — 275 was correct throughout and already
+matched V500/V600. The V400 rows were not touched at all.
+
+This is not a revert. The V700/V800's pre-refresh part was different again
+(4.3 GHz base, 4.25/4.55 Ghz turbo, PassMark 56984), so the correct end state
+matches neither the 9015 nor the original figures. The paired rollback
+therefore carries a warning that it restores a known-wrong state, and points at
+`v400-v700-v800-9015-cpu-refresh-rollback.sql` for undoing the whole refresh.
+
+End state, verified live: two coherent tiers — V400 (5 rows, 8C/16T 9015,
+150 cameras) and V500–V800 (13 rows, 16C/32T 9005, 275 cameras), each
+internally identical on every CPU column. Datasheet PDFs re-rendered from live
+data confirm V500/V700/V800 all read `AMD EPYC 9005 3.3Ghz 16/32 Core, 16C/32T,
+3.3` and V400 reads `AMD EPYC 9015 3.6Ghz 8/16 Core, 8C/16T, 4.1`. 805/805
+tests, tsc and eslint clean.
+
+Also corrected three test fixtures that had the wrong CPU baked in
+(`from-product-specs.test.ts` V800_BASE, two `VX5-V800-720` fixtures in
+`project-quote/render.test.ts`) and the framing in `algorithm.test.ts`'s header.
+
+### Detours & fixes
+
+- **The mistake was visible in the data and I read it as success.** The first
+  migration left V700/V800 on an 8C/16T CPU while keeping them at 275 cameras,
+  when that same 8C/16T part caps the V400 at 150. Same silicon, near-double the
+  ceiling. The brief did say V700/V800 → 9015, but it also said the collapse was
+  "V500 through V800 onto one CPU tier", and those two statements cannot both
+  hold once the V400 is also on the 9015 with a lower ceiling. The contradiction
+  was in the instructions and in the resulting rows, and the verification pass
+  walked straight past it — every check asked "did the values I intended get
+  written", which cannot catch a wrong intent. **The cross-check that would have
+  caught it: does the resulting tier structure make sense?** Worth running on
+  any spec change that touches more than one product family.
+- **A fixture inherited a value that stopped being shared.** `V400_BASE` spreads
+  from `V800_BASE` in `from-product-specs.test.ts` and inherited
+  `cores_threads`, which was correct while both families ran the same CPU. Once
+  the V400 alone moved to 8C/16T the spread silently gave V400_BASE the V800's
+  16C/32T. It now overrides `cores_threads` explicitly, with a comment saying
+  why. No assertion covered that field, so nothing failed — the tests would have
+  stayed green on a wrong fixture.
+- **Open label question, deliberately not resolved:** the V400 label names the
+  part (`AMD EPYC 9015 ...`) while V500–V800 names the series (`AMD EPYC
+  9005 ...`) for what is a 9115. Copied verbatim from the live V500 rows as
+  directed; the two conventions disagree and changing it would touch 13 rows.
+
+---
+
 ## 2026-09-14 — EPYC 9015 CPU refresh for V400 / V700 / V800 (applied and verified)
 
 ### Work done

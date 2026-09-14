@@ -160,7 +160,7 @@ function makeSnapshot(overrides: Partial<ProjectQuoteSnapshot> = {}): ProjectQuo
         maxCameras: 275,
         maxBandwidthMbps: 4000,
         driveBays: 36,
-        cpuModelFull: "AMD EPYC 9015 3.6Ghz 8/16 Core",
+        cpuModelFull: "AMD EPYC 9005 3.3Ghz 16/32 Core",
         ramSpec: "32GB ECC DDR5",
         osEdition: "Windows Server 2022 LTSC Standard",
         warranty: "5yr NBD, Advanced Replacement",
@@ -183,7 +183,7 @@ function makeSnapshot(overrides: Partial<ProjectQuoteSnapshot> = {}): ProjectQuo
         specHighlights: {
           formFactor: "4U Rackmount",
           rackUnits: "4U",
-          cpuModelFull: "AMD EPYC 9015 3.6Ghz 8/16 Core",
+          cpuModelFull: "AMD EPYC 9005 3.3Ghz 16/32 Core",
           ramSpec: "32GB ECC DDR5",
           driveBays: 36,
           storageRawTb: 720,

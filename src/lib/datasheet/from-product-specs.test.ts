@@ -42,9 +42,9 @@ const V800_BASE: ProductSpecRow = {
   raid_level_alt_display: null,
   raid_support: "RAID 0/1/5/6/10",
   battery_raid: "YES",
-  cpu_model_full: "AMD EPYC 9015 3.6Ghz 8/16 Core",
-  cpu_turbo_ghz: "4.1 Ghz",
-  cores_threads: "8C/16T",
+  cpu_model_full: "AMD EPYC 9005 3.3Ghz 16/32 Core",
+  cpu_turbo_ghz: "3.3 Ghz",
+  cores_threads: "16C/32T",
   cpu_cache: "64MB",
   mem_bandwidth: "614 GB/s",
   avx_512: "Yes",
@@ -105,6 +105,9 @@ const V400_BASE: ProductSpecRow = {
   raid_level_display: "6",
   cpu_model_full: "AMD EPYC 9015 3.6Ghz 8/16 Core",
   cpu_turbo_ghz: "4.1 Ghz",
+  // Overridden explicitly, not inherited: the V400 is the only family on the
+  // 8C/16T 9015. V500-V800 stay on the 16C/32T part V800_BASE carries.
+  cores_threads: "8C/16T",
   ram_spec: "16GB ECC DDR5",
   form_factor: "2U Rackmount",
   product_photo_path: "/datasheet/v400-front.png",
