@@ -4,7 +4,7 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
-## 2026-09-14 — EPYC 9015 CPU refresh for V400 / V700 / V800 (migration written, not applied)
+## 2026-09-14 — EPYC 9015 CPU refresh for V400 / V700 / V800 (applied and verified)
 
 ### Work done
 
@@ -17,9 +17,11 @@ drop 325 -> 275 (matching V500/V600), V400 drops 200 -> 150. `max_cameras` and
 
 Wrote `supabase/migrations/20260914000001_v400_v700_v800_9015_cpu_refresh.sql`
 (three UPDATEs, one per family) and its paired
-`supabase/rollback/v400-v700-v800-9015-cpu-refresh-rollback.sql`. **Not applied
-— presented for manual review and manual apply per the repo's standing
-no-`db push` rule.** 11 rows in scope: the three V400 base SKUs plus both
+`supabase/rollback/v400-v700-v800-9015-cpu-refresh-rollback.sql`. **Applied to
+production by hand via the dashboard SQL editor on 2026-09-14** per the standing
+no-`db push` rule; verification and the full live-check table are in
+[`apply-notes/20260914-v400-v700-v800-9015-cpu-refresh.md`](./apply-notes/20260914-v400-v700-v800-9015-cpu-refresh.md).
+11 rows in scope: the three V400 base SKUs plus both
 semi-custom NCD variants (the V400 `like 'VX5-V400-%'` matching them is
 deliberate and commented in the migration — they are hidden from the catalog but
 `project-quote/assemble.ts` still resolves them by exact SKU), and the three
@@ -33,6 +35,28 @@ change: `recommend/algorithm.test.ts`, `recommend/candidates.test.ts`,
 `vsr ceil(x/y)=z` comment in `algorithm.test.ts` was re-derived rather than
 left stale. 805/805 tests pass, `tsc --noEmit` and eslint clean.
 
+### Verification after the apply
+
+Dev server and browser tools are off-limits on this machine, so every surface was
+checked by driving its real code path from a read-only probe instead. Live
+`SELECT` confirmed all 11 rows on the 9015 with V400 at 150/150 and V700/V800 at
+275/275, V500/V600 untouched. `selectCandidates` + `recommend` against live
+`current_products` + `product_specs` sized 600 cams / 1200 TB to 3 x VX5-V700-480
+(825 cams covered). `scripts/render-datasheet.ts` — which already existed for
+exactly this, reads live data and never writes — rendered real V700 and V400 PDFs
+whose CPU row reads `AMD EPYC 9015 3.6Ghz 8/16 Core, 8C/16T, 4.1 Ghz, 64MB cache`
+and whose NVR ladder reads 25 / 100 / **150** / 275 / 275 / **275** / **275**.
+Both `-NCD` rows confirmed by direct SELECT.
+
+Two findings worth recording. **The Price Book has no CPU or camera column at
+all** (`sku, product, netStorage, ssdStorage, bandwidth, monitors, msrp`), so
+there was nothing to verify there — the brief expected camera figures on those
+pages and they do not exist. And **existing quotes are not retroactively
+updated**, `project_quotes` being an immutable snapshot store: the one live quote
+referencing an `-NCD` SKU (deal 5508) still reads 9005 / 200 cams, while a fresh
+generation was confirmed read-only to resolve 9015 / 150. No fresh quote was
+generated — that is a write, and was left to a human.
+
 **One real behavior change, not a test fix-up.** `algorithm.test.ts`'s "medium
 workload" case (150 cameras, 100 TB usable) flips its winner from
 1x VX5-V400-160 ($26,910) to 2x VX5-V200-80 ($33,280). At a 200-camera ceiling
@@ -40,6 +64,14 @@ the V400 absorbed the 165-camera VSR floor in one box; at 150 it needs two, and
 two V400s cost more than two V200s. The recommender is behaving correctly under
 the new ceiling — the assertion was rewritten to pin the new outcome with the
 reasoning recorded inline, not edited to make the test go green.
+
+Against live MSRPs the same effect is a real quoting change, measured after the
+apply: a 150-camera / 100 TB job moves from 1x VX5-V400-160 ($34,206) to
+1x VX5-V500-192 ($42,577), and 275 cams / 300 TB from 1x VX5-V700-384 ($66,481)
+to 2x VX5-V500-192 ($85,154). Storage-driven deals (600+ cameras with
+proportional storage) are unchanged. Camera-dense, storage-light deals in the
+150-300 range are the ones that size up, and sales should know that before the
+next quote goes out.
 
 ### Why this bypassed the admin form (ADR 0096 exception)
 
@@ -82,6 +114,14 @@ go through the form unless separately agreed.
 - **V700 and V800 share a `cpu_model_full` string but not a turbo figure**
   (4.25 Ghz vs 4.55 Ghz), so the rollback cannot collapse them into one
   statement. Four statements, not three.
+- **Rendering a PDF outside Next.js needs the repo's own script, not a new
+  one.** A hand-rolled probe importing `datasheet/render.ts` fails two ways:
+  without `--conditions=react-server` the `server-only` marker throws, and with
+  it the React reconciler blows up. `scripts/render-datasheet.ts` documents why
+  in its header — it must stay CJS (`.ts`, not `.mts`) so it shares one
+  `@react-pdf/renderer` instance with `src/lib/datasheet/*.ts`, and it
+  deliberately duplicates the render call rather than importing the
+  `server-only` module. Use that script; do not write another.
 - **Open question left for the product owner, deliberately not folded in:**
   the same admin edit also dropped `VX5-V400-128`'s `max_bandwidth_mbps` from
   2000 to 1600, which is outside the brief's column list. That leaves
