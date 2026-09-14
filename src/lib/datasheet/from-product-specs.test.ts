@@ -37,14 +37,14 @@ const V800_BASE: ProductSpecRow = {
   hdd_count: 36,
   hdd_mtbf: "2.5 Million",
   max_bandwidth_mbps: 4000,
-  max_cameras_h265: 325,
+  max_cameras_h265: 275,
   raid_level_display: "60",
   raid_level_alt_display: null,
   raid_support: "RAID 0/1/5/6/10",
   battery_raid: "YES",
-  cpu_model_full: "AMD EPYC 9005 4.3Ghz 16/32 Core",
-  cpu_turbo_ghz: "4.55 Ghz",
-  cores_threads: "16C/32T",
+  cpu_model_full: "AMD EPYC 9015 3.6Ghz 8/16 Core",
+  cpu_turbo_ghz: "4.1 Ghz",
+  cores_threads: "8C/16T",
   cpu_cache: "64MB",
   mem_bandwidth: "614 GB/s",
   avx_512: "Yes",
@@ -101,10 +101,10 @@ const V400_BASE: ProductSpecRow = {
   rack_units: "2U",
   hdd_count: 8,
   max_bandwidth_mbps: 2000,
-  max_cameras_h265: 200,
+  max_cameras_h265: 150,
   raid_level_display: "6",
-  cpu_model_full: "AMD EPYC 9005 3.3Ghz 16/32 Core",
-  cpu_turbo_ghz: "3.3 Ghz",
+  cpu_model_full: "AMD EPYC 9015 3.6Ghz 8/16 Core",
+  cpu_turbo_ghz: "4.1 Ghz",
   ram_spec: "16GB ECC DDR5",
   form_factor: "2U Rackmount",
   product_photo_path: "/datasheet/v400-front.png",
@@ -339,7 +339,7 @@ describe("model ladder", () => {
   it("shows bays · rack units and the max camera streams", () => {
     const v800 = nvrLadder(groupByModel(ALL_ROWS), "V800").at(-1)!;
     assert.equal(v800.detail, "36 bay · 4U");
-    assert.equal(v800.capacity, "325");
+    assert.equal(v800.capacity, "275");
   });
 
   it("marks nothing active for a model that is not in the line", () => {
@@ -372,7 +372,7 @@ describe("buildLedgerContent — V800", () => {
       { key: "Throughput", value: "4,000 Mbit/s" },
       { key: "Max Storage", value: "864 TB" },
       { key: "Drive Bays", value: "36" },
-      { key: "Max Camera Streams", value: "325" },
+      { key: "Max Camera Streams", value: "275" },
     ]);
   });
 
@@ -452,7 +452,7 @@ describe("buildLedgerContent — V400 (the second model, which is the point)", (
   it("has its own descriptor, ceiling and headline", () => {
     assert.equal(content.descriptor, "8 Bay · 2U Rack · V5 Video Server");
     assert.equal(content.performance.ceilingLine, "2,000 Mbit/s · 192 TB raw · 144 TB usable");
-    assert.equal(content.headline[3].value, "200");
+    assert.equal(content.headline[3].value, "150");
   });
 
   it("carries no stray V800 references outside the ladder", () => {

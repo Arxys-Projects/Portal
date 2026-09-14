@@ -6,8 +6,10 @@ import { usableCapacityTb } from "@/lib/capacity-utils";
 
 // Matches the Phase 2 Step 3+4 seed (one mid-tier SKU per V-family) — real
 // MSRPs from the Master Sheet, family-level max_cameras carried forward from
-// the old server_specs (Q3(b) decision). usableStorageTb is the RAID
-// net-usable figure derived from the real product_specs config (hdd_count +
+// the old server_specs (Q3(b) decision), then re-tiered by the 2026-09-14
+// EPYC 9015 refresh (V400 200->150; V700/V800 325->275, joining V500/V600 on
+// one CPU tier). usableStorageTb is the RAID net-usable figure derived from
+// the real product_specs config (hdd_count +
 // raid_level_display, post the 2026-06-05 fix migration) — sizing divides
 // against this, not the raw nameplate maxStorageTb. See ADR 0068.
 //
@@ -20,11 +22,11 @@ const usable = (raw: number, hdd: number, raid: string) =>
 
 const SPECS: readonly ServerSpec[] = [
   { sku: "VX5-V200-80",  productGroup: "V200", productName: "VideoX V200 80TB",  maxCameras: 100, maxStorageTb:  80, usableStorageTb: usable( 80,  4, "5"),  msrp: 16640, priceType: "numeric" },
-  { sku: "VX5-V400-160", productGroup: "V400", productName: "VideoX V400 160TB", maxCameras: 200, maxStorageTb: 160, usableStorageTb: usable(160,  8, "6"),  msrp: 26910, priceType: "numeric" },
+  { sku: "VX5-V400-160", productGroup: "V400", productName: "VideoX V400 160TB", maxCameras: 150, maxStorageTb: 160, usableStorageTb: usable(160,  8, "6"),  msrp: 26910, priceType: "numeric" },
   { sku: "VX5-V500-240", productGroup: "V500", productName: "VideoX V500 240TB", maxCameras: 275, maxStorageTb: 240, usableStorageTb: usable(240, 12, "6"),  msrp: 35926, priceType: "numeric" },
   { sku: "VX5-V600-320", productGroup: "V600", productName: "VideoX V600 320TB", maxCameras: 275, maxStorageTb: 320, usableStorageTb: usable(320, 16, "60"), msrp: 41659, priceType: "numeric" },
-  { sku: "VX5-V700-480", productGroup: "V700", productName: "VideoX V700 480TB", maxCameras: 325, maxStorageTb: 480, usableStorageTb: usable(480, 24, "60"), msrp: 54512, priceType: "numeric" },
-  { sku: "VX5-V800-720", productGroup: "V800", productName: "VideoX V800 720TB", maxCameras: 325, maxStorageTb: 720, usableStorageTb: usable(720, 36, "60"), msrp: 74048, priceType: "numeric" },
+  { sku: "VX5-V700-480", productGroup: "V700", productName: "VideoX V700 480TB", maxCameras: 275, maxStorageTb: 480, usableStorageTb: usable(480, 24, "60"), msrp: 54512, priceType: "numeric" },
+  { sku: "VX5-V800-720", productGroup: "V800", productName: "VideoX V800 720TB", maxCameras: 275, maxStorageTb: 720, usableStorageTb: usable(720, 36, "60"), msrp: 74048, priceType: "numeric" },
 ];
 
 const tb = (n: number) => n * GB_PER_TB;
@@ -40,27 +42,40 @@ describe("recommend (storage-first, ADR 0068)", () => {
     assert.equal(r.warnings.length, 0);
   });
 
-  it("medium workload — 1x VX5-V400-160 beats 2x V200 on total cost", () => {
+  it("medium workload — the V400's 150-camera ceiling forces 2 units, so 2x V200 wins", () => {
     // 150 cams (VSR 150), 100 TB usable required.
     // No storage multiplier (ADR 0126 deleted STORAGE_FLOOR — totalStorageGb
-    // already carries the buffer and the binary charge); VSR floor ×1.1.
-    // V200: storage ceil(100/60)=2; vsr ceil(165/100)=2 -> 2 * $16640 = $33,280
-    // V400: storage ceil(100/120)=1; vsr ceil(165/200)=1 -> 1 * $26910 = $26,910 <- winner
+    // already carries the buffer and the binary charge); VSR floor ×1.1 -> 165.
+    // V200: storage ceil(100/60)=2;  vsr ceil(165/100)=2 -> 2 * $16640 = $33,280 <- winner
+    // V500: storage ceil(100/200)=1; vsr ceil(165/275)=1 -> 1 * $35926 = $35,926
+    // V600: storage ceil(100/240)=1; vsr ceil(165/275)=1 -> 1 * $41659 = $41,659
+    // V400: storage ceil(100/120)=1; vsr ceil(165/150)=2 -> 2 * $26910 = $53,820
+    // V700: storage ceil(100/400)=1; vsr ceil(165/275)=1 -> 1 * $54512 = $54,512
+    // V800: storage ceil(100/640)=1; vsr ceil(165/275)=1 -> 1 * $74048 = $74,048
+    //
+    // This was "1x VX5-V400-160 at $26,910" until the 2026-09-14 EPYC 9015
+    // refresh dropped the V400's camera ceiling from 200 to 150. At 200 the
+    // V400 absorbed the 165 VSR floor in a single box; at 150 it cannot, and
+    // the second box doubles its cost past two stacked V200s. The flip is the
+    // correct consequence of the new ceiling, not a regression.
     const r = recommend({ totalCameras: 150, totalStorageGb: tb(100), totalVsr: 150 }, SPECS);
-    assert.equal(r.winner.sku, "VX5-V400-160");
-    assert.equal(r.winner.units, 1);
-    assert.equal(r.winner.totalCostUsd, 26910);
-    assert.equal(r.warnings.length, 0);
+    assert.equal(r.winner.sku, "VX5-V200-80");
+    assert.equal(r.winner.units, 2);
+    assert.equal(r.winner.totalCostUsd, 33280);
+    // VSR 150 is still under the largest single-unit ceiling (275), so only the
+    // stacking warning fires — not exceeds-largest.
+    assert.equal(r.warnings.length, 1);
+    assert.match(r.warnings[0], /stacks 2 units of VX5-V200-80/);
   });
 
   it("large workload — VX5-V500-240 cheapest at 2 units (usable-driven)", () => {
     // 500 cams (VSR 500), 400 TB usable. No storage multiplier; VSR floor ×1.1.
     // V200: storage ceil(400/60)=7;   vsr ceil(550/100)=6  -> 7 * $16640 = $116,480
-    // V400: storage ceil(400/120)=4;  vsr ceil(550/200)=3  -> 4 * $26910 = $107,640
+    // V400: storage ceil(400/120)=4;  vsr ceil(550/150)=4  -> 4 * $26910 = $107,640
     // V500: storage ceil(400/200)=2;  vsr ceil(550/275)=2  -> 2 * $35926 = $71,852 <- winner
     // V600: storage ceil(400/240)=2;  vsr ceil(550/275)=2  -> 2 * $41659 = $83,318
-    // V700: storage ceil(400/400)=1;  vsr ceil(550/325)=2  -> 2 * $54512 = $109,024
-    // V800: storage ceil(400/640)=1;  vsr ceil(550/325)=2  -> 2 * $74048 = $148,096
+    // V700: storage ceil(400/400)=1;  vsr ceil(550/275)=2  -> 2 * $54512 = $109,024
+    // V800: storage ceil(400/640)=1;  vsr ceil(550/275)=2  -> 2 * $74048 = $148,096
     //
     // Pre-ADR-0126 this was V600 at $83,318: the ×1.2 floor pushed the V500's
     // storage requirement from 2 units to 3, which cost more than the V600's 2.
@@ -72,8 +87,8 @@ describe("recommend (storage-first, ADR 0068)", () => {
     assert.equal(r.winner.driverDimension, "storage");
     // The delivered capacity still clears the requirement outright.
     assert.ok(r.winner.coveredStorageTb >= 400);
-    // VSR 500 > 325 (largest single-unit VSR capacity) -> exceeds-largest fires
-    // alongside the units>1 warning.
+    // VSR 500 > 275 (largest single-unit VSR capacity, now shared by V500
+    // through V800) -> exceeds-largest fires alongside the units>1 warning.
     assert.equal(r.warnings.length, 2);
     assert.match(r.warnings[0], /stacks 2 units of VX5-V500-240/);
     assert.ok(r.warnings.some((w) => /exceeds the largest single VideoX SKU/.test(w)));
@@ -82,10 +97,11 @@ describe("recommend (storage-first, ADR 0068)", () => {
   it("camera-pathological — 5000 cams, 1 TB is VSR-driven", () => {
     // VSR 5000, 1 TB usable. storage floor trivial; VSR floor ×1.1 dominates.
     // V200: vsr ceil(5500/100)=55 * $16640 = $915,200
-    // V400: vsr ceil(5500/200)=28 * $26910 = $753,480
+    // V400: vsr ceil(5500/150)=37 * $26910 = $995,670
     // V500: vsr ceil(5500/275)=20 * $35926 = $718,520  <- winner
     // V600: vsr ceil(5500/275)=20 * $41659 = $833,180
-    // V700: vsr ceil(5500/325)=17 * $54512 = $926,704
+    // V700: vsr ceil(5500/275)=20 * $54512 = $1,090,240
+    // V800: vsr ceil(5500/275)=20 * $74048 = $1,480,960
     const r = recommend({ totalCameras: 5000, totalStorageGb: tb(1), totalVsr: 5000 }, SPECS);
     assert.equal(r.winner.sku, "VX5-V500-240");
     assert.equal(r.winner.units, 20);

@@ -4,6 +4,92 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-09-14 — EPYC 9015 CPU refresh for V400 / V700 / V800 (migration written, not applied)
+
+### Work done
+
+The AMD EPYC 9135 in the V700 and V800 is EOL and the V400's EPYC 9115 is
+replaced on the same part consolidation, so all three families move to the AMD
+EPYC 9015 (8C/16T, 3.6 GHz base / 4.1 GHz turbo, PassMark 30689). That collapses
+V500 through V800 onto a single CPU tier and re-tiers camera capacity: V700/V800
+drop 325 -> 275 (matching V500/V600), V400 drops 200 -> 150. `max_cameras` and
+`max_cameras_h265` are always equal in this line and both are set on every row.
+
+Wrote `supabase/migrations/20260914000001_v400_v700_v800_9015_cpu_refresh.sql`
+(three UPDATEs, one per family) and its paired
+`supabase/rollback/v400-v700-v800-9015-cpu-refresh-rollback.sql`. **Not applied
+— presented for manual review and manual apply per the repo's standing
+no-`db push` rule.** 11 rows in scope: the three V400 base SKUs plus both
+semi-custom NCD variants (the V400 `like 'VX5-V400-%'` matching them is
+deliberate and commented in the migration — they are hidden from the catalog but
+`project-quote/assemble.ts` still resolves them by exact SKU), and the three
+V700 and three V800 SKUs.
+
+Updated the test fixtures that hardcode the old live numbers, in the same
+change: `recommend/algorithm.test.ts`, `recommend/candidates.test.ts`,
+`datasheet/from-product-specs.test.ts`, `capacity-utils.test.ts`,
+`pdf/render.test.ts`, `project-quote/render.test.ts`,
+`project-quote/customer-proposal.test.ts`. Every hand-worked
+`vsr ceil(x/y)=z` comment in `algorithm.test.ts` was re-derived rather than
+left stale. 805/805 tests pass, `tsc --noEmit` and eslint clean.
+
+**One real behavior change, not a test fix-up.** `algorithm.test.ts`'s "medium
+workload" case (150 cameras, 100 TB usable) flips its winner from
+1x VX5-V400-160 ($26,910) to 2x VX5-V200-80 ($33,280). At a 200-camera ceiling
+the V400 absorbed the 165-camera VSR floor in one box; at 150 it needs two, and
+two V400s cost more than two V200s. The recommender is behaving correctly under
+the new ceiling — the assertion was rewritten to pin the new outcome with the
+reasoning recorded inline, not edited to make the test go green.
+
+### Why this bypassed the admin form (ADR 0096 exception)
+
+ADR 0096 makes `/admin/specs` the write path for `product_specs`, for the sake
+of attribution and the form's cross-field zod validation. This change was made
+as a one-time SQL migration instead, approved by the product owner: it is 11
+rows x 10 columns, which is ~11 rounds of manual form editing with a
+correspondingly large chance of a typo, and the values are uniform per family.
+
+The costs are accepted knowingly, not overlooked: the resulting
+`product_specs_audit` rows land with `updated_by = null` (a `service_role`
+connection has no `auth.uid()`), and the form's cross-field validation is
+skipped. The table's own `check (... > 0)` constraints still apply and every new
+value clears them. This is **not** a precedent — further `product_specs` edits
+go through the form unless separately agreed.
+
+### Detours & fixes
+
+- **The seed migrations no longer describe these rows, and one row was already
+  half-changed.** Reconnaissance (read-only SELECT against production, per the
+  brief) turned up that an admin had already hand-applied most of this change to
+  `VX5-V400-128` through the form earlier the same day
+  (`product_specs_audit` #97: max_cameras 200->150, cores 16C/32T->8C/16T,
+  base 3.3->3.6, turbo 3.3->4.1 Ghz, passmark 48936->30689), then started on
+  `VX5-V400-160` and stopped after bumping `revision_date`. So the rollback is
+  built from captured live values, with `VX5-V400-128` in its own statement —
+  restoring it to its siblings' values would have silently discarded that edit.
+  Reconstructing the rollback from `20260529000001` would have been wrong.
+- **`cpu_model_full` says 9015, the pre-existing hand edit said 9005.** The
+  admin's own form edit set `AMD EPYC 9005 3.6Ghz 8/16 Core`. The confirmed
+  value is `9015` (the 9015 is a part within the 9005 series, which is what the
+  separate `cpu_model` label carries). The migration corrects it.
+- **`product_specs` has two cores/threads columns and the brief named one.**
+  `cpu_cores_threads` feeds `/comparison` via `display-specs.ts`;
+  `cores_threads` (the QuickCompare twin) feeds the datasheet PDF via
+  `from-product-specs.ts` and `/videox-compare` via `videox-compare/data.ts`.
+  They are in sync on all 18 V400-V800 rows and the admin form writes both.
+  Setting only `cpu_cores_threads` would have left the datasheet and compare
+  pages showing 16C/32T. Both are set.
+- **V700 and V800 share a `cpu_model_full` string but not a turbo figure**
+  (4.25 Ghz vs 4.55 Ghz), so the rollback cannot collapse them into one
+  statement. Four statements, not three.
+- **Open question left for the product owner, deliberately not folded in:**
+  the same admin edit also dropped `VX5-V400-128`'s `max_bandwidth_mbps` from
+  2000 to 1600, which is outside the brief's column list. That leaves
+  `VX5-V400-128` at 1600 while the other four V400 rows sit at 2000 — an
+  intra-family inconsistency this migration does not touch either way.
+
+---
+
 ## 2026-09-04 — Missing submission notification email; added admin resend action
 
 ### Work done

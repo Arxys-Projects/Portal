@@ -77,7 +77,7 @@ describe("coveredCapacity (delivered capacity on documents)", () => {
   it("reports net-usable storage, never the raw nameplate (ADR 0068)", () => {
     // V800-720: 36 drives RAID 60 = 3 spans of 12 -> 6 parity -> 600, not 720.
     const { coveredStorageTb } = coveredCapacity(1, {
-      max_cameras: 325,
+      max_cameras: 275,
       storage_raw_tb: 720,
       hdd_count: 36,
       raid_level_display: "60",

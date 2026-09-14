@@ -139,7 +139,7 @@ describe("SubmissionPdf renders via @react-pdf/renderer", () => {
         ...fixture().serverSpec!,
         sku: "VX5-V800-720",
         modelName: "VideoX V800",
-        maxCameras: 325,
+        maxCameras: 275,
         maxBandwidthMbps: 6000,
         usablePerUnitTb: 640,
       },
