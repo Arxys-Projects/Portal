@@ -4,6 +4,41 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-10-09 — Price Book spec sync, step 1: live drift audit (Gate A open)
+
+### Work done
+
+- Started the [price-book-spec-sync brief](./decisions/claude-code-brief-price-book-spec-sync.md):
+  the seven product_specs families' `/price-book/{slug}` pages read hardcoded strings from
+  `families.ts` and have gone stale (V400 still says 200 streams and the old CPU, V700/V800 say
+  325 and 4.3GHz).
+- Wrote `scripts/audit-price-book-specs.ts`, a read-only (SELECT only) comparison of the authored
+  page values against the live canonical row, run with
+  `node --env-file=.env.local --import tsx scripts/audit-price-book-specs.ts`. Findings and the
+  proposed bullet mapping are in
+  [`audits/price-book-spec-drift-audit.md`](./audits/price-book-spec-drift-audit.md).
+- No `src/` change yet. Implementation waits on Andy's answers at Gate A (OS drive bullet, power
+  bullet, one admin warning sentence).
+
+### Detours & fixes
+
+- **The V400 "RAID 5" on the page was the authored error.** Live rows are RAID 6, as ADR 0092
+  says, and all 18 `netStorage` overrides on V200 to V800 equal the computed figure. Retiring
+  them moves no published capacity.
+- **Hidden `-NCD` rows reach the live datasheet.** The V400 sheet's ordering table lists five
+  part numbers, two of them `-NCD`, and V500 lists four. The canonical row for both models is an
+  `-NCD` row. Reported, not fixed (out of scope for the brief).
+- **Data defects printing on live datasheets**, traced through `product_specs_audit`: the V800
+  sheet drops its hot-swap power bullet because `VX5-V800-576` holds "Yes 1+1" and
+  `canonicalRow()` prefix-extends it onto the -864; `VX5-V100-40/-48` still say 10GbE after
+  `-32` was corrected to 1GbE; the V500 `warranty_terms` starts "dvanced". All are
+  `/admin/specs` edits for Andy.
+- **G4 was stale.** The V100 `NA` RAID level was already corrected to RAID 1 / JBOD on 2026-07-27.
+
+RUNBOOK unchanged: no setup step moved.
+
+---
+
 ## 2026-09-14 — Correction: V700 / V800 belong on the V500's CPU, not the 9015
 
 ### Work done
