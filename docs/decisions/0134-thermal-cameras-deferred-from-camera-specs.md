@@ -1,6 +1,6 @@
 # 0134 — Thermal and bispectral cameras deferred from `camera_specs`
 
-- **Status**: Accepted
+- **Status**: Accepted. Narrowed by [0148](./0148-bispectral-ptz-as-two-manual-groups.md) for submission sizing (a bispectral camera is entered as two manual groups); the `camera_specs` deferral below is unchanged.
 - **Date**: 2026-08-17
 
 ## Context

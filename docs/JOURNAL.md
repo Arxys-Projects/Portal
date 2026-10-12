@@ -4,6 +4,95 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-10-12 - Escambia Men's Prison seeded for Cornerstone Detention HQ (17 groups, 2,469 streams)
+
+### Work done
+
+- Seeded submission [`59b730df`](https://portal.arxys.com/submissions/59b730df-535c-42f2-a607-001097745322)
+  "Escambia Men's Prison" (Atmore AL, Genetec Security Center), filed by Andy on behalf of
+  Cornerstone Detention - HQ (Ken Fuller), from
+  [`seeds/Escambia_VideoSurveillance_Seed_Document.md`](./seeds/Escambia_VideoSurveillance_Seed_Document.md)
+  Section 7. Hardware position: Arxys VideoX.
+- Built with [`scripts/seed-escambia-submission.mts`](../scripts/seed-escambia-submission.mts):
+  dry-run by default, `--self-test`, `--execute` (refuses a duplicate, then a typed CONFIRM),
+  and `--verify <id>`. Same technique as the WCJ, Williamson and JCT scaffolds: the row is built
+  the way `submitCalculation()` builds it, with the real engine and the live candidate pool.
+  This one stops at the scaffold. No PDF, no email, no Pipedrive deal. Andy's Save on
+  `/calculator?revise=59b730df-535c-42f2-a607-001097745322` creates the deal, as a revision.
+- Result:
+
+  | Measure | Value |
+  |---|---|
+  | Physical cameras / recorded streams | 1,548 / 2,469 (cameras_count) |
+  | Continuous 24 h @ 15 fps / VFR as 80% @ 15 fps | 202 / 2,267 streams |
+  | Peak bandwidth | 12,347.66 Mbit/s |
+  | Recorded data / required capacity (88% utilization) | 9,762.68 TB / 12,421.85 TB |
+  | Recommendation | 18 × VX5-V800-864 (12,960 TB usable, storage-driven; Andy confirmed) |
+
+- Mapping, all approved by Andy at the Phase 0 review:
+  - H.265-20 is plain `h265`. The engine has no compression-level input.
+  - Complexity "Medium detail, low motion" (2.25) stands in for spec 2.06.E.4's 65% scene
+    activity. Both are inputs to Genetec's StreamVault bitrate model
+    (`MP × fps × f(fps) × quality × activity`, JOURNAL 2026-08-13) with no engine equivalent.
+    Matches the Williamson siblings.
+  - The 16 h @ 15 fps + 8 h @ 5 fps profile is one motion group at 15 fps, motion 80%
+    (ADR 0147). Cell cameras (184) and both Q8752-E imagers (18) record continuously at 15 fps.
+  - PNM-9085RQZ is discontinued on Hanwha's site; quoted as its replacement PNM-9085RQZ1
+    (4 × 2560x1920), linked to the catalog row.
+  - XNV-C6083R, Q1800-LE and the Q8752-E have no `camera_specs` row; entered as manual groups.
+    The Q8752-E is two groups, visible 1080p and thermal SVGA (ADR 0148).
+  - Both add-ons on (they become a pinned Pipedrive note at Save). List price banked from the
+    recommender, as on every submission.
+- Open items. Per-row items are in the group names, which render on the calculator, submission
+  detail and the PDF: OPEN A (PNM-7082RVD is on the quote sheet, not in the spec), OPEN B (the
+  fisheyes' 6MP / 12MP labels; sized on native pixels, 5MP and 10MP buckets), OPEN C (thermal
+  stream size), the two discontinued models, manual entry, and the 80% equivalence.
+  Project-level items have no column to live in and are recorded here and in the seed document:
+  D (no building or IDF grouping for failover pairing), E (Genetec license basis per imager or
+  per camera, 1,304 multi-imager streams), F (Directory server count and license tier),
+  G (Elmore baseline documents), H (workstation, monitor, switch, RSA and NLEF quantities from the
+  drawings), I (cluster file system change order).
+- Quote items outside the calculator, for the Pipedrive quote: 9 failover archivers
+  (ceil(18/2), 2.04.A.2), Directory servers 1 + 1, Evidence Archive 250 TB plus a 1:1 failover,
+  redundant 10/25GbE (V800 has 4 × 10GbE; SFP+ or SFP28 is an option), 5-year NBD warranty with
+  keep-your-drive, about 85 spare cameras. Section 9 (Dell / StreamVault deviations) is bid
+  compliance and was not encoded.
+- Verified: `--verify` passes 23 of 23 checks against the live row (rehydration through
+  `fromStoredSubmission` with zero field drift, recompute equal to the banked figures, all five
+  counts, submit-schema limits a Save must pass, recommender unchanged). `npx tsc --noEmit` and
+  `npx eslint` clean. **Not exercised:** the calculator page itself (no dev server here); Andy
+  opens it.
+
+### Detours & fixes
+
+- **The proposed project name was 51 characters.** The submit schema caps it at 50 and
+  `normalizeInputState` slices to 50, so a Save from the revise form would have failed.
+  Shortened to "Escambia Men's Prison".
+- **The verify step's first self-test failed on my own comparison**: it compared the rehydrated
+  form state against `groups_payload`, which banks codec and complexity as labels, not indexes.
+  Now compared against `input_state.groups`, plus a check that the banked labels resolve to the
+  same indexes. Caught in memory, before the insert.
+- **Hanwha's site changed its unknown-model signal** from a 307 redirect (ADR 0135's method) to a
+  plain 404. Discontinued models still return 200 with a "Discontinued, Replacement model" badge.
+  Discovery findings from that sweep: XNV-C6083R (524 cameras, the largest row) and Q1800-LE are
+  real and current but missing from `camera_specs`; Axis lists the Q8752-E as replaced by the
+  Q8752-E Mk II; Hanwha's XNF-9010RV resolution list includes a 3584x2688 mode above the
+  catalog's 3008x3008 (same 10MP bucket, so no sizing change, but the row is worth a review).
+- **ADR 0146 is taken** by the uncommitted price-book spec-sync work, which already cites it in
+  code. This entry's ADRs are 0147 and 0148.
+- **Headroom is thin.** 12,421.85 of 12,960 TB leaves 538 TB. ADR 0129's low-fps bias on the
+  5 fps share could add about 340 to 570 TB, so the top of that range would tip the
+  recommendation to 19 units.
+
+### Decisions captured
+
+- [`0147-dual-rate-profile-as-equivalent-duty-cycle.md`](./decisions/0147-dual-rate-profile-as-equivalent-duty-cycle.md)
+- [`0148-bispectral-ptz-as-two-manual-groups.md`](./decisions/0148-bispectral-ptz-as-two-manual-groups.md)
+
+RUNBOOK unchanged: a one-off data seed, no setup step moved.
+
+---
+
 ## 2026-10-09 — Price Book spec sync, step 1: live drift audit (Gate A open)
 
 ### Work done
