@@ -1,7 +1,8 @@
 // Live product_specs rows for the seven Price Book product_specs families, read
 // 2026-10-09 by scripts/audit-price-book-specs.ts and trimmed to literals so the
-// derivation tests run with no network. Updated for the 2026-10-12 typo fixes
-// (scripts/fix-product-specs-typos-2026-10.ts). One row per model, the canonical
+// derivation tests run with no network. Updated for the 2026-10-12 corrections
+// (scripts/fix-product-specs-typos-2026-10.ts and
+// fix-product-specs-decisions-2026-10.ts: the V400 is rated 1600 Mbit/s). One row per model, the canonical
 // (highest-capacity) SKU, plus the few siblings a test needs.
 //
 // Shared by family-specs.test.ts and families.test.ts. Not itself a test file:
@@ -118,7 +119,7 @@ export const V400_192: FamilySpecRow = {
   storage_raw_tb: 192,
   drive_bays: 8,
   hdd_count: 8,
-  max_bandwidth_mbps: 2000,
+  max_bandwidth_mbps: 1600,
   max_cameras_h265: 150,
   cpu_model_full: "AMD EPYC 9015 3.6Ghz 8/16 Core",
   cpu_turbo_ghz: "4.1 Ghz",

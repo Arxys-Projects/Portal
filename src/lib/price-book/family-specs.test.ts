@@ -62,11 +62,11 @@ const EXPECTED: Record<string, { kpis: string[]; keyFeatures: string[]; technica
     ],
   },
   V400: {
-    kpis: ["150 streams", "2,000 Mbit/s", "5 Years Next Business Day Parts"],
+    kpis: ["150 streams", "1,600 Mbit/s", "5 Years Next Business Day Parts"],
     keyFeatures: [
       "Windows Server 2022 or 2025 LTSC",
       "8x Enterprise HDD's, RAID 6 & Cachevault",
-      "2,000 Mbit/s max possible throughput",
+      "1,600 Mbit/s max possible throughput",
       "2U Rack mount w/ rails",
       "Max VSR = 150 streams h.265 or h.264",
     ],
@@ -218,7 +218,7 @@ describe("a blank column drops its bullet", () => {
     };
     const d = deriveFamilyDisplay([blank], "V400");
     assert.deepEqual(d.keyFeatures, [
-      "2,000 Mbit/s max possible throughput",
+      "1,600 Mbit/s max possible throughput",
       "Max VSR = 150 streams h.265 or h.264",
     ]);
     assert.deepEqual(d.technicalSpecs, []);

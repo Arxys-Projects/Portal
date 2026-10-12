@@ -7,7 +7,8 @@
   Audit-trail lookups in `product_specs_audit`, also SELECT only.
 - **Status**: Implemented 2026-10-12, ADR 0146. Gate A answered 2026-10-09 (§5), so §3 is the
   final mapping; Gate B approved 2026-10-12 on the table in §6. The data corrections in §7 were
-  applied 2026-10-12; three product decisions listed there remain open.
+  applied 2026-10-12, and the three product decisions listed there were made and applied
+  the same day.
 
 ## 1. Drift: what the seven pages say today vs the live canonical row
 
@@ -426,7 +427,10 @@ applied", and the re-rendered datasheets carry none of the old strings. `--rollb
 | all 24 | `operating_temp` | "10- 30 C / 41 - 86 F" | "10 - 30 C / 41 - 86 F" |
 | V100 (all three) | `regulatory_safety` | "... RCM, UL." | "... RCM, UL" |
 
-Left for Andy because the right value is a product call:
+**Decided by Andy 2026-10-12 and applied** with `scripts/fix-product-specs-decisions-2026-10.ts`:
+the V400 is rated 1600 Mbit/s (the other four V400 rows moved 2000 to 1600); `VX5-V100-32` gains
+Genetec; the V700/V800 shipping weights are left as they are. The original open items, as
+written at Gate A:
 
 - **VX5-V400-128 `max_bandwidth_mbps` = 1600.** Set by a signed-in admin through the form on
   2026-09-14 in the same save as the 9015 CPU fields, 40 minutes before the refresh migration.

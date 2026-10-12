@@ -100,7 +100,7 @@ const V400_BASE: ProductSpecRow = {
   drive_bays: 8,
   rack_units: "2U",
   hdd_count: 8,
-  max_bandwidth_mbps: 2000,
+  max_bandwidth_mbps: 1600,
   max_cameras_h265: 150,
   raid_level_display: "6",
   cpu_model_full: "AMD EPYC 9015 3.6Ghz 8/16 Core",
@@ -454,7 +454,7 @@ describe("buildLedgerContent — V400 (the second model, which is the point)", (
 
   it("has its own descriptor, ceiling and headline", () => {
     assert.equal(content.descriptor, "8 Bay · 2U Rack · V5 Video Server");
-    assert.equal(content.performance.ceilingLine, "2,000 Mbit/s · 192 TB raw · 144 TB usable");
+    assert.equal(content.performance.ceilingLine, "1,600 Mbit/s · 192 TB raw · 144 TB usable");
     assert.equal(content.headline[3].value, "150");
   });
 

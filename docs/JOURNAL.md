@@ -4,6 +4,33 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-10-12 - V400 rated 1600 Mbit/s; V100-32 Genetec-certified (applied)
+
+### Work done
+
+- Andy decided the three product questions the audit left open. **The V400 is rated 1600
+  Mbit/s**: `VX5-V400-128` had been set to 1600 by an admin in the same form save as the
+  2026-09-14 EPYC 9015 CPU fields, and the refresh migration then left the other four V400 rows
+  (`-128-NCD`, `-160`, `-192`, `-192-NCD`) at 2000. **`VX5-V100-32` is Genetec-certified** like
+  its siblings. **The identical V700/V800 shipping weights stay** as they are.
+- `scripts/fix-product-specs-decisions-2026-10.ts` made the five updates; Andy ran `--apply`
+  from his terminal after a dry run. `VX5-V400-128` is deliberately not in the script's list,
+  so `--rollback` cannot set it to a 2000 it never held.
+- The guarded read-check-write engine moved into `scripts/product-specs-guarded-fix.ts`, shared
+  by both fix scripts. The typos script's dry run still reports all 61 "already applied".
+- Effect: the V400 page, its datasheet (headline and ceiling line), the System Estimate PDF and
+  new Project Quotes print 1,600 Mbit/s. Sizing is unchanged: the recommender sizes on cameras
+  and storage, never on `max_bandwidth_mbps`. Existing quotes are frozen snapshots and keep 2000.
+  A published spec drops 20%, so sales may want the same heads-up ADR 0092 gave for the V800.
+- Verified read-only: dry run "already applied 5", page-vs-datasheet audit zero mismatches, the
+  rendered V400 datasheet reads "1,600 Mbit/s · 192 TB raw · 144 TB usable". The two fixtures
+  that mirror live V400 values (`from-product-specs.test.ts` V400_BASE and the family-specs
+  fixtures) now say 1600. 843/843 tests, `tsc` clean.
+
+RUNBOOK unchanged.
+
+---
+
 ## 2026-10-12 - product_specs typo and contradiction fixes from the Price Book audit (applied)
 
 ### Work done

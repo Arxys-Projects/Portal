@@ -12,15 +12,16 @@
 // `updated_by = null` because a service-role connection has no auth.uid(), the
 // same as the 2026-09-14 CPU refresh. Not a precedent.
 //
-// GUARDED. Each row is read first and written only when the column still holds
-// the exact value the audit saw. The PATCH also filters on the row's
-// `updated_at`, so an admin edit landing between the read and the write turns
-// the write into a no-op. A row that has moved on is reported and left alone.
-// Re-running after an apply reports "already applied" and writes nothing.
+// APPLIED 2026-10-12 (61 field updates). The guarded read-check-write engine is
+// in product-specs-guarded-fix.ts.
 //
-// Deliberately NOT corrected here, because the right value is a product call:
-// VX5-V400-128 max_bandwidth_mbps 1600 vs 2000 on its siblings, VX5-V100-32
-// vms_certified missing Genetec, and the identical V700/V800 shipping weights.
+// Deliberately NOT corrected here, because the right value was a product call:
+// VX5-V400-128 max_bandwidth_mbps 1600 vs 2000 on its siblings and VX5-V100-32
+// vms_certified missing Genetec (both decided and fixed in
+// fix-product-specs-decisions-2026-10.ts), and the identical V700/V800 shipping
+// weights (left as they are, by Andy's call).
+
+import { runSpecFixes, type SpecFix } from "./product-specs-guarded-fix";
 
 const V100 = ["VX5-V100-32", "VX5-V100-40", "VX5-V100-48"];
 const V200 = ["VX5-V200-64", "VX5-V200-80", "VX5-V200-96"];
@@ -30,8 +31,6 @@ const V600 = ["VX5-V600-256", "VX5-V600-320", "VX5-V600-384"];
 const V700 = ["VX5-V700-384", "VX5-V700-480", "VX5-V700-576"];
 const V800 = ["VX5-V800-576", "VX5-V800-720", "VX5-V800-864"];
 const ALL = [...V100, ...V200, ...V400, ...V500, ...V600, ...V700, ...V800];
-
-type Fix = { column: string; ids: string[]; from: unknown; to: unknown; why: string };
 
 const SFP = "2x 10Gb SFP+ or 2x 25Gb SFP28 upgrade available";
 
@@ -49,7 +48,7 @@ const V400_SECURITY_TO = V400_SECURITY_FROM.map((line) =>
     : line,
 );
 
-const FIXES: Fix[] = [
+const FIXES: SpecFix[] = [
   {
     column: "warranty_terms",
     ids: V500,
@@ -157,76 +156,7 @@ const FIXES: Fix[] = [
   },
 ];
 
-const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
-
-async function main(): Promise<void> {
-  const args = new Set(process.argv.slice(2));
-  const rollback = args.has("--rollback");
-  const apply = args.has("--apply") || rollback;
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SERVICE_KEY;
-  if (!url || !key) throw new Error("need SUPABASE_URL + service key; run with node --env-file=.env.local");
-  const headers = { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json" };
-
-  console.log(`${rollback ? "ROLLBACK" : apply ? "APPLY" : "DRY RUN"}: ${FIXES.length} corrections\n`);
-  const tally = { written: 0, wouldWrite: 0, already: 0, moved: 0, raced: 0 };
-
-  for (const fix of FIXES) {
-    const [from, to] = rollback ? [fix.to, fix.from] : [fix.from, fix.to];
-    console.log(`${fix.column}: ${fix.why}`);
-    for (const id of fix.ids) {
-      const res = await fetch(
-        `${url}/rest/v1/product_specs?select=id,updated_at,${fix.column}&id=eq.${encodeURIComponent(id)}`,
-        { headers },
-      );
-      if (!res.ok) throw new Error(`${id} read ${res.status}: ${await res.text()}`);
-      const [row] = (await res.json()) as Record<string, unknown>[];
-      if (!row) throw new Error(`${id}: no such product_specs row`);
-      const current = row[fix.column];
-      if (same(current, to)) {
-        console.log(`  ${id.padEnd(18)} already applied`);
-        tally.already++;
-        continue;
-      }
-      if (!same(current, from)) {
-        console.log(`  ${id.padEnd(18)} SKIPPED, value has moved on: ${JSON.stringify(current)}`);
-        tally.moved++;
-        continue;
-      }
-      if (!apply) {
-        console.log(`  ${id.padEnd(18)} would write`);
-        tally.wouldWrite++;
-        continue;
-      }
-      const patch = await fetch(
-        `${url}/rest/v1/product_specs?id=eq.${encodeURIComponent(id)}` +
-          `&updated_at=eq.${encodeURIComponent(String(row.updated_at))}`,
-        {
-          method: "PATCH",
-          headers: { ...headers, Prefer: "return=representation" },
-          body: JSON.stringify({ [fix.column]: to }),
-        },
-      );
-      if (!patch.ok) throw new Error(`${id} write ${patch.status}: ${await patch.text()}`);
-      const written = (await patch.json()) as Record<string, unknown>[];
-      if (written.length === 1 && same(written[0][fix.column], to)) {
-        console.log(`  ${id.padEnd(18)} written`);
-        tally.written++;
-      } else {
-        console.log(`  ${id.padEnd(18)} NOT written, the row changed between read and write`);
-        tally.raced++;
-      }
-    }
-  }
-
-  console.log(
-    `\nwritten ${tally.written} · would write ${tally.wouldWrite} · already applied ${tally.already}` +
-      ` · moved on ${tally.moved} · raced ${tally.raced}`,
-  );
-  if (tally.moved > 0 || tally.raced > 0) process.exitCode = 1;
-}
-
-main().catch((error: unknown) => {
+runSpecFixes(FIXES, process.argv.slice(2)).catch((error: unknown) => {
   console.error(error);
   process.exit(1);
 });
