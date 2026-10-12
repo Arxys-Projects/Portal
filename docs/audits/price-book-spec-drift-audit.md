@@ -6,8 +6,8 @@
   `node --env-file=.env.local --import tsx scripts/audit-price-book-specs.ts`. SELECT only.
   Audit-trail lookups in `product_specs_audit`, also SELECT only.
 - **Status**: Implemented 2026-10-12, ADR 0146. Gate A answered 2026-10-09 (§5), so §3 is the
-  final mapping; Gate B approved 2026-10-12 on the table in §6. The data corrections in §7 are
-  still open.
+  final mapping; Gate B approved 2026-10-12 on the table in §6. The data corrections in §7 were
+  applied 2026-10-12; three product decisions listed there remain open.
 
 ## 1. Drift: what the seven pages say today vs the live canonical row
 
@@ -401,13 +401,14 @@ What to look at:
 | Net usable VX5-V800-720 | 600 TB | 600 TB (535.9 TB available) |
 | Net usable VX5-V800-864 | 720 TB | 720 TB (643 TB available) |
 
-## 7. Data corrections (Q4): identified, not applied
+## 7. Data corrections (Q4): applied 2026-10-12
 
-Andy asked for the data mistakes to be fixed. The planned route was a guarded one-off script
-(dry run by default; each row written only if it still holds the exact value the audit saw,
-with an `updated_at` check against a concurrent edit). This session's permission policy
-refused the production write, so nothing below has been written. Every one can be made
-in `/admin/specs` instead, or by the script once the write is allowed.
+**Applied 2026-10-12** by Andy from his own terminal with
+`scripts/fix-product-specs-typos-2026-10.ts --apply` (61 field updates, all "written"), after
+the agent's own attempt was refused by the session's permission policy. The script is guarded:
+dry run by default, each row written only if it still holds the exact value the audit saw, with
+an `updated_at` check against a concurrent edit. A follow-up dry run reports all 61 "already
+applied", and the re-rendered datasheets carry none of the old strings. `--rollback` reverses it.
 
 | Rows | Column | From | To |
 |---|---|---|---|

@@ -1,6 +1,7 @@
 // Live product_specs rows for the seven Price Book product_specs families, read
 // 2026-10-09 by scripts/audit-price-book-specs.ts and trimmed to literals so the
-// derivation tests run with no network. One row per model, the canonical
+// derivation tests run with no network. Updated for the 2026-10-12 typo fixes
+// (scripts/fix-product-specs-typos-2026-10.ts). One row per model, the canonical
 // (highest-capacity) SKU, plus the few siblings a test needs.
 //
 // Shared by family-specs.test.ts and families.test.ts. Not itself a test file:
@@ -56,7 +57,7 @@ export const V800_864: FamilySpecRow = {
   warranty_years: 5,
   warranty_terms:
     "Advanced Warranty with NBD Advanced Parts Replacement of Field Replaceable Units (FRUs).",
-  operating_temp: "10- 30 C / 41 - 86 F",
+  operating_temp: "10 - 30 C / 41 - 86 F",
   storage_temp: "-40 - 65 C / -40 - 149 F",
   humidity: "10 – 90% relative humidity (non-condensing)",
   regulatory_safety: "CE (class A), UKCA, FCC, RCM, UL",
@@ -92,7 +93,7 @@ export const V600_384: FamilySpecRow = {
   raid_level_display: "6",
   form_factor: "3U Rackmount",
   remote_mgmt:
-    "Dedicted Out of Band (OOB) Remote Management including: IPMI System Management, KVM Console Redirection",
+    "Dedicated Out of Band (OOB) Remote Management including: IPMI System Management, KVM Console Redirection",
   power_wattage: "800W",
   power_redundancy: "1+1 redundant PSU PMBus 1.2",
 };
@@ -108,8 +109,6 @@ export const V500_288: FamilySpecRow = {
   form_factor: "2U Rackmount",
   os_drive_desc: "Enterprise 3D TLC Flash SSD SATA3 Dedicated for OS/VMS",
   remote_mgmt: V800_864.remote_mgmt,
-  warranty_terms:
-    "dvanced Warranty with NBD Advanced Parts Replacement of Field Replaceable Units (FRUs).",
 };
 
 export const V400_192: FamilySpecRow = {
@@ -154,7 +153,7 @@ export const V200_96: FamilySpecRow = {
   sfp_addon: "No",
   form_factor: "1U Rackmount",
   remote_mgmt: V800_864.remote_mgmt,
-  power_wattage: "800W 1+1 redundant PSU -",
+  power_wattage: "800W 1+1 redundant PSU",
   power_redundancy: "1+1 redundant PSU",
   warranty_terms: V800_864.warranty_terms,
 };
@@ -175,6 +174,7 @@ export const V100_48: FamilySpecRow = {
   battery_raid: "NO",
   os_ssd_type: "1x NVMe",
   os_redundancy: "NO",
+  network: "2 × 1GbE + 1 IPMI",
   gbe_10_ports: 0,
   gbe_1_ports: 2,
   hotswap_power: "NO",

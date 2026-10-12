@@ -4,6 +4,41 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-10-12 - product_specs typo and contradiction fixes from the Price Book audit (applied)
+
+### Work done
+
+- Applied the 15 corrections listed in
+  [`audits/price-book-spec-drift-audit.md`](./audits/price-book-spec-drift-audit.md) §7: 61
+  field updates across all 24 `product_specs` rows, through
+  `scripts/fix-product-specs-typos-2026-10.ts`. Every one is a typo or a self-contradiction
+  that printed on a live datasheet: the V500 "dvanced" warranty text, V600 "Dedicted", the
+  V600/V700 SFP note, the V200 power trailing dash, V100-40/-48 network (10GbE to 1GbE, to
+  match the port counts and the -32) and `cpu_cores_threads` (8C/16T to 6C/12T), the V800-576
+  hot-swap flag ("Yes 1+1" to "Yes"), the V400-160 legacy warranty string, the V400 security
+  list's stray comma, and spacing in shipping weight, operating temperature and one safety line.
+- **Run by Andy from his own terminal** after a dry run he approved. It bypasses the admin form,
+  so the audit rows carry `updated_by = null`, as the 2026-09-14 CPU refresh did. Not a
+  precedent. `--rollback` reverses it with the same guards.
+- Verified read-only afterwards: a second dry run reports all 61 "already applied"; the
+  page-vs-datasheet audit reports zero mismatches; `render-datasheet.ts --all` renders every
+  sheet at its expected page count, none of the old strings appear, and the V800 sheet has its
+  "N+1 hot-swap power & cooling" bullet back.
+
+### Detours & fixes
+
+- **The agent could not run the write.** The session's auto-mode permission check refused the
+  production write twice, including after Andy's explicit yes. The script is guarded so that
+  handing it to a human costs nothing: dry run by default, each row written only when it still
+  holds the value the audit saw, and an `updated_at` filter against a concurrent admin edit.
+- **Still open, product decisions:** `VX5-V400-128` throughput 1600 vs 2000 on its siblings and
+  its own -NCD twin; `VX5-V100-32` VMS list missing Genetec; V700 and V800 shipping weights
+  identical with 24 and 36 drives.
+
+RUNBOOK unchanged.
+
+---
+
 ## 2026-10-12 - Price Book spec sync, steps 2 to 5: product pages derive their facts from product_specs
 
 ### Work done
