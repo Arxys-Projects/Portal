@@ -214,7 +214,7 @@ export const SPEC_SECTIONS: SpecSection[] = [
         label: "Warranty (legacy string)",
         kind: "text-required",
         maxLength: 200,
-        hint: "Stays NOT NULL and in use. The two structured fields beside it are what the datasheet reads — keep them consistent with this.",
+        hint: "Stays NOT NULL. The two structured fields beside it are what the datasheet and the Price Book read, so keep this consistent with them.",
       },
       { name: "warranty_years", label: "Warranty years", kind: "int-optional" },
       { name: "warranty_terms", label: "Warranty terms", kind: "text-optional", maxLength: 200 },
@@ -443,8 +443,8 @@ export function specWarnings(values: SpecRuleValues): string[] {
     );
   }
 
-  // Two representations of the warranty now coexist: the legacy NOT NULL string
-  // the Price Book prints, and the structured years the datasheet reads. Drift
+  // Two representations of the warranty now coexist: the legacy NOT NULL string,
+  // and the structured years the datasheet and the Price Book read. Drift
   // between them is exactly what keeping both invites, and neither side can be
   // called wrong from a single row — so this warns rather than refuses.
   const legacyYears = leadingDigits(values.warranty);
@@ -454,7 +454,7 @@ export function specWarnings(values: SpecRuleValues): string[] {
     legacyYears !== values.warranty_years
   ) {
     warnings.push(
-      `Warranty years (${values.warranty_years}) disagrees with the legacy warranty string, which starts "${legacyYears}". The datasheet reads the structured field and the Price Book prints the string — make them agree.`,
+      `Warranty years (${values.warranty_years}) disagrees with the legacy warranty string, which starts "${legacyYears}". The datasheet and the Price Book both read Warranty years, so correct the legacy string to match.`,
     );
   }
 

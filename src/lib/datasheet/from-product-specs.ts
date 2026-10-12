@@ -41,7 +41,17 @@
 import { usableCapacityTb } from "../capacity-utils";
 import * as copy from "./copy";
 import { PAGE1_PHOTO_HEIGHT } from "./tokens";
-import { clean, isYes, joinParts, specRow, thousands } from "./spec-text";
+import { canonicalRow, groupByModel } from "./canonical-row";
+import {
+  clean,
+  isNegative,
+  isYes,
+  joinParts,
+  osText,
+  raidLabel,
+  specRow,
+  thousands,
+} from "./spec-text";
 import type {
   DatasheetContent,
   LadderCell,
@@ -114,83 +124,14 @@ export type ProductSpecRow = {
   usage_paragraph: string | null;
 };
 
-/** Part numbers are `VX5-{MODEL}-{RAW_TB}`, so the model is the middle segment. */
-export function modelOf(row: Pick<ProductSpecRow, "id">): string {
-  return row.id.split("-")[1] ?? row.id;
-}
-
-/** Group rows into their models, each sorted by raw capacity ascending. */
-export function groupByModel(rows: ProductSpecRow[]): Map<string, ProductSpecRow[]> {
-  const groups = new Map<string, ProductSpecRow[]>();
-  for (const row of rows) {
-    const model = modelOf(row);
-    const list = groups.get(model);
-    if (list) list.push(row);
-    else groups.set(model, [row]);
-  }
-  for (const list of groups.values()) {
-    list.sort((a, b) => (a.storage_raw_tb ?? 0) - (b.storage_raw_tb ?? 0));
-  }
-  return groups;
-}
-
-/**
- * The model's spec row: the highest-capacity SKU, with any text column that a
- * sibling SKU states more fully extended to that fuller wording.
- *
- * "More fully" means strictly prefix-extended, after trimming — `"Optional"` is
- * replaced by `"Optional - 2x 10Gb SFP+ ... available"`, but `"4 × 10GbE + 1
- * IPMI"` and `"4 × 10GbE RJ45 ports + 1 IPMI"` are left alone because neither
- * prefixes the other. Both of those are correct; picking between two correct
- * wordings is what the canonical-row rule is for. Extending a truncation is
- * different, and safe.
- *
- * `rows` must be capacity-ascending, as groupByModel() returns them.
- */
-export function canonicalRow(rows: ProductSpecRow[]): ProductSpecRow {
-  const top = rows[rows.length - 1];
-  if (rows.length === 1) return top;
-  const merged: ProductSpecRow = { ...top };
-  for (const key of Object.keys(top) as (keyof ProductSpecRow)[]) {
-    // Capacity-bearing and identity columns are per-SKU facts, never merged.
-    if (key === "id" || key === "model_name" || key === "storage_raw_tb") continue;
-    const own = top[key];
-    if (typeof own !== "string") continue;
-    const trimmed = own.trim();
-    let best = trimmed;
-    for (const sibling of rows) {
-      const other = sibling[key];
-      if (typeof other !== "string") continue;
-      const otherTrimmed = other.trim();
-      // Strict prefix extension only, case-insensitively, so a longer sibling
-      // that merely re-words the value is ignored.
-      if (
-        otherTrimmed.length > best.length &&
-        otherTrimmed.toLowerCase().startsWith(trimmed.toLowerCase())
-      ) {
-        best = otherTrimmed;
-      }
-    }
-    if (best !== trimmed) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (merged as any)[key] = best;
-    }
-  }
-  return merged;
-}
+// modelOf / groupByModel / canonicalRow live in ./canonical-row, which has no
+// react-pdf import, so the Price Book page can pick the same row by the same rule
+// without pulling the PDF renderer into its bundle. Re-exported for every
+// existing caller.
+export { canonicalRow, groupByModel, modelOf } from "./canonical-row";
 
 /** The 8MP stream count. 8MP carries double the pixels per frame, so ~45% fewer. */
 export const streamsAt8Mp = (baseline: number): number => Math.round(baseline * 0.55);
-
-/** "60" -> "RAID 60". The level is a template variable, not a constant. */
-function raidLabel(level: string | null): string {
-  const trimmed = (level ?? "").trim();
-  if (trimmed === "") return "RAID";
-  // 'JBOD' and 'NA' are levels the column already holds; neither takes the word
-  // "RAID" in front of it.
-  if (/^[a-z]/i.test(trimmed)) return trimmed.toUpperCase();
-  return `RAID ${trimmed}`;
-}
 
 /**
  * The three compliance pills on the hero row.
@@ -357,22 +298,6 @@ function attributes(row: ProductSpecRow): string[] {
 }
 
 const PORT_WORD: Record<number, string> = { 1: "Single", 2: "Dual", 4: "Quad" };
-
-/**
- * The OS column was transcribed with a shouting conjunction — "Windows Server
- * 2022 OR 2025 LTSC" — which reads as emphasis on a customer-facing sheet where
- * none is meant. Lowercasing a standalone OR changes no meaning, and doing it
- * here rather than in the column keeps the admin form showing what the source
- * factsheet says.
- */
-function osText(value: string | null): string | null {
-  return value === null ? null : clean(value).replace(/\bOR\b/g, "or");
-}
-
-/** A free-text column holding a negative ("No", "NA", "None") rather than a description. */
-function isNegative(value: unknown): boolean {
-  return /^\s*(no|n|none|na|n\/a|false)\s*$/i.test(String(value ?? ""));
-}
 
 /** Only claim TPM when the row's own security_features list names it. */
 function hasTpm(row: ProductSpecRow): boolean {

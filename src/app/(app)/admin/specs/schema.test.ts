@@ -436,9 +436,9 @@ describe("specWarnings — surfaced, never enforced (design §4c)", () => {
   });
 
   it("flags warranty years that contradict the legacy warranty string", () => {
-    // Two representations of the same fact now coexist — the legacy NOT NULL
-    // string the Price Book prints, and the structured years the datasheet
-    // reads. Drift between them is what keeping both invites.
+    // Two representations of the same fact now coexist: the legacy NOT NULL
+    // string, and the structured years the datasheet and the Price Book read.
+    // Drift between them is what keeping both invites.
     const values = expectOk(
       validRow({ warranty: "5yr NBD, Advanced Replacement", warranty_years: 3 }),
     );

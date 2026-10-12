@@ -1,6 +1,8 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { FAMILIES, datasheetButtonsFor, familyBySlug } from "./families";
+import { resolveFamilyDisplay } from "./family-specs";
+import { LIVE_TOP_ROWS } from "./family-specs.test-fixtures";
 
 describe("FAMILIES", () => {
   it("has unique slugs", () => {
@@ -103,28 +105,65 @@ describe("FAMILIES", () => {
     }
   });
 
+  // The three count checks run against what the page renders, authored or
+  // derived, using the live rows captured in the fixtures.
+  const ROWS = Object.values(LIVE_TOP_ROWS);
+
   it("every family has 3 kpis", () => {
     for (const f of FAMILIES) {
-      assert.equal(f.kpis.length, 3, `${f.slug} does not have exactly 3 kpis`);
+      const { kpis } = resolveFamilyDisplay(f, ROWS);
+      assert.equal(kpis.length, 3, `${f.slug} does not have exactly 3 kpis`);
     }
   });
 
   it("every family has at least 3 keyFeatures", () => {
     for (const f of FAMILIES) {
-      assert.ok(
-        f.keyFeatures.length >= 3,
-        `${f.slug} has fewer than 3 keyFeatures`,
-      );
+      const { keyFeatures } = resolveFamilyDisplay(f, ROWS);
+      assert.ok(keyFeatures.length >= 3, `${f.slug} has fewer than 3 keyFeatures`);
     }
   });
 
   it("every family has at least 3 technicalSpecs", () => {
     for (const f of FAMILIES) {
-      assert.ok(
-        f.technicalSpecs.length >= 3,
-        `${f.slug} has fewer than 3 technicalSpecs`,
-      );
+      const { technicalSpecs } = resolveFamilyDisplay(f, ROWS);
+      assert.ok(technicalSpecs.length >= 3, `${f.slug} has fewer than 3 technicalSpecs`);
     }
+  });
+
+  it("the seven product_specs families derive their specs; the rest are authored", () => {
+    const bySource = (source: string) =>
+      FAMILIES.filter((f) => f.specSource === source).map((f) => f.slug);
+    assert.deepEqual(bySource("product_specs"), ["v100", "v200", "v400", "v500", "v600", "v700", "v800"]);
+    assert.deepEqual(bySource("authored"), ["v250", "v260", "sw"]);
+  });
+
+  it("no product_specs family carries authored spec arrays", () => {
+    // The type forbids them; this holds the line against a cast.
+    for (const f of FAMILIES) {
+      if (f.specSource !== "product_specs") continue;
+      for (const key of ["kpis", "keyFeatures", "technicalSpecs"]) {
+        assert.ok(!(key in f), `${f.slug} carries an authored ${key} (ADR 0146)`);
+      }
+    }
+  });
+
+  it("a product_specs family names exactly one product group, its model key", () => {
+    for (const f of FAMILIES) {
+      if (f.specSource !== "product_specs") continue;
+      assert.deepEqual(f.productGroups, [f.shortName], `${f.slug} productGroups`);
+    }
+  });
+
+  it("only the V100 overrides net-usable storage", () => {
+    // V200 to V800 compute it from product_specs. The V100 keeps three hand
+    // strings because it publishes two configurations and usableCapacityTb()
+    // takes one RAID level (ADR 0092).
+    const overridden = FAMILIES.flatMap((f) =>
+      Object.entries(f.skuExtraData ?? {})
+        .filter(([, extra]) => extra.netStorage !== undefined)
+        .map(([sku]) => sku),
+    );
+    assert.deepEqual(overridden, ["VX5-V100-32", "VX5-V100-40", "VX5-V100-48"]);
   });
 
   it("skuTableColumns always includes sku, product, and msrp", () => {

@@ -15,6 +15,10 @@ import {
   type ProductRow,
   type ProductSpecLite,
 } from "@/lib/price-book/cell-value";
+import {
+  resolveFamilyDisplay,
+  type FamilySpecRow,
+} from "@/lib/price-book/family-specs";
 // ADR 0133 — the single source for the VSR rating profile. The price book used to
 // hand-write its own description of it in two places; both now render from here.
 import {
@@ -146,30 +150,29 @@ export default async function FamilyDetailPage({
   const rows = (primaryProducts ?? []) as ProductRow[];
   const upgrades = (upgradeProducts ?? []) as ProductRow[];
 
-  // Net-usable storage and camera bandwidth live in product_specs, not products.
-  // product_specs.id IS the SKU, so join products.sku -> product_specs.id for
-  // every SKU rendered on this page (primary + tiers + upgrades).
+  // product_specs feeds two things here: the SKU tables (net-usable storage and
+  // camera bandwidth) and, for a product_specs family, the hero stats and both
+  // bullet lists. product_specs.id IS the SKU, so join products.sku ->
+  // product_specs.id for every SKU rendered on this page (primary + tiers +
+  // upgrades). `select("*")` because the derivation reads some forty columns, the
+  // same reason the datasheet loader gives.
   const allSkus = [
     ...rows.map((r) => r.sku),
     ...[...tierProductsMap.values()].flat().map((r) => r.sku),
     ...upgrades.map((r) => r.sku),
   ];
   const specsBySku: Record<string, ProductSpecLite> = {};
+  let specRows: FamilySpecRow[] = [];
   if (allSkus.length > 0) {
-    const { data: specRows } = await supabase
+    const { data, error } = await supabase
       .from("product_specs")
-      .select(
-        "id, storage_raw_tb, hdd_count, raid_level_display, max_bandwidth_mbps",
-      )
+      .select("*")
       .in("id", allSkus);
-    for (const s of specRows ?? []) {
-      const spec = s as {
-        id: string;
-        storage_raw_tb: number | string | null;
-        hdd_count: number | null;
-        raid_level_display: string | null;
-        max_bandwidth_mbps: number | null;
-      };
+    if (error) {
+      console.error(`[price-book/${family.slug}] product_specs read failed: ${error.message}`);
+    }
+    specRows = (data ?? []) as unknown as FamilySpecRow[];
+    for (const spec of specRows) {
       specsBySku[spec.id] = {
         storage_raw_tb:
           spec.storage_raw_tb == null ? null : Number(spec.storage_raw_tb),
@@ -178,6 +181,21 @@ export default async function FamilyDetailPage({
         max_bandwidth_mbps: spec.max_bandwidth_mbps,
       };
     }
+  }
+
+  // Only the SKUs this page lists speak for the family. The rows query above
+  // already excludes hidden_from_catalog, so a hidden -NCD copy cannot become
+  // the canonical row here (it can on the datasheet; see the 2026-10-09 audit).
+  const listedSkus = new Set(rows.map((r) => r.sku));
+  const display = resolveFamilyDisplay(
+    family,
+    specRows.filter((s) => listedSkus.has(s.id)),
+  );
+  if (family.specSource === "product_specs" && display.sourceSku === null) {
+    console.error(
+      `[price-book/${family.slug}] no product_specs rows for model ${family.productGroups[0]}; ` +
+        `hero stats show placeholders and both spec lists are empty`,
+    );
   }
 
   const datasheetButtons = datasheetButtonsFor(family);
@@ -238,7 +256,7 @@ export default async function FamilyDetailPage({
 
             {/* Quick stats */}
             <div className="mt-6 grid grid-cols-3 gap-4">
-              {family.kpis.map((kpi) => (
+              {display.kpis.map((kpi) => (
                 <div
                   key={kpi.label}
                   className="text-center bg-[#eef2f8] rounded-lg py-3 relative"
@@ -309,7 +327,7 @@ export default async function FamilyDetailPage({
               Key Features
             </h2>
             <ul className="gold-star mt-4 space-y-2 text-sm text-ink-soft">
-              {family.keyFeatures.map((f) => (
+              {display.keyFeatures.map((f) => (
                 <li key={f}>{f}</li>
               ))}
             </ul>
@@ -319,7 +337,7 @@ export default async function FamilyDetailPage({
               Technical Specs
             </h2>
             <ul className="gold-star mt-4 space-y-2 text-sm text-ink-soft">
-              {family.technicalSpecs.map((s) => (
+              {display.technicalSpecs.map((s) => (
                 <li key={s}>{s}</li>
               ))}
             </ul>

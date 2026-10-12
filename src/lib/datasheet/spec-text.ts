@@ -72,3 +72,29 @@ export function thousands(n: number): string {
 export function isYes(value: unknown): boolean {
   return /^\s*(yes|y|true)\s*$/i.test(String(value ?? ""));
 }
+
+/** A free-text column holding a negative ("No", "NA", "None") rather than a description. */
+export function isNegative(value: unknown): boolean {
+  return /^\s*(no|n|none|na|n\/a|false)\s*$/i.test(String(value ?? ""));
+}
+
+/** "60" -> "RAID 60". The level is a template variable, not a constant. */
+export function raidLabel(level: string | null): string {
+  const trimmed = (level ?? "").trim();
+  if (trimmed === "") return "RAID";
+  // 'JBOD' and 'NA' are levels the column already holds; neither takes the word
+  // "RAID" in front of it.
+  if (/^[a-z]/i.test(trimmed)) return trimmed.toUpperCase();
+  return `RAID ${trimmed}`;
+}
+
+/**
+ * The OS column was transcribed with a shouting conjunction — "Windows Server
+ * 2022 OR 2025 LTSC" — which reads as emphasis on a customer-facing sheet where
+ * none is meant. Lowercasing a standalone OR changes no meaning, and doing it
+ * here rather than in the column keeps the admin form showing what the source
+ * factsheet says.
+ */
+export function osText(value: string | null): string | null {
+  return value === null ? null : clean(value).replace(/\bOR\b/g, "or");
+}

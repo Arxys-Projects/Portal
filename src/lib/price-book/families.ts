@@ -51,7 +51,7 @@ export type DatasheetButton = {
   external: boolean;
 };
 
-export type Family = {
+type FamilyBase = {
   slug: string;
   displayName: string;
   eyebrow: string;
@@ -59,9 +59,6 @@ export type Family = {
   shortName: string;
   tagline: string;
   greatFor: string;
-  keyFeatures: string[];
-  technicalSpecs: string[];
-  kpis: FamilyKpi[];
   productGroups: string[];
   skuTableColumns: SkuColumn[];
   tierSections: FamilyTierSection[];
@@ -93,6 +90,35 @@ export type Family = {
   sortOrder: number;
   skuExtraData?: Record<string, Partial<Record<SkuColumn, string>>>;
 };
+
+/** The hand-written spec arrays, for a family with no product_specs rows. */
+export type AuthoredSpecs = {
+  keyFeatures: string[];
+  technicalSpecs: string[];
+  kpis: FamilyKpi[];
+};
+
+/**
+ * Where a family's hero stats, Key Features and Technical Specs come from.
+ *
+ * "product_specs": derived from the live rows by family-specs.ts, the same rows
+ * the datasheet reads (ADR 0146). Such a family carries NO spec arrays, and
+ * writing one is a compile error. That is the point: the arrays it used to carry
+ * went stale under every /admin/specs edit, and an absent field cannot.
+ *
+ * "authored": the arrays below, by hand. V250, V260 and SW, whose specs live in
+ * appliance_specs, which the page does not read yet.
+ *
+ * Same technique as ProductRow in cell-value.ts.
+ */
+export type Family =
+  | (FamilyBase & {
+      specSource: "product_specs";
+      keyFeatures?: never;
+      technicalSpecs?: never;
+      kpis?: never;
+    })
+  | (FamilyBase & { specSource: "authored" } & AuthoredSpecs);
 
 /**
  * The Documentation buttons for one family — live route where a sheet exists,
@@ -152,26 +178,7 @@ export const FAMILIES: Family[] = [
       "Ideal for smaller sites or satellite locations with lower camera counts.",
     greatFor:
       "Ideal for smaller sites or satellite locations with lower camera counts, this all-in-one recorder and management server delivers great value and innovation. Perfect for access control management or compact deployments, it delivers streamlined performance, simplified setup, and reliable operation in a single, space-saving appliance.",
-    keyFeatures: [
-      "Windows Server 2022/2025 IoT Workgroup",
-      "2x Enterprise HDD's (RAID 1 or JBOD)",
-      "500 Mbps max possible throughput",
-      "1U Rack mount w/ rails",
-      "Max VSR = 25 streams h.265 or h.264",
-    ],
-    technicalSpecs: [
-      "AMD EPYC 4005 4.0GHz 6/12 Core CPU",
-      "16GB DDR5 DRAM",
-      "1x Enterprise OS SSD",
-      "2x 1Gb Ethernet Ports",
-      "1x Dedicated Remote Management",
-      "1x 80Plus Gold Power Supply",
-    ],
-    kpis: [
-      { label: "Max VSR", value: "25", unit: "streams", vsrTooltip: true },
-      { label: "Throughput", value: "500", unit: "Mbps" },
-      { label: "Warranty Support", value: "5 Years", unit: "Next Business Day Parts" },
-    ],
+    specSource: "product_specs",
     productGroups: ["V100"],
     skuTableColumns: ["sku", "product", "netStorage", "msrp"],
     tierSections: [
@@ -195,7 +202,9 @@ export const FAMILIES: Family[] = [
       // The V100 is a 2-bay unit sold RAID 1 or JBOD, so both figures are
       // published — a single number misstates one of the two configurations.
       // These stay as overrides (not computed) because usableCapacityTb() takes
-      // one RAID level and cannot express a choice. See ADR 0092.
+      // one RAID level and cannot express a choice. See ADR 0092. They are the
+      // only netStorage overrides left: V200 to V800 compute theirs from
+      // product_specs (ADR 0146), and families.test.ts holds that line.
       "VX5-V100-32": { netStorage: "16 TB RAID 1 / 32 TB JBOD" },
       "VX5-V100-40": { netStorage: "20 TB RAID 1 / 40 TB JBOD" },
       "VX5-V100-48": { netStorage: "24 TB RAID 1 / 48 TB JBOD" },
@@ -214,6 +223,7 @@ export const FAMILIES: Family[] = [
       "Management / Directory servers for larger deployments with greater management and uptime considerations.",
     greatFor:
       "Management/Directory servers for larger deployments with greater management and uptime considerations. Excellent balance of performance and value to right size your projects.",
+    specSource: "authored",
     keyFeatures: [
       "Windows Server 2022/2025 IoT Workgroup",
       "Enterprise SSD's — RAID Mirrored",
@@ -262,6 +272,7 @@ export const FAMILIES: Family[] = [
       "Built for multi-tenant buildings, campus facilities, requiring higher reliability & uptime assurance.",
     greatFor:
       "Built for multi-tenant buildings, campus facilities, requiring higher reliability & uptime assurance. Hardware RAID with cache protection, hot-swap SSDs, and redundant power supplies eliminate single points of failure for critical access control operations. Ideal for healthcare campuses, corporate headquarters, or regional facilities where door authorization downtime impacts hundreds of employees.",
+    specSource: "authored",
     keyFeatures: [
       "Windows Server 2022/2025 IoT Workgroup",
       "Up to 500 door support",
@@ -313,26 +324,7 @@ export const FAMILIES: Family[] = [
       "Perfect for small to mid-sized deployments, striking the right balance between performance, protection, and cost.",
     greatFor:
       "Perfect for small to mid-sized deployments, this solution strikes the right balance between performance, protection, and cost. It's built to handle mid-range surveillance projects without added complexity — powerful, practical, and ready to scale.",
-    keyFeatures: [
-      "Windows Server 2022/2025 IoT Workgroup",
-      "4x Enterprise HDD's — RAID 5",
-      "1,000 Mbps max possible throughput",
-      "1U Rack mount w/ rails",
-      "Max VSR = 100 streams h.265 or h.264",
-    ],
-    technicalSpecs: [
-      "AMD EPYC 4005 4.0GHz 6/12 Core CPU",
-      "16GB DDR5 DRAM",
-      "2x Mirrored Enterprise OS SSD — Hot Swap",
-      "2x 10Gb & 2x 1Gb Ethernet Ports",
-      "1x Dedicated Remote Management",
-      "2x Hot-swap, Redundant Power Supply",
-    ],
-    kpis: [
-      { label: "Max VSR", value: "100", unit: "streams", vsrTooltip: true },
-      { label: "Throughput", value: "1,000", unit: "Mbps" },
-      { label: "Warranty Support", value: "5 Years", unit: "Next Business Day Parts" },
-    ],
+    specSource: "product_specs",
     productGroups: ["V200"],
     skuTableColumns: ["sku", "product", "netStorage", "msrp"],
     tierSections: [],
@@ -342,11 +334,6 @@ export const FAMILIES: Family[] = [
     datasheetUrl: null,
     category: "nvr-mgmt-acm",
     sortOrder: 4,
-    skuExtraData: {
-      "VX5-V200-64": { netStorage: "48 TB" },
-      "VX5-V200-80": { netStorage: "60 TB" },
-      "VX5-V200-96": { netStorage: "72 TB" },
-    },
   },
 
   // ── V400 — 2U 8Bay Video Server ──────────────────────────────────────────
@@ -360,25 +347,7 @@ export const FAMILIES: Family[] = [
       "Strong security and reliable performance for medium to medium-large deployments.",
     greatFor:
       "Designed for medium to medium-large deployments with modest camera counts, this solution delivers strong security and reliable performance. It balances efficient video protection with scalable storage options, making it ideal for organizations with steady but manageable surveillance needs.",
-    keyFeatures: [
-      "Windows Server 2022/2025 IoT Standard",
-      "8x Enterprise HDD's, RAID 5 & Cachevault",
-      "2,000 Mbps max possible throughput",
-      "2U Rack mount w/ rails",
-      "Max VSR = 200 streams h.265 or h.264",
-    ],
-    technicalSpecs: [
-      "AMD EPYC 9005 3.3GHz 16/32 Core CPU",
-      "16GB ECC DDR5 DRAM",
-      "2x Mirrored Enterprise OS SSD — Hot Swap",
-      "4x 10GbE, 1x Dedicated Remote Management",
-      "2x Hot-swap, Redundant Power Supply",
-    ],
-    kpis: [
-      { label: "Max VSR", value: "200", unit: "streams", vsrTooltip: true },
-      { label: "Throughput", value: "2,000", unit: "Mbps" },
-      { label: "Warranty Support", value: "5 Years", unit: "Next Business Day Parts" },
-    ],
+    specSource: "product_specs",
     productGroups: ["V400"],
     skuTableColumns: ["sku", "product", "netStorage", "msrp"],
     tierSections: [],
@@ -393,11 +362,6 @@ export const FAMILIES: Family[] = [
     datasheetUrl: null,
     category: "nvr-analytics",
     sortOrder: 5,
-    skuExtraData: {
-      "VX5-V400-128": { netStorage: "96 TB" },
-      "VX5-V400-160": { netStorage: "120 TB" },
-      "VX5-V400-192": { netStorage: "144 TB" },
-    },
   },
 
   // ── V500 — 2U 12Bay Video Server ─────────────────────────────────────────
@@ -411,25 +375,7 @@ export const FAMILIES: Family[] = [
       "Tailored for mid to large-sized deployments with growing camera counts and retention needs.",
     greatFor:
       "Tailored for mid to large-sized deployments with growing camera counts and retention needs, this solution prioritizes security and high performance. It offers robust video protection combined with expanded storage capacity, to meet the demands of evolving surveillance environments.",
-    keyFeatures: [
-      "Windows Server 2022/2025 IoT Standard",
-      "12x Enterprise HDD's, RAID 6 & Cachevault",
-      "3,000 Mbps max possible throughput",
-      "2U Rack mount w/ rails",
-      "Max VSR = 275 streams h.265 or h.264",
-    ],
-    technicalSpecs: [
-      "AMD EPYC 9005 3.3GHz 16/32 Core CPU",
-      "32GB ECC DDR5 DRAM",
-      "2x Mirrored Enterprise OS SSD — Hot Swap",
-      "4x 10GbE, 1x Dedicated Remote Management",
-      "2x Hot-swap, Redundant Power Supply",
-    ],
-    kpis: [
-      { label: "Max VSR", value: "275", unit: "streams", vsrTooltip: true },
-      { label: "Throughput", value: "3,000", unit: "Mbps" },
-      { label: "Warranty Support", value: "5 Years", unit: "Next Business Day Parts" },
-    ],
+    specSource: "product_specs",
     productGroups: ["V500"],
     skuTableColumns: ["sku", "product", "netStorage", "msrp"],
     tierSections: [],
@@ -444,11 +390,6 @@ export const FAMILIES: Family[] = [
     datasheetUrl: null,
     category: "nvr-analytics",
     sortOrder: 6,
-    skuExtraData: {
-      "VX5-V500-192": { netStorage: "160 TB" },
-      "VX5-V500-240": { netStorage: "200 TB" },
-      "VX5-V500-288": { netStorage: "240 TB" },
-    },
   },
 
   // ── V600 — 3U 16Bay Video Server ─────────────────────────────────────────
@@ -462,25 +403,7 @@ export const FAMILIES: Family[] = [
       "Mid to large-sized deployments with growing camera counts, extended retention times.",
     greatFor:
       "Tailored for mid to large-sized deployments with growing camera counts and retention needs, this solution prioritizes security and high performance. It offers robust video protection combined with expanded storage capacity, to meet the demands of evolving surveillance environments and extended retention times.",
-    keyFeatures: [
-      "Windows Server 2022/2025 IoT Standard",
-      "16x Enterprise HDD's, RAID 6 & Cachevault",
-      "3,000 Mbps max possible throughput",
-      "3U Rack mount w/ rails",
-      "Max VSR = 275 streams h.265 or h.264",
-    ],
-    technicalSpecs: [
-      "AMD EPYC 9005 3.3GHz 16/32 Core CPU",
-      "32GB ECC DDR5 DRAM",
-      "2x Mirrored Enterprise OS SSD — Hot Swap",
-      "4x 10GbE, 1x Dedicated Remote Management",
-      "2x Hot-swap, Redundant Power Supply",
-    ],
-    kpis: [
-      { label: "Max VSR", value: "275", unit: "streams", vsrTooltip: true },
-      { label: "Throughput", value: "3,000", unit: "Mbps" },
-      { label: "Warranty Support", value: "5 Years", unit: "Next Business Day Parts" },
-    ],
+    specSource: "product_specs",
     productGroups: ["V600"],
     skuTableColumns: ["sku", "product", "netStorage", "msrp"],
     tierSections: [],
@@ -495,11 +418,6 @@ export const FAMILIES: Family[] = [
     datasheetUrl: null,
     category: "nvr-analytics",
     sortOrder: 7,
-    skuExtraData: {
-      "VX5-V600-256": { netStorage: "224 TB" },
-      "VX5-V600-320": { netStorage: "280 TB" },
-      "VX5-V600-384": { netStorage: "336 TB" },
-    },
   },
 
   // ── V700 — 4U 24Bay Video Server ─────────────────────────────────────────
@@ -513,25 +431,7 @@ export const FAMILIES: Family[] = [
       "Built for large-scale deployments with advanced video analytics requirements.",
     greatFor:
       "Built for large-scale deployments with advanced video analytics requirements, this platform delivers unmatched protection, performance, and security. It's the perfect foundation for complex surveillance projects demanding high-capacity video processing. Analytics capabilities are fully optimized based on the VMS, ensuring powerful and intelligent monitoring at scale.",
-    keyFeatures: [
-      "Windows Server 2022/2025 IoT Standard",
-      "24x Enterprise HDD's, RAID 60 & Cachevault",
-      "4,000 Mbps max possible throughput",
-      "4U Rack mount w/ rails",
-      "Max VSR = 325 streams h.265 or h.264",
-    ],
-    technicalSpecs: [
-      "AMD EPYC 9005 4.3GHz 16/32 Core CPU",
-      "32GB ECC DDR5 DRAM",
-      "2x Mirrored Enterprise OS SSD — Hot Swap",
-      "4x 10GbE, 1x Dedicated Remote Management",
-      "2x Hot-swap, Redundant Power Supply",
-    ],
-    kpis: [
-      { label: "Max VSR", value: "325", unit: "streams", vsrTooltip: true },
-      { label: "Throughput", value: "4,000", unit: "Mbps" },
-      { label: "Warranty Support", value: "5 Years", unit: "Next Business Day Parts" },
-    ],
+    specSource: "product_specs",
     productGroups: ["V700"],
     skuTableColumns: ["sku", "product", "netStorage", "msrp"],
     tierSections: [],
@@ -546,11 +446,6 @@ export const FAMILIES: Family[] = [
     datasheetUrl: null,
     category: "high-density",
     sortOrder: 8,
-    skuExtraData: {
-      "VX5-V700-384": { netStorage: "320 TB" },
-      "VX5-V700-480": { netStorage: "400 TB" },
-      "VX5-V700-576": { netStorage: "480 TB" },
-    },
   },
 
   // ── V800 — 4U 36Bay Video Server ─────────────────────────────────────────
@@ -564,25 +459,7 @@ export const FAMILIES: Family[] = [
       "Designed for campus-wide deployments with centralized management and highest density.",
     greatFor:
       "Designed for campus-wide deployments with centralized management, this solution delivers critical protection, high performance, and top-tier security. It supports high camera density with exceptional reliability, for robust, scalable surveillance across large environments.",
-    keyFeatures: [
-      "Windows Server 2022/2025 IoT Standard",
-      "36x Enterprise HDD's, RAID 60 & Cachevault",
-      "4,000 Mbps max possible throughput",
-      "4U Rack mount w/ rails",
-      "Max VSR = 325 streams h.265 or h.264",
-    ],
-    technicalSpecs: [
-      "AMD EPYC 9005 4.3GHz 16/32 Core CPU",
-      "32GB ECC DDR5 DRAM",
-      "2x Mirrored Enterprise OS SSD — Hot Swap",
-      "4x 10GbE, 1x Dedicated Remote Management",
-      "2x Hot-swap, Redundant Power Supply",
-    ],
-    kpis: [
-      { label: "Max VSR", value: "325", unit: "streams", vsrTooltip: true },
-      { label: "Throughput", value: "4,000", unit: "Mbps" },
-      { label: "Warranty Support", value: "5 Years", unit: "Next Business Day Parts" },
-    ],
+    specSource: "product_specs",
     productGroups: ["V800"],
     skuTableColumns: ["sku", "product", "netStorage", "msrp"],
     tierSections: [],
@@ -597,11 +474,6 @@ export const FAMILIES: Family[] = [
     datasheetUrl: null,
     category: "high-density",
     sortOrder: 9,
-    skuExtraData: {
-      "VX5-V800-576": { netStorage: "480 TB" },
-      "VX5-V800-720": { netStorage: "600 TB" },
-      "VX5-V800-864": { netStorage: "720 TB" },
-    },
   },
 
   // ── SW — Security Workstations ───────────────────────────────────────────
@@ -615,6 +487,7 @@ export const FAMILIES: Family[] = [
       "Powerhouse security workstations engineered for high performance and maximum bandwidth.",
     greatFor:
       "Powerhouse security workstations engineered for high performance and maximum bandwidth, delivering seamless support for large camera counts and multi-monitor setups — built to excel in the most demanding surveillance environments.",
+    specSource: "authored",
     keyFeatures: [
       "Windows 11 IoT Enterprise",
       "1 to 2x Nvidia GPUs",

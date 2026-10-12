@@ -4,6 +4,64 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-10-12 - Price Book spec sync, steps 2 to 5: product pages derive their facts from product_specs
+
+### Work done
+
+- The seven product_specs families (V100, V200, V400 to V800) now derive their hero stats, Key
+  Features and Technical Specs from live `product_specs` rows through
+  `src/lib/price-book/family-specs.ts`, using the datasheet's own `canonicalRow()` on the SKUs
+  the page lists. `Family` became a union on `specSource`, so an authored spec array on one of
+  these families is a compile error. The 18 `netStorage` overrides on V200 to V800 are gone;
+  the V100's three stay (ADR 0092).
+- Pure helper moves, no behaviour change: `raidLabel`, `osText`, `isNegative` into
+  `datasheet/spec-text.ts`; `modelOf`, `groupByModel`, `canonicalRow` into the new
+  `datasheet/canonical-row.ts`, re-exported from the adapter. `from-product-specs.test.ts` and
+  `from-management-specs.test.ts` pass unedited.
+- `scripts/audit-price-book-specs.ts` became a standing check: it rebuilds each page and each
+  datasheet from live rows, prints the page's stats, bullets and SKU net-usable cells, and exits
+  non-zero on any shared-fact mismatch. Zero mismatches on 2026-10-09 and again on 2026-10-12.
+- The admin form's warranty hint and warning no longer claim the Price Book prints the legacy
+  `warranty` string (Gate A Q3). Nothing displays that string.
+- **Gate A** (2026-10-09): OS drive bullet from `os_ssd_type` + `os_redundancy`; power bullet as
+  proposed; fix the admin sentence; fix the data mistakes. **Gate B** (2026-10-12): the
+  generated before/after table in
+  [`audits/price-book-spec-drift-audit.md`](./audits/price-book-spec-drift-audit.md) §6 was
+  approved.
+- 843/843 tests, `tsc --noEmit` clean, the changed files lint clean, `next build --webpack`
+  green, nothing under `supabase/`.
+
+### Detours & fixes
+
+- **No V400 capacity moved.** The page's "RAID 5" was the authored error; live rows say RAID 6
+  and every retired override equalled the computed figure. The net-usable cells gain ADR 0127's
+  "(X TB available)" figure, which the overrides had been hiding.
+- **Importing `canonicalRow()` from the adapter would have loaded `@react-pdf/renderer` into the
+  page**, because the adapter imports the datasheet tokens. Moved the row rule to its own module
+  instead of letting the page bundle the PDF renderer.
+- **The datasheet's canonical row for V400 and V500 is a hidden `-NCD` row**, and their ordering
+  tables list the NCD part numbers (five rows under "Three drive capacities"). Reported, not
+  fixed. The page excludes them; the audit script prints which rows each surface reads.
+- **`canonicalRow()`'s prefix extension turned the V800's "Yes" into a sibling's "Yes 1+1"**,
+  which `isYes()` rejects, so the live V800 datasheet has no hot-swap power bullet. The page's
+  power rule reads a leading "Yes" as affirmative so the page does not inherit the defect.
+- **The data corrections did not happen.** Andy asked for them; the session's permission policy
+  refused the production write, and nothing was written. The 15 corrections are listed in the
+  audit's §7 for `/admin/specs` or a later, permitted run, plus three that need a product
+  decision (V400-128 throughput 1600 vs 2000, V100-32 VMS list, V700/V800 shipping weight).
+- **`npm run build` fails on this Mac**: only the WASM SWC bindings are installed and Turbopack
+  needs the native ones. `npx next build --webpack` builds. Machine-specific, not fixed here.
+- **Dev server and browser check skipped** per the standing rule; the audit script runs the
+  page's own derivation and `cellValue()` against live rows instead.
+
+RUNBOOK unchanged: no setup step moved.
+
+### Decisions captured
+
+- [`0146-price-book-pages-derive-spec-facts-from-product-specs.md`](./decisions/0146-price-book-pages-derive-spec-facts-from-product-specs.md)
+
+---
+
 ## 2026-10-12 - Escambia Men's Prison seeded for Cornerstone Detention HQ (17 groups, 2,469 streams)
 
 ### Work done

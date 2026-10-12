@@ -5,7 +5,9 @@
 - **Source**: live `product_specs` (24 rows) and `current_products`, read with
   `node --env-file=.env.local --import tsx scripts/audit-price-book-specs.ts`. SELECT only.
   Audit-trail lookups in `product_specs_audit`, also SELECT only.
-- **Status**: Gate A. Mapping in §3 is the proposal; §5 lists what needs Andy.
+- **Status**: Implemented 2026-10-12, ADR 0146. Gate A answered 2026-10-09 (§5), so §3 is the
+  final mapping; Gate B approved 2026-10-12 on the table in §6. The data corrections in §7 are
+  still open.
 
 ## 1. Drift: what the seven pages say today vs the live canonical row
 
@@ -112,10 +114,13 @@ Each is a `/admin/specs` edit for Andy. Nothing here writes to the database.
 | VX5-V400-128 | `max_bandwidth_mbps` | 1600 (admin edit 2026-09-14, siblings and its own -NCD twin are 2000) | Hero stat unaffected (top SKU is 2000). Confirm 1600 is intended; if so the -NCD twin is stale. |
 | VX5-V400-160 | `warranty` (legacy) | "5yr" | siblings say "5yr NBD, Advanced Replacement" |
 
-## 3. Proposed bullet mapping (for Gate A)
+## 3. Bullet mapping (final, Gate A answered)
 
 Shared helpers move from `from-product-specs.ts` to `spec-text.ts` (G5): `raidLabel`,
 `osText`, `isNegative`. `hasTpm` and `PORT_WORD` are not needed by the page and stay.
+`modelOf`, `groupByModel` and `canonicalRow` move to `datasheet/canonical-row.ts` and are
+re-exported from the adapter: the adapter imports the datasheet tokens and through them
+`@react-pdf/renderer`, which the page should not load to pick a row.
 
 ### Hero stats (always three)
 
@@ -197,6 +202,10 @@ are not part of the parity set.
 
 ## 5. Questions for Andy at Gate A
 
+**Answered 2026-10-09:** Q1 (a), the recommendation. Q2 agreed. Q3 fixed in this change
+(the hint, the comment and the warning now say the datasheet and the Price Book both read
+Warranty years). Q4 "fix any data mistakes": see §7.
+
 - **Q1. OS drive bullet.** (a) Recommended: `2x Enterprise SSD, Mirrored, hot-swap, dedicated
   for OS/VMS` from `os_ssd_type` + `os_redundancy` on all seven models. (b) The brief's draft:
   `os_drive_desc` first. That gives V400 "3D TLC Flash SSD SATA3 Dedicated for OS/VMS, Hot-swap"
@@ -209,3 +218,222 @@ are not part of the parity set.
 - **Q4. Data defects (§2 table).** For Andy to fix in `/admin/specs` at any time; none of them
   blocks this change. The V100 network and V800 hot-swap ones change what the datasheet
   claims.
+
+## 6. Gate B: before/after for all seven pages (live rows, 2026-10-09)
+
+Generated, not hand-copied: the "Before" column is `families.ts` at commit `92ab44f` and the
+"After" column is what the changed page renders from today's live rows, through the page's
+own code path (`resolveFamilyDisplay` and `cellValue`). "(same)" means the string did not
+change.
+
+What to look at:
+
+- **OS wording** (decided): "IoT Workgroup" and "IoT Standard" become the `os_edition` text,
+  "Windows Server 2022 or 2025 WKGP LTSC" (V100, V200) and "Windows Server 2022 or 2025
+  LTSC" (V400 to V800).
+- **Mbit/s** (default): every throughput stat and bullet. One constant, `THROUGHPUT_UNIT`
+  in `family-specs.ts`.
+- **Em dashes removed**: the V200 RAID bullet and the "Mirrored Enterprise OS SSD — Hot Swap"
+  bullet. No generated string contains one (a test holds this).
+- **V400 capacity (G2)**: unchanged on all three SKUs. Only the RAID label moves, 5 to 6.
+- **Net-usable cells on V200 to V800**: same numbers, now with ADR 0127's VMS-visible figure
+  in brackets. The V100's three hand strings are unchanged.
+- **Bullets dropped for a blank column**: none on live data.
+- **Real data changes**: V400 150 streams and the 9015; V700/V800 275 streams and 3.3GHz;
+  "ECC" on V100/V200 RAM; "& Cachevault" on the V200; V100 power "Single PSU 400W".
+- **V400 to V800 technical specs grow from five bullets to six**, because network and remote
+  management split. The rows below compare by position, so specs 5 and 6 look shifted; the
+  power bullet itself is unchanged.
+- **Parity**: `scripts/audit-price-book-specs.ts` reports zero page-versus-datasheet
+  mismatches on live data for all seven models.
+
+#### V100
+
+| | Before | After |
+|---|---|---|
+| Stat: Max VSR | (same) | 25 streams |
+| Stat: Throughput | 500 Mbps | 500 Mbit/s |
+| Stat: Warranty Support | (same) | 5 Years Next Business Day Parts |
+| Key feature 1 | Windows Server 2022/2025 IoT Workgroup | Windows Server 2022 or 2025 WKGP LTSC |
+| Key feature 2 | 2x Enterprise HDD's (RAID 1 or JBOD) | 2x Enterprise HDD's, RAID 1 or JBOD |
+| Key feature 3 | 500 Mbps max possible throughput | 500 Mbit/s max possible throughput |
+| Key feature 4 | (same) | 1U Rack mount w/ rails |
+| Key feature 5 | (same) | Max VSR = 25 streams h.265 or h.264 |
+| Tech spec 1 | (same) | AMD EPYC 4005 4.0GHz 6/12 Core CPU |
+| Tech spec 2 | 16GB DDR5 DRAM | 16GB ECC DDR5 DRAM |
+| Tech spec 3 | 1x Enterprise OS SSD | 1x NVMe, dedicated for OS/VMS |
+| Tech spec 4 | (same) | 2x 1Gb Ethernet Ports |
+| Tech spec 5 | (same) | 1x Dedicated Remote Management |
+| Tech spec 6 | 1x 80Plus Gold Power Supply | Single PSU 400W |
+| Net usable VX5-V100-32 | (same) | 16 TB RAID 1 / 32 TB JBOD |
+| Net usable VX5-V100-40 | (same) | 20 TB RAID 1 / 40 TB JBOD |
+| Net usable VX5-V100-48 | (same) | 24 TB RAID 1 / 48 TB JBOD |
+
+#### V200
+
+| | Before | After |
+|---|---|---|
+| Stat: Max VSR | (same) | 100 streams |
+| Stat: Throughput | 1,000 Mbps | 1,000 Mbit/s |
+| Stat: Warranty Support | (same) | 5 Years Next Business Day Parts |
+| Key feature 1 | Windows Server 2022/2025 IoT Workgroup | Windows Server 2022 or 2025 WKGP LTSC |
+| Key feature 2 | 4x Enterprise HDD's — RAID 5 | 4x Enterprise HDD's, RAID 5 & Cachevault |
+| Key feature 3 | 1,000 Mbps max possible throughput | 1,000 Mbit/s max possible throughput |
+| Key feature 4 | (same) | 1U Rack mount w/ rails |
+| Key feature 5 | (same) | Max VSR = 100 streams h.265 or h.264 |
+| Tech spec 1 | (same) | AMD EPYC 4005 4.0GHz 6/12 Core CPU |
+| Tech spec 2 | 16GB DDR5 DRAM | 16GB ECC DDR5 DRAM |
+| Tech spec 3 | 2x Mirrored Enterprise OS SSD — Hot Swap | 2x Enterprise SSD, Mirrored, hot-swap, dedicated for OS/VMS |
+| Tech spec 4 | (same) | 2x 10Gb & 2x 1Gb Ethernet Ports |
+| Tech spec 5 | (same) | 1x Dedicated Remote Management |
+| Tech spec 6 | (same) | 2x Hot-swap, Redundant Power Supply |
+| Net usable VX5-V200-64 | 48 TB | 48 TB (42.9 TB available) |
+| Net usable VX5-V200-80 | 60 TB | 60 TB (53.6 TB available) |
+| Net usable VX5-V200-96 | 72 TB | 72 TB (64.3 TB available) |
+
+#### V400
+
+| | Before | After |
+|---|---|---|
+| Stat: Max VSR | 200 streams | 150 streams |
+| Stat: Throughput | 2,000 Mbps | 2,000 Mbit/s |
+| Stat: Warranty Support | (same) | 5 Years Next Business Day Parts |
+| Key feature 1 | Windows Server 2022/2025 IoT Standard | Windows Server 2022 or 2025 LTSC |
+| Key feature 2 | 8x Enterprise HDD's, RAID 5 & Cachevault | 8x Enterprise HDD's, RAID 6 & Cachevault |
+| Key feature 3 | 2,000 Mbps max possible throughput | 2,000 Mbit/s max possible throughput |
+| Key feature 4 | (same) | 2U Rack mount w/ rails |
+| Key feature 5 | Max VSR = 200 streams h.265 or h.264 | Max VSR = 150 streams h.265 or h.264 |
+| Tech spec 1 | AMD EPYC 9005 3.3GHz 16/32 Core CPU | AMD EPYC 9015 3.6GHz 8/16 Core CPU |
+| Tech spec 2 | (same) | 16GB ECC DDR5 DRAM |
+| Tech spec 3 | 2x Mirrored Enterprise OS SSD — Hot Swap | 2x Enterprise SSD, Mirrored, hot-swap, dedicated for OS/VMS |
+| Tech spec 4 | 4x 10GbE, 1x Dedicated Remote Management | 4x 10Gb Ethernet Ports |
+| Tech spec 5 | 2x Hot-swap, Redundant Power Supply | 1x Dedicated Remote Management |
+| Tech spec 6 | (none) | 2x Hot-swap, Redundant Power Supply |
+| Net usable VX5-V400-128 | 96 TB | 96 TB (85.7 TB available) |
+| Net usable VX5-V400-160 | 120 TB | 120 TB (107.2 TB available) |
+| Net usable VX5-V400-192 | 144 TB | 144 TB (128.6 TB available) |
+
+#### V500
+
+| | Before | After |
+|---|---|---|
+| Stat: Max VSR | (same) | 275 streams |
+| Stat: Throughput | 3,000 Mbps | 3,000 Mbit/s |
+| Stat: Warranty Support | (same) | 5 Years Next Business Day Parts |
+| Key feature 1 | Windows Server 2022/2025 IoT Standard | Windows Server 2022 or 2025 LTSC |
+| Key feature 2 | (same) | 12x Enterprise HDD's, RAID 6 & Cachevault |
+| Key feature 3 | 3,000 Mbps max possible throughput | 3,000 Mbit/s max possible throughput |
+| Key feature 4 | (same) | 2U Rack mount w/ rails |
+| Key feature 5 | (same) | Max VSR = 275 streams h.265 or h.264 |
+| Tech spec 1 | (same) | AMD EPYC 9005 3.3GHz 16/32 Core CPU |
+| Tech spec 2 | (same) | 32GB ECC DDR5 DRAM |
+| Tech spec 3 | 2x Mirrored Enterprise OS SSD — Hot Swap | 2x Enterprise SSD, Mirrored, hot-swap, dedicated for OS/VMS |
+| Tech spec 4 | 4x 10GbE, 1x Dedicated Remote Management | 4x 10Gb Ethernet Ports |
+| Tech spec 5 | 2x Hot-swap, Redundant Power Supply | 1x Dedicated Remote Management |
+| Tech spec 6 | (none) | 2x Hot-swap, Redundant Power Supply |
+| Net usable VX5-V500-192 | 160 TB | 160 TB (142.9 TB available) |
+| Net usable VX5-V500-240 | 200 TB | 200 TB (178.6 TB available) |
+| Net usable VX5-V500-288 | 240 TB | 240 TB (214.3 TB available) |
+
+#### V600
+
+| | Before | After |
+|---|---|---|
+| Stat: Max VSR | (same) | 275 streams |
+| Stat: Throughput | 3,000 Mbps | 3,000 Mbit/s |
+| Stat: Warranty Support | (same) | 5 Years Next Business Day Parts |
+| Key feature 1 | Windows Server 2022/2025 IoT Standard | Windows Server 2022 or 2025 LTSC |
+| Key feature 2 | (same) | 16x Enterprise HDD's, RAID 6 & Cachevault |
+| Key feature 3 | 3,000 Mbps max possible throughput | 3,000 Mbit/s max possible throughput |
+| Key feature 4 | (same) | 3U Rack mount w/ rails |
+| Key feature 5 | (same) | Max VSR = 275 streams h.265 or h.264 |
+| Tech spec 1 | (same) | AMD EPYC 9005 3.3GHz 16/32 Core CPU |
+| Tech spec 2 | (same) | 32GB ECC DDR5 DRAM |
+| Tech spec 3 | 2x Mirrored Enterprise OS SSD — Hot Swap | 2x Enterprise SSD, Mirrored, hot-swap, dedicated for OS/VMS |
+| Tech spec 4 | 4x 10GbE, 1x Dedicated Remote Management | 4x 10Gb Ethernet Ports |
+| Tech spec 5 | 2x Hot-swap, Redundant Power Supply | 1x Dedicated Remote Management |
+| Tech spec 6 | (none) | 2x Hot-swap, Redundant Power Supply |
+| Net usable VX5-V600-256 | 224 TB | 224 TB (200.1 TB available) |
+| Net usable VX5-V600-320 | 280 TB | 280 TB (250.1 TB available) |
+| Net usable VX5-V600-384 | 336 TB | 336 TB (300.1 TB available) |
+
+#### V700
+
+| | Before | After |
+|---|---|---|
+| Stat: Max VSR | 325 streams | 275 streams |
+| Stat: Throughput | 4,000 Mbps | 4,000 Mbit/s |
+| Stat: Warranty Support | (same) | 5 Years Next Business Day Parts |
+| Key feature 1 | Windows Server 2022/2025 IoT Standard | Windows Server 2022 or 2025 LTSC |
+| Key feature 2 | (same) | 24x Enterprise HDD's, RAID 60 & Cachevault |
+| Key feature 3 | 4,000 Mbps max possible throughput | 4,000 Mbit/s max possible throughput |
+| Key feature 4 | (same) | 4U Rack mount w/ rails |
+| Key feature 5 | Max VSR = 325 streams h.265 or h.264 | Max VSR = 275 streams h.265 or h.264 |
+| Tech spec 1 | AMD EPYC 9005 4.3GHz 16/32 Core CPU | AMD EPYC 9005 3.3GHz 16/32 Core CPU |
+| Tech spec 2 | (same) | 32GB ECC DDR5 DRAM |
+| Tech spec 3 | 2x Mirrored Enterprise OS SSD — Hot Swap | 2x Enterprise SSD, Mirrored, hot-swap, dedicated for OS/VMS |
+| Tech spec 4 | 4x 10GbE, 1x Dedicated Remote Management | 4x 10Gb Ethernet Ports |
+| Tech spec 5 | 2x Hot-swap, Redundant Power Supply | 1x Dedicated Remote Management |
+| Tech spec 6 | (none) | 2x Hot-swap, Redundant Power Supply |
+| Net usable VX5-V700-384 | 320 TB | 320 TB (285.8 TB available) |
+| Net usable VX5-V700-480 | 400 TB | 400 TB (357.2 TB available) |
+| Net usable VX5-V700-576 | 480 TB | 480 TB (428.7 TB available) |
+
+#### V800
+
+| | Before | After |
+|---|---|---|
+| Stat: Max VSR | 325 streams | 275 streams |
+| Stat: Throughput | 4,000 Mbps | 4,000 Mbit/s |
+| Stat: Warranty Support | (same) | 5 Years Next Business Day Parts |
+| Key feature 1 | Windows Server 2022/2025 IoT Standard | Windows Server 2022 or 2025 LTSC |
+| Key feature 2 | (same) | 36x Enterprise HDD's, RAID 60 & Cachevault |
+| Key feature 3 | 4,000 Mbps max possible throughput | 4,000 Mbit/s max possible throughput |
+| Key feature 4 | (same) | 4U Rack mount w/ rails |
+| Key feature 5 | Max VSR = 325 streams h.265 or h.264 | Max VSR = 275 streams h.265 or h.264 |
+| Tech spec 1 | AMD EPYC 9005 4.3GHz 16/32 Core CPU | AMD EPYC 9005 3.3GHz 16/32 Core CPU |
+| Tech spec 2 | (same) | 32GB ECC DDR5 DRAM |
+| Tech spec 3 | 2x Mirrored Enterprise OS SSD — Hot Swap | 2x Enterprise SSD, Mirrored, hot-swap, dedicated for OS/VMS |
+| Tech spec 4 | 4x 10GbE, 1x Dedicated Remote Management | 4x 10Gb Ethernet Ports |
+| Tech spec 5 | 2x Hot-swap, Redundant Power Supply | 1x Dedicated Remote Management |
+| Tech spec 6 | (none) | 2x Hot-swap, Redundant Power Supply |
+| Net usable VX5-V800-576 | 480 TB | 480 TB (428.7 TB available) |
+| Net usable VX5-V800-720 | 600 TB | 600 TB (535.9 TB available) |
+| Net usable VX5-V800-864 | 720 TB | 720 TB (643 TB available) |
+
+## 7. Data corrections (Q4): identified, not applied
+
+Andy asked for the data mistakes to be fixed. The planned route was a guarded one-off script
+(dry run by default; each row written only if it still holds the exact value the audit saw,
+with an `updated_at` check against a concurrent edit). This session's permission policy
+refused the production write, so nothing below has been written. Every one can be made
+in `/admin/specs` instead, or by the script once the write is allowed.
+
+| Rows | Column | From | To |
+|---|---|---|---|
+| V500-192, -240, -288, -288-NCD | `warranty_terms` | "dvanced Warranty with NBD ..." | "Advanced Warranty with NBD ..." |
+| V600-256, -320, -384 | `remote_mgmt` | "Dedicted Out of Band ..." | "Dedicated Out of Band ..." |
+| V600-256 | `sfp_addon` | "Optional -2x 10Gb SFP+ ..." | "Optional - 2x 10Gb SFP+ ..." |
+| V700-384 | `sfp_addon` | "Optional -2x ... upgrade available)" | "Optional - 2x ... upgrade available" |
+| V200-64, -80, -96 | `power_wattage` | "800W 1+1 redundant PSU -" | "800W 1+1 redundant PSU" |
+| V100-40, -48 | `network` | "2 × 10GbE + 1 IPMI" | "2 × 1GbE + 1 IPMI" |
+| V100-40, -48 | `cpu_cores_threads` | "8C/16T" | "6C/12T" |
+| V800-576 | `hotswap_power` | "Yes 1+1" | "Yes" |
+| V400-160 | `warranty` (legacy) | "5yr" | "5yr NBD, Advanced Replacement" |
+| V400 (all five, incl. NCD) | `security_features` | "... signed firmware ," | "... signed firmware •" |
+| V100, V200, V400 (all) | `shipping_weight` | "Ship WeightW/ ..." | "Ship Weight W/ ..." |
+| all 24 | `operating_temp` | "10- 30 C / 41 - 86 F" | "10 - 30 C / 41 - 86 F" |
+| V100 (all three) | `regulatory_safety` | "... RCM, UL." | "... RCM, UL" |
+
+Left for Andy because the right value is a product call:
+
+- **VX5-V400-128 `max_bandwidth_mbps` = 1600.** Set by a signed-in admin through the form on
+  2026-09-14 in the same save as the 9015 CPU fields, 40 minutes before the refresh migration.
+  Its siblings and its own `-NCD` twin say 2000. Either the V400 is now rated 1600 on every row
+  (then four rows and the page/datasheet headline are wrong) or this row is.
+- **VX5-V100-32 `vms_certified`** lists Milestone and Avigilon only; its siblings add Genetec.
+- **V700 and V800 `shipping_weight`** are identical (72k/167lbs) with 24 and 36 drives.
+
+None of these changes what the product pages print: the page reads the port counts (so the
+V100 network row does not matter to it) and treats "Yes 1+1" as hot-swap. They change what
+the datasheets print.
