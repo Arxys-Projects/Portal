@@ -2,7 +2,9 @@
 // 2026-10-09 by scripts/audit-price-book-specs.ts and trimmed to literals so the
 // derivation tests run with no network. Updated for the 2026-10-12 corrections
 // (scripts/fix-product-specs-typos-2026-10.ts and
-// fix-product-specs-decisions-2026-10.ts: the V400 is rated 1600 Mbit/s). One row per model, the canonical
+// fix-product-specs-decisions-2026-10.ts: the V400 is rated 1600 Mbit/s) and the 2026-10-15
+// V700/V800 move back to the EPYC 9135 at 325 streams (revert-v700-v800-9135-cpu.ts,
+// ADR 0149). One row per model, the canonical
 // (highest-capacity) SKU, plus the few siblings a test needs.
 //
 // Shared by family-specs.test.ts and families.test.ts. Not itself a test file:
@@ -19,13 +21,13 @@ export const V800_864: FamilySpecRow = {
   hdd_count: 36,
   hdd_mtbf: "2.5 Million",
   max_bandwidth_mbps: 4000,
-  max_cameras_h265: 275,
+  max_cameras_h265: 325,
   raid_level_display: "60",
   raid_level_alt_display: null,
   raid_support: "RAID 0/1/5/6/10",
   battery_raid: "YES",
-  cpu_model_full: "AMD EPYC 9005 3.3Ghz 16/32 Core",
-  cpu_turbo_ghz: "3.3 Ghz",
+  cpu_model_full: "AMD EPYC 9135 4.3Ghz 16/32 Core",
+  cpu_turbo_ghz: "4.25 Ghz",
   cores_threads: "16C/32T",
   cpu_cache: "64MB",
   mem_bandwidth: "614 GB/s",
@@ -82,9 +84,14 @@ export const V700_576: FamilySpecRow = {
   power_redundancy: "1+1 redundant",
 };
 
+// Spreads from the V800 but runs a different CPU: V500 and V600 stay on the
+// 3.3GHz part at 275 streams while V700/V800 are on the 9135 at 325 (ADR 0149).
 export const V600_384: FamilySpecRow = {
   ...V800_864,
   id: "VX5-V600-384",
+  max_cameras_h265: 275,
+  cpu_model_full: "AMD EPYC 9005 3.3Ghz 16/32 Core",
+  cpu_turbo_ghz: "3.3 Ghz",
   model_name: "VideoX V600 384TB 3U 16Bay",
   storage_raw_tb: 384,
   drive_bays: 16,

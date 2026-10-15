@@ -1,5 +1,9 @@
 -- Rollback for 20260914000002_v700_v800_match_v500_cpu.sql
 --
+-- SUPERSEDED FOR V700/V800, 2026-10-15 (ADR 0149): they went back on the EPYC
+-- 9135 at 325 streams via scripts/revert-v700-v800-9135-cpu.ts. Do not run
+-- this file to undo that; run that script with --rollback.
+--
 -- READ THIS BEFORE RUNNING IT. This restores the state 20260914000002 corrected
 -- — the V700 and V800 on the V400's AMD EPYC 9015 8C/16T part while still rated
 -- at 275 cameras. That state is known to be WRONG. This file exists for

@@ -4,6 +4,49 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-10-15 - V700 / V800 back on the AMD EPYC 9135 at 325 streams (script written, not yet applied)
+
+### Work done
+
+- Andy reversed the V700/V800 half of the 2026-09-14 CPU refresh. They return to the EPYC
+  9135 (16C/32T, 4.3 GHz) rated 325 streams. V400 (9015, 150) and V500/V600 (3.3 GHz, 275)
+  are unchanged. ADR [0149](./decisions/0149-v700-v800-back-on-epyc-9135.md).
+- `scripts/revert-v700-v800-9135-cpu.ts` runs on the shared guarded engine and makes 36
+  writes: six rows x `cpu_model_full`, `cpu_base_ghz`, `cpu_turbo_ghz`, `cpu_passmark`,
+  `max_cameras`, `max_cameras_h265`. The read-only dry run on 2026-10-15 reported "would
+  write 36, moved on 0". **Andy runs `--apply`**; nothing is written yet.
+- Values: label `AMD EPYC 9135 4.3Ghz 16/32 Core`, base 4.3, turbo `4.25 Ghz` on both
+  families, PassMark 56984, 325/325. They differ from the pre-September rows in two places.
+  The label names the part, not the series. The V800 turbo is 4.25, not 4.55: the
+  `product_specs_audit` trail shows 4.55 came from an admin edit on 2026-07-27, and AMD
+  lists 4.25 GHz all-core and 4.3 GHz max boost.
+- No product code changes. The Price Book pages (ADR 0146), datasheets, `/comparison`,
+  `/videox-compare`, the recommender, System Estimate PDFs and new Project Quotes all read
+  these columns. Existing quotes are frozen snapshots and keep 275 / 3.3 GHz.
+- Test fixtures that mirror live V700/V800 values now say 9135 / 4.25 / 325. These are
+  family-specs fixtures and tests, the datasheet `V800_BASE`, recommender
+  `algorithm.test.ts` and `candidates.test.ts`, and the V800-720 fixtures in the pdf and
+  project-quote tests. The family-specs `V600_384` used to inherit its CPU from the V800
+  fixture and now sets 3.3 GHz / 275 explicitly. A new test pins V500/V600 on that part.
+  The golden pool (`__golden__/specs-pool.json`) is frozen at 2026-08-12 and already holds
+  325, so it was left alone.
+- Recommender re-derivation: no winner changes in the hand-worked cases. In the
+  5000-camera case the V700/V800 fall from 20 to 17 units, and the V500 still wins.
+- The apply note and both 2026-09-14 rollback files say they are superseded for V700/V800.
+  The refresh rollback would also revert the V400.
+- 844/844 tests, `tsc --noEmit` clean, changed files lint clean.
+
+### Detours & fixes
+
+- **The admin form has no base <= turbo check**, so a stored base of 4.3 with a turbo of
+  4.25 will not block later form saves. Checked before choosing those values.
+- **Sales heads-up owed**: camera-dense, storage-light jobs above 275 VSR can size onto
+  fewer V700/V800 units again.
+
+RUNBOOK unchanged.
+
+---
+
 ## 2026-10-12 - V400 rated 1600 Mbit/s; V100-32 Genetec-certified (applied)
 
 ### Work done

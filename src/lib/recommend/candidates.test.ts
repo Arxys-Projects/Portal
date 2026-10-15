@@ -99,8 +99,8 @@ describe("selectCandidates (pool assembly, ADR 0094)", () => {
     const specs = selectCandidates(
       [price("VX5-V700-480", "V700", 75995), price("VX5-V800-720", "V800", 102398)],
       [
-        spec("VX5-V700-480", 275, 480, 24, "60"), // 2 spans -> 4 parity
-        spec("VX5-V800-720", 275, 720, 36, "60"), // 3 spans -> 6 parity
+        spec("VX5-V700-480", 325, 480, 24, "60"), // 2 spans -> 4 parity
+        spec("VX5-V800-720", 325, 720, 36, "60"), // 3 spans -> 6 parity
       ],
     );
     assert.deepEqual(

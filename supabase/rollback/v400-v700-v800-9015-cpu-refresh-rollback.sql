@@ -1,5 +1,9 @@
 -- Rollback for 20260914000001_v400_v700_v800_9015_cpu_refresh.sql
 --
+-- SUPERSEDED FOR V700/V800, 2026-10-15 (ADR 0149): they went back on the EPYC
+-- 9135 at 325 streams via scripts/revert-v700-v800-9135-cpu.ts. Do not run
+-- this file to undo that; run that script with --rollback.
+--
 -- Restores the ten CPU/capacity columns that migration writes, and nothing
 -- else. Every value below was captured by SELECT against production on
 -- 2026-09-14, immediately before the migration was written — it is an exact

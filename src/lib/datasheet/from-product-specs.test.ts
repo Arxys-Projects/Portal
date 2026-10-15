@@ -37,13 +37,13 @@ const V800_BASE: ProductSpecRow = {
   hdd_count: 36,
   hdd_mtbf: "2.5 Million",
   max_bandwidth_mbps: 4000,
-  max_cameras_h265: 275,
+  max_cameras_h265: 325,
   raid_level_display: "60",
   raid_level_alt_display: null,
   raid_support: "RAID 0/1/5/6/10",
   battery_raid: "YES",
-  cpu_model_full: "AMD EPYC 9005 3.3Ghz 16/32 Core",
-  cpu_turbo_ghz: "3.3 Ghz",
+  cpu_model_full: "AMD EPYC 9135 4.3Ghz 16/32 Core",
+  cpu_turbo_ghz: "4.25 Ghz",
   cores_threads: "16C/32T",
   cpu_cache: "64MB",
   mem_bandwidth: "614 GB/s",
@@ -106,7 +106,7 @@ const V400_BASE: ProductSpecRow = {
   cpu_model_full: "AMD EPYC 9015 3.6Ghz 8/16 Core",
   cpu_turbo_ghz: "4.1 Ghz",
   // Overridden explicitly, not inherited: the V400 is the only family on the
-  // 8C/16T 9015. V500-V800 stay on the 16C/32T part V800_BASE carries.
+  // 8C/16T 9015. V800_BASE carries the 16C/32T EPYC 9135 (ADR 0149).
   cores_threads: "8C/16T",
   ram_spec: "16GB ECC DDR5",
   form_factor: "2U Rackmount",
@@ -342,7 +342,7 @@ describe("model ladder", () => {
   it("shows bays · rack units and the max camera streams", () => {
     const v800 = nvrLadder(groupByModel(ALL_ROWS), "V800").at(-1)!;
     assert.equal(v800.detail, "36 bay · 4U");
-    assert.equal(v800.capacity, "275");
+    assert.equal(v800.capacity, "325");
   });
 
   it("marks nothing active for a model that is not in the line", () => {
@@ -375,7 +375,7 @@ describe("buildLedgerContent — V800", () => {
       { key: "Throughput", value: "4,000 Mbit/s" },
       { key: "Max Storage", value: "864 TB" },
       { key: "Drive Bays", value: "36" },
-      { key: "Max Camera Streams", value: "275" },
+      { key: "Max Camera Streams", value: "325" },
     ]);
   });
 

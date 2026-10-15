@@ -116,16 +116,16 @@ const EXPECTED: Record<string, { kpis: string[]; keyFeatures: string[]; technica
     ],
   },
   V700: {
-    kpis: ["275 streams", "4,000 Mbit/s", "5 Years Next Business Day Parts"],
+    kpis: ["325 streams", "4,000 Mbit/s", "5 Years Next Business Day Parts"],
     keyFeatures: [
       "Windows Server 2022 or 2025 LTSC",
       "24x Enterprise HDD's, RAID 60 & Cachevault",
       "4,000 Mbit/s max possible throughput",
       "4U Rack mount w/ rails",
-      "Max VSR = 275 streams h.265 or h.264",
+      "Max VSR = 325 streams h.265 or h.264",
     ],
     technicalSpecs: [
-      "AMD EPYC 9005 3.3GHz 16/32 Core CPU",
+      "AMD EPYC 9135 4.3GHz 16/32 Core CPU",
       "32GB ECC DDR5 DRAM",
       "2x Enterprise SSD, Mirrored, hot-swap, dedicated for OS/VMS",
       "4x 10Gb Ethernet Ports",
@@ -134,16 +134,16 @@ const EXPECTED: Record<string, { kpis: string[]; keyFeatures: string[]; technica
     ],
   },
   V800: {
-    kpis: ["275 streams", "4,000 Mbit/s", "5 Years Next Business Day Parts"],
+    kpis: ["325 streams", "4,000 Mbit/s", "5 Years Next Business Day Parts"],
     keyFeatures: [
       "Windows Server 2022 or 2025 LTSC",
       "36x Enterprise HDD's, RAID 60 & Cachevault",
       "4,000 Mbit/s max possible throughput",
       "4U Rack mount w/ rails",
-      "Max VSR = 275 streams h.265 or h.264",
+      "Max VSR = 325 streams h.265 or h.264",
     ],
     technicalSpecs: [
-      "AMD EPYC 9005 3.3GHz 16/32 Core CPU",
+      "AMD EPYC 9135 4.3GHz 16/32 Core CPU",
       "32GB ECC DDR5 DRAM",
       "2x Enterprise SSD, Mirrored, hot-swap, dedicated for OS/VMS",
       "4x 10Gb Ethernet Ports",
@@ -187,8 +187,16 @@ describe("the refreshes the authored strings missed", () => {
     assert.equal(d.technicalSpecs[0], "AMD EPYC 9015 3.6GHz 8/16 Core CPU");
   });
 
-  it("V700 and V800 are on the V500's 3.3GHz 16/32 part at 275 streams", () => {
+  it("V700 and V800 are on the EPYC 9135 at 325 streams (ADR 0149)", () => {
     for (const model of ["V700", "V800"]) {
+      const d = deriveFamilyDisplay(ALL_TOP_ROWS, model);
+      assert.equal(d.kpis[0].value, "325");
+      assert.equal(d.technicalSpecs[0], "AMD EPYC 9135 4.3GHz 16/32 Core CPU");
+    }
+  });
+
+  it("V500 and V600 stay on the 3.3GHz 16/32 part at 275 streams", () => {
+    for (const model of ["V500", "V600"]) {
       const d = deriveFamilyDisplay(ALL_TOP_ROWS, model);
       assert.equal(d.kpis[0].value, "275");
       assert.equal(d.technicalSpecs[0], "AMD EPYC 9005 3.3GHz 16/32 Core CPU");
