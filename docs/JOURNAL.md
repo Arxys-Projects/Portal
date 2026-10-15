@@ -4,7 +4,7 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
-## 2026-10-15 - V700 / V800 back on the AMD EPYC 9135 at 325 streams (script written, not yet applied)
+## 2026-10-15 - V700 / V800 back on the AMD EPYC 9135 at 325 streams (applied)
 
 ### Work done
 
@@ -14,7 +14,13 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 - `scripts/revert-v700-v800-9135-cpu.ts` runs on the shared guarded engine and makes 36
   writes: six rows x `cpu_model_full`, `cpu_base_ghz`, `cpu_turbo_ghz`, `cpu_passmark`,
   `max_cameras`, `max_cameras_h265`. The read-only dry run on 2026-10-15 reported "would
-  write 36, moved on 0". **Andy runs `--apply`**; nothing is written yet.
+  write 36, moved on 0". **Andy ran `--apply` the same day: written 36.**
+- Verified read-only after the apply: a re-run reports "already applied 36". The page audit
+  shows V700/V800 at "Max VSR: 325 streams" and "AMD EPYC 9135 4.3GHz 16/32 Core CPU", with
+  V500/V600 still at 275 / 3.3GHz and no page-vs-datasheet mismatches. The rendered V700
+  and V800 datasheets read `AMD EPYC 9135 4.3Ghz 16/32 Core, 16C/32T, 4.25 Ghz, 64MB
+  cache`, with 325 Max Camera Streams and a model ladder of 25 / 100 / 150 / 275 / 275 /
+  325 / 325.
 - Values: label `AMD EPYC 9135 4.3Ghz 16/32 Core`, base 4.3, turbo `4.25 Ghz` on both
   families, PassMark 56984, 325/325. They differ from the pre-September rows in two places.
   The label names the part, not the series. The V800 turbo is 4.25, not 4.55: the
