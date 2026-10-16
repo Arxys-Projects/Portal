@@ -63,10 +63,11 @@ can't leave a stale price on the picker without someone seeing it. The price pip
 out-of-support endpoints. The rules are unit-tested for the first time.
 
 **Negative:** the four products deleted in July are gone; nothing here brings them back,
-and what Pipedrive did to deal lines that used them is unknown. Today the Pipedrive step is
-blocked until VX5-V600-320 is resolved (`scripts/fix-pipedrive-v600-320-duplicate.ts` holds
-the proposed fix, not yet applied). A `--target=all` run is blocked whole, so the portal half
-waits too; `--target=portal` remains available. The first unblocked run will also rename the
+and what Pipedrive did to deal lines that used them is unknown. Any future duplicate blocks
+a `--target=all` run whole, so the portal half waits too; `--target=portal` remains
+available. The VX5-V600-320 duplicate that blocked the first run was resolved on 2026-10-16
+by `scripts/fix-pipedrive-v600-320-duplicate.ts`: #1443 keeps the code, and #1485 became
+`VX5-V600-320-DUP-1485`, still not linkable. The first unblocked run will also rename the
 three `-NCD` products from their hand-written Pipedrive names to the portal names (existing
 behaviour, surfaced by the preview, not introduced here).
 

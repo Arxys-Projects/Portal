@@ -57,7 +57,7 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 - [`0151-partners-self-update-guard-trigger.md`](./decisions/0151-partners-self-update-guard-trigger.md)
 
-## 2026-10-16 - Price push: retire Pipedrive products with is_linkable, stop on duplicate codes (ADR 0150)
+## 2026-10-16 - Price push: retire Pipedrive products with is_linkable, stop on duplicate codes (ADR 0150; V600-320 fix applied)
 
 ### Work done
 
@@ -82,10 +82,18 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
   products, and VX5 products missing since the newest backup.
 - **`backup-pipedrive-products.ts` now saves the v2 product shape**, which includes
   `is_linkable`. Took one today: `backups/pipedrive-products-pre-step-5-2026-10-16T20-08-31-882Z.json`.
-- **Proposed, not applied:** `scripts/fix-pipedrive-v600-320-duplicate.ts` (dry run by
-  default, `--apply` / `--rollback` behind a typed CONFIRM, writes only if the expected state
-  still holds). It keeps #1443 and moves #1485 to the code `VX5-V600-320-DUP-1485`, still not
-  linkable and with its price untouched. Waiting for Andy's yes.
+- **Applied 2026-10-16 by Andy:** `scripts/fix-pipedrive-v600-320-duplicate.ts --apply`
+  (dry run by default, `--apply` / `--rollback` behind a typed CONFIRM, writes only if the
+  expected state still holds). It kept #1443 and moved #1485 to the code
+  `VX5-V600-320-DUP-1485`, still not linkable, price untouched, nothing deleted. This was the
+  first live v2 PATCH.
+  - Verified read-only afterwards: the fix script's dry run reports "Already moved", and only
+    #1443 carries `VX5-V600-320`.
+  - `push-prices.ts --target=pipedrive --dry-run` now exits 0 with no duplicate codes. It
+    would update 4: #1443 (name, price $41,659 → $56,461) and the three `-NCD` names. It
+    would retire 1 (RAM-32GB #1483) and create 0.
+  - The real price push has not been run. Open deal 5562's V600-320 line keeps the price it
+    was entered at and needs a manual check.
 - **Verified:**
   - `npx tsc --noEmit` and `eslint` are clean on the changed files; the full suite passes,
     859/859.
@@ -93,8 +101,8 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
     and exits 1 with nothing written. It would update 3, retire 1 (RAM-32GB #1483, which the
     old code would have deleted) and create 0.
   - The audit and the fix script's dry run both ran read-only.
-- **Not exercised:** any real v2 POST/PATCH. The first live write is Andy's `--apply`, or the
-  first unblocked price push.
+- **Not exercised yet:** the price push's own v2 writes (POST, the update PATCH, the retire
+  PATCH). The first real `--target=pipedrive` run will be their first live use.
 
 ### Detours & fixes
 
