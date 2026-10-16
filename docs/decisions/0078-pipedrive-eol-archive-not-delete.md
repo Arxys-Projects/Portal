@@ -1,6 +1,6 @@
 # 0078 — Retire EOL/superseded SKUs in Pipedrive by archiving, not deleting
 
-- **Status**: Superseded by #0079
+- **Status**: Superseded by #0079. Its premise was wrong: `active_flag=false` deletes a Pipedrive product rather than archiving it; see #0150.
 - **Date**: 2026-07-06
 
 ## Context

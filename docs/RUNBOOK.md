@@ -141,12 +141,21 @@ After applying migrations, `products` has 6 V-family seed rows. Load the full ~3
 node --env-file=.env.local --import tsx scripts/backup-tables.ts pre-step-5-6-real-pricing
 node --env-file=.env.local --import tsx scripts/backup-pipedrive-products.ts
 
-# 2. Dry-run — review the preview (old→new price, effective date, Touches Pipedrive: Y/N)
+# 2. Read-only Pipedrive catalog audit (duplicate codes, what the push would change)
+node --env-file=.env.local --import tsx scripts/audit-pipedrive-products.ts
+
+# 3. Dry-run — review the preview (old→new price, effective date, Touches Pipedrive: Y/N)
 node --env-file=.env.local --import tsx scripts/push-prices.ts --dry-run
 
-# 3. Real push — portal + Pipedrive, effective today (the monthly cycle) — type CONFIRM
+# 4. Real push — portal + Pipedrive, effective today (the monthly cycle) — type CONFIRM
 node --env-file=.env.local --import tsx scripts/push-prices.ts
 ```
+
+Pipedrive products are read and written through the v2 product endpoints, matched to SKUs
+by exact `code`. If two Pipedrive products share a portal SKU's code, the preview lists it
+under `DUPLICATE CODE` and the run stops before writing anything (ADR 0150): give the code to
+one product in Pipedrive (the audit shows the deals on each), then re-run. `--target=portal`
+still works while Pipedrive is blocked.
 
 Split usage (decoupled effectivity):
 
@@ -171,15 +180,17 @@ Capacity columns (`max_cameras`, `max_storage_tb`) are preserved automatically �
 carries the SKU's current values forward into each new versioned row.
 
 **Retiring a SKU (EOL or rename).** Deactivate the SKU in the portal (`active=false`) — this
-hides it from partners + the Excel export. Pipedrive retirement is now automatic: the next
-`push-prices.ts --target=pipedrive` (or `--target=all`) run archives any portal-inactive SKU
-in Pipedrive (`active_flag=false`, **not** delete — deal history preserved), instead of
-re-pushing it active. The dry-run preview lists them under `[Pipedrive ARCHIVE …]`; review it
-first. Idempotent — an already-archived SKU is skipped. No separate archive step or hardcoded
-SKU list to maintain. See ADR 0078.
+hides it from partners + the Excel export. Pipedrive retirement is automatic: the next
+`push-prices.ts --target=pipedrive` (or `--target=all`) run retires any portal-inactive SKU
+in Pipedrive (`is_linkable=false`: off the deal picker, the product and its deal lines kept),
+instead of re-pushing it. Never set `active_flag=false` on a Pipedrive product by hand or in
+code: that deletes it. The dry-run preview lists retirements under `[Pipedrive RETIRE …]`;
+review it first. Idempotent — an already-retired SKU is skipped, and reactivating the SKU in
+the portal puts it back on the picker on the next run. No separate step or hardcoded SKU
+list. See ADR 0150.
 
 ```bash
-# Preview what will be pushed AND archived, then push
+# Preview what will be pushed AND retired, then push
 node --env-file=.env.local --import tsx scripts/push-prices.ts --target=pipedrive --dry-run
 node --env-file=.env.local --import tsx scripts/push-prices.ts --target=pipedrive
 ```

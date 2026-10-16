@@ -4,6 +4,66 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-10-16 - Price push: retire Pipedrive products with is_linkable, stop on duplicate codes (ADR 0150)
+
+### Work done
+
+- **Found during the Project Portal backend Step 0 discovery** (read-only API probes):
+  - The 2026-07-06 "archive" of VX5-SW25-200, SW30, SW35 and V270-ACM deleted those Pipedrive
+    products. v1 `active_flag=false` is a delete in Pipedrive. All four ids (#1463, #1461,
+    #1462, #1490) now 404 on v1 and v2. The keep-but-hide switch is `selectable` / `is_linkable`.
+  - VX5-V600-320 has two Pipedrive products. #1443 is on the deal picker at the pre-July
+    $41,659 and sits on 5 deals (open deal 5562). #1485 is not linkable, at the current
+    $56,461. The old `Map` keyed by code kept the last one, so the July run priced #1485.
+- **Fix:**
+  - `scripts/push-prices.ts` now uses `src/lib/pipedrive/product-sync.ts` (pure diff rules,
+    15 new unit tests) and `src/lib/pipedrive/product-api.ts`. Pipedrive calls moved to the v2
+    product endpoints; the v1 product CRUD has been out of support since 2026-08-01.
+  - Retiring sends `is_linkable=false` and resends the existing prices unchanged, because the
+    v2 docs say an omitted `prices` can default the price to 0. A non-linkable product of an
+    active SKU is relinked.
+  - A portal SKU with a duplicated code stops the run before any write. Legacy duplicates
+    (100 codes, none a portal SKU) are reported only.
+- **New `scripts/audit-pipedrive-products.ts`** (read-only). It reports blocking duplicates
+  with the deals each product is on, what the next push would do, $0/[MKT]/[CFQ] portal
+  products, and VX5 products missing since the newest backup.
+- **`backup-pipedrive-products.ts` now saves the v2 product shape**, which includes
+  `is_linkable`. Took one today: `backups/pipedrive-products-pre-step-5-2026-10-16T20-08-31-882Z.json`.
+- **Proposed, not applied:** `scripts/fix-pipedrive-v600-320-duplicate.ts` (dry run by
+  default, `--apply` / `--rollback` behind a typed CONFIRM, writes only if the expected state
+  still holds). It keeps #1443 and moves #1485 to the code `VX5-V600-320-DUP-1485`, still not
+  linkable and with its price untouched. Waiting for Andy's yes.
+- **Verified:**
+  - `npx tsc --noEmit` and `eslint` are clean on the changed files; the full suite passes,
+    859/859.
+  - A live `push-prices.ts --target=pipedrive --dry-run` lists VX5-V600-320 as a duplicate
+    and exits 1 with nothing written. It would update 3, retire 1 (RAM-32GB #1483, which the
+    old code would have deleted) and create 0.
+  - The audit and the fix script's dry run both ran read-only.
+- **Not exercised:** any real v2 POST/PATCH. The first live write is Andy's `--apply`, or the
+  first unblocked price push.
+
+### Detours & fixes
+
+- `computePipedriveChanges` now compares the USD price entry, not `prices[0]`. Every VX5
+  product has exactly one USD price today, so nothing changes in practice.
+- **The next unblocked push renames the three `-NCD` products.** Their hand-written Pipedrive
+  names become the portal's ` - w/ Upgraded NIC & GPU` names. That is pre-existing behaviour,
+  newly visible because the preview now prints reasons. It also means no Pipedrive price push
+  has run since 2026-08-18.
+- **The audit's backup comparison now has nothing to show.** It compares against the newest
+  backup, and today's backup already lacks the four deleted products.
+
+### Decisions captured
+
+- [`0150-pipedrive-products-retire-via-linkable-and-stop-on-duplicate-codes.md`](./decisions/0150-pipedrive-products-retire-via-linkable-and-stop-on-duplicate-codes.md)
+  (supersedes the mechanism of 0079; status notes added to 0078 and 0079)
+
+RUNBOOK §6a updated: audit step added, duplicate-code stop explained, and retirement is now
+`is_linkable`.
+
+---
+
 ## 2026-10-15 - Project Quote "Prepared for" named Arxys on every on-behalf quote (fix, not committed)
 
 ### Work done

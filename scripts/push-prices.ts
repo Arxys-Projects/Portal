@@ -7,9 +7,14 @@
 // current_products view, which resolves the latest row with effective_date <=
 // today. Pipedrive is NEVER pushed automatically — only the explicit
 // --target=pipedrive / --target=all steps below push it. A SKU that is
-// active=false in the portal (EOL/superseded) is archived in Pipedrive
-// (active_flag=false), never re-pushed active — keeping availability in sync in
-// one run and closing the "resurrection" trap (ADR 0078).
+// active=false in the portal (EOL/superseded) is RETIRED in Pipedrive
+// (is_linkable=false: off the deal picker, product and deal history kept),
+// never re-pushed onto the picker. A code shared by two Pipedrive products
+// stops the Pipedrive step until it is resolved. The diff rules live in
+// src/lib/pipedrive/product-sync.ts (ADR 0150, superseding 0079's mechanism).
+//
+// Pipedrive calls use the v2 product endpoints: the v1 product CRUD this used to
+// call has been out of support since 2026-08-01.
 //
 // Run:
 //   Portal + Pipedrive (default, matches the monthly cycle):
@@ -50,12 +55,23 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { createInterface } from "node:readline";
 import { stdin, stdout } from "node:process";
 import { env } from "../src/lib/env";
+import {
+  buildCreatePayload,
+  buildRetirePayload,
+  buildUpdatePayload,
+  computePipedriveChanges,
+  pdName,
+  pdPrice,
+  type PdProduct,
+  type PdProductRequest,
+  type PipedriveChanges,
+  type PriceType,
+} from "../src/lib/pipedrive/product-sync";
+import { listPipedriveProducts, writePipedriveProduct } from "../src/lib/pipedrive/product-api";
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
-
-type PriceType = "numeric" | "market" | "call_for_quote";
 
 type Target = "portal" | "pipedrive" | "all";
 
@@ -82,14 +98,6 @@ type CurrentProduct = {
   max_cameras: number | null;
   max_storage_tb: number | null;
   pushed_to_pipedrive_at: string | null;
-};
-
-type PdProduct = {
-  id: number;
-  name: string;
-  code: string | null;
-  active_flag: boolean;
-  prices: Array<{ price: number; currency: string }>;
 };
 
 // ---------------------------------------------------------------------------
@@ -132,23 +140,10 @@ function parseArgs(argv: string[]): Args {
 
 const SHEET_ID = "12zwFhDynV6T4ehxui7y-i6F-8XjEYFRBPgsAicpksmk";
 const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv`;
-const PD_BASE = "https://api.pipedrive.com/v1";
-
 function derivePriceType(msrpRaw: string): PriceType {
   if (msrpRaw === "MKT" || msrpRaw === "") return "market";
   if (msrpRaw === "Call for Quote") return "call_for_quote";
   return "numeric";
-}
-
-// Pipedrive display name + price, from a price_type + name/msrp pair.
-function pdName(name: string, priceType: PriceType): string {
-  if (priceType === "market") return `[MKT] ${name}`;
-  if (priceType === "call_for_quote") return `[CFQ] ${name}`;
-  return name;
-}
-
-function pdPrice(priceType: PriceType, msrp: number | null): number {
-  return priceType === "numeric" ? Number(msrp ?? 0) : 0;
 }
 
 function sheetMsrp(row: SheetRow): number | null {
@@ -204,61 +199,12 @@ async function fetchCurrentProducts(admin: SupabaseClient): Promise<CurrentProdu
   return (data ?? []) as CurrentProduct[];
 }
 
-async function fetchPdProducts(): Promise<PdProduct[]> {
-  const out: PdProduct[] = [];
-  let start = 0;
-  for (;;) {
-    const url = new URL(`${PD_BASE}/products`);
-    url.searchParams.set("api_token", env.PIPEDRIVE_API_TOKEN);
-    url.searchParams.set("limit", "100");
-    url.searchParams.set("start", String(start));
-    const res = await fetch(url.toString());
-    if (!res.ok) throw new Error(`Pipedrive GET /products failed (${res.status})`);
-    const json = (await res.json()) as {
-      success: boolean;
-      error?: string;
-      data: PdProduct[] | null;
-      additional_data?: {
-        pagination?: { more_items_in_collection?: boolean; next_start?: number };
-      };
-    };
-    if (!json.success) throw new Error(`Pipedrive GET /products: ${json.error}`);
-    const items = json.data ?? [];
-    out.push(...items);
-    if (!json.additional_data?.pagination?.more_items_in_collection) break;
-    start = json.additional_data.pagination.next_start ?? start + 100;
-  }
-  return out;
+function fetchPdProducts(): Promise<PdProduct[]> {
+  return listPipedriveProducts(env.PIPEDRIVE_API_TOKEN);
 }
 
-// ---------------------------------------------------------------------------
-// Pipedrive write helpers
-// ---------------------------------------------------------------------------
-
-async function pdPost(path: string, body: unknown): Promise<unknown> {
-  const url = new URL(`${PD_BASE}${path}`);
-  url.searchParams.set("api_token", env.PIPEDRIVE_API_TOKEN);
-  const res = await fetch(url.toString(), {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  const json = (await res.json()) as { success: boolean; error?: string; data: unknown };
-  if (!res.ok || !json.success) throw new Error(`Pipedrive POST ${path}: ${json.error ?? res.status}`);
-  return json.data;
-}
-
-async function pdPut(path: string, body: unknown): Promise<unknown> {
-  const url = new URL(`${PD_BASE}${path}`);
-  url.searchParams.set("api_token", env.PIPEDRIVE_API_TOKEN);
-  const res = await fetch(url.toString(), {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  const json = (await res.json()) as { success: boolean; error?: string; data: unknown };
-  if (!res.ok || !json.success) throw new Error(`Pipedrive PUT ${path}: ${json.error ?? res.status}`);
-  return json.data;
+function pdWrite(method: "POST" | "PATCH", path: string, body: PdProductRequest): Promise<PdProduct> {
+  return writePipedriveProduct(env.PIPEDRIVE_API_TOKEN, method, path, body);
 }
 
 // ---------------------------------------------------------------------------
@@ -310,60 +256,10 @@ function computePortalChanges(
   return { newRows, updatedRows, flaggedRemoval };
 }
 
-// ---------------------------------------------------------------------------
-// Pipedrive change set: current_products vs live Pipedrive (what to push).
-// Pipedrive receives current-as-of-today prices, NOT the raw Sheet — so a
-// future-dated portal row does not reach Pipedrive until its date arrives.
-// ---------------------------------------------------------------------------
-
-type PipedriveChanges = {
-  newInPd: CurrentProduct[];
-  updatedInPd: Array<{ cur: CurrentProduct; id: number }>;
-  // Portal-deactivated SKUs (active=false) still active_flag=true in Pipedrive —
-  // to be archived (active_flag=false), NOT re-pushed active. See ADR 0078.
-  archiveInPd: Array<{ cur: CurrentProduct; id: number }>;
-  flaggedRemoval: PdProduct[];
-};
-
-function computePipedriveChanges(
-  current: CurrentProduct[],
-  pdProducts: PdProduct[],
-): PipedriveChanges {
-  const curSkus = new Set(current.map((c) => c.sku));
-  const pdByCode = new Map(pdProducts.filter((p) => p.code).map((p) => [p.code!, p]));
-
-  const newInPd: CurrentProduct[] = [];
-  const updatedInPd: Array<{ cur: CurrentProduct; id: number }> = [];
-  const archiveInPd: Array<{ cur: CurrentProduct; id: number }> = [];
-
-  for (const cur of current) {
-    const pd = pdByCode.get(cur.sku);
-
-    // current_products has no `active` filter, so portal-deactivated SKUs still
-    // resolve here. Treat active=false as an ARCHIVE signal, not a push: never
-    // create it, never re-push it active (that would resurrect an EOL/superseded
-    // SKU — the trap in ADR 0078). If it's present and still active in Pipedrive,
-    // archive it so one pipeline run keeps Pipedrive availability in sync with the
-    // portal. Already-archived / never-created SKUs are skipped (idempotent).
-    if (!cur.active) {
-      if (pd && pd.active_flag) archiveInPd.push({ cur, id: pd.id });
-      continue;
-    }
-
-    if (!pd) {
-      newInPd.push(cur);
-      continue;
-    }
-    const existingPrice = pd.prices?.[0]?.price ?? null;
-    const differs =
-      pd.name !== pdName(cur.product_name, cur.price_type) ||
-      existingPrice !== pdPrice(cur.price_type, cur.msrp);
-    if (differs) updatedInPd.push({ cur, id: pd.id });
-  }
-
-  const flaggedRemoval = pdProducts.filter((p) => p.code && !curSkus.has(p.code));
-  return { newInPd, updatedInPd, archiveInPd, flaggedRemoval };
-}
+// Pipedrive change set: current_products vs live Pipedrive (what to push) is
+// computePipedriveChanges in src/lib/pipedrive/product-sync.ts. Pipedrive
+// receives current-as-of-today prices, NOT the raw Sheet — so a future-dated
+// portal row does not reach Pipedrive until its date arrives.
 
 // For the --target=all DRY-RUN preview only: the Pipedrive diff must reflect the
 // current state AFTER the portal rows are inserted (the live run re-reads the DB
@@ -402,7 +298,7 @@ function projectCurrentAsOfToday(
 
 function printPreview(
   portal: PortalChanges,
-  pipedrive: PipedriveChanges | null,
+  pipedrive: PipedriveChanges<CurrentProduct> | null,
   args: Args,
 ): void {
   console.log("\n=== Change preview ===\n");
@@ -442,9 +338,20 @@ function printPreview(
     console.log(`\nPipedrive (from current-as-of-today prices):`);
     console.log(`  New:              ${pipedrive.newInPd.length} product(s)`);
     console.log(`  Updated:          ${pipedrive.updatedInPd.length} product(s)`);
-    console.log(`  Archived:         ${pipedrive.archiveInPd.length} product(s) (portal active=false → active_flag=false)`);
+    console.log(`  Retired:          ${pipedrive.retireInPd.length} product(s) (portal active=false → is_linkable=false)`);
+    console.log(`  Duplicate codes:  ${pipedrive.blockingDuplicates.length} portal SKU(s) — BLOCKS the Pipedrive push`);
+    console.log(`  Legacy dup codes: ${pipedrive.otherDuplicates.length} (not portal SKUs; not touched — see scripts/audit-pipedrive-products.ts)`);
     console.log(`  Flagged removal:  ${pipedrive.flaggedRemoval.length} product(s) (not touched automatically)`);
 
+    if (pipedrive.blockingDuplicates.length > 0) {
+      console.log(`\n[Pipedrive DUPLICATE CODE — two products share a portal SKU's code; nothing is written for it]`);
+      for (const { code, products } of pipedrive.blockingDuplicates) {
+        const list = products
+          .map((p) => `#${p.id} ${p.is_linkable ? "linkable" : "not linkable"} ${fmt(p.prices?.find((x) => x.currency === "USD")?.price ?? null)}`)
+          .join(" | ");
+        console.log(`  ✗ ${code}  ${list}`);
+      }
+    }
     if (pipedrive.newInPd.length > 0) {
       console.log(`\n[Pipedrive NEW]`);
       for (const c of pipedrive.newInPd) {
@@ -453,14 +360,16 @@ function printPreview(
     }
     if (pipedrive.updatedInPd.length > 0) {
       console.log(`\n[Pipedrive UPDATED]`);
-      for (const { cur } of pipedrive.updatedInPd) {
-        console.log(`  ~ ${cur.sku}  ${pdName(cur.product_name, cur.price_type)}  ${fmt(pdPrice(cur.price_type, cur.msrp))}`);
+      for (const { cur, product, reasons } of pipedrive.updatedInPd) {
+        console.log(
+          `  ~ ${cur.sku}  #${product.id}  ${pdName(cur.product_name, cur.price_type)}  ${fmt(pdPrice(cur.price_type, cur.msrp))}  (${reasons.join(", ")})`,
+        );
       }
     }
-    if (pipedrive.archiveInPd.length > 0) {
-      console.log(`\n[Pipedrive ARCHIVE — portal-deactivated, active_flag → false, deal history kept]`);
-      for (const { cur } of pipedrive.archiveInPd) {
-        console.log(`  ⊘ ${cur.sku}  ${pdName(cur.product_name, cur.price_type)}`);
+    if (pipedrive.retireInPd.length > 0) {
+      console.log(`\n[Pipedrive RETIRE — portal-deactivated, is_linkable → false; product and deal history kept]`);
+      for (const { cur, product } of pipedrive.retireInPd) {
+        console.log(`  ⊘ ${cur.sku}  #${product.id}  ${pdName(cur.product_name, cur.price_type)}`);
       }
     }
     if (pipedrive.flaggedRemoval.length > 0) {
@@ -550,64 +459,56 @@ async function pushPortalRows(
 }
 
 // ---------------------------------------------------------------------------
-// Pipedrive write — pushes current-as-of-today prices, archives portal-deactivated
-// SKUs (active_flag=false), then stamps pushed_to_pipedrive_at on the winning
-// products rows it pushed or archived. Idempotent: a second run finds no diff and
-// nothing left to archive, so it pushes/stamps nothing.
+// Pipedrive write — pushes current-as-of-today prices, retires portal-deactivated
+// SKUs (is_linkable=false), then stamps pushed_to_pipedrive_at on the winning
+// products rows it pushed or retired. Idempotent: a second run finds no diff and
+// nothing left to retire, so it pushes/stamps nothing. SKUs with a duplicated
+// code never reach here: main() refuses the step while any exist.
 // ---------------------------------------------------------------------------
 
 async function pushPipedrive(
   admin: SupabaseClient,
-  pipedrive: PipedriveChanges,
-): Promise<{ successCount: number; archivedCount: number; errors: string[]; stampErrors: string[] }> {
+  pipedrive: PipedriveChanges<CurrentProduct>,
+): Promise<{ successCount: number; retiredCount: number; errors: string[]; stampErrors: string[] }> {
   const errors: string[] = [];
   const pushedIds: number[] = [];
 
-  const toPush: Array<{ cur: CurrentProduct; id?: number }> = [
-    ...pipedrive.newInPd.map((cur) => ({ cur })),
-    ...pipedrive.updatedInPd.map(({ cur, id }) => ({ cur, id })),
-  ];
-
-  for (const { cur, id } of toPush) {
-    const payload = {
-      name: pdName(cur.product_name, cur.price_type),
-      code: cur.sku,
-      prices: [{ price: pdPrice(cur.price_type, cur.msrp), currency: "USD" }],
-      active_flag: true,
-    };
+  for (const cur of pipedrive.newInPd) {
     try {
-      if (id !== undefined) {
-        await pdPut(`/products/${id}`, payload);
-      } else {
-        await pdPost("/products", payload);
-      }
+      await pdWrite("POST", "/products", buildCreatePayload(cur));
+      pushedIds.push(cur.id);
+    } catch (err) {
+      errors.push(`${cur.sku}: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+  for (const { cur, product } of pipedrive.updatedInPd) {
+    try {
+      await pdWrite("PATCH", `/products/${product.id}`, buildUpdatePayload(cur, product));
       pushedIds.push(cur.id);
     } catch (err) {
       errors.push(`${cur.sku}: ${err instanceof Error ? err.message : String(err)}`);
     }
   }
 
-  // Archive portal-deactivated SKUs (active_flag=false), NOT delete — the product
-  // stays on existing deals + in reporting but drops off new-deal pickers. This
-  // folds in what scripts/archive-eol-pipedrive-products.ts used to do as a manual
-  // second step, and closes the resurrection trap: an inactive SKU is archived, not
-  // re-pushed active, even if it was re-priced (ADR 0078). Only sends active_flag —
-  // we don't refresh the price of a retired product.
-  const archivedIds: number[] = [];
-  for (const { cur, id } of pipedrive.archiveInPd) {
+  // Retire portal-deactivated SKUs: is_linkable=false takes the product off the
+  // deal picker and keeps it, and every deal line using it, in Pipedrive. Never
+  // v1 active_flag=false, which deletes the product (ADR 0150). The existing
+  // prices go back unchanged; a retired product's price is not refreshed.
+  const retiredIds: number[] = [];
+  for (const { cur, product } of pipedrive.retireInPd) {
     try {
-      await pdPut(`/products/${id}`, { active_flag: false });
-      archivedIds.push(cur.id);
+      await pdWrite("PATCH", `/products/${product.id}`, buildRetirePayload(product));
+      retiredIds.push(cur.id);
     } catch (err) {
-      errors.push(`${cur.sku} (archive): ${err instanceof Error ? err.message : String(err)}`);
+      errors.push(`${cur.sku} (retire): ${err instanceof Error ? err.message : String(err)}`);
     }
   }
 
   // Stamp pushed_to_pipedrive_at on the exact products rows we synced — pushed or
-  // archived. Idempotency comes from the diff / active_flag checks, not the stamp;
+  // retired. Idempotency comes from the diff / is_linkable checks, not the stamp;
   // this is the audit trail of "last reconciled with Pipedrive".
   const stampErrors: string[] = [];
-  const stampIds = [...pushedIds, ...archivedIds];
+  const stampIds = [...pushedIds, ...retiredIds];
   if (stampIds.length > 0) {
     const { error } = await admin
       .from("products")
@@ -616,7 +517,21 @@ async function pushPipedrive(
     if (error) stampErrors.push(`stamp pushed_to_pipedrive_at: ${error.message}`);
   }
 
-  return { successCount: pushedIds.length, archivedCount: archivedIds.length, errors, stampErrors };
+  return { successCount: pushedIds.length, retiredCount: retiredIds.length, errors, stampErrors };
+}
+
+// A duplicated portal-SKU code stops the whole run before anything is written,
+// portal step included, so a --target=all run never leaves the portal ahead of a
+// Pipedrive push that could not happen.
+function refuseOnDuplicateCodes(pipedrive: PipedriveChanges<CurrentProduct> | null): void {
+  if (!pipedrive || pipedrive.blockingDuplicates.length === 0) return;
+  console.error(
+    `\nSTOP: ${pipedrive.blockingDuplicates.length} portal SKU(s) match more than one Pipedrive product ` +
+      `(listed under DUPLICATE CODE above). There is no right product to update, so nothing was written.\n` +
+      `Resolve them in Pipedrive (one product per code; scripts/audit-pipedrive-products.ts shows the deals ` +
+      `on each), or stage portal prices alone with --target=portal.`,
+  );
+  process.exit(1);
 }
 
 // ---------------------------------------------------------------------------
@@ -675,6 +590,7 @@ async function main() {
       )
     : null;
   printPreview(portal, pipedrivePreview, args);
+  refuseOnDuplicateCodes(pipedrivePreview);
 
   if (args.dryRun) {
     console.log("\n[DRY RUN] No writes performed.");
@@ -709,6 +625,7 @@ async function main() {
     // inserted with today's effective date.
     const currentForPd = await fetchCurrentProducts(admin);
     const pdChanges = computePipedriveChanges(currentForPd, pdProducts);
+    refuseOnDuplicateCodes(pdChanges);
     console.log("  → Pipedrive: pushing current-as-of-today prices...");
     const res = await pushPipedrive(admin, pdChanges);
     if (res.errors.length > 0) {
@@ -720,7 +637,7 @@ async function main() {
       for (const e of res.stampErrors) console.error(`    ${e}`);
     }
     if (res.errors.length === 0 && res.stampErrors.length === 0) {
-      console.log(`  ✓ Pipedrive: ${res.successCount} product(s) pushed, ${res.archivedCount} archived + stamped`);
+      console.log(`  ✓ Pipedrive: ${res.successCount} product(s) pushed, ${res.retiredCount} retired + stamped`);
     }
     totalErrors += res.errors.length + res.stampErrors.length;
   }
