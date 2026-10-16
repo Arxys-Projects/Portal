@@ -1,6 +1,7 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getDealForQuote } from "@/lib/pipedrive/quote";
+import { resolveSubmissionPartner } from "@/lib/pdf/partner-resolution";
 import { PROJECT_QUOTE_VALIDITY_DAYS } from "./config";
 import { getProjectQuoteTerms } from "./terms";
 import {
@@ -27,10 +28,15 @@ import type { AssembleSnapshotResult, ProjectQuoteSnapshot } from "./types";
 // ===========================================================================
 
 // Columns the sizing half needs. Mirrors loadSubmissionPdfInput plus the
-// pipedrive_deal_id link and the partner_id for the reseller block.
+// pipedrive_deal_id link, the partner_id, and the two on-behalf columns: the
+// "Prepared for" block names the partner the quote was prepared FOR, which on an
+// internal on-behalf calc is the target, not the creating rep. Same precedence
+// as the System Estimate (src/lib/pdf/partner-resolution.ts).
 const SUBMISSION_COLUMNS = [
   "id",
   "partner_id",
+  "on_behalf_of_partner_id",
+  "on_behalf_of_company_name",
   "pipedrive_deal_id",
   "project_name",
   "vms",
@@ -64,6 +70,8 @@ const PRODUCT_SPEC_COLUMNS = [
 
 type SubmissionRow = SizingSubmissionRow & {
   partner_id: string;
+  on_behalf_of_partner_id: string | null;
+  on_behalf_of_company_name: string | null;
   pipedrive_deal_id: number | null;
 };
 
@@ -184,13 +192,25 @@ export async function assembleProjectQuoteSnapshot(
     new Set(dealResult.deal.lineItems.map((l) => l.productCode).filter((c): c is string => !!c)),
   );
 
-  const [partnerRes, productRes, productSpecRes, catalogBySku, existingMaxVersion, userRes] =
+  // Generation is internal-only (ADR 0059), and internal users can read every
+  // partners row under RLS, so the on-behalf target loads with the caller's
+  // client. Only fetched when the FK is set.
+  const onBehalfFetch = submission.on_behalf_of_partner_id
+    ? supabase
+        .from("partners")
+        .select("company_name, contact_name")
+        .eq("id", submission.on_behalf_of_partner_id)
+        .maybeSingle<{ company_name: string; contact_name: string }>()
+    : Promise.resolve({ data: null });
+
+  const [partnerRes, onBehalfRes, productRes, productSpecRes, catalogBySku, existingMaxVersion, userRes] =
     await Promise.all([
       supabase
         .from("partners")
         .select("company_name, contact_name")
         .eq("id", submission.partner_id)
-        .maybeSingle<{ company_name: string | null; contact_name: string | null }>(),
+        .maybeSingle<{ company_name: string; contact_name: string }>(),
+      onBehalfFetch,
       recommendedSku
         ? supabase
             .from("current_products")
@@ -211,9 +231,23 @@ export async function assembleProjectQuoteSnapshot(
     ? normalizeSpecRow(productSpecRes.data as unknown as ProductSpecRow)
     : null;
 
+  // "Prepared for": on-behalf target first, then the free-typed company, then
+  // the creator. A free-typed company has no portal contact, so the deal's
+  // linked Pipedrive person names the contact when there is one.
+  const preparedFor = resolveSubmissionPartner(
+    submission,
+    onBehalfRes.data ?? null,
+    partnerRes.data ?? null,
+  );
+  const dealPersonName = dealResult.deal.person?.name ?? null;
+  const contactName =
+    !submission.on_behalf_of_partner_id && submission.on_behalf_of_company_name && dealPersonName
+      ? dealPersonName
+      : preparedFor.contactName;
+
   const sizing = buildSizingFromSubmission({
     submission,
-    partner: partnerRes.data ?? null,
+    partner: { company_name: preparedFor.companyName, contact_name: contactName },
     product,
     productSpec,
   });

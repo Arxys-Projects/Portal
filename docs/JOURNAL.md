@@ -4,6 +4,39 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-10-15 - Project Quote "Prepared for" named Arxys on every on-behalf quote (fix, not committed)
+
+### Work done
+
+- **Bug:** `assembleProjectQuoteSnapshot` (`src/lib/project-quote/assemble.ts`) loaded the
+  "Prepared for" partner by `submission.partner_id`, which is the creating rep on an on-behalf
+  calc. Every on-behalf Project Quote therefore printed "Prepared for Arxys, <rep>" on the cover
+  and terms page (`ProjectQuotePdf.tsx:1157, 1477`), and the company part of the deal file name
+  (`title.ts:26`) read "Arxys". A read-only check of production found it on all 37 of the most
+  recent on-behalf quotes (Escambia, TCF Behavioral, Monmouth County Jail, Region One, and so on).
+- **Fix:** the assembler now selects `on_behalf_of_partner_id` and `on_behalf_of_company_name`
+  and resolves "Prepared for" with the existing `resolveSubmissionPartner` helper
+  (`src/lib/pdf/partner-resolution.ts`), the same precedence the System Estimate already uses:
+  on-behalf target, then free-typed company, then creator. For a free-typed company (no portal
+  contact) the contact name comes from the deal's linked Pipedrive person when there is one,
+  instead of the System Estimate's "(not onboarded)" placeholder.
+- The target's `partners` row loads with the caller's client: generation is internal-only
+  (ADR 0059) and internal users can read all partner rows under RLS, so no admin client is needed.
+- **Scope:** new quote versions only. Existing `project_quotes` snapshots are immutable (ADR 0061)
+  and keep the wrong name until a new version is generated. No schema, RLS, or Pipedrive change.
+- **Verified:** `tsc --noEmit` and `eslint` clean on the file; full suite 844/844 pass. A read-only
+  preview of the 12 most recent quotes resolves to the right partner (for example Escambia ->
+  Cornerstone Detention - HQ / Ken Fuller; TCF Behavioral -> Cornerstone WI / Dillon Zoran).
+  **Not exercised:** an actual generation (it writes a quote row and attaches a file to the deal);
+  first real generation after deploy is the live check.
+
+### Detours & fixes
+
+- `npm test` fails in the Linux VM because `node_modules` carries the macOS esbuild binary. Ran
+  the suite with a separately installed tsx outside the repo; `node_modules` untouched.
+
+RUNBOOK unchanged. No ADR: a bug fix applying an existing decision (ADR 0045/0054 attribution).
+
 ## 2026-10-15 - V700 / V800 back on the AMD EPYC 9135 at 325 streams (applied)
 
 ### Work done
