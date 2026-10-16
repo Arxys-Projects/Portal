@@ -11,7 +11,7 @@
 | 2 | `supabase/migrations/20261016000003_projects.sql` | `supabase/rollback/projects-rollback.sql` | [0153](../decisions/0153-project-companies-contacts-and-project-link-tables.md) |
 | 3 | `supabase/migrations/20261016000004_system_design_rules.sql` | `supabase/rollback/system-design-rules-rollback.sql` | [0154](../decisions/0154-system-design-and-bom-rules-are-admin-edited-and-audited.md) |
 | 4 | `supabase/migrations/20261016000005_deal_line_syncs_and_pricing_confirmations.sql` | `supabase/rollback/deal-line-syncs-and-pricing-confirmations-rollback.sql` | [0155](../decisions/0155-deal-line-ledger-and-insert-only-pricing-confirmations.md) |
-| 5 | `supabase/migrations/20261016000006_company_sync_includes.sql` (**not applied yet**, added later the same day) | `supabase/rollback/company-sync-includes-rollback.sql` | [0156](../decisions/0156-company-sync-include-list-for-unlabeled-orgs.md) |
+| 5 | `supabase/migrations/20261016000006_company_sync_includes.sql` (added and applied later the same day) | `supabase/rollback/company-sync-includes-rollback.sql` | [0156](../decisions/0156-company-sync-include-list-for-unlabeled-orgs.md) |
 
 All four only **create** objects: 12 new tables, 4 new functions, their triggers and policies, and
 the rules seeds. No existing table, column, policy, grant or row changes. No app code reads these
@@ -62,7 +62,8 @@ Each rollback file says what data it discards and how to dump it first.
 
 ## Addendum: the company include list (000006, ADR 0156)
 
-> **Not applied yet.** Written 2026-10-16, after 1 to 4 were applied and verified.
+> **Applied 2026-10-16** by Andy, after 1 to 4. Verified the same day: the live RLS suite passed
+> every check, including 24i. The Relativity Space row (step 4) is not added yet.
 
 It creates one table, `company_sync_includes`, with 4 policies. It touches nothing else and seeds
 nothing, so no backup is needed.

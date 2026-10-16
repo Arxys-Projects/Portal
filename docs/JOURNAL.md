@@ -4,7 +4,7 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
-## 2026-10-16 - Project Portal backend, Step 1 addendum: company include list (written, not applied)
+## 2026-10-16 - Project Portal backend, Step 1 addendum: company include list (applied and verified)
 
 ### Work done
 
@@ -18,7 +18,10 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
   [`apply-notes/0153-project-portal-schema.md`](./apply-notes/0153-project-portal-schema.md).
 - **Tests:** the PGlite harness now applies all five migrations: 135/135 pass, rollbacks included.
   `scripts/test-rls.ts` covers the table in section 24 (added to the read and write sweeps, plus a new
-  24i). Not run live: the table doesn't exist until Andy applies it. `tsc --noEmit` passes.
+  24i). `tsc --noEmit` passes.
+- **Applied and verified the same day.** Andy ran the migration by hand; the live RLS suite passed
+  every check, including 24i. The Relativity Space row is not added yet; Andy adds it once he picks
+  the org (the Step 2 dry run lists the three versions).
 
 ### Detours & fixes
 

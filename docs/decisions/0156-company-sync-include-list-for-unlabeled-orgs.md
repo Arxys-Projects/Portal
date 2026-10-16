@@ -1,6 +1,6 @@
 # 0156 — A portal-side include list brings unlabeled orgs into the company sync
 
-- **Status**: Accepted (decided by Andy 2026-10-16; migration written, not yet applied)
+- **Status**: Accepted (decided by Andy 2026-10-16; migration 20261016000006 applied and verified 2026-10-16)
 - **Date**: 2026-10-16
 - **Related**: 0153 (companies are labeled Pipedrive orgs, keyed by org id)
 
