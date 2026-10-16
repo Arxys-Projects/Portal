@@ -40,6 +40,9 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 - **Andy then labeled LiquidPC LLC (#10528) and NCD Communications (#12243) with 73.** The rerun
   confirms both: 64 companies, 413 contacts, 22 exact and 9 normalized names, 27 exceptions, and a
   proposed file of 8 aliases (the two unlabeled LiquidPC orgs included) and 68 links.
+- **Insight is #9239 only** (Andy). The proposals already map every "Insight" spelling there.
+  Insight Enterprise (#12008) keeps its label, so it syncs as a separate company, and the one Insight
+  login whose person sits under it stays unlinked.
 - **Test accounts slipped through the first run** ("Big Corp, inc", "Evil Corp, inc" and an
   "RLS Hijack Co" login). Matching now compares normalized names and skips any
   `@arxys-rls-test.invalid` login. The "RLS Hijack Co" persona is a live leftover from an earlier
