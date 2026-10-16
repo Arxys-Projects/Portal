@@ -1882,6 +1882,167 @@ async function run() {
       await admin.from("appliance_specs").delete().like("id", "RLS-APPL%");
       await admin.from("appliance_specs_audit").delete().like("spec_id", "RLS-APPL%");
     }
+
+    // --- ADR 0151: partners self-update guard -------------------------------
+    // authenticated holds UPDATE on every partners column and the UPDATE policy
+    // is self-or-admin, so before 0151 a partner could PATCH their own row to
+    // role='admin' / is_internal=true. The guard trigger
+    // (20261016000001_partners_guard_self_update.sql) lets a non-admin change
+    // only `phone` on their own row; a blocked change raises 42501.
+    // Gated behind RUN_0151_TESTS=1 because 23a–23g fail until the migration is
+    // applied. Run after Andy applies it:
+    //   RUN_0151_TESTS=1 node --env-file=.env.local --import tsx scripts/test-rls.ts
+    if (process.env.RUN_0151_TESTS === "1") {
+      // 8c suspended adminPersona; re-assert active so is_admin() is true here
+      // regardless of block order.
+      await admin
+        .from("partners")
+        .update({ status: "active" })
+        .eq("id", adminPersona.id);
+
+      const guarded =
+        "role, status, is_internal, pipedrive_user_id, company_name, logo_path, phone";
+      type GuardedRow = {
+        role: string;
+        status: string;
+        is_internal: boolean;
+        pipedrive_user_id: number | null;
+        company_name: string;
+        logo_path: string | null;
+        phone: string | null;
+      };
+      const readRow = async (id: string) =>
+        (
+          await admin
+            .from("partners")
+            .select(guarded)
+            .eq("id", id)
+            .single<GuardedRow>()
+        ).data;
+      // A partner's own PATCH against their own row, then the row as
+      // service-role sees it.
+      const selfPatch = async (p: Persona, patch: Partial<GuardedRow>) => {
+        const { error } = await p.client
+          .from("partners")
+          .update(patch)
+          .eq("id", p.id);
+        return { error, after: await readRow(p.id) };
+      };
+
+      // Tests 23a–23e: partner A cannot change any privilege-bearing column on
+      // their own row. Each must fail with 42501 and leave the row unchanged.
+      const selfCases: [string, Partial<GuardedRow>, (r: GuardedRow | null) => boolean][] = [
+        ["23a: partner cannot set own role=admin", { role: "admin" }, (r) => r?.role === "partner"],
+        ["23b: partner cannot set own is_internal=true", { is_internal: true }, (r) => r?.is_internal === false],
+        ["23c: partner cannot set own pipedrive_user_id", { pipedrive_user_id: 6039322 }, (r) => r?.pipedrive_user_id === null],
+        ["23d: partner cannot rename own company_name", { company_name: "RLS Hijack Co" }, (r) => r?.company_name === "RLS Test Co A"],
+        ["23e: partner cannot point own logo_path elsewhere", { logo_path: "other-partner/logo.png" }, (r) => r?.logo_path === null],
+      ];
+      for (const [name, patch, unchanged] of selfCases) {
+        const { error, after } = await selfPatch(a, patch);
+        record(
+          name,
+          error?.code === "42501" && unchanged(after),
+          error ? `blocked: ${error.code} ${error.message}` : `UPDATE went through: ${JSON.stringify(after)}`,
+        );
+      }
+
+      // Test 23f: a suspended partner cannot un-suspend themselves. Suspension
+      // is app-level, so B's JWT still works; the guard is what stops this.
+      {
+        await admin.from("partners").update({ status: "suspended" }).eq("id", b.id);
+        const { error, after } = await selfPatch(b, { status: "active" });
+        record(
+          "23f: suspended partner cannot set own status=active",
+          error?.code === "42501" && after?.status === "suspended",
+          error ? `blocked: ${error.code}` : `UPDATE went through: status=${after?.status}`,
+        );
+        await admin.from("partners").update({ status: "active" }).eq("id", b.id);
+      }
+
+      // Test 23g: an internal user is not an admin and cannot make themselves one.
+      {
+        const { error, after } = await selfPatch(internalPersona, { role: "admin" });
+        record(
+          "23g: internal user cannot set own role=admin",
+          error?.code === "42501" && after?.role === "partner",
+          error ? `blocked: ${error.code}` : `UPDATE went through: role=${after?.role}`,
+        );
+      }
+
+      // Test 23h: the guard is column-scoped, not a blanket block — a partner
+      // can still change their own phone (the one self-editable column).
+      {
+        const { error, after } = await selfPatch(a, { phone: "555-0151" });
+        record(
+          "23h: partner CAN change own phone (self-editable column)",
+          !error && after?.phone === "555-0151",
+          error ? `error: ${error.code} ${error.message}` : `phone=${after?.phone}`,
+        );
+      }
+
+      // Test 23i: partner A still cannot touch B's row at all (RLS filters it
+      // to zero rows before the trigger ever sees it).
+      {
+        const { data, error } = await a.client
+          .from("partners")
+          .update({ phone: "555-9999" })
+          .eq("id", b.id)
+          .select("id");
+        const bAfter = await readRow(b.id);
+        record(
+          "23i: partner cannot UPDATE another partner's row",
+          (data?.length ?? 0) === 0 && bAfter?.phone !== "555-9999",
+          error ? `blocked: ${error.message}` : `affected=${data?.length ?? 0}`,
+        );
+      }
+
+      // Test 23j: an active admin signed in with their own JWT CAN change every
+      // guarded column on another partner's row.
+      {
+        const { error } = await adminPersona.client
+          .from("partners")
+          .update({ role: "admin", is_internal: true, status: "suspended", pipedrive_user_id: 999999 })
+          .eq("id", a.id);
+        const after = await readRow(a.id);
+        record(
+          "23j: admin CAN change role / is_internal / status / pipedrive_user_id",
+          !error &&
+            after?.role === "admin" &&
+            after?.is_internal === true &&
+            after?.status === "suspended" &&
+            after?.pipedrive_user_id === 999999,
+          error ? `error: ${error.code} ${error.message}` : JSON.stringify(after),
+        );
+        await admin
+          .from("partners")
+          .update({ role: "partner", is_internal: false, status: "active", pipedrive_user_id: null })
+          .eq("id", a.id);
+      }
+
+      // Test 23k: service_role (the app's admin client and every script) CAN
+      // change them too — the path every /admin/partners action uses.
+      {
+        const { error } = await admin
+          .from("partners")
+          .update({ role: "admin", is_internal: true, pipedrive_user_id: 424242 })
+          .eq("id", b.id);
+        const after = await readRow(b.id);
+        record(
+          "23k: service_role CAN change role / is_internal / pipedrive_user_id",
+          !error && after?.role === "admin" && after?.is_internal === true && after?.pipedrive_user_id === 424242,
+          error ? `error: ${error.code} ${error.message}` : JSON.stringify(after),
+        );
+        await admin
+          .from("partners")
+          .update({ role: "partner", is_internal: false, pipedrive_user_id: null })
+          .eq("id", b.id);
+      }
+    } else {
+      console.log(
+        "  (skipping ADR 0151 partners self-update guard tests — set RUN_0151_TESTS=1 after applying 20261016000001)",
+      );
+    }
   } finally {
     await teardownPersona(a);
     await teardownPersona(b);

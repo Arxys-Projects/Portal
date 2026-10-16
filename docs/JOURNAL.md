@@ -4,6 +4,59 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-10-16 - Close the partner self-escalation hole on `partners` (ADR 0151)
+
+### Work done
+
+- **The hole.** The Project Portal backend Step 0 discovery found it while checking brief
+  item 7. `authenticated` can UPDATE every column of `partners`, and the only UPDATE policy is
+  self-or-admin. So a signed-in partner could PATCH their own row to `role='admin'` or
+  `is_internal=true`, and a suspended user could un-suspend themselves. Andy ran a read-only
+  catalog query on 2026-10-16. It showed table-wide UPDATE, the two expected policies, only
+  `trg_partners_set_updated_at`, no columns beyond the migrations, and `is_admin()` /
+  `is_internal()` as written.
+- **No app path depends on self-update.** Every write to `partners` uses the service-role
+  client: all `/admin/partners` actions, the auto-activate in `(app)/layout.tsx`, and
+  `bootstrap-admin.ts`.
+- **Fix, proposed and not applied** (STOP-AND-FLAG):
+  `supabase/migrations/20261016000001_partners_guard_self_update.sql`. A BEFORE UPDATE trigger
+  lets a non-admin `authenticated` caller change only `phone` on their own row. Any other
+  changed column raises `42501`, which reaches the client as HTTP 403. `service_role`, direct
+  SQL and active admins pass. The rollback is
+  `supabase/rollback/partners-guard-self-update-rollback.sql`, and the apply steps are in
+  `docs/apply-notes/0151-partners-guard-self-update.md`.
+- **`scripts/test-rls.ts` block 23a–23k**, behind `RUN_0151_TESTS=1`:
+  - A partner can't change their own `role`, `is_internal`, `pipedrive_user_id`,
+    `company_name` or `logo_path`.
+  - A suspended partner can't reactivate themselves, and an internal user can't make
+    themselves admin.
+  - A partner can still change their own phone but can't touch another partner's row.
+  - An admin's JWT and `service_role` can still change all of the guarded columns.
+- **Verified:**
+  - The migration and rollback ran against PGlite (Postgres 16 in WASM, scratchpad only, not
+    added to the repo). The harness rebuilt the live `partners` shape, the Supabase roles and
+    `auth.uid()`. 24/24 checks passed: every guarded column blocked, the bootstrap-admin
+    upsert path allowed, the migration safe to re-run, and the hole back after rollback.
+  - `npx tsc --noEmit` is clean, and `npm test` passes 859/859.
+- **Not verified:** the live RLS run. It needs the migration applied first.
+
+### Detours & fixes
+
+- **SECURITY INVOKER, not DEFINER as the brief suggested.** The guard checks `current_user`.
+  Inside a DEFINER function `current_user` is the function's owner, `postgres`, so every caller
+  would pass. Reading the JWT `role` claim would also work. `current_user` is the role
+  actually running the statement, and no client JWT can mint it.
+- **Allow-list, not block-list.** Guarding only `role`/`status`/`is_internal`/
+  `pipedrive_user_id` would leave any future privilege column open. The trigger compares
+  `to_jsonb(new)` with `to_jsonb(old)` minus the allowed keys, so new columns are admin-only by
+  default.
+- Auto mode blocked a read of the live `partners` column names through the service-role REST
+  key as a production read. The column list came from Andy's catalog query instead.
+
+### Decisions captured
+
+- [`0151-partners-self-update-guard-trigger.md`](./decisions/0151-partners-self-update-guard-trigger.md)
+
 ## 2026-10-16 - Price push: retire Pipedrive products with is_linkable, stop on duplicate codes (ADR 0150)
 
 ### Work done
