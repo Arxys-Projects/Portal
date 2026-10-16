@@ -4,6 +4,33 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-10-16 - Project Portal backend, Step 1 addendum: company include list (written, not applied)
+
+### Work done
+
+- **Relativity Space needs a way into the company sync without the partner label.** The label also
+  drives partner emails, and Relativity Space is not a partner. Andy chose a portal-side list over a
+  second Pipedrive label. LiquidPC and NCD Communications are already labeled; the company merges
+  are done.
+- **Migration `20261016000006_company_sync_includes.sql`** plus rollback: one table of extra org ids,
+  each with a required reason. Admin-write, internal read, no partner access. No row seeded; Andy adds
+  the Relativity Space org he picks. Apply steps are in the addendum to
+  [`apply-notes/0153-project-portal-schema.md`](./apply-notes/0153-project-portal-schema.md).
+- **Tests:** the PGlite harness now applies all five migrations: 135/135 pass, rollbacks included.
+  `scripts/test-rls.ts` covers the table in section 24 (added to the read and write sweeps, plus a new
+  24i). Not run live: the table doesn't exist until Andy applies it. `tsc --noEmit` passes.
+
+### Detours & fixes
+
+- **The brief briefly said all three orgs stay unlabeled** (commit 1d0c63b), from a misread of Andy's
+  "those ones don't need to be labeled". Corrected in 3857177: only Relativity Space stays unlabeled.
+
+### Decisions captured
+
+- [`0156-company-sync-include-list-for-unlabeled-orgs.md`](./decisions/0156-company-sync-include-list-for-unlabeled-orgs.md)
+
+---
+
 ## 2026-10-16 - Project Portal backend, Step 1: schema (applied and verified)
 
 ### Work done

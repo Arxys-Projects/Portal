@@ -11,6 +11,7 @@
 | 2 | `supabase/migrations/20261016000003_projects.sql` | `supabase/rollback/projects-rollback.sql` | [0153](../decisions/0153-project-companies-contacts-and-project-link-tables.md) |
 | 3 | `supabase/migrations/20261016000004_system_design_rules.sql` | `supabase/rollback/system-design-rules-rollback.sql` | [0154](../decisions/0154-system-design-and-bom-rules-are-admin-edited-and-audited.md) |
 | 4 | `supabase/migrations/20261016000005_deal_line_syncs_and_pricing_confirmations.sql` | `supabase/rollback/deal-line-syncs-and-pricing-confirmations-rollback.sql` | [0155](../decisions/0155-deal-line-ledger-and-insert-only-pricing-confirmations.md) |
+| 5 | `supabase/migrations/20261016000006_company_sync_includes.sql` (**not applied yet**, added later the same day) | `supabase/rollback/company-sync-includes-rollback.sql` | [0156](../decisions/0156-company-sync-include-list-for-unlabeled-orgs.md) |
 
 All four only **create** objects: 12 new tables, 4 new functions, their triggers and policies, and
 the rules seeds. No existing table, column, policy, grant or row changes. No app code reads these
@@ -58,3 +59,27 @@ node --env-file=.env.local --import tsx scripts/test-rls.ts
 
 Run in **reverse** order (4, 3, 2, 1). Rollback 1 refuses to run while `projects` exists, by design.
 Each rollback file says what data it discards and how to dump it first.
+
+## Addendum: the company include list (000006, ADR 0156)
+
+> **Not applied yet.** Written 2026-10-16, after 1 to 4 were applied and verified.
+
+It creates one table, `company_sync_includes`, with 4 policies. It touches nothing else and seeds
+nothing, so no backup is needed.
+
+1. Paste `supabase/migrations/20261016000006_company_sync_includes.sql` into the SQL editor and run
+   it once.
+2. Check: `select relrowsecurity from pg_class where oid = 'public.company_sync_includes'::regclass;`
+   returns `true`, and `select count(*) from pg_policies where tablename = 'company_sync_includes';`
+   returns 4.
+3. Run the RLS suite again (command above). Expect every check to pass, now including 24i. Until
+   this file is applied, checks 24 and 24i fail.
+4. When you've picked the Relativity Space org (it has three versions in Pipedrive), add it. This
+   can wait until the Step 2 dry run, which lists the versions:
+
+```sql
+insert into public.company_sync_includes (pipedrive_org_id, reason)
+values (<org id>, 'Relativity Space: direct customer, not a partner, so it must not carry the partner label (that label drives partner emails).');
+```
+
+Rollback: `supabase/rollback/company-sync-includes-rollback.sql`.

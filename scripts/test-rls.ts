@@ -2053,8 +2053,8 @@ async function run() {
       }
     }
     // =========================================================================
-    // Section 24: Project Portal tables (ADRs 0153 to 0155, migrations
-    // 20261016000002 to 000005). Partners and anon read and write none of
+    // Section 24: Project Portal tables (ADRs 0153 to 0156, migrations
+    // 20261016000002 to 000006). Partners and anon read and write none of
     // them, partner_contact_links included; internal reads all but the audit;
     // rules are admin-write, no delete; the line ledger and confirmations have
     // no delete. Everything seeded here is removed in the finally below.
@@ -2073,6 +2073,7 @@ async function run() {
         "design_rules_audit",
         "deal_line_syncs",
         "quote_pricing_confirmations",
+        "company_sync_includes",
       ];
       const tag = Date.now();
       const orgId = 900_000_000 + (tag % 1_000_000);
@@ -2123,6 +2124,7 @@ async function run() {
           (await admin.from("quote_pricing_confirmations").insert({
             pipedrive_deal_id: dealId, submission_id: linkedSub, confirmed_by: internalPersona.id, deal_lines_fingerprint: [],
           })).error,
+          (await admin.from("company_sync_includes").insert({ pipedrive_org_id: orgId, reason: "RLS test include" })).error,
         ].filter(Boolean);
         record("24: seed project tables (service-role)", seedErrors.length === 0, seedErrors.map((e) => e?.message).join("; "));
 
@@ -2162,6 +2164,7 @@ async function run() {
             ["bom_rules", { design_item: `${ruleItem}_p`, applies_to_role: "recorder", sku: "VX5-GPU-A1000", qty_per_server: 1, description: "x" }],
             ["deal_line_syncs", { pipedrive_deal_id: dealId, submission_id: looseSub, sku: "VX5-GPU-A1000", role: "failover", qty: 1, pipedrive_product_id: 1416, item_price_sent: 1706, created_by: a.id }],
             ["quote_pricing_confirmations", { pipedrive_deal_id: dealId, confirmed_by: a.id, deal_lines_fingerprint: [] }],
+            ["company_sync_includes", { pipedrive_org_id: orgId + 3, reason: "partner include" }],
           ];
           const wentThrough: string[] = [];
           for (const [t, row] of inserts) {
@@ -2245,6 +2248,23 @@ async function run() {
             [ins.error?.message, upd.error?.message, sdr.error?.message, `audit=${ops.join(",")}`, `delete=${del.error?.code ?? del.data?.length}`, `typo=${typo.error?.message ?? "INSERTED"}`].filter(Boolean).join("; "),
           );
         }
+
+        // 24i: the company include list (ADR 0156) is admin-write: internal can
+        // read it but not add or remove; admin can do both, as themselves.
+        {
+          const intAdd = await internalPersona.client.from("company_sync_includes").insert({ pipedrive_org_id: orgId + 4, reason: "internal include" });
+          const intDel = await internalPersona.client.from("company_sync_includes").delete().eq("pipedrive_org_id", orgId).select("pipedrive_org_id");
+          const forged = await adminPersona.client.from("company_sync_includes").insert({ pipedrive_org_id: orgId + 5, reason: "forged", added_by: internalPersona.id });
+          const add = await adminPersona.client.from("company_sync_includes").insert({ pipedrive_org_id: orgId + 6, reason: "RLS admin include", added_by: adminPersona.id });
+          const del = await adminPersona.client.from("company_sync_includes").delete().eq("pipedrive_org_id", orgId + 6).select("pipedrive_org_id");
+          record(
+            "24i: include list is admin-write (internal cannot add/remove; admin can, no forged added_by)",
+            Boolean(intAdd.error) && (Boolean(intDel.error) || (intDel.data?.length ?? 0) === 0) &&
+              Boolean(forged.error) && !add.error && (del.data?.length ?? 0) === 1,
+            [`internal add=${intAdd.error ? "blocked" : "WENT THROUGH"}`, `internal delete=${intDel.data?.length ?? intDel.error?.code}`,
+              `forged=${forged.error ? "blocked" : "WENT THROUGH"}`, `admin add=${add.error?.message ?? "ok"}`, `admin delete=${del.data?.length ?? del.error?.message}`].join("; "),
+          );
+        }
       } finally {
         // Children first: the ledger and confirmations restrict submission and
         // partner deletes, and projects restrict company deletes.
@@ -2267,6 +2287,7 @@ async function run() {
         await admin.from("bom_rules").delete().eq("design_item", ruleItem);
         await admin.from("design_rules_audit").delete().eq("rule_table", "system_design_rules").eq("rule_key", ruleKey);
         await admin.from("system_design_rules").delete().eq("key", ruleKey);
+        await admin.from("company_sync_includes").delete().in("pipedrive_org_id", [orgId, orgId + 3, orgId + 4, orgId + 5, orgId + 6]);
       }
     }
   } finally {
