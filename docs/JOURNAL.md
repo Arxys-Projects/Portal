@@ -4,6 +4,57 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-10-16 - Project Portal backend, Step 0: discovery (read-only)
+
+### Work done
+
+- **Ran Step 0 of the Project Portal backend brief.** The brief is
+  [`Portal-Project revamp/claude-code-brief-project-portal-backend.md`](./Portal-Project%20revamp/claude-code-brief-project-portal-backend.md).
+  - Read the brief's reading list.
+  - Answered its seven questions from code and from read-only probes of production Supabase
+    and the Pipedrive API (GET only, scripts kept outside the repo).
+  - A subagent researched the Pipedrive docs: v1 deprecation, deal-product fields, rate limits.
+- **Findings** are in the brief under "Step 0 results". In short:
+  - The label is option id 73 on `label_ids`, on 62 of 8,522 orgs. The v2 org list has no
+    label filter, so Step 2 pages every org and filters in code.
+  - Deal products need `item_price`. v1 `active_flag=false` deletes a product; `is_linkable`
+    is the "off the picker" flag.
+  - All seven BOM SKUs match the portal by code and price.
+  - SFP+ excludes exactly the V200s.
+  - Every family has smaller-storage tiers, so failover is usually smaller than the primary.
+  - The name-based org and person upserts very likely created duplicate Pipedrive orgs.
+  - Partners could update every column of their own row.
+- **Two findings became their own fixes the same day:** the price push deleting Pipedrive
+  products and the VX5-V600-320 duplicate code (ADR 0150), and the partner self-escalation hole
+  (ADR 0151, applied and verified live). Both have their own entries below.
+- **Decisions at the gate (Andy):**
+  - A project contact's login sees its quotes through `on_behalf_of_partner_id`, set to the
+    primary contact's linked login when there is exactly one. No RLS change (ADR 0152).
+  - `partner_contact_links` is internal-only.
+  - `deal_line_syncs` gains `submission_id`, `role` and the Pipedrive deal-line id, with a
+    unique (deal, SKU, role) key.
+  - `quote_pricing_confirmations` stores a fingerprint of the deal lines.
+- **The brief is updated** with the results, decisions, revised Steps 1 to 5, the ADR list
+  (next free: 0153) and a Step 1 kickoff prompt.
+
+### Detours & fixes
+
+- **Andy asked for no docs during Step 0**, so this entry and the brief update were written
+  after the gate. The scripts and fixes that followed were separate tasks he asked for.
+- **The Step 0 report didn't reach Andy at first.** The session's last message ended at the
+  question box without it, and the report was delivered later in the conversation.
+- **The brief's reading list was current this time.** But two of its rules conflicted: visibility
+  through "the existing per-person path", and never writing the on-behalf columns. They can't
+  both hold, because that path is the on-behalf FK. ADR 0152 settles it.
+
+### Decisions captured
+
+- [`0152-project-contact-login-sees-quotes-via-on-behalf-fk.md`](./decisions/0152-project-contact-login-sees-quotes-via-on-behalf-fk.md)
+
+RUNBOOK unchanged.
+
+---
+
 ## 2026-10-16 - Close the partner self-escalation hole on `partners` (ADR 0151)
 
 ### Work done
