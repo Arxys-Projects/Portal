@@ -1,8 +1,9 @@
 # Apply note — Project Portal schema, Step 1 (ADRs 0153, 0154, 0155)
 
-> **Not applied yet.** Written 2026-10-16. Andy applies these by hand in the Supabase dashboard
-> SQL editor. Not `supabase db push`: several migrations on this project were applied by hand and
-> are missing from the remote history.
+> **Applied 2026-10-16**, by hand by Andy in the Supabase dashboard SQL editor. Verified the same
+> day: the live RLS suite passed every check, including the nine new ones (24 to 24h). 24e passing
+> also shows the rules seeds are present. Not `supabase db push`: several migrations on this
+> project were applied by hand and are missing from the remote history.
 
 | Order | Forward | Rollback | Decision |
 |---|---|---|---|

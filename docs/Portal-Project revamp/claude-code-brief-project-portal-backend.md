@@ -5,7 +5,7 @@
 
 Written 2026-10-16 from a planning session with Andy. This file is the source of truth for the build. Update it at each gate with anything discovered or decided, so the next session starts from the corrected brief.
 
-**Status:** Step 0 done 2026-10-16. Its results and Andy's decisions are folded in below; see "Step 0 results" and the JOURNAL entry "Project Portal backend, Step 0". Two prerequisites it surfaced are fixed and live: the partner self-escalation hole (ADR 0151) and the price push deleting Pipedrive products (ADR 0150). Step 1 written 2026-10-16, **not applied**: migrations 20261016000002 to 000005, ADRs 0153 to 0155, apply steps in `docs/apply-notes/0153-project-portal-schema.md`. Next: Andy applies them and runs the RLS suite (section 24), then Step 2.
+**Status:** Step 0 done 2026-10-16. Its results and Andy's decisions are folded in below; see "Step 0 results" and the JOURNAL entry "Project Portal backend, Step 0". Two prerequisites it surfaced are fixed and live: the partner self-escalation hole (ADR 0151) and the price push deleting Pipedrive products (ADR 0150). Step 1 done 2026-10-16: migrations 20261016000002 to 000005 applied by Andy, live RLS suite all pass (section 24 included); ADRs 0153 to 0155, apply note `docs/apply-notes/0153-project-portal-schema.md`. Next: Step 2.
 
 ## How to run this brief
 - Run one step per session unless a step is small enough to pair with the next.
@@ -86,7 +86,7 @@ Also found:
 - **No `arxys_project_id` deal field exists.** Adding it to `CUSTOM_FIELDS` in `lookups.ts` would make `ensureCustomFields()` create it on the next deal write from any path, partner path included. Create it once, on purpose, in Step 5.
 - **Quick Calc saves through `submitCalculation`** (`quick-calc-form.tsx:163`).
 
-## Step 1: Schema (migrations written, not applied). STOP for Andy to apply.
+## Step 1: Schema (migrations written, not applied). STOP for Andy to apply. DONE 2026-10-16.
 All tables are internal-only (policies gated on `is_internal(auth.uid()) OR is_admin(auth.uid())`) unless noted.
 - `companies`: `pipedrive_org_id` (unique), `name`, `active`, sync timestamps.
 - `company_name_aliases`: maps legacy portal spellings and merged Pipedrive orgs to one company.
@@ -153,7 +153,7 @@ UI screens and screen server actions (after the design pass), renaming `/project
 
 ## Gates
 - STOP after Step 0 (report). Done 2026-10-16.
-- STOP after Step 1 (migrations for Andy to apply; RLS tests run after he applies). Written 2026-10-16; waiting on the apply.
+- STOP after Step 1 (migrations for Andy to apply; RLS tests run after he applies). Done 2026-10-16: applied, live suite all pass.
 - STOP before the Step 2 `--execute` runs (mapping approval).
 - STOP before any live Pipedrive write in Step 5.
 - At the end of each step, report what changed, tests run, and what is unverified.

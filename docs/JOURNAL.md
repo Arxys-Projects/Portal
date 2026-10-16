@@ -4,7 +4,7 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
-## 2026-10-16 - Project Portal backend, Step 1: schema (written, not applied)
+## 2026-10-16 - Project Portal backend, Step 1: schema (applied and verified)
 
 ### Work done
 
@@ -32,6 +32,10 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 - **Live RLS cases written**: section 24 (24 to 24h) in `scripts/test-rls.ts`. It seeds and removes its
   own rows and uses throwaway rule keys so live rules are never edited. Not run: the tables don't
   exist in production until Andy applies. `tsc --noEmit` passes.
+- **Applied and verified the same day.** Andy ran the four migrations by hand in the SQL editor, then
+  the live RLS suite: every check passed, including 24 to 24h. Partners (including one whose login is
+  linked to a contact) and anon read and write nothing in the new tables; internal reads them all but
+  the audit; admin rule edits are stamped and audited; deletes and duplicate lines are refused.
 
 ### Detours & fixes
 
