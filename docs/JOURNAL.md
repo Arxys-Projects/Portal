@@ -37,6 +37,9 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
   SECURITY PARTNER" (73); none of LiquidPC's three orgs (#10528, #12281, #12284) has any label;
   Relativity Space (#11576) carries "End User" (49). The sync keys on option 73 only, so all three
   are exceptions until Andy labels them 73 or adds them to `company_sync_includes`.
+- **Andy then labeled LiquidPC LLC (#10528) and NCD Communications (#12243) with 73.** The rerun
+  confirms both: 64 companies, 413 contacts, 22 exact and 9 normalized names, 27 exceptions, and a
+  proposed file of 8 aliases (the two unlabeled LiquidPC orgs included) and 68 links.
 - **Test accounts slipped through the first run** ("Big Corp, inc", "Evil Corp, inc" and an
   "RLS Hijack Co" login). Matching now compares normalized names and skips any
   `@arxys-rls-test.invalid` login. The "RLS Hijack Co" persona is a live leftover from an earlier
