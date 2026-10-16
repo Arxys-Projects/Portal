@@ -1,6 +1,6 @@
 # 0151 — Guard partner self-updates with a deny-by-default trigger
 
-- **Status**: Accepted (migration written 2026-10-16; not yet applied — see [apply note](../apply-notes/0151-partners-guard-self-update.md))
+- **Status**: Accepted (applied 2026-10-16 by hand in the SQL editor; live RLS suite 23a–23k pass — see [apply note](../apply-notes/0151-partners-guard-self-update.md))
 - **Date**: 2026-10-16
 
 ## Context

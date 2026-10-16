@@ -18,14 +18,15 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 - **No app path depends on self-update.** Every write to `partners` uses the service-role
   client: all `/admin/partners` actions, the auto-activate in `(app)/layout.tsx`, and
   `bootstrap-admin.ts`.
-- **Fix, proposed and not applied** (STOP-AND-FLAG):
+- **Fix, applied by Andy 2026-10-16 in the SQL editor** (STOP-AND-FLAG):
   `supabase/migrations/20261016000001_partners_guard_self_update.sql`. A BEFORE UPDATE trigger
   lets a non-admin `authenticated` caller change only `phone` on their own row. Any other
   changed column raises `42501`, which reaches the client as HTTP 403. `service_role`, direct
   SQL and active admins pass. The rollback is
   `supabase/rollback/partners-guard-self-update-rollback.sql`, and the apply steps are in
   `docs/apply-notes/0151-partners-guard-self-update.md`.
-- **`scripts/test-rls.ts` block 23a–23k**, behind `RUN_0151_TESTS=1`:
+- **`scripts/test-rls.ts` block 23a–23k.** It ran behind `RUN_0151_TESTS=1` until the apply,
+  and now runs on every suite run:
   - A partner can't change their own `role`, `is_internal`, `pipedrive_user_id`,
     `company_name` or `logo_path`.
   - A suspended partner can't reactivate themselves, and an internal user can't make
@@ -38,7 +39,12 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
     `auth.uid()`. 24/24 checks passed: every guarded column blocked, the bootstrap-admin
     upsert path allowed, the migration safe to re-run, and the hole back after rollback.
   - `npx tsc --noEmit` is clean, and `npm test` passes 859/859.
-- **Not verified:** the live RLS run. It needs the migration applied first.
+  - **Live, before the apply:** 23a–23g failed. A fresh test partner made itself admin through
+    its own JWT and then edited another partner's row, so the hole was real in production.
+  - **Live, after the apply:** the suite passed 88/88. Every self-escalation attempt returned
+    42501 naming the column, while admin and `service_role` edits still went through.
+- **Still open:** Andy's read-only "was the hole ever used?" query in the apply note. The
+  guard can't show past escalation.
 
 ### Detours & fixes
 
@@ -52,6 +58,9 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
   default.
 - Auto mode blocked a read of the live `partners` column names through the service-role REST
   key as a production read. The column list came from Andy's catalog query instead.
+- **The first live run made one failure look like two.** Before the apply, 23a left partner A as
+  an admin, so 23i (the cross-partner UPDATE) also failed. The suite now resets A through
+  `service_role` after each 23a–23e case.
 
 ### Decisions captured
 

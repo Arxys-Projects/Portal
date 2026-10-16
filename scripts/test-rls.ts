@@ -1889,10 +1889,9 @@ async function run() {
     // role='admin' / is_internal=true. The guard trigger
     // (20261016000001_partners_guard_self_update.sql) lets a non-admin change
     // only `phone` on their own row; a blocked change raises 42501.
-    // Gated behind RUN_0151_TESTS=1 because 23a–23g fail until the migration is
-    // applied. Run after Andy applies it:
-    //   RUN_0151_TESTS=1 node --env-file=.env.local --import tsx scripts/test-rls.ts
-    if (process.env.RUN_0151_TESTS === "1") {
+    // Applied 2026-10-16, so this block always runs: 23a–23g failing means the
+    // self-escalation hole is open again.
+    {
       // 8c suspended adminPersona; re-assert active so is_admin() is true here
       // regardless of block order.
       await admin
@@ -2051,10 +2050,6 @@ async function run() {
           .update({ role: "partner", is_internal: false, pipedrive_user_id: null })
           .eq("id", b.id);
       }
-    } else {
-      console.log(
-        "  (skipping ADR 0151 partners self-update guard tests — set RUN_0151_TESTS=1 after applying 20261016000001)",
-      );
     }
   } finally {
     await teardownPersona(a);

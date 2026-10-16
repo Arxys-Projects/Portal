@@ -1,6 +1,8 @@
 # Apply note — partners self-update guard (ADR 0151)
 
-> **Not yet applied.** Written 2026-10-16. Apply by hand in the Supabase dashboard SQL editor.
+> **Applied 2026-10-16**, by hand via the Supabase dashboard SQL editor. Verified the same day:
+> the live RLS suite passed 88/88, including 23a–23k. A run just before the apply showed the
+> hole was real in production, with 23a–23g failing.
 
 | | File |
 |---|---|
@@ -32,10 +34,10 @@ order by t.tgname;
    `prosecdef = false` and `proconfig = {search_path=""}`. `trg_partners_set_updated_at` is
    unchanged.
 
-3. Run the RLS suite with the 0151 block on. It creates and deletes its own test users:
+3. Run the RLS suite. It creates and deletes its own test users:
 
 ```bash
-RUN_0151_TESTS=1 node --env-file=.env.local --import tsx scripts/test-rls.ts
+node --env-file=.env.local --import tsx scripts/test-rls.ts
 ```
 
    Every line should be `PASS`, including 23a–23k. Before the migration, 23a–23g fail.
@@ -62,7 +64,7 @@ Run `supabase/rollback/partners-guard-self-update-rollback.sql` in the SQL edito
 trigger and function only, which **re-opens the hole**, so use it only if the guard blocks a
 legitimate path.
 
-## After it passes
+## After it passed
 
-Remove the `RUN_0151_TESTS` gate in `scripts/test-rls.ts`, so the default suite keeps checking
-the guard.
+The `RUN_0151_TESTS` gate was removed from `scripts/test-rls.ts` the same day, so the default
+suite checks the guard on every run.
