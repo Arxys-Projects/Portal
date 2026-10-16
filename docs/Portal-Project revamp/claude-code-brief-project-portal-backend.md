@@ -5,7 +5,7 @@
 
 Written 2026-10-16 from a planning session with Andy. This file is the source of truth for the build. Update it at each gate with anything discovered or decided, so the next session starts from the corrected brief.
 
-**Status:** Step 0 done 2026-10-16. Its results and Andy's decisions are folded in below; see "Step 0 results" and the JOURNAL entry "Project Portal backend, Step 0". Two prerequisites it surfaced are fixed and live: the partner self-escalation hole (ADR 0151) and the price push deleting Pipedrive products (ADR 0150). Step 1 done 2026-10-16: migrations 20261016000002 to 000005 applied by Andy, live RLS suite all pass (section 24 included); ADRs 0153 to 0155, apply note `docs/apply-notes/0153-project-portal-schema.md`. Addendum 20261016000006 (company include list, ADR 0156) applied and verified the same day (24i passes). Next: Step 2.
+**Status:** Step 0 done 2026-10-16. Its results and Andy's decisions are folded in below; see "Step 0 results" and the JOURNAL entry "Project Portal backend, Step 0". Two prerequisites it surfaced are fixed and live: the partner self-escalation hole (ADR 0151) and the price push deleting Pipedrive products (ADR 0150). Step 1 done 2026-10-16: migrations 20261016000002 to 000005 applied by Andy, live RLS suite all pass (section 24 included); ADRs 0153 to 0155, apply note `docs/apply-notes/0153-project-portal-schema.md`. Addendum 20261016000006 (company include list, ADR 0156) applied and verified the same day (24i passes). Step 2 code written and dry-run against production 2026-10-16 (ADR 0157; see "Step 2 results"). **At the Step 2 gate**: Andy decides LiquidPC / NCD, reviews the mapping file, then runs `--execute` and `--apply-mapping`.
 
 ## How to run this brief
 - Run one step per session unless a step is small enough to pair with the next.
@@ -25,7 +25,7 @@ Written 2026-10-16 from a planning session with Andy. This file is the source of
 - RLS changes are stop-and-flag. Every new table gets explicit policies; the `ensure_rls` trigger makes new tables deny-all by default.
 - No live Pipedrive writes without Andy's explicit go-ahead for that specific write.
 - The partner self-serve path (full calculator, Quick Calc, Register a Deal) must behave bit-identically. Golden and recommender tests stay green.
-- JOURNAL entry per step. ADR for every non-obvious choice, numbered from the next free number (0157+; 0150 to 0156 were taken on 2026-10-16). Check the number is free right before writing; 0146 collided before, and parallel sessions share this checkout.
+- JOURNAL entry per step. ADR for every non-obvious choice, numbered from the next free number (0158+; 0150 to 0157 were taken on 2026-10-16). Check the number is free right before writing; 0146 collided before, and parallel sessions share this checkout.
 - New Pipedrive calls use the v2 API. The v1 org, person, deal and product endpoints have been out of support since 2026-08-01. The existing partner path stays on v1 for now (bit-identical rule); moving it is separate work.
 - Never send `active_flag: false` to a Pipedrive product: it deletes the product. "Off the deal picker" is `is_linkable: false` (ADR 0150).
 
@@ -52,7 +52,7 @@ Partners rarely run their own calcs. They email Arxys, Arxys gathers specs, and 
 | Management / Directory | "Dedicated?" yes/no, "Failover pair?" yes/no (1 or 2 units), SKU from a dropdown of active management-server SKUs. |
 | Workstations | Count plus SKU dropdown (active SW SKUs only: SW10 and SW20 today). |
 | Rules | Every default and BOM mapping is admin-editable, carries a plain-language description, and is snapshotted onto each calc at save. |
-| Company list cleanup | Andy merges Alscan, Insight and Security Control Integrators in Pipedrive (done; Andy confirmed 2026-10-16). Minuteman offices now carry state names (NH, MA). VastGlobe Logistics and the test accounts are ignored. LiquidPC and NCD Communications are now labeled (Andy, 2026-10-16; Step 0 had found them unlabeled, so the Step 2 dry run confirms which LiquidPC org carries it). **Relativity Space must stay unlabeled**: the label drives partner emails, and it is not a partner. It is still wanted as a company, so it comes in through the portal-side include list `company_sync_includes` (Andy, 2026-10-16; ADR 0156). Pipedrive is not changed. **Skipped for now** (Andy, 2026-10-16): no include row yet, so its portal spellings land in the exceptions list. "Minuteman Security - Edison" is also labeled. |
+| Company list cleanup | Andy merges Alscan, Insight and Security Control Integrators in Pipedrive (done; Andy confirmed 2026-10-16). Minuteman offices now carry state names (NH, MA). VastGlobe Logistics and the test accounts are ignored. LiquidPC and NCD Communications: Andy believed them labeled, but the Step 2 dry run found NCD (#12243) carries "Security Integrator" (option 53), not 73, and none of LiquidPC's three orgs (#10528, #12281, #12284) has a label, so neither is a company yet (open; see Step 2 results). **Relativity Space must stay unlabeled**: the label drives partner emails, and it is not a partner. It is still wanted as a company, so it comes in through the portal-side include list `company_sync_includes` (Andy, 2026-10-16; ADR 0156). Pipedrive is not changed. **Skipped for now** (Andy, 2026-10-16): no include row yet, so its portal spellings land in the exceptions list. "Minuteman Security - Edison" is also labeled. |
 
 ## Step 0: Discovery and plan (read-only). DONE 2026-10-16.
 Verify and report with file:line or API evidence:
@@ -111,6 +111,12 @@ All tables are internal-only (policies gated on `is_internal(auth.uid()) OR is_a
 - After Andy approves the mapping, a separate `--execute` step writes `partner_contact_links` and aliases.
 - Before the `--execute`: the planned merges are done (Andy confirmed 2026-10-16) and LiquidPC and NCD are labeled; Relativity Space is skipped for now (no include row); the merged-away org ids no longer exist, so the dry run will not see them as alias candidates. The mapping report should also list the unlabeled orgs that exactly match portal strings (Step 0 results item 6) as alias candidates, since existing deals hang off them.
 
+### Step 2 results (2026-10-16 dry run; recheck before relying on a number)
+- Built: `src/lib/pipedrive/company-api.ts` (v2 GETs), `src/lib/companies/sync.ts` (pure, unit-tested), `scripts/sync-pipedrive-companies.mts` (dry run; `--execute`; `--apply-mapping=<file>`). ADR 0157.
+- 62 companies (all by label), 402 contacts. 58 portal names: 21 exact, 7 normalized, 30 exceptions; 23 unlabeled name twins. 90 logins: 68 email matches, 2 company mismatches (Insight → Insight Enterprise #12008, which is also labeled; Security Control Integrators → "Security Control Integrators SCI"), 3 duplicate emails, 17 no contact.
+- Open for Andy before `--execute`: LiquidPC and NCD (label them 73, or add their org ids to `company_sync_includes`; picking one LiquidPC org); whether "Insight, Inc." (#9239) and "Insight Enterprise" (#12008) are both meant to be companies; review the mapping file in `backups/`.
+- Leftover live test persona "RLS Hijack Co" (`rls-test-a-1792186404373@arxys-rls-test.invalid`) from an earlier interrupted RLS run: delete it.
+
 ## Step 3: Pure engines (no I/O, fully unit-tested)
 - `resolveSystemDesign(calcInputs, projectDefaults, rules)` → resolved inputs plus a rules snapshot.
 - `recommendFailover(primary, groupsTotals, failoverDays, ratio, candidates, {excludeOneU})`: new function using the same candidate pool and filters as the primary, plus the SFP+ 1U exclusion. Two choices to make and record in the failover ADR (Step 0 results item 5): the sizing basis (required capacity with the utilization buffer and binary charge, like the primary, or recorded data; recommended: the primary's basis), and the daily load on a mixed-retention calc (each group's storage divided by its own retention, summed).
@@ -155,7 +161,7 @@ UI screens and screen server actions (after the design pass), renaming `/project
 ## Gates
 - STOP after Step 0 (report). Done 2026-10-16.
 - STOP after Step 1 (migrations for Andy to apply; RLS tests run after he applies). Done 2026-10-16: applied, live suite all pass.
-- STOP before the Step 2 `--execute` runs (mapping approval).
+- STOP before the Step 2 `--execute` runs (mapping approval). Reached 2026-10-16.
 - STOP before any live Pipedrive write in Step 5.
 - At the end of each step, report what changed, tests run, and what is unverified.
 

@@ -4,6 +4,50 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-10-16 - Project Portal backend, Step 2: company and contact sync (dry run only)
+
+### Work done
+
+- **Relativity Space skipped for now** (Andy): no include-list row, so its portal spellings are
+  exceptions.
+- **`src/lib/pipedrive/company-api.ts`**: v2 reads only. Resolves the "Arxys Security Partner" option
+  (73) from `organizationFields`, pages all orgs, lists persons per org, waits on 429.
+- **`src/lib/companies/sync.ts`** (pure, 11 unit tests): picks companies (label or include list), plans
+  inserts / renames / deactivations, normalizes names, proposes the name mapping (exact, alias,
+  normalized, ambiguous, none), lists unlabeled orgs named like a portal string, and proposes
+  login → contact links by email.
+- **`scripts/sync-pipedrive-companies.mts`**: dry run by default; `--execute` upserts companies and
+  contacts; `--apply-mapping=<file>` writes only the aliases and links Andy kept in the reviewed file.
+  Both writes need a typed CONFIRM. Never writes to Pipedrive.
+- **Dry run against production** (GET-only Pipedrive, read-only database; nothing written):
+  - 8,522 orgs scanned; 62 companies, all by label; 402 contacts (367 with email). Central Security
+    and Communications and SEi have no persons.
+  - 58 portal company names: 21 exact, 7 normalized, 30 exceptions. 23 unlabeled orgs share a name
+    with a portal string.
+  - 90 non-internal logins: 68 email matches, 2 company mismatches (Insight → a contact at Insight
+    Enterprise; Security Control Integrators → a contact at "Security Control Integrators SCI"),
+    3 duplicate emails, 17 with no matching contact.
+  - Proposed file: 6 aliases, 68 links (in `backups/`, gitignored).
+- **Full unit suite 870/870, `tsc` clean.**
+
+### Detours & fixes
+
+- **LiquidPC and NCD Communications are not companies yet.** Andy said they were labeled. A read-only
+  probe shows NCD Communications (#12243) carries "Security Integrator" (option 53), not "ARXYS
+  SECURITY PARTNER" (73); none of LiquidPC's three orgs (#10528, #12281, #12284) has any label;
+  Relativity Space (#11576) carries "End User" (49). The sync keys on option 73 only, so all three
+  are exceptions until Andy labels them 73 or adds them to `company_sync_includes`.
+- **Test accounts slipped through the first run** ("Big Corp, inc", "Evil Corp, inc" and an
+  "RLS Hijack Co" login). Matching now compares normalized names and skips any
+  `@arxys-rls-test.invalid` login. The "RLS Hijack Co" persona is a live leftover from an earlier
+  interrupted RLS run (email `rls-test-a-1792186404373@…`); it should be deleted.
+
+### Decisions captured
+
+- [`0157-company-sync-reads-v2-and-applies-a-reviewed-mapping-file.md`](./decisions/0157-company-sync-reads-v2-and-applies-a-reviewed-mapping-file.md)
+
+---
+
 ## 2026-10-16 - Project Portal backend, Step 1 addendum: company include list (applied and verified)
 
 ### Work done
