@@ -4,6 +4,52 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-10-16 - Project Portal backend, Step 1: schema (written, not applied)
+
+### Work done
+
+- **Wrote Step 1 of the Project Portal backend brief**: four migrations with rollbacks, for Andy to
+  apply by hand. Nothing was applied and nothing was pushed. Apply steps are in
+  [`apply-notes/0153-project-portal-schema.md`](./apply-notes/0153-project-portal-schema.md).
+  - `20261016000002`: `companies`, `company_name_aliases`, `contacts`, `partner_contact_links`.
+  - `20261016000003`: `projects`, `project_contacts`, `project_submissions`.
+  - `20261016000004`: `system_design_rules`, `bom_rules`, `design_rules_audit`, with the brief's
+    seeds (3 defaults; SFP+ pair and GPU for recorder and failover).
+  - `20261016000005`: `deal_line_syncs`, `quote_pricing_confirmations`.
+- **Every table is internal-only.** Partners and anon have no grant a policy could open. The synced
+  tables are SELECT-only for internal users (the Step 2 sync writes as service_role). Rules are
+  admin-write with no delete. The deal-line ledger and the pricing confirmations have no delete,
+  and confirmations no update.
+- **Integrity rules beyond the brief:** a project's primary contact must belong to its company when
+  set (trigger); a link's company follows its contact (composite FK); a BOM rule SKU must exist in
+  `products` (trigger, since `products.sku` is not unique); `status = 'added'` needs the Pipedrive
+  attachment id; `item_price_sent > 0`.
+- **Tested locally in PGlite** (Postgres 16 in WASM, scratchpad, Supabase roles and `auth.uid()`
+  stubbed): all four migrations, then 121 checks on reads and writes by partner, a partner linked to
+  a contact, anon, internal, admin and service_role; then all four rollbacks in reverse, a check that
+  nothing is left, and a re-apply. 121/121 pass, each denial for the expected reason (42501, 23503,
+  23505 or 23514).
+- **Live RLS cases written**: section 24 (24 to 24h) in `scripts/test-rls.ts`. It seeds and removes its
+  own rows and uses throwaway rule keys so live rules are never edited. Not run: the tables don't
+  exist in production until Andy applies. `tsc --noEmit` passes.
+
+### Detours & fixes
+
+- **The shared audit trigger first read `new.key` directly.** On a `bom_rules` row PL/pgSQL fails
+  with "record new has no field key", even inside the CASE branch that isn't taken. It now reads the
+  key through `to_jsonb(new)`.
+- **A composite FK for the project's primary contact was considered and dropped.** It would either
+  block the sync from moving a person to another org or silently move the project with them. A
+  write-time trigger checks the pair instead, and the project keeps the company it was prepared for.
+
+### Decisions captured
+
+- [`0153-project-companies-contacts-and-project-link-tables.md`](./decisions/0153-project-companies-contacts-and-project-link-tables.md)
+- [`0154-system-design-and-bom-rules-are-admin-edited-and-audited.md`](./decisions/0154-system-design-and-bom-rules-are-admin-edited-and-audited.md)
+- [`0155-deal-line-ledger-and-insert-only-pricing-confirmations.md`](./decisions/0155-deal-line-ledger-and-insert-only-pricing-confirmations.md)
+
+---
+
 ## 2026-10-16 - Project Portal backend, Step 0: discovery (read-only)
 
 ### Work done

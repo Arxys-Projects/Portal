@@ -1,7 +1,8 @@
 // RLS verification suite for the Arxys Partner Portal.
 // Creates two ephemeral users (partner A and B), exercises the policies on
 // partners / products / submissions / camera_specs / project_quotes /
-// access_requests / product_specs, and tears the users down.
+// access_requests / product_specs / the Project Portal tables, and tears the
+// users down.
 // Run with: npx tsx scripts/test-rls.ts
 
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
@@ -2049,6 +2050,223 @@ async function run() {
           .from("partners")
           .update({ role: "partner", is_internal: false, pipedrive_user_id: null })
           .eq("id", b.id);
+      }
+    }
+    // =========================================================================
+    // Section 24: Project Portal tables (ADRs 0153 to 0155, migrations
+    // 20261016000002 to 000005). Partners and anon read and write none of
+    // them, partner_contact_links included; internal reads all but the audit;
+    // rules are admin-write, no delete; the line ledger and confirmations have
+    // no delete. Everything seeded here is removed in the finally below.
+    // =========================================================================
+    {
+      const PROJECT_TABLES = [
+        "companies",
+        "company_name_aliases",
+        "contacts",
+        "partner_contact_links",
+        "projects",
+        "project_contacts",
+        "project_submissions",
+        "system_design_rules",
+        "bom_rules",
+        "design_rules_audit",
+        "deal_line_syncs",
+        "quote_pricing_confirmations",
+      ];
+      const tag = Date.now();
+      const orgId = 900_000_000 + (tag % 1_000_000);
+      const dealId = 990_000_000 + (tag % 1_000_000);
+      const ruleKey = `rls_test_${tag}`;
+      const ruleItem = `rls_test_${tag}`;
+      let companyId: string | null = null;
+      let contactId: string | null = null;
+      let projectId: string | null = null;
+      try {
+        // 24: seed through service-role, standing in for the Step 2 sync.
+        const company = await admin
+          .from("companies")
+          .insert({ pipedrive_org_id: orgId, name: `RLS Test Company ${tag}` })
+          .select("id")
+          .single();
+        companyId = company.data?.id ?? null;
+        const contact = await admin
+          .from("contacts")
+          .insert({ pipedrive_person_id: orgId, company_id: companyId, name: "RLS Test Contact" })
+          .select("id")
+          .single();
+        contactId = contact.data?.id ?? null;
+        const aliasRes = await admin
+          .from("company_name_aliases")
+          .insert({ company_id: companyId, alias: `RLS Test Alias ${tag}`, source: "partner_company_name" });
+        const project = await admin
+          .from("projects")
+          .insert({ company_id: companyId, primary_contact_id: contactId, name: "RLS test project", created_by: internalPersona.id })
+          .select("id")
+          .single();
+        projectId = project.data?.id ?? null;
+        const linkedSub = await seedSubmission(a.id, "open");
+        const looseSub = await seedSubmission(a.id, "open");
+        const seedErrors = [
+          company.error,
+          contact.error,
+          aliasRes.error,
+          project.error,
+          (await admin.from("project_submissions").insert({ submission_id: linkedSub, project_id: projectId })).error,
+          (await admin.from("project_contacts").insert({ project_id: projectId, contact_id: contactId })).error,
+          // B is a contact's login: the case most likely to leak, if anything does.
+          (await admin.from("partner_contact_links").insert({ partner_id: b.id, contact_id: contactId, company_id: companyId })).error,
+          (await admin.from("deal_line_syncs").insert({
+            pipedrive_deal_id: dealId, submission_id: linkedSub, sku: "VX5-GPU-A1000", role: "recorder",
+            qty: 1, pipedrive_product_id: 1416, item_price_sent: 1706, created_by: internalPersona.id,
+          })).error,
+          (await admin.from("quote_pricing_confirmations").insert({
+            pipedrive_deal_id: dealId, submission_id: linkedSub, confirmed_by: internalPersona.id, deal_lines_fingerprint: [],
+          })).error,
+        ].filter(Boolean);
+        record("24: seed project tables (service-role)", seedErrors.length === 0, seedErrors.map((e) => e?.message).join("; "));
+
+        // 24a / 24b: partner A, and B whose login is linked to the contact, read nothing.
+        for (const [label, p] of [["24a: partner", a], ["24b: linked partner", b]] as const) {
+          const leaks: string[] = [];
+          for (const t of PROJECT_TABLES) {
+            const { data, error } = await p.client.from(t).select("*").limit(5);
+            if (!error && (data?.length ?? 0) > 0) leaks.push(`${t}=${data!.length}`);
+          }
+          record(`${label} reads no row of any project table`, leaks.length === 0, leaks.join(", ") || "all empty or denied");
+        }
+
+        // 24c: anon reads nothing.
+        {
+          const anonClient = createClient(supabaseUrl, anonKey, { auth: { persistSession: false, autoRefreshToken: false } });
+          const leaks: string[] = [];
+          for (const t of PROJECT_TABLES) {
+            const { data, error } = await anonClient.from(t).select("*").limit(5);
+            if (!error && (data?.length ?? 0) > 0) leaks.push(`${t}=${data!.length}`);
+          }
+          record("24c: anon reads no row of any project table", leaks.length === 0, leaks.join(", ") || "all empty or denied");
+        }
+
+        // 24d: partner A cannot write any of them. Inserts must error; updates
+        // and deletes must touch nothing.
+        {
+          const inserts: [string, Record<string, unknown>][] = [
+            ["project_submissions", { submission_id: looseSub, project_id: projectId }],
+            ["partner_contact_links", { partner_id: a.id, contact_id: contactId, company_id: companyId }],
+            ["projects", { company_id: companyId, name: "partner project", created_by: a.id }],
+            ["project_contacts", { project_id: projectId, contact_id: contactId }],
+            ["companies", { pipedrive_org_id: orgId + 1, name: "partner co" }],
+            ["contacts", { pipedrive_person_id: orgId + 1, company_id: companyId, name: "partner contact" }],
+            ["company_name_aliases", { company_id: companyId, alias: `partner alias ${tag}`, source: "partner_company_name" }],
+            ["system_design_rules", { key: `${ruleKey}_p`, value: 1, description: "x" }],
+            ["bom_rules", { design_item: `${ruleItem}_p`, applies_to_role: "recorder", sku: "VX5-GPU-A1000", qty_per_server: 1, description: "x" }],
+            ["deal_line_syncs", { pipedrive_deal_id: dealId, submission_id: looseSub, sku: "VX5-GPU-A1000", role: "failover", qty: 1, pipedrive_product_id: 1416, item_price_sent: 1706, created_by: a.id }],
+            ["quote_pricing_confirmations", { pipedrive_deal_id: dealId, confirmed_by: a.id, deal_lines_fingerprint: [] }],
+          ];
+          const wentThrough: string[] = [];
+          for (const [t, row] of inserts) {
+            const { error } = await a.client.from(t).insert(row);
+            if (!error) wentThrough.push(`insert ${t}`);
+          }
+          const upd = await a.client.from("project_submissions").update({ calc_role: "option" }).eq("submission_id", linkedSub).select("submission_id");
+          if ((upd.data?.length ?? 0) > 0) wentThrough.push("update project_submissions");
+          const del = await a.client.from("partner_contact_links").delete().eq("partner_id", b.id).select("partner_id");
+          if ((del.data?.length ?? 0) > 0) wentThrough.push("delete partner_contact_links");
+          const { count } = await admin.from("project_submissions").select("submission_id", { count: "exact", head: true }).eq("project_id", projectId!);
+          record(
+            "24d: partner cannot write any project table (incl. attaching a submission to a project)",
+            wentThrough.length === 0 && count === 1,
+            wentThrough.length ? `went through: ${wentThrough.join(", ")}` : `blocked; project still has ${count} calc`,
+          );
+        }
+
+        // 24e: internal reads every table except the admin-only audit.
+        {
+          const missing: string[] = [];
+          for (const t of PROJECT_TABLES.filter((t) => t !== "design_rules_audit")) {
+            const { data, error } = await internalPersona.client.from(t).select("*").limit(1);
+            if (error || (data?.length ?? 0) === 0) missing.push(`${t}${error ? `: ${error.message}` : " empty"}`);
+          }
+          const audit = await internalPersona.client.from("design_rules_audit").select("id").limit(1);
+          record(
+            "24e: internal reads all project tables, not design_rules_audit",
+            missing.length === 0 && (audit.data?.length ?? 0) === 0,
+            missing.join("; ") || `audit rows visible: ${audit.data?.length ?? 0}`,
+          );
+        }
+
+        // 24f: internal can attach a submission, link a login, add a line and
+        // confirm pricing, each attributed to themselves.
+        {
+          const steps = [
+            ["attach", (await internalPersona.client.from("project_submissions").insert({ submission_id: looseSub, project_id: projectId, linked_by: internalPersona.id })).error],
+            ["link", (await internalPersona.client.from("partner_contact_links").insert({ partner_id: a.id, contact_id: contactId, company_id: companyId, linked_by: internalPersona.id })).error],
+            ["line", (await internalPersona.client.from("deal_line_syncs").insert({ pipedrive_deal_id: dealId, submission_id: looseSub, sku: "VX5-GPU-A1000", role: "failover", qty: 1, pipedrive_product_id: 1416, item_price_sent: 1706, created_by: internalPersona.id })).error],
+            ["confirm", (await internalPersona.client.from("quote_pricing_confirmations").insert({ pipedrive_deal_id: dealId, confirmed_by: internalPersona.id, deal_lines_fingerprint: [] })).error],
+          ] as const;
+          const failed = steps.filter(([, e]) => e).map(([n, e]) => `${n}: ${e!.message}`);
+          record("24f: internal can attach a calc, link a login, add a deal line, confirm pricing", failed.length === 0, failed.join("; "));
+        }
+
+        // 24g: internal limits: no forged attribution, no sync-owned writes,
+        // no rule edits, no deletes on the ledger or confirmations, no line twice.
+        {
+          const blocked: [string, boolean][] = [];
+          const forged = await internalPersona.client.from("projects").insert({ company_id: companyId, name: "forged", created_by: adminPersona.id });
+          blocked.push(["forged created_by", Boolean(forged.error)]);
+          const co = await internalPersona.client.from("companies").insert({ pipedrive_org_id: orgId + 2, name: "internal co" });
+          blocked.push(["companies insert", Boolean(co.error)]);
+          const rule = await internalPersona.client.from("system_design_rules").update({ description: "internal edit" }).eq("key", "failover_days_fraction").select("key");
+          blocked.push(["rule edit", Boolean(rule.error) || (rule.data?.length ?? 0) === 0]);
+          const dl = await internalPersona.client.from("deal_line_syncs").delete().eq("pipedrive_deal_id", dealId).select("id");
+          blocked.push(["deal_line_syncs delete", Boolean(dl.error) || (dl.data?.length ?? 0) === 0]);
+          const qc = await internalPersona.client.from("quote_pricing_confirmations").delete().eq("pipedrive_deal_id", dealId).select("id");
+          blocked.push(["confirmation delete", Boolean(qc.error) || (qc.data?.length ?? 0) === 0]);
+          const dup = await internalPersona.client.from("deal_line_syncs").insert({ pipedrive_deal_id: dealId, submission_id: looseSub, sku: "VX5-GPU-A1000", role: "recorder", qty: 1, pipedrive_product_id: 1416, item_price_sent: 1706, created_by: internalPersona.id });
+          blocked.push(["same (deal, sku, role) twice", dup.error?.code === "23505"]);
+          const notBlocked = blocked.filter(([, ok]) => !ok).map(([n]) => n);
+          record("24g: internal is blocked from forging, sync-owned writes, rule edits, ledger deletes, duplicate lines", notBlocked.length === 0, notBlocked.length ? `not blocked: ${notBlocked.join(", ")}` : "all blocked");
+        }
+
+        // 24h: admin edits a throwaway rule; updated_by is stamped, the audit
+        // records it, and delete is refused.
+        {
+          const ins = await adminPersona.client.from("bom_rules").insert({ design_item: ruleItem, applies_to_role: "workstation", sku: "VX5-GPU-A1000", qty_per_server: 1, description: "RLS test rule" }).select("id").single();
+          const upd = await adminPersona.client.from("bom_rules").update({ qty_per_server: 2 }).eq("design_item", ruleItem).select("updated_by").single();
+          const sdr = await adminPersona.client.from("system_design_rules").insert({ key: ruleKey, value: 1, description: "RLS test rule" });
+          const audit = await adminPersona.client.from("design_rules_audit").select("operation, changed_by").eq("rule_table", "bom_rules").eq("rule_key", String(ins.data?.id ?? ""));
+          const del = await adminPersona.client.from("bom_rules").delete().eq("design_item", ruleItem).select("id");
+          const typo = await adminPersona.client.from("bom_rules").insert({ design_item: ruleItem, applies_to_role: "recorder", sku: "VX5-NOT-A-SKU", qty_per_server: 1, description: "typo" });
+          const ops = (audit.data ?? []).filter((r) => r.changed_by === adminPersona.id).map((r) => r.operation).sort();
+          record(
+            "24h: admin writes rules (stamped + audited), cannot delete, unknown SKU refused",
+            !ins.error && !upd.error && !sdr.error && upd.data?.updated_by === adminPersona.id &&
+              ops.join(",") === "insert,update" && (Boolean(del.error) || (del.data?.length ?? 0) === 0) && Boolean(typo.error),
+            [ins.error?.message, upd.error?.message, sdr.error?.message, `audit=${ops.join(",")}`, `delete=${del.error?.code ?? del.data?.length}`, `typo=${typo.error?.message ?? "INSERTED"}`].filter(Boolean).join("; "),
+          );
+        }
+      } finally {
+        // Children first: the ledger and confirmations restrict submission and
+        // partner deletes, and projects restrict company deletes.
+        await admin.from("deal_line_syncs").delete().eq("pipedrive_deal_id", dealId);
+        await admin.from("quote_pricing_confirmations").delete().eq("pipedrive_deal_id", dealId);
+        await admin.from("partner_contact_links").delete().in("partner_id", [a.id, b.id]);
+        if (projectId) {
+          await admin.from("project_submissions").delete().eq("project_id", projectId);
+          await admin.from("project_contacts").delete().eq("project_id", projectId);
+        }
+        if (companyId) {
+          await admin.from("projects").delete().eq("company_id", companyId);
+          await admin.from("company_name_aliases").delete().eq("company_id", companyId);
+          await admin.from("contacts").delete().eq("company_id", companyId);
+          await admin.from("companies").delete().eq("id", companyId);
+        }
+        const { data: testRules } = await admin.from("bom_rules").select("id").eq("design_item", ruleItem);
+        const ids = (testRules ?? []).map((r) => String(r.id));
+        if (ids.length) await admin.from("design_rules_audit").delete().eq("rule_table", "bom_rules").in("rule_key", ids);
+        await admin.from("bom_rules").delete().eq("design_item", ruleItem);
+        await admin.from("design_rules_audit").delete().eq("rule_table", "system_design_rules").eq("rule_key", ruleKey);
+        await admin.from("system_design_rules").delete().eq("key", ruleKey);
       }
     }
   } finally {

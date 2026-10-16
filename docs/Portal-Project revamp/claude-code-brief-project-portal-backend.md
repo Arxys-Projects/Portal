@@ -5,7 +5,7 @@
 
 Written 2026-10-16 from a planning session with Andy. This file is the source of truth for the build. Update it at each gate with anything discovered or decided, so the next session starts from the corrected brief.
 
-**Status:** Step 0 done 2026-10-16. Its results and Andy's decisions are folded in below; see "Step 0 results" and the JOURNAL entry "Project Portal backend, Step 0". Two prerequisites it surfaced are fixed and live: the partner self-escalation hole (ADR 0151) and the price push deleting Pipedrive products (ADR 0150). Next: Step 1.
+**Status:** Step 0 done 2026-10-16. Its results and Andy's decisions are folded in below; see "Step 0 results" and the JOURNAL entry "Project Portal backend, Step 0". Two prerequisites it surfaced are fixed and live: the partner self-escalation hole (ADR 0151) and the price push deleting Pipedrive products (ADR 0150). Step 1 written 2026-10-16, **not applied**: migrations 20261016000002 to 000005, ADRs 0153 to 0155, apply steps in `docs/apply-notes/0153-project-portal-schema.md`. Next: Andy applies them and runs the RLS suite (section 24), then Step 2.
 
 ## How to run this brief
 - Run one step per session unless a step is small enough to pair with the next.
@@ -25,7 +25,7 @@ Written 2026-10-16 from a planning session with Andy. This file is the source of
 - RLS changes are stop-and-flag. Every new table gets explicit policies; the `ensure_rls` trigger makes new tables deny-all by default.
 - No live Pipedrive writes without Andy's explicit go-ahead for that specific write.
 - The partner self-serve path (full calculator, Quick Calc, Register a Deal) must behave bit-identically. Golden and recommender tests stay green.
-- JOURNAL entry per step. ADR for every non-obvious choice, numbered from the next free number (0153+; 0150 to 0152 were taken on 2026-10-16). Check the number is free right before writing; 0146 collided before, and parallel sessions share this checkout.
+- JOURNAL entry per step. ADR for every non-obvious choice, numbered from the next free number (0156+; 0150 to 0155 were taken on 2026-10-16). Check the number is free right before writing; 0146 collided before, and parallel sessions share this checkout.
 - New Pipedrive calls use the v2 API. The v1 org, person, deal and product endpoints have been out of support since 2026-08-01. The existing partner path stays on v1 for now (bit-identical rule); moving it is separate work.
 - Never send `active_flag: false` to a Pipedrive product: it deletes the product. "Off the deal picker" is `is_linkable: false` (ADR 0150).
 
@@ -100,6 +100,7 @@ All tables are internal-only (policies gated on `is_internal(auth.uid()) OR is_a
 - `deal_line_syncs`: `pipedrive_deal_id`, `submission_id`, `sku`, `role` (recorder / failover / mgmt / workstation), `qty`, `pipedrive_product_id`, `pipedrive_deal_product_id` (the attachment id the POST returns; needed for retry and diff), `item_price_sent`, `status` (pending / added / failed), `error`, `created_by`, timestamps. Unique on (`pipedrive_deal_id`, `sku`, `role`) so a retry can never add a line twice. Drives idempotent retry. (Decided 2026-10-16.)
 - `quote_pricing_confirmations`: `pipedrive_deal_id` (or `submission_id`), `confirmed_by`, `confirmed_at`, and `deal_lines_fingerprint` (jsonb: the deal's lines at confirmation, in the normalized shape of `src/lib/projects/line-items.ts`), so a later edit in Pipedrive is detectable. (Decided 2026-10-16.)
 - Audit and stamp triggers on both rules tables per the ADR 0096/0097 pattern; no DELETE.
+- **As built (2026-10-16, see ADRs 0153 to 0155):** synced tables (`companies`, `contacts`, `company_name_aliases`) are internal SELECT-only, written by the sync as service_role; rules are admin-write with one shared `design_rules_audit`; `system_design_rules.value` is jsonb; `bom_rules.sku` is checked against `products` by trigger; `quote_pricing_confirmations` is insert-only and keys on the deal (`submission_id` optional); `deal_line_syncs` and confirmations have no delete. Next free ADR: 0156.
 - Rollback file per migration in `supabase/rollback/`. RLS tests in `scripts/test-rls.ts`: partner cannot read or write any new table, `partner_contact_links` included; internal can; partner cannot attach a submission to a project. The partners guard (ADR 0151) is live, so a partner can no longer flip `is_internal` to get past these policies; the 23a to 23k cases cover that.
 
 ## Step 2: Company and contact sync (dry run by default)
@@ -152,7 +153,7 @@ UI screens and screen server actions (after the design pass), renaming `/project
 
 ## Gates
 - STOP after Step 0 (report). Done 2026-10-16.
-- STOP after Step 1 (migrations for Andy to apply; RLS tests run after he applies).
+- STOP after Step 1 (migrations for Andy to apply; RLS tests run after he applies). Written 2026-10-16; waiting on the apply.
 - STOP before the Step 2 `--execute` runs (mapping approval).
 - STOP before any live Pipedrive write in Step 5.
 - At the end of each step, report what changed, tests run, and what is unverified.
