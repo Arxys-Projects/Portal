@@ -4,7 +4,7 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
-## 2026-10-16 - Project Portal backend, Step 2: company and contact sync (dry run only)
+## 2026-10-16 - Project Portal backend, Step 2: company and contact sync
 
 ### Work done
 
@@ -39,10 +39,15 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
   are exceptions until Andy labels them 73 or adds them to `company_sync_includes`.
 - **Andy then labeled LiquidPC LLC (#10528) and NCD Communications (#12243) with 73.** The rerun
   confirms both: 64 companies, 413 contacts, 22 exact and 9 normalized names, 27 exceptions, and a
-  proposed file of 8 aliases (the two unlabeled LiquidPC orgs included) and 68 links.
+  proposed file of 8 aliases and 68 links. LiquidPC's other two orgs (#12281, #12284) were gone from
+  Pipedrive by then, so the LiquidPC aliases are portal spellings pointing at #10528.
 - **Insight is #9239 only** (Andy). The proposals already map every "Insight" spelling there.
   Insight Enterprise (#12008) keeps its label, so it syncs as a separate company, and the one Insight
   login whose person sits under it stays unlinked.
+- **Andy ran both writes.** `--execute` upserted 64 companies and 413 contacts; `--apply-mapping`
+  wrote the whole proposed file: 8 aliases (5 portal spellings, 3 unlabeled Pipedrive orgs:
+  Digital Provisions #12255 and #12277, Insight #12287) and 68 login links. A read-only count
+  afterwards matches exactly.
 - **Test accounts slipped through the first run** ("Big Corp, inc", "Evil Corp, inc" and an
   "RLS Hijack Co" login). Matching now compares normalized names and skips any
   `@arxys-rls-test.invalid` login. The "RLS Hijack Co" persona is a live leftover from an earlier
