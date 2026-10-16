@@ -1945,6 +1945,19 @@ async function run() {
           error?.code === "42501" && unchanged(after),
           error ? `blocked: ${error.code} ${error.message}` : `UPDATE went through: ${JSON.stringify(after)}`,
         );
+        // Reset A via service-role so one escalation that slips through (e.g.
+        // before the migration is applied, 23a makes A an admin) cannot change
+        // the outcome of the cases after it.
+        await admin
+          .from("partners")
+          .update({
+            role: "partner",
+            is_internal: false,
+            pipedrive_user_id: null,
+            company_name: "RLS Test Co A",
+            logo_path: null,
+          })
+          .eq("id", a.id);
       }
 
       // Test 23f: a suspended partner cannot un-suspend themselves. Suspension
