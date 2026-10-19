@@ -15,6 +15,11 @@
 > 3. **The login page has an open redirect (B2-S-3, PRIOR M-2 incompletely fixed, VERIFIED).** `isSafeNext` accepts `/\evil.com`. The coordinator confirmed that `new URL("/\\evil.com", "https://portal.arxys.com/login")` resolves to `https://evil.com/`.
 >
 > Per the plan, Group 1 stops here and waits for Andy's reply.
+>
+> **Update, 2026-10-19 (after this report):**
+> - Live sign-up was confirmed on (item 2 was Critical). Andy turned it off, and no self-registered accounts were found.
+> - Items 1 to 3 and B1-S-3 are fixed in `5a50f98` (ADR 0164), with the migration applied and the live RLS suite passing.
+> - The backlog has the current status of every row.
 
 **Commit:** `6cbdf58ddabde24df16bc592ded1e433fb13410b` on `claude/group-1-audit-preflight-n8s0yw`. Its source is identical to `origin/main` at `2ae9350`: `git diff 2ae9350 6cbdf58` touches only `docs/reviews/`. `origin/main` had not moved, so merging it again was a no-op.
 **Date:** 2026-10-19.
