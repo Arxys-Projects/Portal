@@ -37,6 +37,8 @@ Users**, open the user, **Ban user**, and pick the longest duration offered. If 
 offers short durations, tell the build session and it will write a guarded dry-run-first script
 for you to run with `--apply`. Re-run the query and confirm every row has a `banned_until`.
 
+> **Done 2026-10-19:** Andy ran the query. No partners are suspended, so there was nothing to ban.
+
 ## How to apply
 
 Not `supabase db push`: several migrations on this project were applied by hand and never
