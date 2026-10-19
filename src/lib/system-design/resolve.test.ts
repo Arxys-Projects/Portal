@@ -37,7 +37,7 @@ describe("resolveSystemDesign: defaults", () => {
     assert.deepEqual(r.warnings, []);
   });
 
-  it("failover days default to half the LONGEST retention, rounded up; ratio from the rule", () => {
+  it("failover days default to the LONGEST retention (fraction 1, ADR 0162); ratio from the rule", () => {
     const r = ok(
       resolveSystemDesign(
         calc({
@@ -51,7 +51,7 @@ describe("resolveSystemDesign: defaults", () => {
     );
     assert.deepEqual(r.design.failover, {
       enabled: true,
-      days: 23, // ceil(45 × 0.5)
+      days: 45, // ceil(45 × 1): the longest of 7, 45 and 30
       primariesPerFailover: 2,
       daysDefaulted: true,
       ratioDefaulted: true,
@@ -362,11 +362,12 @@ describe("resolveSystemDesign: refusals and advice", () => {
 
 describe("rules snapshot", () => {
   it("a rule edited after save: the banked snapshot holds the old value", () => {
+    // Saved at the seeded fraction 1 (30 days), then an admin moves it to 0.25.
     const live = seedRules();
     const request = calc({ systemDesign: { failover: { enabled: true } } });
 
     const atSave = ok(resolveSystemDesign(request, {}, live, CATALOG));
-    assert.equal(atSave.design.failover.enabled && atSave.design.failover.days, 15);
+    assert.equal(atSave.design.failover.enabled && atSave.design.failover.days, 30);
     // Banked as jsonb with the calc.
     const banked = JSON.parse(JSON.stringify(atSave.snapshot));
 
@@ -377,7 +378,7 @@ describe("rules snapshot", () => {
     // The snapshot did not move...
     assert.equal(
       atSave.snapshot.systemDesignRules.find((x) => x.key === "failover_days_fraction")!.value,
-      0.5,
+      1,
     );
     // ...resolving from it gives the saved values...
     const fromSnapshot = ok(resolveSystemDesign(request, {}, banked, CATALOG));

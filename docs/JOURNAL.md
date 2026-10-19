@@ -4,6 +4,40 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-10-19 - Failover days default to the longest retention (ADR 0162, migration to apply)
+
+### Work done
+
+- **Andy set the failover days default to the calc's longest retention** instead of half of it.
+- The default is the admin-edited rule `failover_days_fraction`, and the engine already handles 1,
+  so there is no code change. Migration `20261019000001_failover_days_default_longest_retention.sql`
+  sets the rule to 1 and rewrites its description. It is guarded to change the row only while it
+  still holds the seeded 0.5. Rollback: `supabase/rollback/failover-days-default-longest-retention-rollback.sql`.
+  **Not applied**: Andy runs it in the SQL editor.
+- **Tested in PGlite**, replaying the rules migration first: 14/14. The checks cover the update,
+  the no-op re-run, the rollback, the re-apply, the guard that leaves an admin's own value alone,
+  and the audit rows.
+- The test fixture mirrors the new seed. Tests that pinned the half-retention default now pin the
+  full one. Full suite 954/954, `tsc` clean.
+
+### Detours & fixes
+
+- **The new default exposes ADR 0159's open question.** The locked failover formula counts every
+  group for the full failover days. At the longest retention, a mixed-retention calc's shorter
+  groups are counted for days they do not keep, and the default usually finds no failover. A test
+  now pins this: a 90 / 14 / 30-day calc needs 1,299 TB per failover against 720 TB for the largest
+  server. The mixed-retention test that checks counts and add-ons uses an explicit 14 days.
+- Capping each group at its own retention would make each failover exactly one primary's share.
+  It is still Andy's call.
+
+### Decisions captured
+
+- [`0162-failover-days-default-to-the-longest-retention.md`](./decisions/0162-failover-days-default-to-the-longest-retention.md)
+
+RUNBOOK unchanged (migrations apply in timestamp order).
+
+---
+
 ## 2026-10-19 - Project Portal backend, Step 3: pure engines (system design, failover, SFP+, BOM)
 
 ### Work done

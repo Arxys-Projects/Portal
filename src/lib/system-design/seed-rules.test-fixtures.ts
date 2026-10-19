@@ -1,5 +1,6 @@
-// The seeded rules from migration 20261016000004_system_design_rules.sql, in the
-// row shape supabase-js returns. Ids follow the seed's insert order (1 to 6);
+// The seeded rules from migration 20261016000004_system_design_rules.sql, with
+// failover_days_fraction at 1 as 20261019000001 sets it (failover days default to
+// the longest retention, ADR 0162), in the row shape supabase-js returns. Ids follow the seed's insert order (1 to 6);
 // the live ids may differ. Each call returns fresh objects, so a test can edit
 // its copy freely.
 import type { BomRuleRow, DesignRulesInput, SystemDesignRuleRow } from "./rules";
@@ -9,7 +10,7 @@ export function seedSystemDesignRules(): SystemDesignRuleRow[] {
   return [
     {
       key: "failover_days_fraction",
-      value: 0.5,
+      value: 1,
       description: "Default failover days as a fraction of the calc's longest retention, rounded up.",
       updated_at: "2026-10-16T18:00:00Z",
     },

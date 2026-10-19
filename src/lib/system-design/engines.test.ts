@@ -87,9 +87,12 @@ describe("project calc engines, chained", () => {
       { cameras: 400, retentionDays: 14 },
       { cameras: 250, retentionDays: 30 },
     ];
-    const r = runProjectCalc(groups, { sfp: true, gpu: true, failover: { enabled: true } });
+    // 14 days, at or under every group's retention. The default (90) finds
+    // nothing on this calc; the next test pins that.
+    const days = 14;
+    const r = runProjectCalc(groups, { sfp: true, gpu: true, failover: { enabled: true, days } });
     assert.ok(r.design.failover.enabled);
-    assert.equal(r.design.failover.days, 45); // ceil(90 × 0.5)
+    assert.equal(r.design.failover.days, 14);
 
     const primaryUnits = r.primary.winner.units;
     const choice = r.failover?.choice;
@@ -117,7 +120,7 @@ describe("project calc engines, chained", () => {
       perDay += c.storageGb / g.retentionDays;
     }
     assert.ok(Math.abs(r.failover!.dailyLoadGb - perDay) < 1e-6);
-    assert.ok(Math.abs(r.failover!.requiredPerUnitTb - (perDay / primaryUnits) * 45 / GB_PER_TB) < 1e-9);
+    assert.ok(Math.abs(r.failover!.requiredPerUnitTb - (perDay / primaryUnits) * days / GB_PER_TB) < 1e-9);
 
     assert.deepEqual(
       r.bom.filter((l) => l.role === "failover"),
@@ -130,10 +133,32 @@ describe("project calc engines, chained", () => {
     );
   });
 
+  it("at the default (the longest retention), the same mixed calc finds no failover (ADR 0159 open question)", () => {
+    // The locked formula counts the 14- and 30-day groups for 90 days each, so
+    // one failover would need more than one primary holds. Capping each group at
+    // its own retention would make it exactly one primary's share. Until Andy
+    // decides, this pins what the literal formula does.
+    const r = runProjectCalc(
+      [
+        { cameras: 300, retentionDays: 90 },
+        { cameras: 400, retentionDays: 14 },
+        { cameras: 250, retentionDays: 30 },
+      ],
+      { failover: { enabled: true } },
+    );
+    assert.ok(r.design.failover.enabled && r.design.failover.days === 90);
+    assert.equal(r.failover?.choice, null);
+    const largest = Math.max(...POOL.map((s) => s.usableStorageTb));
+    const primarySpec = POOL.find((s) => s.sku === r.primary.winner.sku)!;
+    assert.ok(r.failover!.requiredPerUnitTb > largest);
+    assert.ok(r.failover!.requiredPerUnitTb > primarySpec.usableStorageTb);
+    assert.match(r.failover!.warnings[0], /No failover server fits/);
+  });
+
   it("failover with no qualifying SKU: a warning, no failover lines, and the primary stands", () => {
     // A heavy 7-day group beside a light 365-day one. The default failover days
-    // come from the longest retention (ceil(365 x 0.5) = 183), and 183 days of the
-    // heavy group's daily load is far more than any one server holds.
+    // are the longest retention (365, ADR 0162), and 365 days of the heavy
+    // group's daily load is far more than any one server holds.
     const r = runProjectCalc(
       [
         { cameras: 600, retentionDays: 7 },
@@ -141,7 +166,7 @@ describe("project calc engines, chained", () => {
       ],
       { sfp: true, failover: { enabled: true, primariesPerFailover: 1 } },
     );
-    assert.ok(r.design.failover.enabled && r.design.failover.days === 183);
+    assert.ok(r.design.failover.enabled && r.design.failover.days === 365);
     assert.equal(r.failover?.choice, null);
     assert.equal(r.failover?.units, r.primary.winner.units);
     assert.match(r.failover!.warnings[0], /No failover server fits/);

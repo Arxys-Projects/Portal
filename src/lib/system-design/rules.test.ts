@@ -8,7 +8,7 @@ describe("parseDesignRules", () => {
     const r = parseDesignRules(seedRules());
     assert.ok(r.ok);
     assert.deepEqual(r.values, {
-      failoverDaysFraction: 0.5,
+      failoverDaysFraction: 1,
       defaultPrimariesPerFailover: 2,
       suggestDedicatedMgmtAboveServers: 3,
     });
@@ -134,7 +134,7 @@ describe("parseDesignRules", () => {
     rules.systemDesignRules[0].value = 0.25;
     rules.bomRules[0].qty_per_server = 5;
     rules.bomRules[0].sku = "VX5-OTHER";
-    assert.equal(r.snapshot.systemDesignRules.find((x) => x.key === "failover_days_fraction")!.value, 0.5);
+    assert.equal(r.snapshot.systemDesignRules.find((x) => x.key === "failover_days_fraction")!.value, 1);
     assert.equal(r.snapshot.bomRules[0].qty_per_server, 1);
     assert.equal(r.snapshot.bomRules[0].sku, "VX5-NIC-SFP28");
     // Nor does editing the parsed rules.
