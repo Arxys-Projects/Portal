@@ -13,7 +13,7 @@
 >
 > First steps for Andy are in "Andy action items" below, items 1 to 4. Per the plan, Slice 2 has not started and waits for Andy's reply.
 
-**Commit:** `6201569aebc78e65ab199a719490ea743e5e5235` (equal to `origin/main` on 2026-10-19). Every finding is valid for this commit only.
+**Commit:** first pass at `6201569aebc78e65ab199a719490ea743e5e5235`; re-run on the 2026-10-16 delta at `2ae9350` (see "Re-run at 2ae9350"). Every finding is valid for `2ae9350` unless its status says otherwise.
 **Date:** 2026-10-19.
 **Mode:** baseline, area scope through `review-gate`, with the finding cap raised to 20 per reviewer.
 **Reviewers:** `security-review` at xhigh and `architect-review` at high, run as fresh parallel subagents. Both skills loaded.
@@ -25,7 +25,77 @@
 - `scripts/test-rls.ts`. It is never run in this audit.
 - Anything touching a live system.
 
-## The repo is behind production
+## Re-run at 2ae9350: the 2026-10-16 work is pushed
+
+Andy pushed the 2026-10-16 work on 2026-10-19 (`origin/main` = `2ae9350`), and it was merged into the audit branch. All three agents re-ran on the delta:
+
+```
+git diff 6201569 2ae9350 -- supabase scripts/test-rls.ts docs/apply-notes docs/decisions
+```
+
+The delta is 25 files, +2091 lines. The full addenda are Appendices D (security), E (architect) and F (inventory). **Findings are now valid for `2ae9350`.**
+
+**Verdict at 2ae9350: BLOCK.**
+- Two architect Must-fix items remain:
+  - **B1-A-1**: partners can still write any column of their own `submissions` rows.
+  - **B1-A-17** (new): a fresh migration replay now fails.
+- Security rates Slice 1 FIX BEFORE COMMIT. The Critical `partners` escalation is now fixed in the repo as well as live.
+- Under the gate rule, any Must fix gives BLOCK.
+
+**The banner still stands.**
+- B1-S-2 (deal overwrite) and B1-S-3 (suspended internal reads) are still open. Nothing in the delta touches them, and no file under `src/app/` changed.
+- **ADR 0152 raises the stakes of B1-S-2.** It makes the partner-writable `on_behalf_of_partner_id` the Project Portal's visibility grant. Both reviewers say the `submissions` guard must ship before Project Portal Step 4.
+- **B1-S-3 now reaches further.** Over REST, a suspended internal user can read the 13 new internal tables, including 413 Pipedrive contacts with email and phone. They can also write `partner_contact_links`, which grants visibility under ADR 0152.
+
+**What the delta fixed or narrowed:**
+- **K-1, ADR 0151:** fixed in the repo and live. The security reviewer traced the guard trigger on every partner write path: PostgREST UPDATE, upsert, the admin branch and service role. It holds. The admin bypass (B1-S-12) is now asserted by test 23j.
+- **K-2, ADR 0150:** fixed in the repo. `active_flag` survives only in comments and in a test asserting it is absent.
+- **B1-A-2 / B1-S-1, drift:** narrowed to Should fix / Medium. The files are in the repo now. Still missing:
+  - a committed catalog snapshot showing live matches the files
+  - a replay harness in the repo (the PGlite one is still outside it)
+  - remote migration history that is in sync
+  - a rule that migrations are committed before they are applied
+- **B1-S-7 / B1-A-9, tests:** partly fixed. Block 23 covers partner self-updates, and block 24 covers all 13 new tables. The inventory found 18 more gaps (Appendix F, items 55 to 72).
+- **The 13 new tables are well built.** Every table:
+  - starts with `revoke all`
+  - has RLS on
+  - grants nothing to partners or anon
+  - wraps `auth.uid()`
+  - pins `search_path` and revokes EXECUTE on every new function
+  - enforces integrity with constraints and triggers where it can
+
+  The brief's data-layer locked decisions are honored.
+
+**New findings from the delta:**
+
+| # | ID | Source | Severity | V/P | Location | One-line fix |
+|---|---|---|---|---|---|---|
+| D1 | B1-A-17 | architect | Must fix | VERIFIED | `supabase/migrations/20261016000004_system_design_rules.sql:233` | Fresh replay fails: the `bom_rules` seed references SKUs that no migration creates, so its trigger raises 23503 and `000005`/`000006` never apply. Make the seed conditional on the SKU existing, add a RUNBOOK line, and have the committed harness replay from empty without stubs. |
+| D2 | B1-A-18, B1-S-14 | both | Should fix / Low (Medium once Step 5 ships) | VERIFIED | `20261016000005_deal_line_syncs_and_pricing_confirmations.sql:117` | Any internal user can rewrite any `deal_line_syncs` column and move `added` back to `pending`, which defeats ADR 0155's "never add a line twice". Grant UPDATE on `(status, pipedrive_deal_product_id, error)` only, add a transition trigger, and reconcile `pending` rows against the deal before any re-send. Also pin `projects.created_by`. |
+| D3 | B1-S-13 | security | Medium | VERIFIED | `src/app/(app)/submissions/page.tsx:80`; `20260615000001:107` | Any partner can place a row in another partner's pipeline labeled "Prepared by Arxys" by setting `on_behalf_of_partner_id`. Refuse the column from non-internal callers in the B1-S-2 guard, and require an internal creator in `isIncomingOnBehalf`. |
+| D4 | B1-S-15 | security | Medium | PLAUSIBLE (Step 4 not built) | `20261016000002_project_companies_contacts.sql:135`; `src/lib/companies/sync.ts:247` | Under ADR 0152 a login-to-contact link grants visibility. It has no company check, no required `linked_by`, a silent cascade on org moves, and no expiry. Set the on-behalf FK only on a company match, require `linked_by`, and decide revocation in a Step 4 ADR. |
+| D5 | B1-A-19 | architect | Should fix | VERIFIED | `20261016000004:92` | A third audit implementation exists while `partners` and `submissions` have none. Shares a root cause with B1-A-10. |
+| D6 | B1-A-20 | architect | Should fix | VERIFIED | `20261016000002:202`; `20261016000003:192, 222`; `20261016000006:191` | Policies validate `*_by` attribution, so a second internal user cannot update another user's row (for example, moving a calc to another project). Stamp the columns with triggers and drop the policy clauses. |
+| D7 | B1-A-21 | architect | Should fix | PLAUSIBLE | the five data-bearing new rollbacks | Their `copy ... to '/tmp/...'` backup step likely fails in the SQL editor, and the file would land on the database host anyway. Use `backup-tables.ts` or a result-grid CSV export. |
+
+**Delta counts:**
+- Security: 3 new (Medium 2, Low 1).
+- Architect: 5 new (Must fix 1, Should fix 4). C-2 was updated in place.
+- Backlog: 6 new rows. B1-A-19 joins the B1-A-10 row, and B1-S-14 joins B1-A-18.
+
+**New Andy action items:**
+1. Run the catalog snapshot (Appendix A section E, as updated in Appendix F) and commit its output. Confirm the guard function is SECURITY INVOKER with `search_path=""`, its source matches the file, and the 13 tables carry the 35 policies the files define.
+2. Run the "was the hole used" query from apply note 0151 and record the result against K-1.
+3. Run the read-only link check in Appendix D (action item 3), and count links with a null `linked_by`.
+4. **Gate Project Portal Step 4 on the B1-S-2 fix and the B1-S-13 label check.** Keep the BOM snapshot in a side table so partners cannot write it.
+5. Approve the B1-A-17 conditional-seed fix before anyone relies on rebuilding from the repo.
+6. Decide the `deal_line_syncs` column grant and transition rule (B1-A-18 / B1-S-14) before Step 5 code exists.
+7. Confirm whether the rollbacks' `copy ... to` lines run in the SQL editor (B1-A-21).
+8. Still open from above: ban suspended internal users, delete the leftover personas, and turn on leaked-password protection (Slice 2 checklist).
+
+**Line-number note:** `scripts/test-rls.ts` gained a header line, so test-rls line numbers in Appendices A to C are one lower than at `2ae9350` from line 5 on.
+
+## The repo is behind production (status at 6201569, resolved by the push)
 
 Andy's Mac checkout carries 2026-10-16 work that is applied live and absent from this commit. The source is the JOURNAL Andy uploaded on 2026-10-19, lines 1 to 322. The missing work:
 - `20261016000001_partners_guard_self_update.sql`, the ADR 0151 guard trigger.
@@ -1820,3 +1890,1174 @@ The database rules that keep partners apart are mostly sound, and the performanc
 - **100 duplicated legacy Pipedrive codes; `VX5-RAM-32GB` portal-inactive but linkable:** Pipedrive side out of slice. Database side: `VX5-RAM-32GB` was set inactive by hand UPDATE on 2026-07-02, and A-4 shows a later price version would re-activate it. The uploaded JOURNAL (line 289) says the next push would retire it via `is_linkable`. KNOWN.
 - **"RLS Hijack Co" live persona:** still open per uploaded JOURNAL line 53-54 ("it should be deleted"). The persona name appears nowhere in this commit's `test-rls.ts`, which is consistent with it coming from the uncommitted block 23. Cleanup of seeded rows outside `finally` is the general cause (A-9). KNOWN.
 - **Hand-applied migrations and drift:** confirmed structural and current. The repo lacks six live migrations and the final catalog data state; no drift detection exists (A-2, A-3). KNOWN, now with evidence.
+
+
+---
+
+# Appendix D: Security re-run addendum at 2ae9350
+
+Reproduced verbatim.
+
+## Security review addendum: Slice 1 delta re-run (2026-10-16 work)
+
+> **BANNER (carried over, not new):** S-2 (any partner can overwrite any Pipedrive deal) and S-3 (suspended internal users keep cross-partner reads over REST) are still open at 2ae9350, and nothing in the delta touches them. ADR 0152 raises S-2's impact (S-13). S-3 now also covers 13 new internal-only tables, including 413 Pipedrive contacts with email and phone, and the table that grants partner logins visibility. No key needs rotating. The first steps from the base report still apply: run the detection queries, ban suspended internal users in Supabase Auth, then ship the S-2 and S-3 fixes before Project Portal Step 4.
+
+### Header
+
+- **Commit reviewed:** origin/main 2ae9350, inside merge commit dde0f7c on `claude/group-1-audit-preflight-n8s0yw`. The working tree was clean.
+- **Delta command:** `git diff 6201569 2ae9350 -- supabase scripts/test-rls.ts docs/apply-notes docs/decisions`. It touches 25 files and adds 2,091 lines.
+- **Files read in full:**
+  - The six migrations `supabase/migrations/20261016000001_partners_guard_self_update.sql` to `20261016000006_company_sync_includes.sql`.
+  - Their six rollbacks.
+  - `docs/apply-notes/0151-partners-guard-self-update.md` and `0153-project-portal-schema.md`.
+  - ADRs 0151 and 0152.
+  - `scripts/test-rls.ts` blocks 23 and 24, which are lines 1885 to 2291 at 2ae9350.
+  - The diff of `teardownPersona` and of the run scaffolding. Neither changed.
+- **Files read in part:**
+  - The Decision sections of ADRs 0150, 0153, 0154, 0155, 0156 and 0157.
+  - The status lines of ADRs 0078 and 0079.
+  - From `docs/Portal-Project revamp/claude-code-brief-project-portal-backend.md`: the standing rules, the locked decisions table, and Steps 4 to 6.
+- **Read outside the slice, only to trace calls:**
+  - `src/app/(app)/submissions/page.tsx:76-131,229-234` and `src/app/(app)/submissions/pipeline.tsx:350-366`, which render the "Prepared by Arxys" marker.
+  - `src/lib/companies/sync.ts:218-256` (login-to-contact link proposals).
+  - `scripts/sync-pipedrive-companies.mts:214-226,266-312` (how links are written).
+  - Greps of `scripts/push-prices.ts` and `src/lib/pipedrive/product-sync.ts` for `active_flag`.
+  - `docs/reviews/BASELINE-BACKLOG.md` for the B1 IDs.
+- **Code paths the delta does not touch:** no file under `src/app/` changed between 6201569 and 2ae9350. `git diff --stat` lists only `src/lib/companies/*`, `src/lib/pipedrive/{company-api,product-api,product-sync}*` and scripts. So every app path traced in the base report is unchanged.
+- **Live evidence used:** Andy's Supabase Security Advisor run on production, 2026-10-19. It flagged five items: `camera_aliases_text` search_path, `pg_trgm` in `public`, `partner-logos` listing, `is_admin` and `is_internal` executable by authenticated users, and leaked-password protection off. Nothing was flagged on the 13 new tables.
+- **Not run:** no script, test or network call. `scripts/test-rls.ts` was read only.
+
+### Verdict
+
+**FIX BEFORE COMMIT.** The repo no longer contains the Critical partners self-escalation, so the BLOCK from the base report lifts.
+
+- S-2 and S-3 (both High) are still open and exploitable in production.
+- ADR 0152 makes `on_behalf_of_partner_id` the visibility grant for the Project Portal. That turns the S-2 fix into a prerequisite for Step 4 (S-13, S-15).
+
+### Re-run status at 2ae9350
+
+| ID | Status | Evidence |
+|---|---|---|
+| S-1 drift | **Still open, narrowed** (Medium, was High) | All six migrations, their rollbacks, both apply notes, ADRs 0150 to 0157 and test blocks 23 and 24 are now in git, so a rebuild includes the guard. Still missing: (1) no catalog snapshot shows the live database matches these files; the Advisor run is partial evidence and the apply note's trigger query output was never committed. (2) No replay harness is in the repo; `git ls-files` finds no PGlite file, and the JOURNAL says it lived in a scratchpad. (3) The remote migration history is still out of sync (apply note 0153: "missing from the remote history"). (4) The migrations were applied live three days before they were committed, so the commit-before-apply rule from the backlog is not yet practiced. |
+| S-2 submissions column writes | **Still open; impact widened** | The delta adds no guard on `submissions`. `src/app/(app)/calculator/actions.ts` is unchanged. Migration `20261016000003:10-14` restates the hole ("a partner can UPDATE any column of their own submission row") and routes around it again with a side table. ADR 0152 makes the partner-writable `on_behalf_of_partner_id` the Project Portal's visibility grant (see S-13). |
+| S-3 suspension ignored by `is_internal()` | **Still open; impact widened** | `is_internal()` is unchanged. All 13 new tables gate on `is_internal(...) or is_admin(...)`. That adds reads of `contacts` (413 persons, email and phone), `projects` (end customer, site, notes), the deal ledger and confirmations. It also adds writes that a suspended internal user can make over REST: `partner_contact_links` (a visibility grant under ADR 0152), `projects`, `project_submissions`, `deal_line_syncs` and `quote_pricing_confirmations`. ADR 0151 says these policies "are only as strong as these columns", but the guard does not touch `status` inside `is_internal()`. |
+| S-4 forged Project Quote insert | **Still open** | `20260616000002` and `20260720000001` are unchanged. ADR 0155's pricing confirmation gates the server path in Step 6. A direct REST insert into `project_quotes` skips that gate. |
+| S-5 logo bucket listing | **Still open, confirmed live** | The Advisor flagged `public_bucket_allows_listing` on `partner_logos_public_read`. |
+| S-6 test teardown leaks persona A | **Still open; partly mitigated** | `teardownPersona` (`test-rls.ts:82-86`) is unchanged, and nothing deletes the 8h row (`:586-607`), so persona A still leaks on every complete run. Block 23 now resets A after every case (23a to 23e and 23j), so a guard failure no longer leaves A as an admin. That lowers the risk of each leaked persona but leaves the leak itself. Block 24 seeds live rows with RESTRICT foreign keys to the internal persona (`projects.created_by`, `deal_line_syncs.created_by`, `quote_pricing_confirmations.confirmed_by`). Its inner `finally` cleans them on a normal finish. Ctrl-C leaves them behind and also blocks the internal persona's deletion. Test 23d's literal `"RLS Hijack Co"` (`:1938`) confirms where the leftover persona came from: a run before the guard existed, when 23a succeeded and there was no reset. |
+| S-7 coverage gaps | **Still open, narrowed** | Block 23 now covers `partners` UPDATE: the partner-denied cases for `role`, `is_internal`, `pipedrive_user_id`, `company_name`, `logo_path` and `status` (suspended), internal-to-admin, phone allowed, cross-row denial, admin JWT and service role. Block 24 covers partner, linked-partner, anon, internal and admin cases on all 13 new tables. Still missing: the `submissions` column guard; any suspended-internal case (now 13 more tables); `partners` INSERT and DELETE; self-changes to `contact_name` and `id`; an internal user updating another partner's row; `competitor_products`; storage; RPC; non-status UPDATE on `deal_line_syncs` (S-14); an offline harness. The 0083 block is still behind `RUN_0083_TESTS` (`:977`). |
+| S-8 role lookup over RPC | **Still open, confirmed live** | The Advisor flagged `authenticated_security_definer_function_executable` on both helpers. New caveat for the fix: `partners_guard_self_update()` calls `public.is_admin` by name (`20261016000001:67`). Moving the helper to a private schema must update that function body in the same migration. |
+| S-9 products exposure | **Still open** | The delta changes no `products` policy. `bom_rules_check_sku()` reads `products` as SECURITY DEFINER and only checks whether a SKU exists, so nothing new is exposed. |
+| S-10 grant hygiene | **Still open, confirmed live** | The Advisor flagged `function_search_path_mutable` on `camera_aliases_text` and `extension_in_public` on `pg_trgm`. All five new functions do revoke EXECUTE and pin `search_path = ''`. There is still no default-privilege change, so the next migration that forgets the pattern reopens the gap. |
+| S-11 unused internal write grants | **Still open; the pattern repeats** | `access_requests` and `pipedrive_deal_cache` are unchanged. `deal_line_syncs` repeats the pattern with an unrestricted UPDATE (S-14). |
+| S-12 admin REST bypass | **Still open; now encoded in a test** | The guard passes any active admin through unchecked (`20261016000001:67-69`). Test 23j (`:2022`) asserts that an admin JWT can change another partner's `role`, `is_internal` and `status`. ADR 0151 keeps this branch so admins can edit through their own JWT. The same ADR says every app write to `partners` uses service role, so nothing needs that branch. |
+
+### Delta review
+
+#### Guard trigger (ADR 0151, `20261016000001`)
+
+- **PostgREST UPDATE by a partner:** holds.
+  - PostgREST runs each request after `set local role` to the JWT role. A SECURITY INVOKER plpgsql trigger sees that role as `current_user`, so the `current_user not in ('authenticated','anon')` test is sound for every client path. A user cannot mint a JWT with another role.
+  - `is_admin(auth.uid())` reads the pre-update row through the statement snapshot, so a partner cannot set `role = 'admin'` and pass in the same statement.
+  - The allow-list compares every column of `to_jsonb(new)` with `to_jsonb(old)`, so `id`, `contact_name`, `created_at` and any future column are denied.
+  - BEFORE triggers fire in name order, so the guard (`trg_partners_guard...`) runs before `trg_partners_set_updated_at`, which matches the allow-list's handling of `updated_at`.
+  - A suspended or invited admin fails `is_admin()` and falls into the phone-only branch.
+- **Phone-only updates on another row:** no non-admin can reach one. The UPDATE policy limits rows to `id = auth.uid() or is_admin`, so another partner's row is filtered out before the trigger runs (test 23i). Internal users are not in the UPDATE policy. That case is untested but follows from the policy text.
+- **Upserts:** partners hold no INSERT grant on `partners`, so a PostgREST upsert fails before any trigger runs. `bootstrap-admin.ts` upserts with service role and passes by design.
+- **Admin branch:** passes everything (S-12).
+- **Service role:** passes everything by design. Those paths authorize in app code (Slice 2 inventory).
+- **Other write paths into `partners`:** none of the five new SECURITY DEFINER or INVOKER functions writes `partners`. New foreign keys into `partners` use ON DELETE CASCADE (`partner_contact_links.partner_id`), SET NULL (the attribution columns) or RESTRICT (`projects.created_by`, `deal_line_syncs.created_by`, `quote_pricing_confirmations.confirmed_by`). Those only affect deletes, which authenticated users cannot perform.
+- **Hardening notes (no current path, so not findings):**
+  - The role test fails open: any role other than `authenticated` or `anon` passes. Listing the trusted roles instead (`service_role`, `postgres`, `supabase_admin`) would fail closed if a future role gets UPDATE.
+  - The guard covers UPDATE only. A future INSERT grant on `partners`, such as self-registration, would need its own check.
+  - ADR 0151 already notes that a future SECURITY DEFINER function updating `partners` would bypass the guard.
+- **Rollback:** drops exactly the trigger and function and warns that the hole reopens. That is correct.
+
+#### The 13 new tables (`20261016000002` to `000006`)
+
+- **Grants and RLS:**
+  - Every table has RLS enabled, runs `revoke all ... from anon, authenticated`, and grants back narrowly. Every policy is scoped `to authenticated`, and every UPDATE policy has a WITH CHECK.
+  - Partners and anon get nothing: no SELECT policy matches them, which test blocks 24a to 24d confirm.
+  - Synced tables are internal SELECT only.
+  - Rule and include-list writes are admin only.
+  - No table except `partner_contact_links`, `projects`, `project_contacts`, `project_submissions` and `company_sync_includes` grants DELETE.
+  - This matches ADR 0153 to 0156 and the Advisor's silence.
+- **Functions:**
+  - `projects_check_primary_contact` (INVOKER), `design_rules_stamp_updated` (INVOKER), `bom_rules_check_sku` (DEFINER) and `design_rules_write_audit` (DEFINER) all pin `search_path = ''`, use schema-qualified names and revoke EXECUTE from `anon`, `authenticated` and `public`.
+  - The audit trigger reads the key through `to_jsonb(new)`, so a missing field cannot break it.
+  - `bom_rules_check_sku` does not need DEFINER, because admins already see every `products` row. It is harmless, since it only tests whether a SKU exists and is trigger-only.
+- **PII in `contacts`:** names, emails and phones of 413 Pipedrive persons, readable by internal users and admins only. The real exposure is S-3: a suspended internal user can read them all over REST.
+- **Composite foreign key:**
+  - `partner_contact_links (contact_id, company_id)` references `contacts (id, company_id)` with ON UPDATE CASCADE and ON DELETE RESTRICT. When the sync moves a person to another org, the link's `company_id` follows silently.
+  - Under ADR 0152, that moves the login's future visibility to the new company with no review. Rows saved earlier keep the old foreign key, so the login also keeps reading the old company's rows. See S-15.
+- **Attribution:**
+  - INSERT policies pin the attribution columns to the caller, but `partner_contact_links.linked_by`, `project_contacts.added_by`, `project_submissions.linked_by` and `company_sync_includes.added_by` also accept NULL. An internal user can therefore create an unattributed link, contact or project attachment.
+  - On UPDATE, `projects.created_by` and every column of `deal_line_syncs` are not pinned. See S-14.
+
+#### ADR 0152 and S-2
+
+ADR 0152 adds no new way for a partner to pull data they could not already see.
+
+- The foreign key still exposes a row only to the login it names.
+- A partner can write the key only on rows they created.
+- `partner_contact_links` has no partner grant.
+
+It does **widen S-2's impact** in three ways:
+
+1. **Spoofed Arxys rows become indistinguishable from real ones (S-13).** S-2 lets any partner insert or edit a row whose `on_behalf_of_partner_id` names another login. The target's My Pipeline then labels it "Prepared by Arxys", because `isIncomingOnBehalf()` checks only that the key equals the viewer and the creator differs (`src/app/(app)/submissions/page.tsx:80-86`, rendered at `pipeline.tsx:360-363`). After ADR 0152 that label is the official channel for real project quotes.
+2. **The victim can be made to carry out the deal overwrite.** If the attacker also plants `pipedrive_deal_id` on that row, the victim's own revision of it updates the planted deal (`calculator/actions.ts:694-702`), and the overwrite is attributed to the victim.
+3. **The column becomes load-bearing for authorization while partners can still write it.** That makes the S-2 guard (on-behalf columns writable only by internal callers) a prerequisite for Step 4. The same applies to Step 4's choice of where to bank the BOM and rules snapshot. A jsonb column on `submissions` would be partner-writable on partner-owned rows until S-2 ships, and a later "Make project" action that links legacy rows could pick up a forged BOM. A side table avoids this.
+
+#### test-rls.ts blocks 23 and 24, and teardown
+
+- **Block 23:** 11 cases, now ungated. Gaps:
+  - No partner self-change of `contact_name` or `id`.
+  - No internal user updating another partner's row.
+  - No suspended admin.
+  - No `partners` INSERT or DELETE denial.
+  - 23j asserts S-12's admin bypass as intended behavior.
+  - The per-case reset (`:1948-1959`) fixes the cascade where one failure contaminated the next case. It does not fix S-6.
+- **Block 24:**
+  - Read sweeps for a partner, a linked partner and anon.
+  - Partner write attempts on all 13 tables: insert on each, update and delete on one table each.
+  - Internal read and write.
+  - Internal limits: forged `created_by` on insert, sync-owned writes, rule edits, ledger and confirmation deletes, duplicate lines.
+  - Admin rule stamping and audit, refusal of an unknown SKU, and the include list.
+  - Throwaway keys keep live rules untouched. The fake deal ids (990,000,000 and up) are never sent to Pipedrive.
+  - Gaps: internal UPDATE of `deal_line_syncs` columns other than status, and of `projects.created_by`; internal links with a NULL `linked_by`; any suspended-internal case; the company consistency of a link (S-15).
+- **Teardown:** `teardownPersona` is unchanged, so S-6 stands. Block 24's `finally` is ordered correctly (children first) and covers a normal finish.
+
+### New findings
+
+#### S-13: Any partner can place a row in another partner's pipeline labeled "Prepared by Arxys"
+
+- **Severity:** Medium. **VERIFIED.** Traced through the RLS policies and the page code.
+- **Actor:** B.
+- **Location:** `supabase/migrations/20260615000001_rls_perf_consolidation.sql:91-99,107-110,119-123`; `src/app/(app)/submissions/page.tsx:80-86,127-131,229-234`; `src/app/(app)/submissions/pipeline.tsx:360-363`; `docs/decisions/0152-project-contact-login-sees-quotes-via-on-behalf-fk.md`.
+- **What is wrong:**
+  - The DB lets a partner set `on_behalf_of_partner_id` on rows they create (S-2).
+  - The UI treats any row whose key names the viewer, created by someone else, as Arxys-prepared, and shows the creator's `contact_name` as the "rep".
+  - Nothing checks that the creator is internal, even though the page already looks up the creator with the admin client.
+- **Preconditions:** a partner login and the victim's user id. Ids are available from S-5's bucket listing and from `*_specs.updated_by`.
+- **Impact:**
+  - A spoofed "Arxys" project appears in the victim's portal with an Arxys-branded System Estimate PDF carrying forged figures (S-2).
+  - If the victim revises it, their revision overwrites whatever deal id the attacker planted (S-2 chain).
+  - ADR 0152 makes this the normal delivery channel for project quotes, so the spoof matches real use.
+- **PoC (local only):**
+  1. As partner A, `POST /rest/v1/submissions` with `partner_id = A`, `on_behalf_of_partner_id = B` and the NOT NULL columns.
+  2. Sign in as B and open `/submissions`. The group shows "Prepared by Arxys · <A's contact name>".
+- **Simplest fix:**
+  - The S-2 guard trigger: on INSERT and UPDATE by a non-admin authenticated caller, refuse any `on_behalf_*` value unless `is_internal(auth.uid())`.
+  - In `isIncomingOnBehalf`, also require the creator to be internal. Add `is_internal` to the existing admin-client lookup at `page.tsx:106-109`.
+  - Both changes only narrow behavior. The UI change adds no new data path.
+- **Regression test:**
+  - test-rls: "partner cannot INSERT or PATCH `on_behalf_of_partner_id` (42501)".
+  - A unit test: a row created by a non-internal creator never sets `preparedByArxys`.
+
+#### S-14: Ledger and attribution columns are not pinned on UPDATE
+
+- **Severity:** Low today. It becomes Medium when Step 5 ships `retryMissingLines()`. **VERIFIED.**
+- **Actor:** D (and C through S-3).
+- **Location:** `supabase/migrations/20261016000005_deal_line_syncs_and_pricing_confirmations.sql:101,117-123`; `supabase/migrations/20261016000003_projects.sql:165-169`.
+- **What is wrong:**
+  - `deal_line_syncs` grants table-wide UPDATE to authenticated, and its policy checks only internal-or-admin. Any internal user can rewrite `created_by`, `pipedrive_deal_id`, `sku`, `role`, `qty`, `item_price_sent` and `status` on any ledger row. For example, they can move an `added` row to another deal id, or set a row back to `pending`.
+  - `projects.created_by` can also be reassigned on UPDATE, although ADR 0153 says attribution must equal `auth.uid()`.
+- **Impact:**
+  - This defeats the "never add a line twice" guarantee ADR 0155 relies on, because `retryMissingLines()` re-sends `pending` and `failed` rows. That means duplicate or wrongly priced lines on customer deals in Pipedrive.
+  - It also forges attribution.
+- **PoC (local only):** as an internal persona, `PATCH /rest/v1/deal_line_syncs?id=eq.<n>` with `{"status":"pending","created_by":"<admin id>","pipedrive_deal_id":<other>}`. The request returns 200.
+- **Simplest fix:**
+  - `revoke update on public.deal_line_syncs from authenticated; grant update (status, pipedrive_deal_product_id, error) on public.deal_line_syncs to authenticated;`
+  - Add a BEFORE UPDATE trigger that allows only `pending → added/failed` and `failed → pending`.
+  - Add `created_by = (select created_by from ...)`, or a column grant that excludes `created_by`, on `projects`.
+  - Column grants work here because no admin JWT needs those columns. All of this only narrows access.
+- **Regression test:** 24j, "internal cannot change `deal_line_syncs.pipedrive_deal_id`, `sku`, `item_price_sent` or `created_by`, or move `added` back to `pending`", and "internal cannot reassign `projects.created_by`".
+
+#### S-15: Under ADR 0152 a login-to-contact link is a visibility grant with no company check and no expiry
+
+- **Severity:** Medium. **PLAUSIBLE.** The Step 4 code that turns a link into `on_behalf_of_partner_id` is not built yet. The schema and link-writing paths are verified.
+- **Actor:** D (an internal user acting beyond their role, or by mistake), C, plus Pipedrive edits by Arxys staff.
+- **Location:** `supabase/migrations/20261016000002_project_companies_contacts.sql:135-144,194-214`; `src/lib/companies/sync.ts:247-252`; `scripts/sync-pipedrive-companies.mts:220-222,306-310`; `docs/decisions/0152-project-contact-login-sees-quotes-via-on-behalf-fk.md` (Consequences).
+- **What is wrong:**
+  - Nothing ties a link's company to the login's own company. The sync proposes a "match" on email alone whenever the login's `company_name` has no mapping (`expected === null`). Step 2 recorded 27 such unmapped names and 2 company mismatches. Internal users can insert or change links freely, with a NULL `linked_by` allowed.
+  - ON UPDATE CASCADE moves a link to another company when a Pipedrive person changes orgs.
+  - ADR 0152 says an existing row keeps its old foreign key after a link changes, and suspension does not stop a partner reading on-behalf rows over REST (S-3). So a contact who leaves a company keeps reading that company's project quotes (customer PII and pricing) indefinitely.
+- **Impact:** once Step 4 ships, one wrong or stale link exposes another company's project quotes to a partner login, with no record of who made the link.
+- **PoC (local only, after Step 4):**
+  1. As internal, `POST /rest/v1/partner_contact_links` with a login from company X and a contact at company Y, with `linked_by` null.
+  2. Save a project calc for Y. The X login sees it in My Pipeline and downloads the Project Quote.
+- **Simplest fix:**
+  - In Step 4, set the foreign key only when the login's `partners.company_name` resolves to the project's `company_id` (exactly or through `company_name_aliases`). Otherwise send email only.
+  - Require `linked_by` to be non-null for authenticated callers.
+  - Make the sync's link proposal require a company match, and list email-only matches as exceptions.
+  - Decide a revocation rule for stale grants, for example clearing the key on open rows when a link is removed or a login is suspended. Andy decides; this belongs in a Step 4 ADR.
+- **Regression test:** a Step 4 unit test, "login whose company does not map to the project company gets no FK", and a test-rls case, "internal cannot insert a link with null `linked_by`".
+
+### Updated known-issues status
+
+- **ADR 0151 partners self-escalation:** **fixed in the repo and live.** `20261016000001` is committed and was reviewed above; it holds on every partner write path. The admin bypass stays (S-12). The "was the hole used" query in apply note 0151 is still unanswered.
+- **ADR 0150 `active_flag` deletes:** **fixed in the repo.** `push-prices.ts` and `product-sync.ts` mention `active_flag` only in comments (`push-prices.ts:495`, `product-sync.ts:11`), and retirement uses `is_linkable`. The data layer never sent the flag. Slice 4 verifies the v2 calls.
+- **Pipedrive v1 and name-based upserts:** out of slice. The guard closed the partner-writable `company_name` input. The Project Portal path keys on Pipedrive ids (ADR 0153), and the brief keeps the partner path on v1.
+- **`ensureCustomFields()`:** out of slice. It still runs inside the S-2 path. The brief keeps `arxys_project_id` off the auto-create list.
+- **Duplicated legacy codes and `VX5-RAM-32GB`:** out of slice. ADR 0150 stops the push on a duplicated portal code. The V600-320 duplicate was fixed, and RAM-32GB will be retired through `is_linkable` on the next real push, which has not run yet per the JOURNAL.
+- **Leftover "RLS Hijack Co" persona:** **still present** (backlog K-6). Its origin is confirmed by test 23d's literal. The teardown root cause (S-6) is unchanged, so persona A still leaks on every complete run, now as a plain partner thanks to block 23's reset.
+- **Hand-applied migrations and drift:** **files fixed, verification open** (S-1). Live equivalence has not been checked against the files, no harness exists, and the remote migration history is still out of sync.
+
+### New Andy action items
+
+1. **Run the read-only catalog snapshot** from the base report's action item 2 against production now that the files are pushed, and commit its output to `docs/reviews/`. Then confirm three things:
+   - The apply-note-0151 trigger query returns `prosecdef = false` and `{search_path=""}`.
+   - `pg_get_functiondef('public.partners_guard_self_update()'::regprocedure)` matches the file.
+   - The 13 tables show the 35 policies the files define: 31 per apply note 0153 plus 4 for `company_sync_includes`.
+2. **Run the "was the hole used" query** from apply note 0151 and record the result in the backlog against K-1.
+3. **Run this READ-ONLY link check (S-15):**
+   ```sql
+   -- READ ONLY: links whose login company does not resolve to the linked company
+   select l.partner_id, p.company_name as login_company, c.name as linked_company, l.linked_by, l.linked_at
+   from public.partner_contact_links l
+   join public.partners p on p.id = l.partner_id
+   join public.companies c on c.id = l.company_id
+   left join public.company_name_aliases a on lower(btrim(a.alias)) = lower(btrim(p.company_name))
+   where lower(btrim(p.company_name)) <> lower(btrim(c.name))
+     and a.company_id is distinct from l.company_id
+   order by 2;
+   ```
+   Also count links with a null `linked_by`. The 68 rows from `--apply-mapping` were written by service role, so all will be null today.
+4. **Gate Project Portal Step 4 on the S-2 fix.** Ship the `submissions` guard (including the internal-only on-behalf rule) and the S-13 label check before any code writes `on_behalf_of_partner_id` as a visibility grant. Choose a side table for the BOM and rules snapshot.
+5. **Approve the S-14 column grant** on `deal_line_syncs` before Step 5 ships `retryMissingLines()`.
+6. **Still open from the base report:** ban suspended internal users (S-3), delete the leftover personas after checking their role (S-6, K-6), and enable leaked-password protection (Slice 2 checklist; Advisor 2026-10-19).
+
+### Not checked
+
+- **Live database state:** no access. Equivalence between live and the files is unverified (S-1). Advisor output was the only live evidence.
+- **Step 3 to 6 code:** not built at 2ae9350, so S-15 and parts of S-13 are reasoned against the brief and ADR 0152.
+- **Out of slice:** `docs/Portal-Project revamp/claude-code-prompt-step-3-pure-engines.md`, the brief's Step 0 and Step 2 results beyond the lines cited, and ADR 0157's Consequences. `scripts/audit-pipedrive-products.ts`, `scripts/fix-pipedrive-v600-320-duplicate.ts`, `scripts/backup-pipedrive-products.ts`, `src/lib/pipedrive/{company-api,product-api,product-sync}.ts` and the rest of `scripts/sync-pipedrive-companies.mts` belong to Slices 4 and 8.
+- **`backups/company-mapping-*.json`:** gitignored files that hold emails (Slice 8).
+- **Full git history:** still a shallow clone.
+- **Nothing was run:** no script, no test, and no network call to Supabase, Vercel, Pipedrive or email.
+
+
+---
+
+# Appendix E: Architect re-run addendum at 2ae9350
+
+Reproduced verbatim.
+
+## Architect review addendum: Slice 1 re-run on the 2026-10-16 delta
+
+### Header
+
+- **Commit reviewed:** origin/main 2ae9350, inside the merge commit dde0f7c on claude/group-1-audit-preflight-n8s0yw. The previous review was at 6201569.
+- **Delta command:** `git diff 6201569 2ae9350 -- supabase scripts/test-rls.ts docs/apply-notes docs/decisions` (25 files, +2091/-3).
+- **Mode:** area re-review, baseline. Prior IDs map to the backlog as follows: A-1 to A-11 are B1-A-1 to B1-A-11, and C-1 to C-5 are B1-A-12 to B1-A-16. New findings are numbered from A-17.
+- **Files read in full:**
+  - Migrations: `supabase/migrations/20261016000001_partners_guard_self_update.sql`, `20261016000002_project_companies_contacts.sql`, `20261016000003_projects.sql`, `20261016000004_system_design_rules.sql`, `20261016000005_deal_line_syncs_and_pricing_confirmations.sql`, `20261016000006_company_sync_includes.sql`.
+  - Rollbacks: `partners-guard-self-update-rollback.sql`, `project-companies-contacts-rollback.sql`, `projects-rollback.sql`, `system-design-rules-rollback.sql`, `deal-line-syncs-and-pricing-confirmations-rollback.sql`, `company-sync-includes-rollback.sql`.
+  - Apply notes: `docs/apply-notes/0151-partners-guard-self-update.md`, `docs/apply-notes/0153-project-portal-schema.md`.
+- **Files read in part:**
+  - ADRs 0151 to 0156 (Decision and Consequences sections).
+  - The diff of `scripts/test-rls.ts` for blocks 23 and 24 (check names, writes, cleanup).
+  - The data-layer parts of `docs/Portal-Project revamp/claude-code-brief-project-portal-backend.md`: Locked decisions, Standing rules, Steps 1, 4, 5 and 6.
+- **Read outside the slice to trace prior findings:** `scripts/push-prices.ts` at 2ae9350 (A-4); `git grep active_flag` at 2ae9350 (ADR 0150); the RUNBOOK diff (migration section).
+- **Live evidence used:** Andy's Supabase Performance Advisor output (production, 2026-10-19).
+- **Checks run:** read-only git commands, grep and file reads.
+- **Checks not run:** typecheck, lint and unit tests (node_modules is absent). I did not run `scripts/test-rls.ts` or make any network call.
+
+### Verdict for Slice 1 at 2ae9350
+
+**FIX BEFORE COMMIT.** The repository now contains the 2026-10-16 work, which closes the `partners` escalation hole in code as well as live. That reduces A-2 from Must fix to Should fix.
+
+Two Must-fix items remain:
+- **A-1:** partners can still rewrite any column of their own `submissions` row.
+- **A-17 (new):** the migration set can no longer replay on a fresh database. `20261016000004` seeds BOM rules for SKUs that no migration creates, so the documented disaster-recovery path stops partway.
+
+### Re-run status of prior findings
+
+| ID | Backlog | Status at 2ae9350 | Evidence |
+|---|---|---|---|
+| A-1 | B1-A-1 | Still open | `submissions` grants and `submissions_update_authorized` are unchanged. `20261016000003_projects.sql:10-14` restates the hole ("a partner can UPDATE any column of their own submission row") and works around it a third time with a side table. ADR 0152 makes `on_behalf_of_partner_id` the visibility grant for project calcs, which raises the stakes on that column. |
+| A-2 | B1-A-2 | Partly fixed; residual is Should fix | Fixed: the six migrations, their rollbacks, apply notes 0151 and 0153, ADRs 0150 to 0157 and test blocks 23 and 24 are now in the repo. Still open: no catalog snapshot or drift check is committed. The PGlite harness is still outside the repo (`git ls-files` finds nothing matching pglite or harness). ADR 0004 is still "Accepted" with `db push`. The `20260818000001:19` header still says "DRAFT and has not been applied". RUNBOOK section 6 is unchanged and is now wrong (see A-17). |
+| A-3 | B1-A-3 | Still open | `20261016000004:224-240` seeds rules inside a migration, and those seeds depend on live catalog rows that only `push-prices.ts` creates (A-17). |
+| A-4 | B1-A-4 | Still open | `scripts/push-prices.ts` at 2ae9350, lines 421-435: the insert payload still hard-codes `active: true` and omits `hidden_from_catalog`. |
+| A-5 | B1-A-5 | Still open | No UPDATE or DELETE guard on `products`. `bom_rules_check_sku` (`20261016000004:73-85`) now also relies on `products` rows never being deleted, which gives one more reason for a delete guard. |
+| A-6 | B1-A-6 | Still open, and spread | The staff check `is_internal((select auth.uid())) or is_admin((select auth.uid()))` appears 32 more times across the 35 new policies. A suspended internal user can now also read 413 contacts' emails and phones, all projects, the deal-line ledger and pricing confirmations. A clean advisor run (no `auth_rls_initplan`) is consistent with this finding: that lint looks at bare `auth.*()` calls only, never at helper functions run per row. |
+| A-7 | B1-A-7 | Still open | No partial unique index; `submissions/actions.ts` is unchanged. |
+| A-8 | B1-A-8 | Still open for the older rollbacks; the new ones are good | The six new rollbacks drop objects in the right order, avoid `cascade` so they fail loudly when a dependency exists, and state what data they lose. Two gaps remain: their dump commands probably cannot run (A-21), and filenames still use slugs instead of migration timestamps. Every stale older rollback listed in A-8 is unchanged. |
+| A-9 | B1-A-9 | Partly fixed | Block 23 (23a to 23k) covers the `partners` guard. Block 24 (24 to 24i) covers every new table, and its cleanup is in `finally`. Still open: the suite runs only against production; block 24 deletes `design_rules_audit` rows in production; there are still no tests for `submissions` column writes, `submission_internal_archives`, `pipedrive_deal_cache`, storage, or a suspended internal user; the harness is outside the repo. |
+| A-10 | B1-A-10 | Still open; delta adds a third audit implementation | `partners` has a guard but no history; `submissions` has no history. `design_rules_audit` is a third, separate audit table (A-19). |
+| A-11 | B1-A-11 | Still open | `access_requests` is unchanged. |
+| C-1 | B1-A-12 | Still open | The Phase A checks are still `NOT VALID`. |
+| C-2 | B1-A-13 | Still open, extended | The advisor confirms the 5 unindexed foreign keys from C-2 plus 11 on the new tables. See the updated C-2 below. |
+| C-3 | B1-A-14 | Still open for older objects | New objects follow one style: a `trg_` prefix, and policies named `<table>_<cmd>_<internal or admin>`. One new inconsistency: three names for the same server-role idea (`bom_rules.applies_to_role`, `deal_line_syncs.role`, `project_submissions.calc_role`). The last of these means something different, which makes the clash worse. |
+| C-4 | B1-A-15 | Still open | `config.toml` still points the seed at the missing `seed.sql`. |
+| C-5 | B1-A-16 | Still open | No min/max check on `appliance_specs` cameras_managed. |
+
+**Updated C-2 (stays one Consider item, so the slice still has five):**
+- Replace `partner_contact_links_contact_id_idx` with an index on `(contact_id, company_id)`. That covers the composite foreign key and its `on update cascade` path at the same cost.
+- Leave the attribution-only `*_by` foreign keys unindexed until a table grows. They are checked only when a `partners` row is deleted.
+- Drop `deal_line_syncs_open_idx`. The unique key `(pipedrive_deal_id, sku, role)` already leads with `pipedrive_deal_id`.
+- Drop `partners_status_idx`. It indexes a three-value column on a small table.
+- Keep the other "unused" indexes the advisor lists. They are young-database noise, and each backs a real filter.
+
+### Delta review: what holds up
+
+- **The `partners` guard (ADR 0151) is well designed.**
+  - It is an allow-list built on `to_jsonb(new)` versus `to_jsonb(old)`, so any column added later is admin-only by default.
+  - It is SECURITY INVOKER, keyed on `current_user`. The reasoning recorded in ADR 0151 is correct.
+  - Its `search_path` is pinned, and EXECUTE is revoked from client roles.
+  - It can be re-run safely (`create or replace`, `drop trigger if exists`).
+  - The rollback is exact and warns that it reopens the hole.
+- **Constraints replace app logic throughout the new tables:**
+  - Keys use Pipedrive ids and are unique.
+  - Aliases are unique on `lower(btrim(alias))`, and each org can appear once.
+  - `check ((source = 'pipedrive_org') = (pipedrive_org_id is not null))`.
+  - The primary contact is checked against the project's company by a trigger.
+  - A BOM SKU must exist in the catalog, checked by trigger because `products.sku` is not unique.
+  - `added` status requires the attachment id.
+  - `item_price_sent > 0`.
+  - The confirmation fingerprint must be a JSON array.
+- **The brief's locked decisions that touch the data layer are honored:**
+  - Every new table is internal-only; partners have no grant.
+  - The login-to-contact link is kept off `partners`.
+  - The calc-to-project link is a side table.
+  - Pipedrive ids are the keys.
+  - Several calcs can belong to one project.
+  - Rules carry descriptions and have no delete.
+  - The ledger is unique on (deal, SKU, role).
+  - Confirmations are insert-only with a fingerprint.
+  - There are no prices from `current_products` on the deal path, because there is no price column outside `item_price_sent`.
+  - Not yet built, so not verifiable here: Step 4 rules snapshot onto each calc, and Step 5 Pipedrive-only pricing.
+- **RLS performance:** every new policy wraps `auth.uid()`. The staff helpers are still called per row, as in A-6.
+
+### New findings
+
+#### A-17. Must fix. VERIFIED. A fresh replay of the migrations fails at `20261016000004`
+- **Location:**
+  - `supabase/migrations/20261016000004_system_design_rules.sql:73-85` (the `bom_rules_check_sku` trigger) and `:233-240` (the seeds).
+  - `docs/RUNBOOK.md` section 6 (unchanged by the delta).
+  - `docs/apply-notes/0153-project-portal-schema.md`, step 3.
+- **What is wrong:**
+  - The seed inserts six `bom_rules` rows for `VX5-NIC-SFP28`, `VX5-NIC-SFP28x10` and `VX5-GPU-A1000`.
+  - No migration ever inserts those SKUs. The only `insert into public.products` statements are in `20260519052732`, `20260521190350` (six V-family rows) and `20260818000001` (three `-NCD` rows).
+  - On a fresh database the trigger therefore raises `23503 unknown SKU`, and `db push` stops at this file. `000005` and `000006` never apply.
+  - The apply note concedes the dependency: "all six SKUs must already be in the catalog".
+  - RUNBOOK section 6 still says a fresh `db push` "is the whole story". The PGlite harness passed, which suggests it stubbed `products`. That part is PLAUSIBLE, because the harness is not in the repo to check.
+- **Failure scenario:** a disaster-recovery rebuild, a staging project or any CI replay halts with the Project Portal tables half created. Recovery then needs hand surgery under pressure.
+- **Simplest fix:**
+  - Make the seed conditional: `insert into public.bom_rules (...) select v.* from (values ...) as v(...) where exists (select 1 from public.products p where p.sku = v.sku) on conflict do nothing`. Live behavior is unchanged, because the rows already exist.
+  - Add one RUNBOOK line: after `push-prices.ts` loads the catalog, re-run the seed block.
+  - Make the committed harness (A-9) replay from an empty database without stubbing `products`, so this class of break is caught.
+
+#### A-18. Should fix. VERIFIED. `deal_line_syncs` does not yet guarantee "never add a line twice"
+- **Location:**
+  - `20261016000005_deal_line_syncs_and_pricing_confirmations.sql:24-45` (table) and `:119-123` (UPDATE policy).
+  - ADR 0155 Consequences.
+- **What is wrong:**
+  - **Every column can be rewritten.** The UPDATE policy lets any internal user change any column of any row: `status` from `added` back to `pending`, or `sku`, `qty`, `pipedrive_deal_id`, `pipedrive_product_id` and `item_price_sent`. ADR 0155 says the guarantee "holds even if the retry code has a bug" and that a wrong row "can only be fixed through service_role". Both claims are false while UPDATE is unrestricted.
+  - **The unique key does not cover a lost response.** The row is written as `pending` before the POST. If the POST succeeds and the function dies before it marks the row `added` (a Vercel timeout, say), `retryMissingLines()` posts again. The unique key stops duplicate ledger rows; it cannot stop a duplicate Pipedrive line.
+  - **The deal id is not tied to the submission.** Nothing checks that `deal_line_syncs.pipedrive_deal_id` matches `submissions.pipedrive_deal_id` for the referenced `submission_id`.
+- **Failure scenario:**
+  - A Step 5 bug, or a rep "fixing" a failed row by hand, flips an `added` row back to `pending`. The retry adds a second GPU line to a customer deal.
+  - Alternatively, a timeout after a successful POST leaves a `pending` row that the retry duplicates.
+- **Simplest fix (now, before Step 5 code exists):**
+  - Add a BEFORE UPDATE trigger that makes every column immutable after insert except `status`, `pipedrive_deal_product_id`, `error` and `updated_at`.
+  - In the same trigger, allow only these transitions: `pending` to `added` or `failed`, and `failed` to `pending` or `added`. `added` is terminal.
+  - In Step 5, before re-sending a `pending` row, read the deal's products and reconcile on `pipedrive_product_id`. Mark the row `added` when the line is already present.
+  - Correct ADR 0155's two claims.
+
+#### A-19. Should fix. VERIFIED. A third audit implementation, while `partners` and `submissions` still have none
+Same root cause as A-10 (B1-A-10); keep one backlog row.
+- **Location:**
+  - `20261016000004:92-163`: `design_rules_stamp_updated`, `design_rules_audit` with `check (rule_table in ('system_design_rules','bom_rules'))`, and `design_rules_write_audit`.
+  - Compare with `20260727000001:125-173` and `20260729000001:289-336`.
+- **What is wrong:**
+  - The delta moved toward the A-10 shape: one table, one writer using `tg_table_name`, keys read through `to_jsonb`. But it is scoped to two tables by a CHECK.
+  - The repo now has three audit tables, three identical stamp functions (`product_specs_stamp_updated`, `appliance_specs_stamp_updated`, `design_rules_stamp_updated`) and three near-identical audit writers.
+  - The two tables where an audit would have answered ADR 0151's "was the hole ever used?" question remain unaudited.
+- **Failure scenario:** the next privilege or status change on `partners`, or a delete of a won submission, leaves no trace. Each new admin-edited table copies a fourth pair of functions.
+- **Simplest fix:**
+  - Widen `design_rules_audit` into the general audit table: drop the CHECK, or create `public.audit_log` with the same columns and move the two rule tables to it.
+  - Attach `design_rules_write_audit` to `partners` (UPDATE) and `submissions` (UPDATE of `status`, and DELETE).
+  - Point the two spec tables at `design_rules_stamp_updated` and the shared writer the next time they are touched.
+
+#### A-20. Should fix. VERIFIED. Attribution columns are validated by policy instead of stamped by the database, so a second internal user cannot update another user's row
+- **Location:** these UPDATE WITH CHECK clauses:
+  - `20261016000002:202-209` (`partner_contact_links`)
+  - `20261016000003:192-199` (`project_contacts`) and `:222-229` (`project_submissions`)
+  - `20261016000006:191-198` (`company_sync_includes`)
+- **What is wrong:**
+  - Each clause requires `linked_by` / `added_by` to be null or equal to the acting user.
+  - Policies cannot see OLD, so a correct update by Richard of a row Andy created fails with 42501. The only way past it is for the app to overwrite or null the original attribution.
+  - The documented purpose of `project_submissions_update_internal` is "moving a calc to another project". That is exactly the cross-user case that fails.
+  - `deal_line_syncs` avoids this deliberately ("a second rep may retry"), so the tables now behave differently from each other.
+- **Failure scenario:** the second internal user moves a calc between projects or re-links a login, and gets a permission error. Or the app learns to null `linked_by` on every update, and the attribution history is lost.
+- **Simplest fix:**
+  - Stamp attribution in the database with the existing generic pattern: a BEFORE INSERT trigger sets `*_by := auth.uid()`, and for `linked_by` a BEFORE UPDATE trigger does the same.
+  - Drop the attribution clauses from the policies.
+  - This also removes the "forged attribution" class of check from every INSERT policy (and from test 24g's forging cases).
+
+#### A-21. Should fix. PLAUSIBLE. The rollbacks' backup commands probably cannot run in the Supabase SQL editor
+- **Location:** the dump comments in all five new data-bearing rollbacks, for example `supabase/rollback/deal-line-syncs-and-pricing-confirmations-rollback.sql`: `copy (select ...) to '/tmp/deal_line_syncs.csv'`.
+- **What is wrong:**
+  - Server-side `COPY ... TO 'file'` needs superuser or `pg_write_server_files`. The Supabase dashboard role does not normally hold either.
+  - Even if it ran, the file would land on the database host, which Andy cannot reach.
+  - These are the rollbacks the files themselves mark as data-losing, so this is the backup step that matters.
+- **Failure scenario:** during an incident Andy runs the "dump first" line. It errors or writes a file he cannot retrieve, and he either aborts the rollback or proceeds without a backup of the deal-line ledger.
+- **Simplest fix:** replace each `copy` line with the existing `node --env-file=.env.local --import tsx scripts/backup-tables.ts <label>` invocation, after confirming it covers these tables. Otherwise, say "run `select * from <table>` and export the result grid as CSV".
+
+### Complexity to remove (delta)
+
+- **`partner_contact_links.company_id`.** Five objects exist only to keep this column equal to a value one join can derive: the composite foreign key `(contact_id, company_id)` with `on update cascade`, `contacts.unique (id, company_id)`, a second foreign key to `companies`, and two indexes. Dropping the column removes all five.
+- **Three identical stamp functions and three audit writers** (A-19).
+- **About 46 copies of the staff check** in policies (A-6). One `(select public.is_staff())` replaces them.
+
+### Challenges to ADRs (delta)
+
+- **ADR 0155.**
+  - "Never add a line twice holds even if the retry code has a bug" depends on rows being immutable after `added`. The UPDATE policy does not make them immutable.
+  - "A wrongly recorded ledger row can only be fixed through service_role" is true for DELETE only. Any internal user can UPDATE every column.
+  - The lost-response window after a successful POST is not addressed.
+  - Evidence: A-18.
+- **ADR 0004** (carried from the first review). Still "Accepted" with `db push`. The fresh-replay path it promises is now broken (A-17).
+
+### Known issues status (updated at 2ae9350)
+
+- **ADR 0151:** fixed in the repo and live. `20261016000001` adds the allow-list guard. Tests 23a to 23k run on every suite run, and apply note 0151 records 88/88 passing after the apply. Residuals:
+  - the "was the hole ever used?" query in the apply note is still open
+  - any future SECURITY DEFINER function that updates `partners` bypasses the guard (stated in ADR 0151)
+  - the same column-level hole remains on `submissions` (A-1)
+  - Status: KNOWN, fixed for `partners`.
+- **ADR 0150:** out of slice. At 2ae9350, `git grep active_flag -- src scripts` finds no code path that sends it. The only hit is a unit test asserting it is absent (`src/lib/pipedrive/product-sync.test.ts:178`). `push-prices.ts` retires products with `is_linkable=false`. Slice 4 should verify the write paths. KNOWN, fixed.
+- **Pipedrive v1 and name-based upserts; `ensureCustomFields()`:** out of slice, not checked. The new tables key on Pipedrive ids and do not add to this problem.
+- **100 duplicated legacy codes and `VX5-RAM-32GB`:** out of slice on the Pipedrive side. In the database, A-4 still applies: a re-priced inactive SKU would come back active.
+- **"RLS Hijack Co" persona:** still open. At 2ae9350 the name comes from `scripts/test-rls.ts:1938` (test 23d), which confirms an interrupted pre-guard run of block 23 created it. Andy should delete it.
+- **Hand-applied migrations and drift:** partly addressed by pushing the files. Still missing: a committed catalog snapshot, a drift check, and the harness in the repo. Fresh replay is now broken (A-17). KNOWN.
+
+### New Andy action items
+
+1. Approve the A-17 fix (conditional BOM seed plus a RUNBOOK line) before anyone relies on rebuilding from the repo.
+2. Commit the PGlite harness to the repository. It should replay from an empty database without stubbing `products`, then run every rollback.
+3. Before Step 5 code is written, decide on the `deal_line_syncs` immutability and transition trigger (A-18), and on reconciling `pending` rows against the deal before any re-send.
+4. Run the still-open read-only query in apply note 0151 ("was the hole ever used?") and record the result in the JOURNAL.
+5. Delete the "RLS Hijack Co" persona, which is still live.
+6. Confirm whether the five rollbacks' `copy ... to '/tmp/...'` lines run in the SQL editor. If they do not, adopt the A-21 fix.
+7. For Slice 2, not this slice: the advisor reports Auth capped at 10 absolute database connections. That is a dashboard setting worth reviewing with the instance size.
+
+### Not checked
+
+- The PGlite harness: still not in the repository, so A-17's PLAUSIBLE part and its 121 to 135 checks cannot be inspected.
+- Live database state beyond the advisor output supplied. I wrote no catalog queries against production and made no network calls.
+- Steps 2 to 6 application code that will read and write the new tables (`src/lib/companies/sync.ts`, `src/lib/pipedrive/company-api.ts`, `scripts/sync-pipedrive-companies.mts`, the not-yet-written Step 5 retry). Those belong to Slices 3, 4 and 7. A-18 and A-20 are design findings that hold whatever that code does.
+- ADRs 0150 and 0157 in depth (Pipedrive behavior, Slice 4).
+- Typecheck, lint and unit tests (node_modules absent). I did not run `scripts/test-rls.ts`.
+- The rest of the JOURNAL and the full RUNBOOK, beyond the migration section diff.
+
+
+---
+
+# Appendix F: Inventory delta at 2ae9350
+
+Reproduced verbatim.
+
+## Slice 1 inventory addendum: 2026-10-16 delta (replaces section A2)
+
+- Checkout: merge commit `dde0f7c`, which contains origin/main `2ae9350`. Delta read with `git diff 6201569 2ae9350 -- supabase scripts/test-rls.ts docs/apply-notes` (15 files, 1650 lines added, 1 removed). `git diff 2ae9350 HEAD` over the same paths is empty, so HEAD and 2ae9350 agree on every file used here.
+- Files read in full: `supabase/migrations/20261016000001_partners_guard_self_update.sql` to `20261016000006_company_sync_includes.sql`, their six rollback files, `docs/apply-notes/0151-partners-guard-self-update.md`, `docs/apply-notes/0153-project-portal-schema.md`, and the new `scripts/test-rls.ts` blocks 23 and 24 (read only, never run). No database access. No query was executed.
+- This addendum replaces section A2 of Appendix A, which was built from the JOURNAL. Everything below is read from source. Conventions are unchanged: `NNNNNNNNNNNNNN:L` is a migration file and line, and `test-rls:L` is a line in `scripts/test-rls.ts` **at HEAD**.
+- **Line shift:** the header comment of `scripts/test-rls.ts` grew by one line (test-rls:2-5), so every test-rls line number in Appendix A from line 5 onward is one lower than at HEAD. Example: the on-behalf seed cited as test-rls:587-608 is now test-rls:588-609.
+
+#### New migration index
+
+| Prefix | File | Rollback |
+|---|---|---|
+| 20261016000001 | partners_guard_self_update | `supabase/rollback/partners-guard-self-update-rollback.sql` |
+| 20261016000002 | project_companies_contacts | `supabase/rollback/project-companies-contacts-rollback.sql` |
+| 20261016000003 | projects | `supabase/rollback/projects-rollback.sql` |
+| 20261016000004 | system_design_rules | `supabase/rollback/system-design-rules-rollback.sql` |
+| 20261016000005 | deal_line_syncs_and_pricing_confirmations | `supabase/rollback/deal-line-syncs-and-pricing-confirmations-rollback.sql` |
+| 20261016000006 | company_sync_includes | `supabase/rollback/company-sync-includes-rollback.sql` |
+
+Per the apply notes, all six were applied by hand in the dashboard SQL editor on 2026-10-16 (`0151-partners-guard-self-update.md:3-5`, `0153-project-portal-schema.md:3-6, 65-66`). Each migration has a rollback file.
+
+---
+
+### A (delta). Effective policy matrix additions
+
+#### A.0 Delta summary matrix
+
+All 13 new tables are in schema `public`. Every one runs `revoke all ... from anon, authenticated` before its grants, so grants to `anon` and `authenticated` are migration-defined. `anon` holds no grant on any of them. `service_role` on all of them: Supabase default (assumed). No column-level grants. No FORCE ROW LEVEL SECURITY. Every policy is PERMISSIVE and `to authenticated`. Every UPDATE policy has a WITH CHECK.
+
+| Table | RLS | FORCE | `authenticated` grants | `anon` | Policies (S / I / U / D) | Triggers |
+|---|---|---|---|---|---|---|
+| public.companies | on | no | SELECT | none | 1 / 0 / 0 / 0 | `trg_companies_set_updated_at` |
+| public.company_name_aliases | on | no | SELECT | none | 1 / 0 / 0 / 0 | none |
+| public.contacts | on | no | SELECT | none | 1 / 0 / 0 / 0 | `trg_contacts_set_updated_at` |
+| public.partner_contact_links | on | no | SELECT, INSERT, UPDATE, DELETE | none | 1 / 1 / 1 / 1 | none |
+| public.projects | on | no | SELECT, INSERT, UPDATE, DELETE | none | 1 / 1 / 1 / 1 | `trg_projects_set_updated_at`, `trg_projects_check_primary_contact` |
+| public.project_contacts | on | no | SELECT, INSERT, UPDATE, DELETE | none | 1 / 1 / 1 / 1 | none |
+| public.project_submissions | on | no | SELECT, INSERT, UPDATE, DELETE | none | 1 / 1 / 1 / 1 | none |
+| public.system_design_rules | on | no | SELECT, INSERT, UPDATE | none | 1 / 1 / 1 / 0 | `trg_system_design_rules_stamp`, `trg_system_design_rules_audit` |
+| public.bom_rules | on | no | SELECT, INSERT, UPDATE | none | 1 / 1 / 1 / 0 | `trg_bom_rules_check_sku`, `trg_bom_rules_stamp`, `trg_bom_rules_audit` |
+| public.design_rules_audit | on | no | SELECT | none | 1 / 0 / 0 / 0 | none |
+| public.deal_line_syncs | on | no | SELECT, INSERT, UPDATE | none | 1 / 1 / 1 / 0 | `trg_deal_line_syncs_set_updated_at` |
+| public.quote_pricing_confirmations | on | no | SELECT, INSERT | none | 1 / 1 / 0 / 0 | none |
+| public.company_sync_includes | on | no | SELECT, INSERT, UPDATE, DELETE | none | 1 / 1 / 1 / 1 | none |
+
+Totals: 13 tables, 35 policies (31 from 20261016000002 to 000005, matching `0153-project-portal-schema.md:39-42`, plus 4 from 000006), 11 new triggers (1 on partners, 10 on new tables). New sequences with no explicit grant or revoke, Supabase default (assumed): identity sequences on `company_name_aliases.id` (20261016000002:169), `bom_rules.id` (20261016000004:51), `deal_line_syncs.id` (20261016000005:25), `quote_pricing_confirmations.id` (20261016000005:69); bigserial `design_rules_audit.id` (20261016000004:105).
+
+Shared predicate used below: **INT_OR_ADMIN** stands for the verbatim text `public.is_internal((select auth.uid())) or public.is_admin((select auth.uid()))`. Every other predicate is quoted in full.
+
+#### A.1 public.partners (final entry after 20261016000001)
+
+- Columns, RLS, FORCE, grants and policies are unchanged from Appendix A section A.1. 20261016000001 changes no policy, grant or column (comment :35-38; apply note `0151-partners-guard-self-update.md:13-15`).
+- RLS: enabled 20260515193702:151. FORCE: not set.
+- Grants: `anon` none (20260515193702:158). `authenticated` SELECT, UPDATE table-wide (20260515193702:163). No column-level grants.
+- Policies (unchanged):
+
+| Name | Cmd | Roles | Type | USING | WITH CHECK | Final source |
+|---|---|---|---|---|---|---|
+| partners_select_self_admin_internal | SELECT | authenticated | permissive | `id = (select auth.uid()) or public.is_admin((select auth.uid())) or public.is_internal((select auth.uid()))` | none | 20260615000001:53 |
+| partners_update_self_or_admin | UPDATE | authenticated | permissive | `id = (select auth.uid()) or public.is_admin((select auth.uid()))` | `id = (select auth.uid()) or public.is_admin((select auth.uid()))` | 20260615000001:64 |
+
+- Triggers, in firing order (BEFORE UPDATE triggers fire in name order, comment 20261016000001:36-38):
+  1. `trg_partners_guard_self_update` BEFORE UPDATE FOR EACH ROW EXECUTE FUNCTION `public.partners_guard_self_update()` (20261016000001:96-98; preceded by `drop trigger if exists` at :94).
+  2. `trg_partners_set_updated_at` BEFORE UPDATE FOR EACH ROW EXECUTE FUNCTION `public.set_updated_at()` (20260515193702:40).
+- Guard logic (20261016000001:47-89), SECURITY INVOKER, `search_path = ''`:
+  - If `current_user` is anything other than `authenticated` or `anon`, the row passes unchanged (:60-62). This lets `service_role`, `postgres` and other non-client roles through.
+  - If `public.is_admin(auth.uid())` is true, the row passes (:67-69). `is_admin` reads the row as it stands before the update (:64-65).
+  - Otherwise the function collects every key of `to_jsonb(new)` whose value differs from `to_jsonb(old)`, excluding `phone` and `updated_at` (:73-78). If any remain, it raises `42501` with message `only an admin can change <columns> on a partner record` (:80-85).
+  - Effect: a non-admin `authenticated` caller can change only `phone` (and `updated_at`, which `trg_partners_set_updated_at` then overwrites) on a row RLS lets them update, which is their own row. Columns added later are admin-only by default.
+  - The guard covers UPDATE only. INSERT and DELETE on `partners` are ungranted to `authenticated` (unchanged).
+- Column-level effect after 20261016000001: `role`, `is_internal`, `status`, `company_name`, `contact_name`, `logo_path`, `pipedrive_user_id`, `created_at` and `id` are admin-only for client roles. An internal user who is not an admin is treated like a partner by the guard.
+- SECURITY DEFINER functions that read it: `is_admin(uuid)`, `is_internal(uuid)` (unchanged). The guard is INVOKER and calls `is_admin`.
+- New inbound FKs (delete behaviour matters for test teardown): `partner_contact_links.partner_id` cascade (20261016000002:239), `partner_contact_links.linked_by` set null (:242), `projects.created_by` restrict (20261016000003:40), `project_contacts.added_by` set null (:99), `project_submissions.linked_by` set null (:123), `system_design_rules.updated_by` set null (20261016000004:39), `bom_rules.updated_by` set null (:61), `design_rules_audit.changed_by` set null (:109), `deal_line_syncs.created_by` restrict (20261016000005:40), `quote_pricing_confirmations.confirmed_by` restrict (:74), `company_sync_includes.added_by` set null (20261016000006:164).
+
+#### A.2 public.companies
+
+- Created 20261016000002:137. `pipedrive_org_id` unique, check `> 0`; `name` check non-blank; `active` default true.
+- RLS: enabled 20261016000002:261. FORCE: not set.
+- Grants: `anon` none (revoke :266). `authenticated` SELECT (:271).
+- Policies:
+
+| Name | Cmd | Roles | Type | USING | WITH CHECK | Source |
+|---|---|---|---|---|---|---|
+| companies_select_internal | SELECT | authenticated | permissive | INT_OR_ADMIN | none | 20261016000002:276 |
+
+- Triggers: `trg_companies_set_updated_at` BEFORE UPDATE FOR EACH ROW EXECUTE FUNCTION `public.set_updated_at()` (:154).
+- Writers: service_role only (the company sync; comment :111-112, :123-125). SECURITY DEFINER functions: none touch it directly.
+- Inbound FKs: `company_name_aliases.company_id` cascade (:170), `contacts.company_id` restrict (:200), `partner_contact_links.company_id` restrict (:241), `projects.company_id` restrict (20261016000003:25).
+
+#### A.3 public.company_name_aliases
+
+- Created 20261016000002:168. Unique index on `lower(btrim(alias))` (:182) and partial unique on `pipedrive_org_id` (:184). Check ties `source = 'pipedrive_org'` to a non-null `pipedrive_org_id` (:179).
+- RLS: enabled :262. Grants: `anon` none (revoke :267); `authenticated` SELECT (:272).
+- Policies:
+
+| Name | Cmd | Roles | Type | USING | WITH CHECK | Source |
+|---|---|---|---|---|---|---|
+| company_name_aliases_select_internal | SELECT | authenticated | permissive | INT_OR_ADMIN | none | 20261016000002:281 |
+
+- Triggers: none. Writers: service_role only.
+
+#### A.4 public.contacts
+
+- Created 20261016000002:197. `pipedrive_person_id` unique; `unique (id, company_id)` (:211) backs the composite FK from `partner_contact_links`.
+- RLS: enabled :263. Grants: `anon` none (revoke :268); `authenticated` SELECT (:273).
+- Policies:
+
+| Name | Cmd | Roles | Type | USING | WITH CHECK | Source |
+|---|---|---|---|---|---|---|
+| contacts_select_internal | SELECT | authenticated | permissive | INT_OR_ADMIN | none | 20261016000002:286 |
+
+- Triggers: `trg_contacts_set_updated_at` BEFORE UPDATE FOR EACH ROW EXECUTE FUNCTION `public.set_updated_at()` (:221).
+- Read by `public.projects_check_primary_contact()` (INVOKER, so under the caller's RLS).
+
+#### A.5 public.partner_contact_links
+
+- Created 20261016000002:238. PK `partner_id` (FK partners, cascade). Composite FK `(contact_id, company_id)` to `contacts (id, company_id)` on update cascade, on delete restrict (:244-246).
+- RLS: enabled :264. Grants: `anon` none (revoke :269); `authenticated` SELECT, INSERT, UPDATE, DELETE (:274).
+- Policies:
+
+| Name | Cmd | Roles | Type | USING | WITH CHECK | Source |
+|---|---|---|---|---|---|---|
+| partner_contact_links_select_internal | SELECT | authenticated | permissive | INT_OR_ADMIN | none | 20261016000002:291 |
+| partner_contact_links_insert_internal | INSERT | authenticated | permissive | none | `(public.is_internal((select auth.uid())) or public.is_admin((select auth.uid()))) and (linked_by is null or linked_by = (select auth.uid()))` | 20261016000002:297 |
+| partner_contact_links_update_internal | UPDATE | authenticated | permissive | INT_OR_ADMIN | `(public.is_internal((select auth.uid())) or public.is_admin((select auth.uid()))) and (linked_by is null or linked_by = (select auth.uid()))` | 20261016000002:305 |
+| partner_contact_links_delete_internal | DELETE | authenticated | permissive | INT_OR_ADMIN | none | 20261016000002:314 |
+
+- Triggers: none. No partner access of any kind; a contact's login sees quotes through `submissions.on_behalf_of_partner_id` (comment :126-129, ADR 0152).
+
+#### A.6 public.projects
+
+- Created 20261016000003:23. FKs: `company_id` restrict, `primary_contact_id` restrict, `created_by` restrict.
+- RLS: enabled 20261016000003:137. Grants: `anon` none (revoke :141); `authenticated` SELECT, INSERT, UPDATE, DELETE (:145).
+- Policies:
+
+| Name | Cmd | Roles | Type | USING | WITH CHECK | Source |
+|---|---|---|---|---|---|---|
+| projects_select_internal | SELECT | authenticated | permissive | INT_OR_ADMIN | none | 20261016000003:151 |
+| projects_insert_internal | INSERT | authenticated | permissive | none | `(public.is_internal((select auth.uid())) or public.is_admin((select auth.uid()))) and created_by = (select auth.uid())` | 20261016000003:157 |
+| projects_update_internal | UPDATE | authenticated | permissive | INT_OR_ADMIN | INT_OR_ADMIN | 20261016000003:165 |
+| projects_delete_internal | DELETE | authenticated | permissive | INT_OR_ADMIN | none | 20261016000003:172 |
+
+- The UPDATE WITH CHECK does not re-check `created_by`, so an internal user can change it after insert.
+- Triggers: `trg_projects_set_updated_at` BEFORE UPDATE → `public.set_updated_at()` (:53); `trg_projects_check_primary_contact` BEFORE INSERT OR UPDATE → `public.projects_check_primary_contact()` (:88). Name order puts the contact check before `set_updated_at` on UPDATE.
+- Inbound FKs: `project_contacts.project_id` cascade (:97), `project_submissions.project_id` restrict (:120).
+
+#### A.7 public.project_contacts
+
+- Created 20261016000003:96. PK `(project_id, contact_id)`.
+- RLS: enabled :138. Grants: `anon` none (revoke :142); `authenticated` SELECT, INSERT, UPDATE, DELETE (:146).
+- Policies:
+
+| Name | Cmd | Roles | Type | USING | WITH CHECK | Source |
+|---|---|---|---|---|---|---|
+| project_contacts_select_internal | SELECT | authenticated | permissive | INT_OR_ADMIN | none | 20261016000003:179 |
+| project_contacts_insert_internal | INSERT | authenticated | permissive | none | `(public.is_internal((select auth.uid())) or public.is_admin((select auth.uid()))) and (added_by is null or added_by = (select auth.uid()))` | 20261016000003:184 |
+| project_contacts_update_internal | UPDATE | authenticated | permissive | INT_OR_ADMIN | `(public.is_internal((select auth.uid())) or public.is_admin((select auth.uid()))) and (added_by is null or added_by = (select auth.uid()))` | 20261016000003:192 |
+| project_contacts_delete_internal | DELETE | authenticated | permissive | INT_OR_ADMIN | none | 20261016000003:201 |
+
+- Triggers: none.
+
+#### A.8 public.project_submissions
+
+- Created 20261016000003:118. PK `submission_id` (FK submissions, cascade); `project_id` restrict; `calc_role` check primary/option/phase.
+- RLS: enabled :139. Grants: `anon` none (revoke :143); `authenticated` SELECT, INSERT, UPDATE, DELETE (:147).
+- Policies:
+
+| Name | Cmd | Roles | Type | USING | WITH CHECK | Source |
+|---|---|---|---|---|---|---|
+| project_submissions_select_internal | SELECT | authenticated | permissive | INT_OR_ADMIN | none | 20261016000003:208 |
+| project_submissions_insert_internal | INSERT | authenticated | permissive | none | `(public.is_internal((select auth.uid())) or public.is_admin((select auth.uid()))) and (linked_by is null or linked_by = (select auth.uid()))` | 20261016000003:213 |
+| project_submissions_update_internal | UPDATE | authenticated | permissive | INT_OR_ADMIN | `(public.is_internal((select auth.uid())) or public.is_admin((select auth.uid()))) and (linked_by is null or linked_by = (select auth.uid()))` | 20261016000003:222 |
+| project_submissions_delete_internal | DELETE | authenticated | permissive | INT_OR_ADMIN | none | 20261016000003:231 |
+
+- Triggers: none. The comment at :10-14 records why this is a side table (partners can write any column of their own submission).
+
+#### A.9 public.system_design_rules
+
+- Created 20261016000004:32. PK `key` (check `^[a-z][a-z0-9_]*$`). Seeded with 3 rows (:224-231, `on conflict do nothing`).
+- RLS: enabled :169. Grants: `anon` none (revoke :173); `authenticated` SELECT, INSERT, UPDATE (:177). No DELETE.
+- Policies:
+
+| Name | Cmd | Roles | Type | USING | WITH CHECK | Source |
+|---|---|---|---|---|---|---|
+| system_design_rules_select_internal | SELECT | authenticated | permissive | INT_OR_ADMIN | none | 20261016000004:181 |
+| system_design_rules_insert_admin | INSERT | authenticated | permissive | none | `public.is_admin((select auth.uid()))` | 20261016000004:186 |
+| system_design_rules_update_admin | UPDATE | authenticated | permissive | `public.is_admin((select auth.uid()))` | `public.is_admin((select auth.uid()))` | 20261016000004:191 |
+
+- Triggers: `trg_system_design_rules_stamp` BEFORE INSERT OR UPDATE → `public.design_rules_stamp_updated()` (:148); `trg_system_design_rules_audit` AFTER INSERT OR UPDATE → `public.design_rules_write_audit()` (:151).
+- SECURITY DEFINER functions: `design_rules_write_audit()` reads NEW/OLD and writes `design_rules_audit`.
+
+#### A.10 public.bom_rules
+
+- Created 20261016000004:50. Unique `(design_item, applies_to_role, sku)`. Seeded with 6 rows (:233-240).
+- RLS: enabled :170. Grants: `anon` none (revoke :174); `authenticated` SELECT, INSERT, UPDATE (:178). No DELETE.
+- Policies:
+
+| Name | Cmd | Roles | Type | USING | WITH CHECK | Source |
+|---|---|---|---|---|---|---|
+| bom_rules_select_internal | SELECT | authenticated | permissive | INT_OR_ADMIN | none | 20261016000004:197 |
+| bom_rules_insert_admin | INSERT | authenticated | permissive | none | `public.is_admin((select auth.uid()))` | 20261016000004:202 |
+| bom_rules_update_admin | UPDATE | authenticated | permissive | `public.is_admin((select auth.uid()))` | `public.is_admin((select auth.uid()))` | 20261016000004:207 |
+
+- Triggers: `trg_bom_rules_check_sku` BEFORE INSERT OR UPDATE OF sku → `public.bom_rules_check_sku()` (:155); `trg_bom_rules_stamp` BEFORE INSERT OR UPDATE → `public.design_rules_stamp_updated()` (:158); `trg_bom_rules_audit` AFTER INSERT OR UPDATE → `public.design_rules_write_audit()` (:161).
+- SECURITY DEFINER functions: `bom_rules_check_sku()` reads `public.products` (all rows, bypassing RLS); `design_rules_write_audit()` writes `design_rules_audit`.
+
+#### A.11 public.design_rules_audit
+
+- Created 20261016000004:104. Rows only from `design_rules_write_audit()`; `rule_key` is the rules table key or `bom_rules.id` as text, no FK.
+- RLS: enabled :171. Grants: `anon` none (revoke :175); `authenticated` SELECT (:179).
+- Policies:
+
+| Name | Cmd | Roles | Type | USING | WITH CHECK | Source |
+|---|---|---|---|---|---|---|
+| design_rules_audit_select_admin | SELECT | authenticated | permissive | `public.is_admin((select auth.uid()))` | none | 20261016000004:213 |
+
+- Triggers: none. The seeds produce audit rows with `changed_by` null (comment :219-221).
+
+#### A.12 public.deal_line_syncs
+
+- Created 20261016000005:24. `submission_id` restrict, `created_by` restrict, unique `(pipedrive_deal_id, sku, role)` (:43), check `status <> 'added' or pipedrive_deal_product_id is not null` (:44), `item_price_sent > 0` (:37).
+- RLS: enabled :95. Grants: `anon` none (revoke :98); `authenticated` SELECT, INSERT, UPDATE (:101). No DELETE.
+- Policies:
+
+| Name | Cmd | Roles | Type | USING | WITH CHECK | Source |
+|---|---|---|---|---|---|---|
+| deal_line_syncs_select_internal | SELECT | authenticated | permissive | INT_OR_ADMIN | none | 20261016000005:104 |
+| deal_line_syncs_insert_internal | INSERT | authenticated | permissive | none | `(public.is_internal((select auth.uid())) or public.is_admin((select auth.uid()))) and created_by = (select auth.uid())` | 20261016000005:109 |
+| deal_line_syncs_update_internal | UPDATE | authenticated | permissive | INT_OR_ADMIN | INT_OR_ADMIN | 20261016000005:119 |
+
+- The UPDATE policy re-checks no column (comment :117-118 says `created_by` is deliberately not re-checked). An internal user can rewrite any column of any ledger row, including `sku`, `qty`, `item_price_sent`, `status`, `pipedrive_deal_product_id`, `submission_id` and `created_by`.
+- Triggers: `trg_deal_line_syncs_set_updated_at` BEFORE UPDATE → `public.set_updated_at()` (:55).
+
+#### A.13 public.quote_pricing_confirmations
+
+- Created 20261016000005:68. `submission_id` restrict (nullable), `confirmed_by` restrict, `deal_lines_fingerprint` check `jsonb_typeof = 'array'`.
+- RLS: enabled :96. Grants: `anon` none (revoke :99); `authenticated` SELECT, INSERT (:102). No UPDATE, no DELETE.
+- Policies:
+
+| Name | Cmd | Roles | Type | USING | WITH CHECK | Source |
+|---|---|---|---|---|---|---|
+| quote_pricing_confirmations_select_internal | SELECT | authenticated | permissive | INT_OR_ADMIN | none | 20261016000005:125 |
+| quote_pricing_confirmations_insert_internal | INSERT | authenticated | permissive | none | `(public.is_internal((select auth.uid())) or public.is_admin((select auth.uid()))) and confirmed_by = (select auth.uid())` | 20261016000005:130 |
+
+- Triggers: none.
+
+#### A.14 public.company_sync_includes
+
+- Created 20261016000006:160. PK `pipedrive_org_id`; `reason` check non-blank; no seed.
+- RLS: enabled :173. Grants: `anon` none (revoke :174); `authenticated` SELECT, INSERT, UPDATE, DELETE (:175).
+- Policies:
+
+| Name | Cmd | Roles | Type | USING | WITH CHECK | Source |
+|---|---|---|---|---|---|---|
+| company_sync_includes_select_internal | SELECT | authenticated | permissive | INT_OR_ADMIN | none | 20261016000006:177 |
+| company_sync_includes_insert_admin | INSERT | authenticated | permissive | none | `public.is_admin((select auth.uid())) and (added_by is null or added_by = (select auth.uid()))` | 20261016000006:183 |
+| company_sync_includes_update_admin | UPDATE | authenticated | permissive | `public.is_admin((select auth.uid()))` | `public.is_admin((select auth.uid())) and (added_by is null or added_by = (select auth.uid()))` | 20261016000006:191 |
+| company_sync_includes_delete_admin | DELETE | authenticated | permissive | `public.is_admin((select auth.uid()))` | none | 20261016000006:200 |
+
+- Triggers: none.
+
+#### A.15 Delta policy history
+
+No policy created by the delta has been dropped. 20261016000001 drops and recreates only its own trigger (`drop trigger if exists`, :94). No earlier policy is altered.
+
+#### A.16 Rollback notes (context)
+
+- `partners-guard-self-update-rollback.sql:11-12` drops the trigger and function and re-opens the self-escalation hole (warning at :7-9).
+- `project-companies-contacts-rollback.sql` drops tables without `cascade` and must run after `projects-rollback.sql` (:3-5); the apply note says rollback 1 refuses while `projects` exists (`0153-project-portal-schema.md:60`).
+- `system-design-rules-rollback.sql:12-17` drops 3 tables and 3 functions. `projects-rollback.sql:17` drops `projects_check_primary_contact`.
+- `deal-line-syncs-and-pricing-confirmations-rollback.sql:5-8` warns that rolling back after Step 5 ships can let a retry add a deal line twice.
+
+#### A.17 Applied outside migrations (delta)
+
+- Apply-note SQL is read only (`0151-partners-guard-self-update.md:27-30, 55-58`; `0153-project-portal-schema.md:28-36, 44-45, 73-75`) except the optional `insert into public.company_sync_includes` for Relativity Space (`0153-project-portal-schema.md:81-84`), which the note says has not been run. That insert leaves `added_by` null.
+- The Step 2 sync (`scripts/sync-pipedrive-companies.mts`, outside this delta's paths) writes `companies`, `contacts`, `company_name_aliases` and `partner_contact_links` as service_role. Production row counts are data and out of scope here.
+
+---
+
+### B (delta). Functions
+
+| Function | Lang | Security | Volatility | `search_path` | EXECUTE after migrations | What it does | Defined |
+|---|---|---|---|---|---|---|---|
+| `public.partners_guard_self_update()` returns trigger | plpgsql | INVOKER (explicit, :50) | VOLATILE (default) | `''` (:51) | Revoked from anon, authenticated, PUBLIC (20261016000001:103); owner keeps it; service_role: Supabase default (assumed) | BEFORE UPDATE guard on `partners`, described in A.1 | 20261016000001:47 (comment on function :91) |
+| `public.projects_check_primary_contact()` returns trigger | plpgsql | INVOKER (explicit, :65) | VOLATILE | `''` (:66) | Revoked from anon, authenticated, PUBLIC (20261016000003:86) | Raises 23514 when a non-null `primary_contact_id` does not belong to `company_id`, checked on INSERT and on UPDATE that changes either column. Reads `public.contacts` under the caller's RLS | 20261016000003:62 |
+| `public.bom_rules_check_sku()` returns trigger | plpgsql | **DEFINER** (:76) | VOLATILE | `''` (:77) | Revoked from anon, authenticated, PUBLIC (20261016000004:144) | Raises 23503 when no `public.products` row has `sku = new.sku` | 20261016000004:73 |
+| `public.design_rules_stamp_updated()` returns trigger | plpgsql | INVOKER (default; no keyword) | VOLATILE | `''` (:95) | Revoked from anon, authenticated, PUBLIC (:145) | Sets `new.updated_at := now()`, `new.updated_by := auth.uid()`; shared by both rules tables | 20261016000004:92 |
+| `public.design_rules_write_audit()` returns trigger | plpgsql | **DEFINER** (:125) | VOLATILE | `''` (:126) | Revoked from anon, authenticated, PUBLIC (:146) | Inserts a `design_rules_audit` row with `rule_table = tg_table_name`, `rule_key` read through `to_jsonb(new)` (`key` or `id`), `changed_by = auth.uid()`, `operation = lower(tg_op)`, `before` on UPDATE, `after` | 20261016000004:122 |
+
+- Delta count: 5 new functions, 2 SECURITY DEFINER. All 5 pin `search_path` and revoke EXECUTE from anon, authenticated and PUBLIC.
+- Changed functions: none. `set_updated_at()` gains four more trigger users (companies, contacts, projects, deal_line_syncs) with no change to the function. `is_admin` and `is_internal` are unchanged and are called by all 35 new policies; `is_admin` is also called by the guard.
+- Running totals at HEAD: 15 functions, 7 SECURITY DEFINER.
+
+---
+
+### C (delta). Views
+
+None. No view or materialized view is created or changed.
+
+### D (delta). Storage
+
+None. No bucket, `storage.objects` policy or storage object is created or changed.
+
+---
+
+### E (delta). Live verification queries
+
+**READ ONLY. These queries change nothing. Run them in the Supabase SQL editor and paste the results back.**
+
+E1 to E18, E20, E22, E23 and E24 from Appendix A stay as written. None of them filters to a table list, so they already return the delta objects. E5 returns the guard source. E20 returns the eleven new FKs into `partners`. E19 and E21 are replaced below, and E25 to E28 are new.
+
+| Query | Status | Checks section |
+|---|---|---|
+| E19 Relations live versus the migration set | replaced (13 names added) | A, A (delta) |
+| E21 Leftover RLS test personas | replaced (adds the new restrict FKs and block-23 columns) | F (delta) |
+| E25 Source and EXECUTE of the delta trigger functions | new | A.1, B (delta) |
+| E26 RLS and policy count per delta table against the migrations | new | A (delta) |
+| E27 Rules seed and stamp state | new | A.9, A.10 |
+| E28 Rows block 24 creates and deletes, left by an aborted run | new | F (delta) |
+
+```sql
+-- READ ONLY. These queries change nothing. Run them in the Supabase SQL editor and paste the results back.
+
+-- E19 (replacement). Relations present live that no migration at 2ae9350 creates, and migration relations missing live.
+--      Empty result = no drift in the relation list. Schema storage is excluded (Supabase-managed).
+with known (schema_name, rel_name) as (
+  values ('public', 'access_requests'),
+         ('public', 'appliance_specs'),
+         ('public', 'appliance_specs_audit'),
+         ('public', 'bom_rules'),
+         ('public', 'camera_specs'),
+         ('public', 'companies'),
+         ('public', 'company_name_aliases'),
+         ('public', 'company_sync_includes'),
+         ('public', 'competitor_products'),
+         ('public', 'contacts'),
+         ('public', 'current_products'),
+         ('public', 'deal_line_syncs'),
+         ('public', 'design_rules_audit'),
+         ('public', 'partner_contact_links'),
+         ('public', 'partners'),
+         ('public', 'pipedrive_deal_cache'),
+         ('public', 'product_specs'),
+         ('public', 'product_specs_audit'),
+         ('public', 'products'),
+         ('public', 'project_contacts'),
+         ('public', 'project_quotes'),
+         ('public', 'project_submissions'),
+         ('public', 'projects'),
+         ('public', 'quote_pricing_confirmations'),
+         ('public', 'submission_internal_archives'),
+         ('public', 'submissions'),
+         ('public', 'system_design_rules')
+),
+live as (
+  select n.nspname::text  as schema_name,
+         c.relname::text  as rel_name,
+         case c.relkind when 'r' then 'table' when 'p' then 'partitioned table'
+                        when 'v' then 'view' when 'm' then 'materialized view'
+                        when 'f' then 'foreign table' end as kind
+  from pg_class c
+  join pg_namespace n on n.oid = c.relnamespace
+  where c.relkind in ('r', 'p', 'v', 'm', 'f')
+    and not (n.nspname = any (array['pg_catalog','information_schema','auth','extensions','graphql','graphql_public','realtime','_realtime','supabase_functions','supabase_migrations','vault','pgsodium','pgsodium_masks','net','cron','pgbouncer','_analytics','pgmq','storage']))
+    and n.nspname !~ '^pg_(temp|toast)'
+)
+select coalesce(l.schema_name, k.schema_name) as schema_name,
+       coalesce(l.rel_name, k.rel_name)       as rel_name,
+       l.kind,
+       case when k.rel_name is null
+            then 'LIVE ONLY: no migration at 2ae9350 creates it'
+            else 'MISSING LIVE: created by migrations at 2ae9350' end as status
+from live l
+full outer join known k
+  on k.schema_name = l.schema_name
+ and k.rel_name    = l.rel_name
+where k.rel_name is null
+   or l.rel_name is null
+order by 4, 1, 2;
+
+-- E21 (replacement). Leftover RLS test personas, their partners row (including block-23 columns),
+--      and every row that can block deleting them.
+select u.id                 as user_id,
+       u.email,
+       u.created_at         as user_created_at,
+       u.last_sign_in_at,
+       p.id is not null     as has_partner_row,
+       p.company_name,
+       p.contact_name,
+       p.phone,
+       p.role,
+       p.status,
+       p.is_internal,
+       p.pipedrive_user_id,
+       p.logo_path,
+       (select count(*) from public.submissions s                  where s.partner_id = u.id)              as submissions_created,
+       (select count(*) from public.submissions s                  where s.on_behalf_of_partner_id = u.id) as submissions_on_behalf_of,
+       (select count(*) from public.project_quotes q               where q.generated_by = u.id)            as quotes_generated,
+       (select count(*) from public.projects pr                    where pr.created_by = u.id)             as projects_created,
+       (select count(*) from public.deal_line_syncs d              where d.created_by = u.id)              as deal_lines_created,
+       (select count(*) from public.quote_pricing_confirmations qc where qc.confirmed_by = u.id)           as pricing_confirmations,
+       (select count(*) from public.partner_contact_links l        where l.partner_id = u.id)              as contact_links
+from auth.users u
+left join public.partners p on p.id = u.id
+where lower(u.email) like '%@arxys-rls-test.invalid'
+order by u.created_at;
+
+-- E25. Source, security, settings and EXECUTE of the delta trigger functions and set_updated_at (A.1, B delta)
+select p.proname                                   as function_name,
+       pg_get_function_identity_arguments(p.oid)   as args,
+       p.prosecdef                                 as security_definer,
+       p.provolatile                               as volatility_flag,
+       p.proconfig                                 as settings,
+       pg_get_userbyid(p.proowner)                 as owner,
+       has_function_privilege('anon',          p.oid, 'EXECUTE') as anon_can_execute,
+       has_function_privilege('authenticated', p.oid, 'EXECUTE') as authenticated_can_execute,
+       has_function_privilege('public',        p.oid, 'EXECUTE') as public_can_execute,
+       p.proacl::text                              as raw_acl,
+       pg_get_functiondef(p.oid)                   as source
+from pg_proc p
+where p.pronamespace = 'public'::regnamespace
+  and p.proname in ('partners_guard_self_update', 'projects_check_primary_contact',
+                    'bom_rules_check_sku', 'design_rules_stamp_updated',
+                    'design_rules_write_audit', 'set_updated_at')
+order by p.proname;
+
+-- E26. RLS, FORCE RLS and policy count per delta table, against the counts in the migrations (A delta)
+with expected (rel_name, policies_in_migrations) as (
+  values ('bom_rules', 3),
+         ('companies', 1),
+         ('company_name_aliases', 1),
+         ('company_sync_includes', 4),
+         ('contacts', 1),
+         ('deal_line_syncs', 3),
+         ('design_rules_audit', 1),
+         ('partner_contact_links', 4),
+         ('project_contacts', 4),
+         ('project_submissions', 4),
+         ('projects', 4),
+         ('quote_pricing_confirmations', 2),
+         ('system_design_rules', 3)
+)
+select e.rel_name,
+       c.oid is not null       as exists_live,
+       c.relrowsecurity        as rls_enabled,
+       c.relforcerowsecurity   as rls_forced,
+       (select count(*)
+          from pg_policies pp
+         where pp.schemaname = 'public'
+           and pp.tablename  = e.rel_name) as policies_live,
+       e.policies_in_migrations
+from expected e
+left join pg_class c
+       on c.relname = e.rel_name
+      and c.relnamespace = 'public'::regnamespace
+      and c.relkind in ('r', 'p')
+order by e.rel_name;
+
+-- E27. Current rules and their stamp state (A.9, A.10). Seeds alone show updated_by null.
+select 'system_design_rules'              as rule_table,
+       r.key                              as rule_id,
+       r.value::text                      as rule_value,
+       null::boolean                      as active,
+       r.updated_by,
+       r.updated_at
+from public.system_design_rules r
+union all
+select 'bom_rules',
+       b.id::text || ' ' || b.design_item || '/' || b.applies_to_role || '/' || b.sku,
+       b.qty_per_server::text,
+       b.active,
+       b.updated_by,
+       b.updated_at
+from public.bom_rules b
+order by 1, 2;
+
+-- E28. Rows that block 24 of scripts/test-rls.ts creates and deletes, left behind by an aborted run (F delta)
+select 'companies' as table_name, count(*) as leftover_rows
+  from public.companies
+ where name like 'RLS Test Company %' or name in ('partner co', 'internal co')
+    or pipedrive_org_id between 900000000 and 901000006
+union all
+select 'contacts', count(*)
+  from public.contacts
+ where name in ('RLS Test Contact', 'partner contact')
+    or pipedrive_person_id between 900000000 and 901000006
+union all
+select 'company_name_aliases', count(*)
+  from public.company_name_aliases
+ where alias like 'RLS Test Alias %' or alias like 'partner alias %'
+union all
+select 'projects', count(*)
+  from public.projects
+ where name in ('RLS test project', 'partner project', 'forged')
+union all
+select 'system_design_rules', count(*)
+  from public.system_design_rules
+ where key like 'rls\_test\_%'
+union all
+select 'bom_rules', count(*)
+  from public.bom_rules
+ where design_item like 'rls\_test\_%'
+union all
+select 'design_rules_audit', count(*)
+  from public.design_rules_audit
+ where (rule_table = 'system_design_rules' and rule_key like 'rls\_test\_%')
+    or (rule_table = 'bom_rules' and after ->> 'design_item' like 'rls\_test\_%')
+union all
+select 'deal_line_syncs', count(*)
+  from public.deal_line_syncs
+ where pipedrive_deal_id between 990000000 and 990999999
+union all
+select 'quote_pricing_confirmations', count(*)
+  from public.quote_pricing_confirmations
+ where pipedrive_deal_id between 990000000 and 990999999
+union all
+select 'company_sync_includes', count(*)
+  from public.company_sync_includes
+ where pipedrive_org_id between 900000000 and 901000006
+union all
+select 'partner_contact_links (test logins)', count(*)
+  from public.partner_contact_links l
+  join auth.users u on u.id = l.partner_id
+ where lower(u.email) like '%@arxys-rls-test.invalid';
+```
+
+Desk-check notes for the new SQL: `'public'::regnamespace`, `pg_get_functiondef`, `has_function_privilege(..., 'public', ...)`, `pg_policies.tablename = text` (name = text operator, PG12+) and `after ->> 'design_item'` on a `jsonb not null` column are all valid in PostgreSQL 15. The ranges in E28 come from test-rls:2079-2080 (`900_000_000 + tag % 1_000_000` plus offsets up to 6, and `990_000_000 + tag % 1_000_000`). Real Pipedrive ids in production are far below 900,000,000 (the JOURNAL cites org ids near 12,000), so the ranges should match test rows only.
+
+---
+
+### F (delta). test-rls.ts coverage map for blocks 23 and 24
+
+#### F.1 Lifecycle and env flags at HEAD
+
+- `provisionPersona`, `teardownPersona` and the outer `finally` are unchanged apart from the one-line shift: provisioning test-rls:119-123 (still before `try` at :125), teardown test-rls:82-86, outer `finally` test-rls:2293-2298 (A, B, ADMIN, INT in that order). There is still no SIGINT or SIGTERM handler.
+- Env flags: only `RUN_0083_TESTS` (test-rls:977). The `RUN_0151_TESTS` gate was removed (`0151-partners-guard-self-update.md:67-70`); block 23 (test-rls:1887-2054) and block 24 (test-rls:2055-2292) run on every invocation.
+- New in-test resets (service-role, errors ignored):
+  - After each of 23a-23e, A is reset to `role partner, is_internal false, pipedrive_user_id null, company_name 'RLS Test Co A', logo_path null` (test-rls:1951-1960).
+  - 23f suspends B (test-rls:1966) and restores `status active` (:1973).
+  - 23j's admin write makes A `role admin, is_internal true, status suspended, pipedrive_user_id 999999` (:2016-2019), then A is reset (:2030-2033).
+  - 23k's service-role write makes B `role admin, is_internal true, pipedrive_user_id 424242` (:2039-2042), then B is reset (:2049-2052).
+  - 23h sets A's `phone` to `555-0151` and does not reset it (:1989).
+- New block 24 cleanup: an inner `try` (test-rls:2086) with its own `finally` (test-rls:2268-2291) that deletes, in FK order, `deal_line_syncs` and `quote_pricing_confirmations` by the test deal id, `partner_contact_links` for A and B, `project_submissions` and `project_contacts` by project, `projects`, aliases, contacts and the company by company id, the throwaway `bom_rules` and `system_design_rules` rows with their audit rows, and `company_sync_includes` for the five test org ids. Errors from every delete are ignored. The seed audit rows for the six seeded rules are untouched.
+
+#### F.2 Leftover-persona code paths (delta)
+
+1. **Gap 22 persists. Persona A still leaks on every run that reaches the on-behalf seed.** The on-behalf row is seeded at test-rls:588-609 with `partner_id = internalPersona.id` and `on_behalf_of_partner_id = a.id`; nothing deletes it before teardown; teardown still runs A first (test-rls:2294) and deletes only `partner_id = a.id` rows (:83). `submissions.on_behalf_of_partner_id` still has no ON DELETE action (20260604000001:23; the delta adds no change to it). By reading; not verified live. With the 23a-23e resets in place, a leaked A from a complete run now carries `company_name 'RLS Test Co A'` and `phone '555-0151'`.
+2. **The known "RLS Hijack Co" leftover is explained by block 23 source.** Test 23d PATCHes A's `company_name` to `RLS Hijack Co` (test-rls:1938). Before the guard was applied the PATCH succeeded, and the JOURNAL extract (lines 247-249) records that the per-case resets were added after that first live run. A partner row still carrying that name means its teardown also failed, consistent with path 1.
+3. **New privileged-residue windows.** An interruption or a throw between 23j's admin write (:2016-2019) and its reset (:2030-2033) leaves persona A's row at `role admin, is_internal true, status suspended`; between 23k's write (:2039-2042) and its reset (:2049-2052) it leaves persona B as `role admin, is_internal true`; between :1966 and :1973 it leaves B suspended. Combined with path 1, an A row with `role admin` could persist in production. E21 shows `role`, `is_internal` and `status` for every test persona.
+4. **New restrict FKs that can block teardown if block 24's cleanup fails.** `projects.created_by` (20261016000003:40), `deal_line_syncs.created_by` (20261016000005:40) and `quote_pricing_confirmations.confirmed_by` (:74) point at INT; `deal_line_syncs.submission_id` (:28) and `quote_pricing_confirmations.submission_id` (:73) point at A's `linkedSub` and `looseSub` (test-rls:2109-2110). If any delete in test-rls:2271-2290 fails, the outer teardown of A and INT fails silently. `partner_contact_links.partner_id` cascades (20261016000002:239) and does not block.
+5. **Block 24 is protected against its own throws.** `seedSubmission` can still throw inside block 24 (test-rls:2109-2110); the inner `finally` runs before the outer one, so block 24 adds no throw-path leak beyond item 4.
+
+#### F.3 Assertion strength notes
+
+- Block 23 assertions require `error.code === '42501'` and re-read the row through service-role (test-rls:1945, :1970, :1981), so a pass proves the guard fired.
+- 24a, 24b and 24c count any read error as "denied" (test-rls:2136, :2147). A missing table or a wrong column would also pass.
+- 24d counts any insert error as "blocked" (test-rls:2171-2172), whether the cause is RLS, a missing grant or a constraint.
+- 24e and 24f fail on any error (test-rls:2191, :2210).
+
+#### F.4 Coverage map
+
+Columns follow Appendix A: **Partner** (A, unless marked B), **Internal**, **Admin**, **Anon**. "GAP" means no case at HEAD.
+
+**public.partners: guard trigger `trg_partners_guard_self_update` (block 23)**
+
+| Column or path | Partner denied / allowed | Internal | Admin (own JWT) | service_role | Anon |
+|---|---|---|---|---|---|
+| `role` | denied 23a :1935 | denied (self) 23g :1976-1984 | allowed on another row 23j :2013-2034 | allowed 23k :2036-2053 | GAP |
+| `is_internal` | denied 23b :1936 | GAP | allowed 23j | allowed 23k | GAP |
+| `pipedrive_user_id` | denied 23c :1937 | GAP | allowed 23j | allowed 23k | GAP |
+| `company_name` | denied 23d :1938 | GAP | GAP | GAP (only in unasserted resets) | GAP |
+| `logo_path` | denied 23e :1939 | GAP | GAP | GAP | GAP |
+| `status` | suspended B cannot reactivate 23f :1963-1974; active partner self-suspend GAP | GAP | allowed 23j | GAP (only in unasserted setup and resets) | GAP |
+| `phone` (self-editable) | allowed 23h :1986-1995 | GAP | n/a | n/a | n/a |
+| `contact_name`, `created_at`, `id` | GAP | GAP | GAP | GAP | GAP |
+| Update of another partner's row (RLS) | denied 23i :1997-2011 | GAP | allowed 23j | n/a | GAP |
+| Suspended admin (is_admin false) treated as non-admin by the guard | n/a | n/a | GAP | n/a | n/a |
+
+**Block 24 tables** (test-rls:2055-2292). Partner A is a plain partner; partner B is a login linked to the seeded contact (seed at :2119). Read loops cover all 13 tables in `PROJECT_TABLES` (:2063-2077).
+
+| Table | Command | Partner (A / B) | Internal | Admin | Anon |
+|---|---|---|---|---|---|
+| companies | SELECT | denied A 24a, B 24b :2131-2139 | allowed 24e :2186-2199 | GAP | denied 24c :2141-2150 |
+| | INSERT | denied 24d :2160 | denied 24g :2220-2221 | GAP | GAP |
+| | UPDATE, DELETE (ungranted) | GAP | GAP | GAP | GAP |
+| company_name_aliases | SELECT | denied 24a, 24b | allowed 24e | GAP | denied 24c |
+| | INSERT | denied 24d :2162 | GAP | GAP | GAP |
+| | UPDATE, DELETE (ungranted) | GAP | GAP | GAP | GAP |
+| contacts | SELECT | denied 24a, 24b | allowed 24e | GAP | denied 24c |
+| | INSERT | denied 24d :2161 | GAP | GAP | GAP |
+| | UPDATE, DELETE (ungranted) | GAP | GAP | GAP | GAP |
+| partner_contact_links | SELECT | denied 24a, 24b (B's own link hidden) | allowed 24e | GAP | denied 24c |
+| | INSERT | denied 24d :2157 | allowed with own `linked_by` 24f :2206; forged `linked_by` GAP | GAP | GAP |
+| | UPDATE | GAP | GAP | GAP | GAP |
+| | DELETE | denied 24d :2176-2177 | GAP | GAP | GAP |
+| projects | SELECT | denied 24a, 24b | allowed 24e | GAP | denied 24c |
+| | INSERT | denied 24d :2158 | forged `created_by` denied 24g :2218-2219; own insert GAP | GAP | GAP |
+| | UPDATE (incl. `created_by` reassignment) | GAP | GAP | GAP | GAP |
+| | DELETE | GAP | GAP | GAP | GAP |
+| | trigger `projects_check_primary_contact` (cross-company contact) | n/a | GAP | GAP | n/a |
+| project_contacts | SELECT | denied 24a, 24b | allowed 24e | GAP | denied 24c |
+| | INSERT | denied 24d :2159 | GAP (own and forged `added_by`) | GAP | GAP |
+| | UPDATE, DELETE | GAP | GAP | GAP | GAP |
+| project_submissions | SELECT | denied 24a, 24b | allowed 24e | GAP | denied 24c |
+| | INSERT | denied 24d :2156 (attach own submission) | allowed with own `linked_by` 24f :2205; forged `linked_by` GAP | GAP | GAP |
+| | UPDATE | denied 24d :2174-2175 | GAP | GAP | GAP |
+| | DELETE | GAP | GAP | GAP | GAP |
+| system_design_rules | SELECT | denied 24a, 24b | allowed 24e | GAP | denied 24c |
+| | INSERT | denied 24d :2163 | GAP | allowed 24h :2239 | GAP |
+| | UPDATE | GAP | denied 24g :2222-2223 | GAP | GAP |
+| | DELETE (ungranted) | GAP | GAP | GAP | GAP |
+| | stamp and audit triggers | n/a | n/a | GAP (24h checks audit for bom_rules only) | n/a |
+| bom_rules | SELECT | denied 24a, 24b | allowed 24e | GAP | denied 24c |
+| | INSERT | denied 24d :2164 | GAP | allowed 24h :2237; unknown SKU refused 24h :2242 | GAP |
+| | UPDATE | GAP | GAP | allowed and `updated_by` stamped 24h :2238 | GAP |
+| | DELETE (ungranted) | GAP | GAP | denied 24h :2241 | GAP |
+| | `trg_bom_rules_check_sku` on UPDATE OF sku | n/a | n/a | GAP | n/a |
+| design_rules_audit | SELECT | denied 24a, 24b | denied 24e :2193-2196 | allowed, rows attributed 24h :2240 | denied 24c |
+| | INSERT, UPDATE, DELETE (ungranted) | GAP | GAP | GAP | GAP |
+| deal_line_syncs | SELECT | denied 24a, 24b | allowed 24e | GAP | denied 24c |
+| | INSERT | denied 24d :2165 | allowed with own `created_by` 24f :2207; duplicate (deal, sku, role) refused 23505 24g :2228-2229; forged `created_by` GAP | GAP | GAP |
+| | UPDATE (any column, incl. price, status, `created_by`) | GAP | GAP | GAP | GAP |
+| | DELETE (ungranted) | GAP | denied 24g :2224-2225 | GAP | GAP |
+| quote_pricing_confirmations | SELECT | denied 24a, 24b | allowed 24e | GAP | denied 24c |
+| | INSERT | denied 24d :2166 | allowed with own `confirmed_by` 24f :2208; forged `confirmed_by` GAP | GAP | GAP |
+| | UPDATE (ungranted) | GAP | GAP | GAP | GAP |
+| | DELETE (ungranted) | GAP | denied 24g :2226-2227 | GAP | GAP |
+| company_sync_includes | SELECT | denied 24a, 24b | allowed 24e | GAP | denied 24c |
+| | INSERT | denied 24d :2167 | denied 24i :2255 | allowed 24i :2258; forged `added_by` denied 24i :2257 | GAP |
+| | UPDATE | GAP | GAP | GAP | GAP |
+| | DELETE | GAP | denied 24i :2256 | allowed 24i :2259 | GAP |
+
+Cross-cutting: a suspended internal user on any of the 13 tables (is_internal has no status check): GAP. Partner B in 24b proves a linked login reads nothing from these tables; whether B reads the quotes ADR 0152 intends through `on_behalf_of_partner_id` is outside block 24.
+
+---
+
+### G (delta). Updated gaps list
+
+Earlier gaps 1 to 48 (Appendix A numbering), with delta status:
+
+1. **CLOSED** by 20261016000001 (guard trigger, A.1). `authenticated` still holds table-wide UPDATE; the guard now limits client roles to `phone`.
+2. OPEN. `submissions` unguarded columns (unchanged).
+3. OPEN. On-behalf grant by the submission creator (unchanged).
+4. OPEN. Delete-guard bypass by status update (unchanged).
+5. OPEN, wider. `is_internal()` still checks no status (20260605000004:20-23); a suspended internal user now also keeps read and write access on the 12 new internal tables.
+6. OPEN. `is_admin` / `is_internal` RPC role oracle (unchanged).
+7. OPEN. `camera_aliases_text` (unchanged).
+8. OPEN. `current_products` anon default (unchanged).
+9. OPEN. `pg_trgm` schema (unchanged).
+10. OPEN. `partner_logos_public_read` listing (unchanged).
+11. OPEN. Bucket limits (unchanged).
+12. OPEN, wider. No FORCE RLS on any of the 26 tables.
+13. OPEN, wider. Five more sequences with no explicit grant (see 51).
+14. OPEN. `rls_auto_enable` hand-created history (unchanged).
+15. Historical, unchanged.
+16. OPEN. Four policy-changing migrations without rollbacks (unchanged; all six delta migrations have rollbacks).
+17. OPEN. Script-made `product_specs` data drift (unchanged).
+18. **CLOSED.** The A2 objects are now in source and documented in A (delta); live state still needs E19 and E26.
+19. OPEN. Provisioning outside `try` (now test-rls:119-123).
+20. OPEN. No signal handling.
+21. OPEN. Teardown ignores errors (now test-rls:82-86); block 24's cleanup also ignores errors (test-rls:2271-2290).
+22. OPEN. Persona A still leaks on every run that reaches test-rls:589 (now :588-609 seed, :2294 teardown). See F.2 item 1.
+23. OPEN. Quote restrict-FK teardown block (line numbers +1).
+24. OPEN. Duplicate test ids `12` and `20a-20h` (unchanged).
+25. OPEN. `RUN_0083_TESTS` gate (now test-rls:977).
+26. **CLOSED.** Blocks 23 and 24 are in the checkout.
+27. OPEN. partners SELECT: internal reading all rows; anon.
+28. **PARTLY CLOSED.** Self-update allowed (23h), cross-partner update denied (23i) and admin updating another row (23j) are now covered. Still GAP: internal user updating another partner's row; anon.
+29. OPEN. partners INSERT and DELETE denial.
+30. **PARTLY CLOSED.** `role` (23a, 23g), `is_internal` (23b), `pipedrive_user_id` (23c), `company_name` (23d), `logo_path` (23e) and suspended self-reactivation (23f) are covered. Still GAP: `contact_name`, `created_at`, `id`; internal user changing columns other than `role`; a suspended admin being treated as non-admin.
+31. to 48. OPEN, unchanged (products, current_products, submissions, product_specs, product_specs_audit, competitor_products, camera_specs, project_quotes, access_requests, appliance_specs, appliance_specs_audit, submission_internal_archives, pipedrive_deal_cache, storage, functions).
+
+New structural anomalies (from the delta source):
+
+49. `deal_line_syncs_update_internal` re-checks no column (20261016000005:119-123): any internal user can rewrite `sku`, `qty`, `item_price_sent`, `status`, `pipedrive_deal_product_id`, `submission_id` and `created_by` on any ledger row, though the table's comment says retries rely on these rows (:16-21).
+50. `projects_update_internal` WITH CHECK does not re-check `created_by` (20261016000003:165-169); the INSERT-time attribution check (:157-163) can be undone by a later UPDATE.
+51. Five new sequences receive no explicit grant or revoke; Supabase default (assumed): `company_name_aliases` (20261016000002:169), `bom_rules` (20261016000004:51), `design_rules_audit` (:105), `deal_line_syncs` (20261016000005:25), `quote_pricing_confirmations` (:69).
+52. Attribution columns accept null on client writes: `partner_contact_links.linked_by` (20261016000002:302, :311), `project_contacts.added_by` (20261016000003:189, :198), `project_submissions.linked_by` (:218, :228), `company_sync_includes.added_by` (20261016000006:188, :197). A writer can omit attribution; forging another user's id is blocked.
+53. `bom_rules_check_sku()` is SECURITY DEFINER (20261016000004:73-85) and reads every `products` row regardless of RLS. `search_path` is pinned and EXECUTE revoked; it is one of 7 SECURITY DEFINER functions at HEAD.
+54. The partners guard lets every role other than `authenticated` and `anon` pass (20261016000001:60-62). Any future role that PostgREST or a custom JWT can assume would bypass it.
+
+New test-rls.ts findings:
+
+55. Block 23 writes privileged values to live test personas (A to `role admin, is_internal true, status suspended` at test-rls:2016-2019; B to `role admin, is_internal true` at :2039-2042) and resets them in a separate statement (:2030-2033, :2049-2052). An interruption between write and reset leaves a privileged test row in production; combined with gap 22, persona A can persist.
+56. 24a, 24b and 24c count any read error as denied (test-rls:2136, :2147), and 24d counts any insert error as blocked (:2171-2172); neither checks for 42501.
+57. Block 24's cleanup ignores errors (test-rls:2271-2290). A failed delete there leaves rows whose restrict FKs (`projects.created_by`, `deal_line_syncs.created_by`, `quote_pricing_confirmations.confirmed_by`, and the `submission_id` FKs at 20261016000005:28, :73) silently block teardown of A and INT.
+58. 23h changes persona A's `phone` to `555-0151` and never resets it (test-rls:1989).
+
+New coverage GAPs (no case at HEAD):
+
+59. Guard: `contact_name`, `created_at`, `id`; internal user changing `is_internal`, `pipedrive_user_id`, `company_name`, `logo_path`, `status`; admin changing `company_name`, `logo_path`; suspended admin treated as non-admin; anon.
+60. companies, company_name_aliases, contacts: admin SELECT; internal INSERT for aliases and contacts; UPDATE and DELETE by every role; anon writes.
+61. partner_contact_links: admin all commands; internal UPDATE and DELETE; forged `linked_by`; anon writes.
+62. projects: internal own INSERT; UPDATE (including `created_by` reassignment) and DELETE by every role; admin all commands; the primary-contact trigger; anon writes.
+63. project_contacts: internal and admin INSERT, UPDATE, DELETE; forged `added_by`; anon writes.
+64. project_submissions: internal UPDATE and DELETE; admin all commands; forged `linked_by`; anon writes.
+65. system_design_rules: internal INSERT; partner UPDATE; admin UPDATE; DELETE by every role; stamp and audit on this table; anon writes.
+66. bom_rules: internal INSERT and UPDATE; partner UPDATE and DELETE; SKU check on `update of sku`; anon writes.
+67. design_rules_audit: INSERT, UPDATE and DELETE by every role.
+68. deal_line_syncs: UPDATE by every role (including internal rewriting price or `created_by`); forged `created_by` on INSERT; admin all commands; partner DELETE; anon writes.
+69. quote_pricing_confirmations: UPDATE by every role; forged `confirmed_by`; admin all commands; partner DELETE; anon writes.
+70. company_sync_includes: UPDATE by every role; partner DELETE; anon writes.
+71. Suspended internal user on any of the 13 new tables.
+72. Functions: EXECUTE denial for anon and authenticated on the five delta trigger functions (E25 checks it live; no test).
