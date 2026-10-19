@@ -47,7 +47,7 @@ the save and decides where the snapshot is banked.
 - The failover days default rounds up with a 1e-9 tolerance and is never below 1.
 - Ceilings on rep-entered counts: primaries per failover 1 to 100 (the rule too), workstations 0 to
   500, failover days 1 to 730. All must be safe integers. A SKU that is not text is reported as an
-  inactive SKU instead of throwing. The 100 and 500 are placeholders for Andy to confirm.
+  inactive SKU instead of throwing. Andy confirmed the 100 and 500 on 2026-10-19.
 - SFP+ or GPU on with no active BOM rule for recorders is an error. For an item that is on, the
   recorders' and failovers' add-ons are compared by SKU and quantity, with or without a failover in
   the calc, and a difference is a warning: it most likely means one retired row of a pair. Known

@@ -81,7 +81,7 @@ export const MAX_QTY_PER_SERVER = 100;
 export const MAX_PRIMARIES_PER_FAILOVER = 100;
 // The most workstations one calc may carry, checked by the resolver and the BOM.
 export const MAX_WORKSTATIONS = 500;
-// The ceilings are placeholders for Andy to confirm (security review S-3, 2026-10-19).
+// Ceilings from security review S-3, confirmed by Andy on 2026-10-19.
 
 const RULES: Record<string, RuleSpec> = {
   failover_days_fraction: {

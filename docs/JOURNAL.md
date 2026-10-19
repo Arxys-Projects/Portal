@@ -4,6 +4,23 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-10-19 - System design ceilings confirmed; read-only SFP+ specs check
+
+### Work done
+
+- **Andy confirmed the ceilings on rep-entered counts** from the Step 3 review (S-3): 100 primaries
+  per failover, 500 workstations, 100 of one add-on per server. The code was already enforcing them;
+  only the "placeholder" notes changed (ADR 0158, the brief, `rules.ts`).
+- **`scripts/check-sfp-pool-specs.sql`**: a read-only query for the SQL editor. For every SKU in the
+  recommender's pool, it shows `rack_units` and `sfp_addon`, whether they agree, and whether the
+  server stays in the pool when SFP+ is on. It reads both columns the way `pool-filters.ts` does.
+  Tested in PGlite against stub tables with each edge case (1U spellings, "Tower", blank, "NO" on a
+  4U, a hidden NCD SKU, the V100). Andy runs it before Step 4 turns SFP+ on. Result pending.
+
+RUNBOOK unchanged.
+
+---
+
 ## 2026-10-19 - A failover holds each group for at most its own retention (ADR 0163)
 
 ### Work done
