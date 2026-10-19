@@ -55,5 +55,5 @@ Source of truth for every baseline finding. Created in Group 1 (2026-10-19). Eac
 | K-3 | Pipedrive v1 and name-based upserts (`contacts.ts`, `lookups.ts`, `forecast.ts`, 14-day guard) | Not yet reviewed | Slice 4 | |
 | K-4 | `ensureCustomFields()` creates fields on any deal write | Not yet reviewed. It also runs inside the B1-S-2 path. | Slice 4 | B1-S-2 |
 | K-5 | 100 duplicated legacy Pipedrive codes; `VX5-RAM-32GB` inactive in the portal but linkable | Pipedrive side not yet reviewed. A new price version would re-activate it in the portal. | Slice 4 | B1-A-4 |
-| K-6 | Leftover live test persona "RLS Hijack Co" | Still present, likely an admin. The root cause is in the committed teardown. | Slice 1 | B1-S-6 |
+| K-6 | Leftover live test persona "RLS Hijack Co" | Still present. Andy confirmed on 2026-10-19 that it is a test account from a security review run. Check its `role`, `is_internal` and `status` before deleting it, since it may still hold admin from the pre-fix run. The root cause is in the committed teardown. | Slice 1 | B1-S-6 |
 | K-7 | Hand-applied migrations, possible live drift | Drift confirmed (at least six migrations). Full diff waits for Andy's Appendix A section E results. | Slice 1 | B1-A-2, B1-A-3 |
