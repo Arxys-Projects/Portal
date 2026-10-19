@@ -140,6 +140,23 @@ What the advisor cannot see:
 
 Its silence on those is expected and does not clear them. It raised nothing on the 13 live-only Project Portal tables or the ADR 0151 guard trigger: no table without RLS, no definer view and no mutable `search_path`.
 
+### Supabase Performance Advisor
+
+Same run (observed 18:43:31 UTC). Every result is INFO.
+
+| Advisor lint | Objects | Matches | Effect |
+|---|---|---|---|
+| `unindexed_foreign_keys` (16) | Base portal (5): `appliance_specs_updated_by_fkey`, `appliance_specs_audit_changed_by_fkey`, `product_specs_updated_by_fkey`, `product_specs_audit_changed_by_fkey`, `project_quotes_generated_by_fkey` | B1-A-13 | Confirmed live. These are the five foreign keys the architect named. |
+| | Live-only Project Portal tables (11): `bom_rules`, `company_sync_includes`, `deal_line_syncs`, `design_rules_audit`, `partner_contact_links` (two), `project_contacts`, `project_submissions`, `projects`, `quote_pricing_confirmations`, `system_design_rules` | none (not in this checkout) | Ten are audit-style user foreign keys (`*_by`) with low impact. **`partner_contact_links_contact_id_company_id_fkey` is composite.** Per the JOURNAL a link's company follows its contact, so a cascade from `contacts` would scan `partner_contact_links` without an index. Worth an index in the review of the 2026-10-16 work. |
+| `unused_index` (7) | Base portal (4): `partners_status_idx`, `project_quotes_deal_idx`, `competitor_products_vendor_idx`, `pipedrive_deal_cache_open_read_at_idx` | B1-A-14 area (complexity) | Removal candidates, but only after a longer window, since usage statistics reset on restart. |
+| | Live-only (3): `contacts_email_lower_idx`, `projects_created_at_idx`, `deal_line_syncs_open_idx` | none | Tables created 2026-10-16 with no app reads yet. Expected; no action. |
+| `auth_db_connections_absolute` | Auth server capped at 10 connections | none in Slice 1 | A new item for the Slice 2 dashboard checklist: switch Auth to percentage-based connection allocation before any instance resize. |
+
+What the Performance Advisor did not report:
+- **No `auth_rls_initplan` warning.** That fits the finding that every policy wraps `auth.uid()` in `(select ...)` (Appendix C, claim 3).
+- **No `multiple_permissive_policies` warning.** That fits ADR 0055's consolidation.
+- **Nothing on B1-A-6.** Its claim that the SECURITY DEFINER role helpers run once per row is outside this lint's reach, so it stays PLAUSIBLE on performance. The security half (B1-S-3) is unaffected.
+
 ## Andy action items
 
 Items 1 to 4 are urgent.
@@ -162,7 +179,7 @@ Items 1 to 4 are urgent.
    - The B1-S-2 fix needs code and SQL together, because the calculator writes `pipedrive_deal_id` with the partner's own client. There is no SQL-only stopgap.
 5. **Push the 2026-10-16 work**, and commit the PGlite harness.
 6. **Run the live verification queries in Appendix A, section E (E1 to E24).** They are read only. Paste the results back so the next session can diff live against the matrix.
-7. **Security Advisor: done 2026-10-19.** The results are in "Live evidence" below. **Still to run:** the Performance Advisor. Compare its output with B1-A-6 (per-row role helpers) and B1-A-13 (unindexed foreign keys).
+7. **Security Advisor and Performance Advisor: both done 2026-10-19.** The results are in "Live evidence" above.
 8. **Run the read-only data checks in Appendix C, action item 3:**
    - duplicate preferred quotes
    - duplicate pending access requests
