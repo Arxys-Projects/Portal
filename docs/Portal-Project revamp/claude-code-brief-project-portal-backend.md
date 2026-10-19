@@ -5,7 +5,7 @@
 
 Written 2026-10-16 from a planning session with Andy. This file is the source of truth for the build. Update it at each gate with anything discovered or decided, so the next session starts from the corrected brief.
 
-**Status:** Step 0 done 2026-10-16. Its results and Andy's decisions are folded in below; see "Step 0 results" and the JOURNAL entry "Project Portal backend, Step 0". Two prerequisites it surfaced are fixed and live: the partner self-escalation hole (ADR 0151) and the price push deleting Pipedrive products (ADR 0150). Step 1 done 2026-10-16: migrations 20261016000002 to 000005 applied by Andy, live RLS suite all pass (section 24 included); ADRs 0153 to 0155, apply note `docs/apply-notes/0153-project-portal-schema.md`. Addendum 20261016000006 (company include list, ADR 0156) applied and verified the same day (24i passes). Step 2 done 2026-10-16 (ADR 0157; see "Step 2 results"): Andy ran `--execute` (64 companies, 413 contacts) and `--apply-mapping` with the full proposed file (8 aliases, 68 login links). Next: Step 3.
+**Status:** Step 0 done 2026-10-16. Its results and Andy's decisions are folded in below; see "Step 0 results" and the JOURNAL entry "Project Portal backend, Step 0". Two prerequisites it surfaced are fixed and live: the partner self-escalation hole (ADR 0151) and the price push deleting Pipedrive products (ADR 0150). Step 1 done 2026-10-16: migrations 20261016000002 to 000005 applied by Andy, live RLS suite all pass (section 24 included); ADRs 0153 to 0155, apply note `docs/apply-notes/0153-project-portal-schema.md`. Addendum 20261016000006 (company include list, ADR 0156) applied and verified the same day (24i passes). Step 2 done 2026-10-16 (ADR 0157; see "Step 2 results"): Andy ran `--execute` (64 companies, 413 contacts) and `--apply-mapping` with the full proposed file (8 aliases, 68 login links). Step 3 done 2026-10-19 (ADRs 0158 to 0161; see "Step 3 results"): pure engines and tests, review gate passed after fixes, committed locally, nothing live touched. One open question for Andy (the failover retention cap, ADR 0159). Next free ADR: 0162. Next: Step 4.
 
 ## How to run this brief
 - Run one step per session unless a step is small enough to pair with the next.
@@ -25,7 +25,7 @@ Written 2026-10-16 from a planning session with Andy. This file is the source of
 - RLS changes are stop-and-flag. Every new table gets explicit policies; the `ensure_rls` trigger makes new tables deny-all by default.
 - No live Pipedrive writes without Andy's explicit go-ahead for that specific write.
 - The partner self-serve path (full calculator, Quick Calc, Register a Deal) must behave bit-identically. Golden and recommender tests stay green.
-- JOURNAL entry per step. ADR for every non-obvious choice, numbered from the next free number (0158+; 0150 to 0157 were taken on 2026-10-16). Check the number is free right before writing; 0146 collided before, and parallel sessions share this checkout.
+- JOURNAL entry per step. ADR for every non-obvious choice, numbered from the next free number (0162+; 0150 to 0157 were taken on 2026-10-16, 0158 to 0161 on 2026-10-19). Check the number is free right before writing; 0146 collided before, and parallel sessions share this checkout.
 - New Pipedrive calls use the v2 API. The v1 org, person, deal and product endpoints have been out of support since 2026-08-01. The existing partner path stays on v1 for now (bit-identical rule); moving it is separate work.
 - Never send `active_flag: false` to a Pipedrive product: it deletes the product. "Off the deal picker" is `is_linkable: false` (ADR 0150).
 
@@ -118,17 +118,59 @@ All tables are internal-only (policies gated on `is_internal(auth.uid()) OR is_a
 - Written 2026-10-16 by Andy: `--execute` (64 companies, all active; 413 contacts, 378 with email) and `--apply-mapping` with the whole proposed file (8 aliases: 5 portal spellings, 3 unlabeled Pipedrive orgs; 68 login links). Verified by count afterwards. Logins not linked: 2 company mismatches, 3 duplicate emails, 17 with no matching contact (listed in the dry run).
 - Leftover live test persona "RLS Hijack Co" (`rls-test-a-1792186404373@arxys-rls-test.invalid`) from an earlier interrupted RLS run: delete it.
 
-## Step 3: Pure engines (no I/O, fully unit-tested)
+## Step 3: Pure engines (no I/O, fully unit-tested). DONE 2026-10-19.
 - `resolveSystemDesign(calcInputs, projectDefaults, rules)` → resolved inputs plus a rules snapshot.
 - `recommendFailover(primary, groupsTotals, failoverDays, ratio, candidates, {excludeOneU})`: new function using the same candidate pool and filters as the primary, plus the SFP+ 1U exclusion. Two choices to make and record in the failover ADR (Step 0 results item 5): the sizing basis (required capacity with the utilization buffer and binary charge, like the primary, or recorded data; recommended: the primary's basis), and the daily load on a mixed-retention calc (each group's storage divided by its own retention, summed).
 - Primary recommender: add an `excludeOneU` filter applied only when SFP+ is on, keyed on `product_specs.rack_units = '1U'`, with a test that `sfp_addon` agrees on every pool SKU. The default path stays bit-identical (golden tests prove it: `src/lib/calculator/golden.test.ts`, `src/lib/recommend/*.test.ts`).
 - `buildBom(primary, failover, mgmt, gpu, sfp, workstations, bomRules)` → lines `{sku, qty, role, ruleId}`. **No prices.**
 - Tests: SFP+ on a calc that would have picked V200; GPU on V200; failover count rounding; failover with no qualifying SKU; failover-pair management (2 units); zero workstations; a rule edited after save where the snapshot holds the old value.
 
+### Step 3 results (2026-10-19; pure code, recheck numbers against live data in Step 4)
+- **Built** (all pure, no I/O):
+  - `src/lib/recommend/pool-filters.ts`: the `excludeOneU` option, shared by both recommenders, plus the `sfp_addon` cross-check (ADR 0160).
+  - `recommend(input, specs, options?)`: the default path is the same pool array and outputs as before.
+  - `src/lib/recommend/failover.ts`: `recommendFailover(primary, groups, failoverDays, ratio, specs, options)` (ADR 0159).
+  - `src/lib/system-design/rules.ts`: `parseDesignRules` and the snapshot.
+  - `src/lib/system-design/resolve.ts`: `resolveSystemDesign` and `dedicatedManagementSuggestion` (ADR 0158).
+  - `src/lib/system-design/bom.ts`: `buildBom` (ADR 0161).
+  - `src/lib/system-design/size.ts`: `sizeProjectDesign`, the one chain after resolution (primary and failover with the same specs and `excludeOneU = sfp`, then the BOM and the merged warnings). Sizing errors come back as `ok: false`. `engines.test.ts` runs it.
+- **Signatures that differ from the sketch above:**
+  - `resolveSystemDesign` takes a fourth argument, `catalog` (the management and workstation dropdown SKUs).
+  - `recommendFailover` takes per-group `{ storageGb, retentionDays }`, because the calc totals carry no retention.
+  - `buildBom` takes one object with the same names, so the `gpu` and `sfp` booleans cannot be swapped by position.
+- **Decisions:**
+  - Failover sizes on the primary's basis (required capacity).
+  - Daily load = Σ each group's storage ÷ its own retention.
+  - Per unit = (daily ÷ primary units) × failover days, exactly as locked.
+  - A malformed or missing rule refuses the calc; there is no fallback constant. So does a BOM row with no `active` flag.
+  - The snapshot is the known rule rows plus the active BOM rules, in row shape. It fixes the rules; the design also depends on the calc inputs and the dropdown catalog, so a saved calc reopens from its banked resolved design and BOM (ADR 0158).
+  - Retention for the failover default is group, then calc: the chain sizing uses. No project fallback.
+  - With SFP+ on, `rack_units` is parsed ("1 U", "1RU" are 1U) and only 2U or taller stays; blank or unreadable is left out.
+  - SFP+ or GPU on with no active rule for recorders refuses the calc. Different add-ons (SKU or quantity) on failovers than on recorders warns, with or without failover in the calc.
+  - Failover days are whole days from 1 to 730. Caps: primaries per failover 1 to 100, workstations 0 to 500, add-on quantity per server 1 to 100 (placeholders for Andy).
+  - GPU with Milestone, Genetec or ExacqVision warns but stays on.
+- **Numbers on the frozen 2026-08-12 pool:** Escambia's shape (18 × V800-864, half retention) gives 9 × V700-480 ($75,995 each, against $117,054 for a V800-864). On the recorded-data basis it would be V700-384. SFP+ on a 20-camera calc moves the pick from 1 × V200-64 to 1 × V400-128.
+- **Open for Andy:**
+  - **Failover retention cap** (ADR 0159). Default failover days come from the longest retention, so on a mixed calc a short group is counted for days it does not keep (a 7-day group at 45 days is 6.4 times its kept footage). Capping each group at its own retention is a one-line change. It is correct only if the failover server applies per-camera retention instead of keeping everything until merge-back.
+  - **Caps** on rep-entered counts: 100 primaries per failover, 500 workstations, 100 of one add-on per server. Placeholders; confirm or change.
+  - **Live specs check** before Step 4 turns SFP+ on: a read-only probe of `product_specs.rack_units` and `sfp_addon` for the pool SKUs. The test reads the June seed file; live values were last read in Step 0.
+- **Review gate (2026-10-19), three passes:** architect and security reviews as fresh subagents. Each confirmed the partner path is identical to HEAD by fuzzing the old against the new `recommend()` (60,000 comparisons per run, 0 differences). Fixed before commit: exact-"1U" match (A-1), silent missing add-ons (A-2, closed on the third pass), snapshot claim too broad (A-3), sizing glue only in a test (A-4), retention resolved two ways (A-5), the old Step 4 bullet offering `submissions` (A-6), groups and design retention unchecked in the sizing chain (A-7), and the input hardening S-2 to S-5 and S-7. S-1 is a Step 4 constraint, below.
+- **For Step 4:**
+  - Add `rack_units, sfp_addon` to the pool query (`loadCandidateSpecs`, or a project-only loader if the partner query must stay byte-identical). Until then an SFP+ calc gets `ok: false` from `sizeProjectDesign`.
+  - Load the dropdown SKUs for `catalog` on the server, from active products. Never take them, or a snapshot, from the request.
+  - Validate the system design request with zod at the `submitCalculation` boundary, with a length cap on SKU text.
+  - Log a `sizeProjectDesign` `ok: false` error and show the rep a plain message; its text comes from engine internals.
+  - Call `resolveSystemDesign`, then `sizeProjectDesign` with the same `totals` the partner path passes to `recommend()` and each computed group's `storageGb` and resolved `retentionDays`.
+  - **Bank the resolved design, the snapshot and the BOM in a side table with no INSERT, UPDATE or DELETE grant for `authenticated`, written only by server code that first checks the caller owns the submission** (security review S-1, ADR 0158). Never bank them on `submissions`. Add a `scripts/test-rls.ts` case that a partner and an internal non-admin cannot write the table. Display and reopen from the banked design; re-resolve only on a new save.
+- **Unverified:**
+  - Live `product_specs` values. The agreement test reads the seed file `20260602000001_quickcompare_columns.sql`; live drift shows only as the runtime warning.
+  - How any VMS handles retention on a failover server.
+  - No server action or database path was exercised.
+
 ## Step 4: Calc save integration (server side)
 - `submitCalculation` accepts optional `projectId` and `systemDesign`, honored **only** when the caller is internal and the project exists (verified server side).
 - `input_state` version → 4; the normalizer defaults v1 to v3 rows unchanged. Bump `calc_version` only if banked figures change.
-- Bank the BOM and rules snapshot in a jsonb on `submissions` (internal-written, read-only display) or a side table; decide and record in an ADR. The project link goes in `project_submissions`.
+- Bank the resolved design, the rules snapshot and the BOM in a side table that only server code writes, as "Step 3 results" (For Step 4) and ADR 0158 set out; never on `submissions`. Decide its shape and record it in an ADR. The project link goes in `project_submissions`.
 - For project calcs, the project's company and contact replace the on-behalf picker. Decided (ADR 0152): never write `on_behalf_of_company_name`; set `on_behalf_of_partner_id` to the primary contact's linked login when exactly one exists, verified server-side like today's picker (active, non-internal). That is how My Pipeline, the Project Quote download (ADR 0083) and `groupIntoDeals` find the login, unchanged. With no login or several, leave it null.
 - Scope the 14-day duplicate guard to the project for project calcs.
 - Keep the old failover / management add-on booleans readable for legacy rows; project calcs use system design instead.
@@ -172,7 +214,7 @@ UI screens and screen server actions (after the design pass), renaming `/project
 >
 > Read `docs/Portal-Project revamp/claude-code-brief-project-portal-backend.md` in full, then `AGENTS.md` and the files it lists under "Read first". Execute **Step 0 only** (read-only discovery). Report findings and the final step plan, then stop. Do not write code, migrations, or docs in this session.
 
-For later sessions, change the step number and add one line pointing to the previous step's JOURNAL entry.
+For later sessions, change the step number and add one line pointing to the previous step's JOURNAL entry. Step 3 ran from its own prompt file, `claude-code-prompt-step-3-pure-engines.md` (beside this brief). Step 4 previous step: JOURNAL 2026-10-19 "Project Portal backend, Step 3: pure engines" (ADRs 0158 to 0161), and "Step 3 results" above.
 
 ## Kickoff prompt (Step 1)
 

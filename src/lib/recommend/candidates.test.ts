@@ -109,6 +109,23 @@ describe("selectCandidates (pool assembly, ADR 0094)", () => {
     );
   });
 
+  it("carries rack_units and sfp_addon for the SFP+ filter, null when the row lacks them", () => {
+    const specs = selectCandidates(
+      [price("VX5-V200-64", "V200", 20470), price("VX5-V400-128", "V400", 31034)],
+      [
+        { ...spec("VX5-V200-64", 100, 64, 4, "5"), rack_units: "1U", sfp_addon: "No" },
+        spec("VX5-V400-128", 150, 128, 8, "6"),
+      ],
+    );
+    assert.deepEqual(
+      specs.map((s) => [s.sku, s.rackUnits, s.sfpAddon]),
+      [
+        ["VX5-V200-64", "1U", "No"],
+        ["VX5-V400-128", null, null],
+      ],
+    );
+  });
+
   it("returns an empty pool when nothing joins, leaving the caller to report it", () => {
     assert.deepEqual(selectCandidates([price("VX5-V400-160", "V400", 34206)], []), []);
     assert.deepEqual(selectCandidates([], [spec("VX5-V400-160", 150, 160, 8, "6")]), []);

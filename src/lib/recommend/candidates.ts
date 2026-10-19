@@ -55,6 +55,12 @@ export type SpecCapacityRow = {
   storage_raw_tb: number | string | null;
   hdd_count: number | string | null;
   raid_level_display: string | null;
+  // For the SFP+ 1U exclusion (ADR 0160). Optional: loadCandidateSpecs does not
+  // select them yet, so on today's partner path both come through as null and
+  // nothing reads them. The project path selects them when it passes excludeOneU
+  // (Step 4); left unselected, excludeOneU empties the pool and errors.
+  rack_units?: string | null;
+  sfp_addon?: string | null;
 };
 
 /**
@@ -99,6 +105,8 @@ export function selectCandidates(
       usableStorageTb: usableTb,
       msrp: Number(row.msrp),
       priceType: "numeric" as const,
+      rackUnits: spec.rack_units ?? null,
+      sfpAddon: spec.sfp_addon ?? null,
     });
   }
 

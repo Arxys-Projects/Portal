@@ -5,6 +5,7 @@ import {
   type RecommendationResult,
   type ServerSpec,
 } from "./types";
+import { applyPoolOptions, type PoolOptions } from "./pool-filters";
 
 // Storage-first SKU-level recommendation (ADR 0068, replacing the raw-storage +
 // camera-count sizing of ADR 0032).
@@ -106,9 +107,12 @@ function strip({ excess: _excess, ...rest }: EvalCandidate): RecommendationCandi
   return rest;
 }
 
+// `options` is for project calcs only (ADR 0160): excludeOneU when SFP+ is on.
+// Omitted, the pool and every output are exactly what they were before it existed.
 export function recommend(
   input: RecommendationInput,
   specs: readonly ServerSpec[],
+  options: PoolOptions = {},
 ): RecommendationResult {
   if (specs.length === 0) {
     throw new Error("recommend(): specs list is empty");
@@ -129,8 +133,12 @@ export function recommend(
   if (numericSpecs.length === 0) {
     throw new Error("recommend(): no numeric-priced SKUs in pool (all MKT/CFQ)");
   }
+  const { pool, warnings: poolWarnings } = applyPoolOptions(numericSpecs, options);
+  if (pool.length === 0) {
+    throw new Error("recommend(): no SKUs left after excluding 1U servers (SFP+ is on)");
+  }
 
-  const evaluated = numericSpecs.map((spec) => evaluate(spec, input));
+  const evaluated = pool.map((spec) => evaluate(spec, input));
   evaluated.sort(compare);
 
   const [winner, ...rest] = evaluated;
@@ -142,13 +150,15 @@ export function recommend(
     );
   }
   const neededUsableTb = input.totalStorageGb / GB_PER_TB;
-  const maxSingleUsable = Math.max(...numericSpecs.map((s) => s.usableStorageTb));
-  const maxSingleCameras = Math.max(...numericSpecs.map((s) => s.maxCameras));
+  const maxSingleUsable = Math.max(...pool.map((s) => s.usableStorageTb));
+  const maxSingleCameras = Math.max(...pool.map((s) => s.maxCameras));
   if (neededUsableTb > maxSingleUsable || input.totalVsr > maxSingleCameras) {
     warnings.push(
       "Workload exceeds the largest single VideoX SKU on at least one dimension. Sales engineering should review before quoting.",
     );
   }
+  // Last, so the default path's warnings (where this is empty) keep their order.
+  warnings.push(...poolWarnings);
 
   return {
     winner: strip(winner),

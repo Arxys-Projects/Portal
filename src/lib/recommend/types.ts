@@ -22,6 +22,11 @@ export type ServerSpec = {
   usableStorageTb: number;
   msrp: number;
   priceType: "numeric" | "market" | "call_for_quote";
+  // product_specs.rack_units and sfp_addon, for the SFP+ 1U exclusion (ADR
+  // 0160). Optional so the frozen golden pool and older fixtures stay valid.
+  // Read only when a caller passes excludeOneU; the default path ignores them.
+  rackUnits?: string | null;
+  sfpAddon?: string | null;
 };
 
 export type RecommendationInput = {

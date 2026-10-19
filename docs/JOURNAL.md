@@ -4,6 +4,91 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-10-19 - Project Portal backend, Step 3: pure engines (system design, failover, SFP+, BOM)
+
+### Work done
+
+- **Ran Step 3 of the Project Portal backend brief** from its prompt file
+  (`Portal-Project revamp/claude-code-prompt-step-3-pure-engines.md`). Pure TypeScript, no I/O: no
+  migration, no query change, no Pipedrive call, no UI.
+- **SFP+ 1U exclusion** (`src/lib/recommend/pool-filters.ts`, ADR 0160). `recommend()` takes an
+  optional `{ excludeOneU }`. When it is set, only servers whose `product_specs.rack_units` reads as
+  2U or taller stay in the pool ("1 U" and "1RU" count as 1U; blank or unreadable is left out), and
+  any SKU whose `sfp_addon` disagrees adds a warning. Without it the pool
+  is the same array as before. `ServerSpec` gains optional `rackUnits` / `sfpAddon`, and
+  `selectCandidates` carries them. `loadCandidateSpecs` is unchanged; Step 4 adds the two columns to
+  its select.
+- **Failover** (`src/lib/recommend/failover.ts`, ADR 0159). `recommendFailover()` sizes on the
+  primary's basis (required capacity), with daily load = Σ each group's storage ÷ its own
+  retention, per unit = (daily ÷ primary units) × failover days, and the primary SKU's camera rating
+  as the floor. Same pool and filters as the primary. When nothing fits, it returns no choice and a
+  warning. On the frozen pool, Escambia's shape (18 × V800-864 at half retention) gives 9 ×
+  V700-480, as Step 0 predicted.
+- **System design and rules snapshot** (`src/lib/system-design/rules.ts`, `resolve.ts`, ADR 0158).
+  `parseDesignRules` type-checks each jsonb value and refuses a missing or malformed rule.
+  `resolveSystemDesign(calc, projectDefaults, rules, catalog)` fills failover days
+  (ceil(longest retention × fraction)) and the ratio from the rules, checks the management and
+  workstation SKUs against the dropdown lists, and returns a snapshot that resolves to the same
+  design later. `dedicatedManagementSuggestion` applies the "more than 3 servers" rule as a
+  suggestion only.
+- **BOM** (`src/lib/system-design/bom.ts`, ADR 0161). `buildBom()` returns
+  `{ sku, qty, role, ruleId }` lines, one per (SKU, role), with no prices. Add-on quantities are
+  `qty_per_server` × the role's server count.
+- **One sizing chain** (`src/lib/system-design/size.ts`). `sizeProjectDesign()` runs the primary and
+  the failover with the same specs and `excludeOneU = sfp`, builds the BOM, and merges the warnings.
+  Sizing errors come back as `ok: false`. Step 4 calls it instead of repeating the glue.
+- **Tests**: 83 new, covering every case in the brief and the prompt. `engines.test.ts` chains
+  resolve, recommend, failover and BOM the way Step 4 will. The SFP+ agreement test reads
+  `rack_units` and `sfp_addon` for every pool SKU from the seed file
+  `20260602000001_quickcompare_columns.sql`.
+- **Bit-identical default path.** Golden plus recommender tests: 30/30 on HEAD before any change (run
+  from a `git archive` copy in the scratchpad) and 31/31 after (the extra one is the new candidates
+  test). Golden files unchanged. Full suite 870/870 before, 953/953 after. `tsc --noEmit` and eslint
+  clean.
+
+### Detours & fixes
+
+- **A retention cap on the failover was written, then taken out.** Writing the chained tests showed
+  that the default failover days (half the longest retention) often exceed a short group's
+  retention, so the locked formula sizes that group for days it does not keep. Capping each group
+  at its own retention was implemented first. The prompt file says to implement the formula
+  exactly, and a failover server that keeps footage until merge-back needs the uncapped figure, so
+  the cap was reverted. ADR 0159 records it as an open question for Andy, and a test pins a
+  7-day / 365-day calc where nothing fits at the default 183 days.
+- **The first agreement fixture was hand-written** from Step 0's notes. The prompt asks for the seed
+  file, so `seeded-pool.test-fixtures.ts` now parses the per-family blocks out of the migration.
+- **The review gate sent it back twice.** Architect and security reviews ran as fresh subagents,
+  three passes in all. Each fuzzed the old `recommend()` against the new one with 0 differences.
+  Fixed before commit:
+  - the 1U match was exact text, so "1 U" would have let a V200 take SFP+ (A-1);
+  - SFP+ or GPU with its rules retired quoted no add-on and said nothing (A-2);
+  - ADR 0158 claimed the snapshot alone reproduces a design, but the catalog and calc inputs feed it
+    too (A-3);
+  - the sizing chain lived only in a test (A-4);
+  - retention resolved with a project fallback the sizing does not use (A-5);
+  - input hardening: rule and count ceilings, safe integers, non-text SKUs, a missing `active` flag
+    (S-2 to S-5, S-7).
+  - Second pass: one retired row of the SFP+ pair still went unnoticed with failover off (A-2, now
+    compared by SKU and quantity on every calc); the brief's old Step 4 bullet still offered
+    `submissions` for the snapshot (A-6); the sizing chain now refuses groups whose retention
+    differs from the resolved design (A-7); a brief sentence was reworded (S-6).
+
+  The security review's S-1 is a Step 4 constraint: the snapshot and BOM must be banked in a side
+  table no rep can update. It is in the brief's Step 4 notes.
+- **The first "would have picked a V200" test used 40 cameras.** At 4MP and 30 days that is about
+  73 TB, which a V200 cannot hold. It uses 20 cameras (about 36 TB, one V200-64).
+
+### Decisions captured
+
+- [`0158-system-design-resolved-from-validated-rules-with-a-snapshot.md`](./decisions/0158-system-design-resolved-from-validated-rules-with-a-snapshot.md)
+- [`0159-failover-sized-on-the-primarys-basis-from-per-group-daily-load.md`](./decisions/0159-failover-sized-on-the-primarys-basis-from-per-group-daily-load.md)
+- [`0160-sfp-excludes-1u-servers-by-rack-units.md`](./decisions/0160-sfp-excludes-1u-servers-by-rack-units.md)
+- [`0161-bom-lines-one-per-sku-and-role-no-prices.md`](./decisions/0161-bom-lines-one-per-sku-and-role-no-prices.md)
+
+RUNBOOK unchanged.
+
+---
+
 ## 2026-10-16 - Project Portal backend, Step 2: company and contact sync
 
 ### Work done
