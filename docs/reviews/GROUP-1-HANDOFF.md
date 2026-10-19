@@ -2,6 +2,8 @@
 
 Written 2026-10-19 at the end of the Slice 1 session. Read this after `BASELINE-PLAN.md`.
 
+**Update, 2026-10-19:** Slice 2 is done and Group 1 is finished. The report is `2026-10-19-baseline-slice-2-auth-app-shell.md`, and the backlog has the B2 rows. This note is kept as history. Group 2 starts from the backlog.
+
 ## State
 
 - **Branch:** `claude/group-1-audit-preflight-n8s0yw`. It contains `origin/main` at `2ae9350`, which includes the 2026-10-16 Project Portal work. Merge `origin/main` again before starting, in case it has moved.

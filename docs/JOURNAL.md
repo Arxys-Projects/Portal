@@ -4,6 +4,35 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-10-19 - Baseline audit, Group 1: data and access layer, then auth and app shell
+
+### Work done
+
+- First systematic review of the portal, run read-only per
+  [`reviews/BASELINE-PLAN.md`](./reviews/BASELINE-PLAN.md) through the `review-gate` skill
+  (security at xhigh, architect at high, plus a separate inventory agent per slice). No source,
+  config or migration changed.
+- **Slice 1, data and access layer** (`6201569`, re-run at `2ae9350`): BLOCK, 30 backlog rows.
+  The stop condition fired. Andy ran the live checks (all clean), deleted 16 leftover RLS test
+  personas, turned on leaked-password protection and made four decisions, all recorded in the backlog.
+- **Slice 2, auth and app shell** (`6cbdf58`, source identical to `2ae9350`): FIX BEFORE COMMIT,
+  23 backlog rows (security: High 2, Medium 5, Low 6; architect: Should fix 8, Consider 5).
+  The verdict becomes BLOCK if one Supabase dashboard setting is in the wrong state. Andy has a short
+  read-only checklist. Deliverables: service-role inventory, Supabase and Vercel dashboard checklist,
+  framework version note (Next 16.2.6 is not affected by CVE-2025-29927 but is five security releases
+  behind).
+- Report: [`reviews/2026-10-19-baseline-slice-2-auth-app-shell.md`](./reviews/2026-10-19-baseline-slice-2-auth-app-shell.md).
+  Backlog: [`reviews/BASELINE-BACKLOG.md`](./reviews/BASELINE-BACKLOG.md) (53 rows after Group 1).
+- Fixes belong to later build sessions. Group 6 groups them. Group 2 (server actions and routes)
+  waits for Andy.
+
+### Detours & fixes
+
+- Slice 2 ran in its own git worktree on the audit branch. The shared checkout was on `main` with
+  another session's uncommitted work, and switching it would have moved that session's files.
+- The architect reviewer found the backlog contradicting itself on K-6 (the leftover persona marked
+  "still present" after Andy deleted it). Corrected.
+
 ## 2026-10-16 - Project Portal backend, Step 2: company and contact sync
 
 ### Work done

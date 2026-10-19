@@ -5,7 +5,7 @@ Place at `docs/reviews/BASELINE-PLAN.md`. Written 2026-10-19 from a planning ses
 **Recommended model:** Opus 5.5 (re-check the current Opus tier before starting) · **Effort:** xhigh for the orchestrating session. Reviewer subagents: security at xhigh, architect at high or xhigh as each group states.
 **Why Opus:** adversarial review needs cross-file tracing and judgment about reachability. The orchestrating session only coordinates and writes reports, so its context stays small.
 
-**Status:** Not started. Next: Group 1.
+**Status:** Group 1 done 2026-10-19 (Slices 1 and 2; see `BASELINE-BACKLOG.md`). Next: Group 2, after Andy replies to the Slice 2 banner.
 
 ## Purpose
 
