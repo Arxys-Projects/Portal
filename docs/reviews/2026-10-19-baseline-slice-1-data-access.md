@@ -120,6 +120,26 @@ A row shared by both reviewers takes the higher rank. Architect Consider items C
 | "RLS Hijack Co" leftover persona | **Still present.** The committed teardown can never delete persona A (B1-S-6). It is likely an admin from the pre-fix block 23 run. | `scripts/test-rls.ts:587-608, 1886`; uploaded JOURNAL lines 51 to 54 |
 | Hand-applied migrations, possible drift | **Drift confirmed.** At least six migrations are live and missing from the repo. `rls_auto_enable` and some catalog data also came from outside the migrations. The rest stays open until Andy runs Appendix A section E. | B1-A-2, B1-A-3, Appendix A section A.17 |
 
+## Live evidence: Supabase Security Advisor
+
+Andy ran the advisor against production and pasted the results on 2026-10-19 (observed 18:43:31 UTC). It returned six warnings and no errors.
+
+| Advisor lint | Object | Matches | Effect on the finding |
+|---|---|---|---|
+| `function_search_path_mutable` | `public.camera_aliases_text` | B1-S-10 | Confirmed live. |
+| `extension_in_public` | `pg_trgm` in `public` | B1-S-10 | Confirmed live (inventory gap 9 was unverified). |
+| `public_bucket_allows_listing` | `partner-logos`, policy `partner_logos_public_read` | B1-S-5 | Anonymous listing confirmed live; was PLAUSIBLE. |
+| `authenticated_security_definer_function_executable` | `public.is_admin(uuid)` | B1-S-8 | Confirmed live. ADR 0053 dismissed this lint as a false positive, and B1-S-8 shows it is a real role lookup. |
+| `authenticated_security_definer_function_executable` | `public.is_internal(uuid)` | B1-S-8 | Confirmed live. Same note. |
+| `auth_leaked_password_protection` | Auth settings | none in Slice 1 | A new item for the Slice 2 dashboard checklist: leaked password protection (HaveIBeenPwned) is off. |
+
+What the advisor cannot see:
+- Column-level write holes (B1-A-1 / B1-S-2).
+- Status checks inside function bodies (B1-S-3).
+- Test-script behavior (B1-S-6).
+
+Its silence on those is expected and does not clear them. It raised nothing on the 13 live-only Project Portal tables or the ADR 0151 guard trigger: no table without RLS, no definer view and no mutable `search_path`.
+
 ## Andy action items
 
 Items 1 to 4 are urgent.
@@ -142,7 +162,7 @@ Items 1 to 4 are urgent.
    - The B1-S-2 fix needs code and SQL together, because the calculator writes `pipedrive_deal_id` with the partner's own client. There is no SQL-only stopgap.
 5. **Push the 2026-10-16 work**, and commit the PGlite harness.
 6. **Run the live verification queries in Appendix A, section E (E1 to E24).** They are read only. Paste the results back so the next session can diff live against the matrix.
-7. **Run the Supabase Security Advisor and Performance Advisor** in the dashboard, and compare their output with B1-S-5, B1-S-8 and B1-S-10.
+7. **Security Advisor: done 2026-10-19.** The results are in "Live evidence" below. **Still to run:** the Performance Advisor. Compare its output with B1-A-6 (per-row role helpers) and B1-A-13 (unindexed foreign keys).
 8. **Run the read-only data checks in Appendix C, action item 3:**
    - duplicate preferred quotes
    - duplicate pending access requests
