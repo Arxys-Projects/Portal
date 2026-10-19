@@ -4,6 +4,322 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-10-16 - Project Portal backend, Step 2: company and contact sync
+
+### Work done
+
+- **Relativity Space skipped for now** (Andy): no include-list row, so its portal spellings are
+  exceptions.
+- **`src/lib/pipedrive/company-api.ts`**: v2 reads only. Resolves the "Arxys Security Partner" option
+  (73) from `organizationFields`, pages all orgs, lists persons per org, waits on 429.
+- **`src/lib/companies/sync.ts`** (pure, 11 unit tests): picks companies (label or include list), plans
+  inserts / renames / deactivations, normalizes names, proposes the name mapping (exact, alias,
+  normalized, ambiguous, none), lists unlabeled orgs named like a portal string, and proposes
+  login → contact links by email.
+- **`scripts/sync-pipedrive-companies.mts`**: dry run by default; `--execute` upserts companies and
+  contacts; `--apply-mapping=<file>` writes only the aliases and links Andy kept in the reviewed file.
+  Both writes need a typed CONFIRM. Never writes to Pipedrive.
+- **Dry run against production** (GET-only Pipedrive, read-only database; nothing written):
+  - 8,522 orgs scanned; 62 companies, all by label; 402 contacts (367 with email). Central Security
+    and Communications and SEi have no persons.
+  - 58 portal company names: 21 exact, 7 normalized, 30 exceptions. 23 unlabeled orgs share a name
+    with a portal string.
+  - 90 non-internal logins: 68 email matches, 2 company mismatches (Insight → a contact at Insight
+    Enterprise; Security Control Integrators → a contact at "Security Control Integrators SCI"),
+    3 duplicate emails, 17 with no matching contact.
+  - Proposed file: 6 aliases, 68 links (in `backups/`, gitignored).
+- **Full unit suite 870/870, `tsc` clean.**
+
+### Detours & fixes
+
+- **LiquidPC and NCD Communications are not companies yet.** Andy said they were labeled. A read-only
+  probe shows NCD Communications (#12243) carries "Security Integrator" (option 53), not "ARXYS
+  SECURITY PARTNER" (73); none of LiquidPC's three orgs (#10528, #12281, #12284) has any label;
+  Relativity Space (#11576) carries "End User" (49). The sync keys on option 73 only, so all three
+  are exceptions until Andy labels them 73 or adds them to `company_sync_includes`.
+- **Andy then labeled LiquidPC LLC (#10528) and NCD Communications (#12243) with 73.** The rerun
+  confirms both: 64 companies, 413 contacts, 22 exact and 9 normalized names, 27 exceptions, and a
+  proposed file of 8 aliases and 68 links. LiquidPC's other two orgs (#12281, #12284) were gone from
+  Pipedrive by then, so the LiquidPC aliases are portal spellings pointing at #10528.
+- **Insight is #9239 only** (Andy). The proposals already map every "Insight" spelling there.
+  Insight Enterprise (#12008) keeps its label, so it syncs as a separate company, and the one Insight
+  login whose person sits under it stays unlinked.
+- **Andy ran both writes.** `--execute` upserted 64 companies and 413 contacts; `--apply-mapping`
+  wrote the whole proposed file: 8 aliases (5 portal spellings, 3 unlabeled Pipedrive orgs:
+  Digital Provisions #12255 and #12277, Insight #12287) and 68 login links. A read-only count
+  afterwards matches exactly.
+- **Test accounts slipped through the first run** ("Big Corp, inc", "Evil Corp, inc" and an
+  "RLS Hijack Co" login). Matching now compares normalized names and skips any
+  `@arxys-rls-test.invalid` login. The "RLS Hijack Co" persona is a live leftover from an earlier
+  interrupted RLS run (email `rls-test-a-1792186404373@…`); it should be deleted.
+
+### Decisions captured
+
+- [`0157-company-sync-reads-v2-and-applies-a-reviewed-mapping-file.md`](./decisions/0157-company-sync-reads-v2-and-applies-a-reviewed-mapping-file.md)
+
+---
+
+## 2026-10-16 - Project Portal backend, Step 1 addendum: company include list (applied and verified)
+
+### Work done
+
+- **Relativity Space needs a way into the company sync without the partner label.** The label also
+  drives partner emails, and Relativity Space is not a partner. Andy chose a portal-side list over a
+  second Pipedrive label. LiquidPC and NCD Communications are already labeled; the company merges
+  are done.
+- **Migration `20261016000006_company_sync_includes.sql`** plus rollback: one table of extra org ids,
+  each with a required reason. Admin-write, internal read, no partner access. No row seeded; Andy adds
+  the Relativity Space org he picks. Apply steps are in the addendum to
+  [`apply-notes/0153-project-portal-schema.md`](./apply-notes/0153-project-portal-schema.md).
+- **Tests:** the PGlite harness now applies all five migrations: 135/135 pass, rollbacks included.
+  `scripts/test-rls.ts` covers the table in section 24 (added to the read and write sweeps, plus a new
+  24i). `tsc --noEmit` passes.
+- **Applied and verified the same day.** Andy ran the migration by hand; the live RLS suite passed
+  every check, including 24i. The Relativity Space row is not added yet; Andy adds it once he picks
+  the org (the Step 2 dry run lists the three versions).
+
+### Detours & fixes
+
+- **The brief briefly said all three orgs stay unlabeled** (commit 1d0c63b), from a misread of Andy's
+  "those ones don't need to be labeled". Corrected in 3857177: only Relativity Space stays unlabeled.
+
+### Decisions captured
+
+- [`0156-company-sync-include-list-for-unlabeled-orgs.md`](./decisions/0156-company-sync-include-list-for-unlabeled-orgs.md)
+
+---
+
+## 2026-10-16 - Project Portal backend, Step 1: schema (applied and verified)
+
+### Work done
+
+- **Wrote Step 1 of the Project Portal backend brief**: four migrations with rollbacks, for Andy to
+  apply by hand. Nothing was applied and nothing was pushed. Apply steps are in
+  [`apply-notes/0153-project-portal-schema.md`](./apply-notes/0153-project-portal-schema.md).
+  - `20261016000002`: `companies`, `company_name_aliases`, `contacts`, `partner_contact_links`.
+  - `20261016000003`: `projects`, `project_contacts`, `project_submissions`.
+  - `20261016000004`: `system_design_rules`, `bom_rules`, `design_rules_audit`, with the brief's
+    seeds (3 defaults; SFP+ pair and GPU for recorder and failover).
+  - `20261016000005`: `deal_line_syncs`, `quote_pricing_confirmations`.
+- **Every table is internal-only.** Partners and anon have no grant a policy could open. The synced
+  tables are SELECT-only for internal users (the Step 2 sync writes as service_role). Rules are
+  admin-write with no delete. The deal-line ledger and the pricing confirmations have no delete,
+  and confirmations no update.
+- **Integrity rules beyond the brief:** a project's primary contact must belong to its company when
+  set (trigger); a link's company follows its contact (composite FK); a BOM rule SKU must exist in
+  `products` (trigger, since `products.sku` is not unique); `status = 'added'` needs the Pipedrive
+  attachment id; `item_price_sent > 0`.
+- **Tested locally in PGlite** (Postgres 16 in WASM, scratchpad, Supabase roles and `auth.uid()`
+  stubbed): all four migrations, then 121 checks on reads and writes by partner, a partner linked to
+  a contact, anon, internal, admin and service_role; then all four rollbacks in reverse, a check that
+  nothing is left, and a re-apply. 121/121 pass, each denial for the expected reason (42501, 23503,
+  23505 or 23514).
+- **Live RLS cases written**: section 24 (24 to 24h) in `scripts/test-rls.ts`. It seeds and removes its
+  own rows and uses throwaway rule keys so live rules are never edited. Not run: the tables don't
+  exist in production until Andy applies. `tsc --noEmit` passes.
+- **Applied and verified the same day.** Andy ran the four migrations by hand in the SQL editor, then
+  the live RLS suite: every check passed, including 24 to 24h. Partners (including one whose login is
+  linked to a contact) and anon read and write nothing in the new tables; internal reads them all but
+  the audit; admin rule edits are stamped and audited; deletes and duplicate lines are refused.
+
+### Detours & fixes
+
+- **The shared audit trigger first read `new.key` directly.** On a `bom_rules` row PL/pgSQL fails
+  with "record new has no field key", even inside the CASE branch that isn't taken. It now reads the
+  key through `to_jsonb(new)`.
+- **A composite FK for the project's primary contact was considered and dropped.** It would either
+  block the sync from moving a person to another org or silently move the project with them. A
+  write-time trigger checks the pair instead, and the project keeps the company it was prepared for.
+
+### Decisions captured
+
+- [`0153-project-companies-contacts-and-project-link-tables.md`](./decisions/0153-project-companies-contacts-and-project-link-tables.md)
+- [`0154-system-design-and-bom-rules-are-admin-edited-and-audited.md`](./decisions/0154-system-design-and-bom-rules-are-admin-edited-and-audited.md)
+- [`0155-deal-line-ledger-and-insert-only-pricing-confirmations.md`](./decisions/0155-deal-line-ledger-and-insert-only-pricing-confirmations.md)
+
+---
+
+## 2026-10-16 - Project Portal backend, Step 0: discovery (read-only)
+
+### Work done
+
+- **Ran Step 0 of the Project Portal backend brief.** The brief is
+  [`Portal-Project revamp/claude-code-brief-project-portal-backend.md`](./Portal-Project%20revamp/claude-code-brief-project-portal-backend.md).
+  - Read the brief's reading list.
+  - Answered its seven questions from code and from read-only probes of production Supabase
+    and the Pipedrive API (GET only, scripts kept outside the repo).
+  - A subagent researched the Pipedrive docs: v1 deprecation, deal-product fields, rate limits.
+- **Findings** are in the brief under "Step 0 results". In short:
+  - The label is option id 73 on `label_ids`, on 62 of 8,522 orgs. The v2 org list has no
+    label filter, so Step 2 pages every org and filters in code.
+  - Deal products need `item_price`. v1 `active_flag=false` deletes a product; `is_linkable`
+    is the "off the picker" flag.
+  - All seven BOM SKUs match the portal by code and price.
+  - SFP+ excludes exactly the V200s.
+  - Every family has smaller-storage tiers, so failover is usually smaller than the primary.
+  - The name-based org and person upserts very likely created duplicate Pipedrive orgs.
+  - Partners could update every column of their own row.
+- **Two findings became their own fixes the same day:** the price push deleting Pipedrive
+  products and the VX5-V600-320 duplicate code (ADR 0150), and the partner self-escalation hole
+  (ADR 0151, applied and verified live). Both have their own entries below.
+- **Decisions at the gate (Andy):**
+  - A project contact's login sees its quotes through `on_behalf_of_partner_id`, set to the
+    primary contact's linked login when there is exactly one. No RLS change (ADR 0152).
+  - `partner_contact_links` is internal-only.
+  - `deal_line_syncs` gains `submission_id`, `role` and the Pipedrive deal-line id, with a
+    unique (deal, SKU, role) key.
+  - `quote_pricing_confirmations` stores a fingerprint of the deal lines.
+- **The brief is updated** with the results, decisions, revised Steps 1 to 5, the ADR list
+  (next free: 0153) and a Step 1 kickoff prompt.
+
+### Detours & fixes
+
+- **Andy asked for no docs during Step 0**, so this entry and the brief update were written
+  after the gate. The scripts and fixes that followed were separate tasks he asked for.
+- **The Step 0 report didn't reach Andy at first.** The session's last message ended at the
+  question box without it, and the report was delivered later in the conversation.
+- **The brief's reading list was current this time.** But two of its rules conflicted: visibility
+  through "the existing per-person path", and never writing the on-behalf columns. They can't
+  both hold, because that path is the on-behalf FK. ADR 0152 settles it.
+
+### Decisions captured
+
+- [`0152-project-contact-login-sees-quotes-via-on-behalf-fk.md`](./decisions/0152-project-contact-login-sees-quotes-via-on-behalf-fk.md)
+
+RUNBOOK unchanged.
+
+---
+
+## 2026-10-16 - Close the partner self-escalation hole on `partners` (ADR 0151)
+
+### Work done
+
+- **The hole.** The Project Portal backend Step 0 discovery found it while checking brief
+  item 7. `authenticated` can UPDATE every column of `partners`, and the only UPDATE policy is
+  self-or-admin. So a signed-in partner could PATCH their own row to `role='admin'` or
+  `is_internal=true`, and a suspended user could un-suspend themselves. Andy ran a read-only
+  catalog query on 2026-10-16. It showed table-wide UPDATE, the two expected policies, only
+  `trg_partners_set_updated_at`, no columns beyond the migrations, and `is_admin()` /
+  `is_internal()` as written.
+- **No app path depends on self-update.** Every write to `partners` uses the service-role
+  client: all `/admin/partners` actions, the auto-activate in `(app)/layout.tsx`, and
+  `bootstrap-admin.ts`.
+- **Fix, applied by Andy 2026-10-16 in the SQL editor** (STOP-AND-FLAG):
+  `supabase/migrations/20261016000001_partners_guard_self_update.sql`. A BEFORE UPDATE trigger
+  lets a non-admin `authenticated` caller change only `phone` on their own row. Any other
+  changed column raises `42501`, which reaches the client as HTTP 403. `service_role`, direct
+  SQL and active admins pass. The rollback is
+  `supabase/rollback/partners-guard-self-update-rollback.sql`, and the apply steps are in
+  `docs/apply-notes/0151-partners-guard-self-update.md`.
+- **`scripts/test-rls.ts` block 23a–23k.** It ran behind `RUN_0151_TESTS=1` until the apply,
+  and now runs on every suite run:
+  - A partner can't change their own `role`, `is_internal`, `pipedrive_user_id`,
+    `company_name` or `logo_path`.
+  - A suspended partner can't reactivate themselves, and an internal user can't make
+    themselves admin.
+  - A partner can still change their own phone but can't touch another partner's row.
+  - An admin's JWT and `service_role` can still change all of the guarded columns.
+- **Verified:**
+  - The migration and rollback ran against PGlite (Postgres 16 in WASM, scratchpad only, not
+    added to the repo). The harness rebuilt the live `partners` shape, the Supabase roles and
+    `auth.uid()`. 24/24 checks passed: every guarded column blocked, the bootstrap-admin
+    upsert path allowed, the migration safe to re-run, and the hole back after rollback.
+  - `npx tsc --noEmit` is clean, and `npm test` passes 859/859.
+  - **Live, before the apply:** 23a–23g failed. A fresh test partner made itself admin through
+    its own JWT and then edited another partner's row, so the hole was real in production.
+  - **Live, after the apply:** the suite passed 88/88. Every self-escalation attempt returned
+    42501 naming the column, while admin and `service_role` edits still went through.
+- **Still open:** Andy's read-only "was the hole ever used?" query in the apply note. The
+  guard can't show past escalation.
+
+### Detours & fixes
+
+- **SECURITY INVOKER, not DEFINER as the brief suggested.** The guard checks `current_user`.
+  Inside a DEFINER function `current_user` is the function's owner, `postgres`, so every caller
+  would pass. Reading the JWT `role` claim would also work. `current_user` is the role
+  actually running the statement, and no client JWT can mint it.
+- **Allow-list, not block-list.** Guarding only `role`/`status`/`is_internal`/
+  `pipedrive_user_id` would leave any future privilege column open. The trigger compares
+  `to_jsonb(new)` with `to_jsonb(old)` minus the allowed keys, so new columns are admin-only by
+  default.
+- Auto mode blocked a read of the live `partners` column names through the service-role REST
+  key as a production read. The column list came from Andy's catalog query instead.
+- **The first live run made one failure look like two.** Before the apply, 23a left partner A as
+  an admin, so 23i (the cross-partner UPDATE) also failed. The suite now resets A through
+  `service_role` after each 23a–23e case.
+
+### Decisions captured
+
+- [`0151-partners-self-update-guard-trigger.md`](./decisions/0151-partners-self-update-guard-trigger.md)
+
+## 2026-10-16 - Price push: retire Pipedrive products with is_linkable, stop on duplicate codes (ADR 0150; V600-320 fix applied)
+
+### Work done
+
+- **Found during the Project Portal backend Step 0 discovery** (read-only API probes):
+  - The 2026-07-06 "archive" of VX5-SW25-200, SW30, SW35 and V270-ACM deleted those Pipedrive
+    products. v1 `active_flag=false` is a delete in Pipedrive. All four ids (#1463, #1461,
+    #1462, #1490) now 404 on v1 and v2. The keep-but-hide switch is `selectable` / `is_linkable`.
+  - VX5-V600-320 has two Pipedrive products. #1443 is on the deal picker at the pre-July
+    $41,659 and sits on 5 deals (open deal 5562). #1485 is not linkable, at the current
+    $56,461. The old `Map` keyed by code kept the last one, so the July run priced #1485.
+- **Fix:**
+  - `scripts/push-prices.ts` now uses `src/lib/pipedrive/product-sync.ts` (pure diff rules,
+    15 new unit tests) and `src/lib/pipedrive/product-api.ts`. Pipedrive calls moved to the v2
+    product endpoints; the v1 product CRUD has been out of support since 2026-08-01.
+  - Retiring sends `is_linkable=false` and resends the existing prices unchanged, because the
+    v2 docs say an omitted `prices` can default the price to 0. A non-linkable product of an
+    active SKU is relinked.
+  - A portal SKU with a duplicated code stops the run before any write. Legacy duplicates
+    (100 codes, none a portal SKU) are reported only.
+- **New `scripts/audit-pipedrive-products.ts`** (read-only). It reports blocking duplicates
+  with the deals each product is on, what the next push would do, $0/[MKT]/[CFQ] portal
+  products, and VX5 products missing since the newest backup.
+- **`backup-pipedrive-products.ts` now saves the v2 product shape**, which includes
+  `is_linkable`. Took one today: `backups/pipedrive-products-pre-step-5-2026-10-16T20-08-31-882Z.json`.
+- **Applied 2026-10-16 by Andy:** `scripts/fix-pipedrive-v600-320-duplicate.ts --apply`
+  (dry run by default, `--apply` / `--rollback` behind a typed CONFIRM, writes only if the
+  expected state still holds). It kept #1443 and moved #1485 to the code
+  `VX5-V600-320-DUP-1485`, still not linkable, price untouched, nothing deleted. This was the
+  first live v2 PATCH.
+  - Verified read-only afterwards: the fix script's dry run reports "Already moved", and only
+    #1443 carries `VX5-V600-320`.
+  - `push-prices.ts --target=pipedrive --dry-run` now exits 0 with no duplicate codes. It
+    would update 4: #1443 (name, price $41,659 → $56,461) and the three `-NCD` names. It
+    would retire 1 (RAM-32GB #1483) and create 0.
+  - The real price push has not been run. Open deal 5562's V600-320 line keeps the price it
+    was entered at and needs a manual check.
+- **Verified:**
+  - `npx tsc --noEmit` and `eslint` are clean on the changed files; the full suite passes,
+    859/859.
+  - A live `push-prices.ts --target=pipedrive --dry-run` lists VX5-V600-320 as a duplicate
+    and exits 1 with nothing written. It would update 3, retire 1 (RAM-32GB #1483, which the
+    old code would have deleted) and create 0.
+  - The audit and the fix script's dry run both ran read-only.
+- **Not exercised yet:** the price push's own v2 writes (POST, the update PATCH, the retire
+  PATCH). The first real `--target=pipedrive` run will be their first live use.
+
+### Detours & fixes
+
+- `computePipedriveChanges` now compares the USD price entry, not `prices[0]`. Every VX5
+  product has exactly one USD price today, so nothing changes in practice.
+- **The next unblocked push renames the three `-NCD` products.** Their hand-written Pipedrive
+  names become the portal's ` - w/ Upgraded NIC & GPU` names. That is pre-existing behaviour,
+  newly visible because the preview now prints reasons. It also means no Pipedrive price push
+  has run since 2026-08-18.
+- **The audit's backup comparison now has nothing to show.** It compares against the newest
+  backup, and today's backup already lacks the four deleted products.
+
+### Decisions captured
+
+- [`0150-pipedrive-products-retire-via-linkable-and-stop-on-duplicate-codes.md`](./decisions/0150-pipedrive-products-retire-via-linkable-and-stop-on-duplicate-codes.md)
+  (supersedes the mechanism of 0079; status notes added to 0078 and 0079)
+
+RUNBOOK §6a updated: audit step added, duplicate-code stop explained, and retirement is now
+`is_linkable`.
+
+---
+
 ## 2026-10-15 - Project Quote "Prepared for" named Arxys on every on-behalf quote (fix, not committed)
 
 ### Work done

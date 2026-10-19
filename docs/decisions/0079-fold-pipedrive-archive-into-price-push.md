@@ -1,6 +1,6 @@
 # 0079 — Fold Pipedrive EOL archiving into the price push (retire the standalone script)
 
-- **Status**: Accepted
+- **Status**: Superseded by #0150 (mechanism only). Folding retirement into the price push stands; `active_flag=false` does not archive a Pipedrive product, it deletes it, so retirement now sets `is_linkable=false`.
 - **Date**: 2026-07-06
 
 ## Context
