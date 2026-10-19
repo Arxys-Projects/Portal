@@ -3,8 +3,10 @@
 > **Applied 2026-10-19** by Andy in the Supabase dashboard SQL editor. Verified the same day: the
 > function body has the status check, `anon` has no EXECUTE and `authenticated` does. The live
 > RLS suite passed in full the same day, including the three `8l` lines (suspended internal user
-> reads only their own rows; reads return after reactivation). Still to run: the sign-up check
-> (RUNBOOK §8d) and the post-deploy persona checks (step 5).
+> reads only their own rows; reads return after reactivation). The sign-up check (RUNBOOK §8d)
+> found public sign-up **on** in production (`disable_signup: false`). Andy turned it off the
+> same day, the re-check read `true`, and the query for Auth users with no partners row returned
+> no rows, so nobody had used it. Still to run: the post-deploy persona checks (step 5).
 
 | | File |
 |---|---|
