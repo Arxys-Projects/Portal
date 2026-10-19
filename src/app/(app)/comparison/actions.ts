@@ -2,6 +2,7 @@
 
 import { z } from "zod";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { NOT_ACTIVE_MESSAGE, requireActive } from "@/lib/auth/viewer";
 import { createComparisonDeal } from "@/lib/pipedrive/deal";
 import { PipedriveError } from "@/lib/pipedrive/client";
 import { getMailer } from "@/lib/email/transport";
@@ -29,23 +30,16 @@ export async function requestComparisonQuote(
   }
   const input = parsed.data;
 
+  // Active partners only (ADR 0164).
+  const gate = await requireActive();
+  if (!gate.ok) {
+    return {
+      status: "error",
+      error: gate.reason === "unauthenticated" ? "Not authenticated." : NOT_ACTIVE_MESSAGE,
+    };
+  }
+  const { user, partner } = gate.viewer;
   const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return { status: "error", error: "Not authenticated." };
-  }
-
-  const { data: partner } = await supabase
-    .from("partners")
-    .select("company_name, contact_name")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  if (!partner) {
-    return { status: "error", error: "Partner record not found." };
-  }
 
   const partnerEmail = user.email ?? "";
   const companyName = partner.company_name as string;

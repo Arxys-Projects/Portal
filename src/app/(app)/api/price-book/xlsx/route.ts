@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { requireActive } from "@/lib/auth/viewer";
 import { dbError } from "@/lib/errors/safe-message";
 import {
   generatePriceBookXlsx,
@@ -14,13 +15,15 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  // Active partners only (ADR 0164): a route handler never runs the (app)
+  // layout, so it gates itself.
+  const gate = await requireActive();
+  if (!gate.ok) {
+    return gate.reason === "unauthenticated"
+      ? NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      : NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
+  const supabase = await createSupabaseServerClient();
 
   // RLS constrains this read: active=true rows only for non-admins.
   const { data, error } = await supabase

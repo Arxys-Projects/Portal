@@ -1,7 +1,7 @@
 "use server";
 
 import { z } from "zod";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { NOT_ACTIVE_MESSAGE, requireActive } from "@/lib/auth/viewer";
 import { sendDealRegistrationEmail } from "@/lib/email/deal-registration";
 
 const DealRegSchema = z.object({
@@ -37,23 +37,15 @@ export async function registerDealAction(
 
   const { projectName, notes } = parsed.data;
 
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return { status: "error", message: "Not authenticated." };
+  // Active partners only (ADR 0164).
+  const gate = await requireActive();
+  if (!gate.ok) {
+    return {
+      status: "error",
+      message: gate.reason === "unauthenticated" ? "Not authenticated." : NOT_ACTIVE_MESSAGE,
+    };
   }
-
-  const { data: partner } = await supabase
-    .from("partners")
-    .select("company_name, contact_name")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  if (!partner) {
-    return { status: "error", message: "Partner record not found." };
-  }
+  const { user, partner } = gate.viewer;
 
   try {
     await sendDealRegistrationEmail({

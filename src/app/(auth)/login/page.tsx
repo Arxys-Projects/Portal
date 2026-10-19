@@ -19,6 +19,15 @@ export default async function LoginPage({ searchParams }: { searchParams: Search
           Your account has been suspended. Contact your administrator.
         </p>
       ) : null}
+      {error === "no_access" ? (
+        <p
+          role="alert"
+          className="mb-4 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+        >
+          This sign-in does not have access to the Partner Portal. Contact your
+          Arxys representative or sales@arxys.com.
+        </p>
+      ) : null}
       {error === "expired_or_invalid" || error === "missing_token" ? (
         <p
           role="alert"

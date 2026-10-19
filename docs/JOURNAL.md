@@ -4,6 +4,71 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-10-19 - Suspension bans the Auth user; every partner entry point requires an active partner (ADR 0164)
+
+### Work done
+
+- Fixes the auth rows from the baseline audit's Slice 2: B2-S-1 / B2-A-4 (any Auth user got in),
+  B2-S-2 / B2-A-2 and B1-S-3 (suspension did not end access), B2-S-3 (open redirect after login),
+  and the partner half of B2-A-1. Andy's decisions from the audit: suspension bans the Auth user,
+  and the one-line `is_internal()` status fix ships first.
+- **Suspend and reactivate** (`src/lib/auth/partner-access.ts`, called from
+  `admin/partners/actions.ts`): suspend bans the Auth user (`ban_duration: "876000h"`) before it
+  writes the status and fails if the ban fails. Reactivate refuses a row that is not suspended,
+  writes `active`, then unbans; on an unban failure it re-asserts the ban and reverts to
+  `suspended`, so the row still offers Reactivate.
+- **`src/lib/auth/viewer.ts`** (`server-only`, `cache()`d `getViewer()`, `isActive` / `isStaff` /
+  `isAdmin`, `requireActive` / `requireStaff` / `requireAdmin`), with the pure half in
+  `viewer-core.ts` for tests. Every predicate fails closed on a missing `partners` row.
+- **`requireActive()`** now gates the `(app)` layout (after the invited flip; anyone else not
+  active is signed out to `?error=suspended` or the new `?error=no_access` banner), the price-book
+  XLSX, comparison PDF and submission PDF routes, the comparison, Register a Deal, Quick Calc,
+  submissions and camera-search actions, and both price-book pages. The calculator and Quick Calc
+  pages' on-behalf picker now needs an active internal user, matching the SQL.
+- **Migration `20261019000002_is_internal_requires_active.sql`** adds `status = 'active'` to
+  `public.is_internal()`, with a rollback and
+  [apply note](./apply-notes/0164-is-internal-requires-active.md). The ADR 0151 guard calls
+  `is_admin()`, so it needed no change. PGlite: 18/18 (before/after reads for active, suspended
+  and invited internal users, grants, `SECURITY DEFINER`, guard still holds, re-runnable, rollback
+  reopens). New live RLS test `8l` (suspended internal user), for Andy to run after applying.
+- **`isSafeNext`** resolves `next` against a fixed origin and requires it to stay there, and
+  rejects backslashes and control characters. Unit tests cover the audit's cases.
+- RUNBOOK §8d: turn off public sign-up and verify it. ADR 0021 marked superseded. The Project
+  Portal brief's next free ADR moved to 0165.
+- Checks: `tsc` clean, `npm test` 984/984 (30 new auth tests), eslint clean on changed files. No
+  build, dev server or live script was run.
+- Review gate, three passes. Pass 1: security PASS WITH NOTES, architect FIX BEFORE COMMIT
+  (partners suspended before the deploy are never banned; the reactivate half-state had no
+  button; a failed invited flip signed the invitee out; overstated comments and RUNBOOK
+  wording; no live RLS test). All fixed or moved to the apply note. Pass 2 found that the new
+  revert could suspend a non-suspended row on an unban failure; fixed with a status check and a
+  re-ban.
+
+### Detours & fixes
+
+- **Typing `loadViewer` against the Supabase client hit TS2589** ("type instantiation is
+  excessively deep"). It now takes two injected functions (`getUser`, `loadPartner`), which also
+  made the tests simpler.
+- **Reactivate order went back and forth.** The architect suggested unbanning first to keep the
+  Reactivate button. Security pointed out that the half-state would be an unbanned, suspended
+  user who can sign in and read partner-tier data over REST. The final shape keeps status
+  first and reverts on failure.
+
+### Left for follow-ups
+
+- `require-admin-or-internal.ts`, the four local `requireAdmin` copies, the spec-action wrappers,
+  the datasheet guard and the inline checks still have their own role logic. They already check
+  status. `requireStaff` / `requireAdmin` in `viewer.ts` have no callers yet; the architect would
+  rather they wait for that consolidation (open disagreement).
+- Partner-tier RLS ignores status, so a pre-ban token works over REST until it expires (ADR 0164).
+- No `error.tsx`: a thrown layout or viewer error shows Next's generic page.
+
+### Decisions captured
+
+- [`0164-suspension-bans-the-auth-user-and-every-entry-point-requires-an-active-partner.md`](./decisions/0164-suspension-bans-the-auth-user-and-every-entry-point-requires-an-active-partner.md)
+
+---
+
 ## 2026-10-19 - System design ceilings confirmed; read-only SFP+ specs check
 
 ### Work done

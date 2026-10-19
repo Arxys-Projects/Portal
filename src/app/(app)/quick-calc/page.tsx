@@ -24,10 +24,11 @@ export default async function QuickCalcPage() {
   if (user) {
     const { data: caller } = await supabase
       .from("partners")
-      .select("is_internal, company_name, contact_name")
+      .select("is_internal, status, company_name, contact_name")
       .eq("id", user.id)
       .maybeSingle();
-    isInternal = Boolean(caller?.is_internal);
+    // Active only, matching public.is_internal() (ADR 0164).
+    isInternal = caller?.status === "active" && Boolean(caller?.is_internal);
     ownCompanyName = (caller?.company_name as string | null) ?? null;
     ownContactName = (caller?.contact_name as string | null) ?? null;
     if (isInternal) {

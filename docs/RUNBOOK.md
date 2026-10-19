@@ -305,6 +305,18 @@ In the dashboard at **Authentication → Sign In / Providers → Password** (Aut
 
 Verify by opening `https://portal-arxys.vercel.app` in an incognito browser window. Must land on the portal's `/login` page, not Vercel's SSO.
 
+## 8d. Supabase: turn off public sign-up
+
+The Portal is invite-only (ADR [0010](./decisions/0010-invite-only-signup.md)). Hosted projects allow sign-up by default, so turn it off: **Authentication → Sign In / Providers → User Signups → Allow new users to sign up: off**. Leave anonymous sign-ins and manual linking off. Invites (`inviteUserByEmail`), password resets and `scripts/bootstrap-admin.ts` keep working with sign-up off.
+
+Verify with the publishable key (read-only):
+
+```bash
+curl -s -H "apikey: $NEXT_PUBLIC_SUPABASE_ANON_KEY" "$NEXT_PUBLIC_SUPABASE_URL/auth/v1/settings"
+```
+
+`disable_signup` must be `true`. The app screens and actions refuse any Auth user without an active `partners` row (ADR [0164](./decisions/0164-suspension-bans-the-auth-user-and-every-entry-point-requires-an-active-partner.md)), but the database API lets any signed-in account read prices and specs. For those direct reads, sign-up off is the only control.
+
 ## 9. Create the first admin user
 
 ```bash

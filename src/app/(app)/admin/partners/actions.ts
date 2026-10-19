@@ -6,6 +6,10 @@ import { z } from "zod";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireAdminOrInternal } from "@/lib/auth/require-admin-or-internal";
+import {
+  reactivatePartnerAccess,
+  suspendPartnerAccess,
+} from "@/lib/auth/partner-access";
 import { dbError } from "@/lib/errors/safe-message";
 import { uploadPartnerLogo as uploadLogoToStorage } from "@/lib/storage/partner-logo";
 
@@ -208,11 +212,9 @@ export async function suspendPartner(
     }
   }
 
-  const { error: updateErr } = await admin
-    .from("partners")
-    .update({ status: "suspended" })
-    .eq("id", targetId);
-  if (updateErr) return { status: "error", error: dbError(updateErr, "suspend update partner") };
+  // Ban the Auth user first, then mark suspended (ADR 0164).
+  const suspended = await suspendPartnerAccess(admin, targetId);
+  if (!suspended.ok) return { status: "error", error: suspended.error };
 
   revalidatePath("/admin/partners");
   return { status: "ok", message: "Partner suspended." };
@@ -228,11 +230,27 @@ export async function reactivatePartner(
   if (!targetId) return { status: "error", error: "Missing partner id." };
 
   const admin = createSupabaseAdminClient();
-  const { error } = await admin
+  // Only a suspended partner row can be reactivated (TOCTOU re-check, as in
+  // resendInvite). This keeps the unban off Auth users the portal does not
+  // manage, and keeps the unban-failure revert below from suspending an
+  // active or invited partner.
+  const { data: target, error: targetErr } = await admin
     .from("partners")
-    .update({ status: "active" })
-    .eq("id", targetId);
-  if (error) return { status: "error", error: dbError(error, "reactivate partner") };
+    .select("status")
+    .eq("id", targetId)
+    .maybeSingle();
+  if (targetErr) return { status: "error", error: dbError(targetErr, "reactivate load partner") };
+  if (!target) return { status: "error", error: "Partner not found." };
+  if (target.status !== "suspended") {
+    return {
+      status: "error",
+      error: `Cannot reactivate — partner status is '${target.status}'.`,
+    };
+  }
+
+  // Mark active, then lift the Auth ban (ADR 0164).
+  const reactivated = await reactivatePartnerAccess(admin, targetId);
+  if (!reactivated.ok) return { status: "error", error: reactivated.error };
 
   revalidatePath("/admin/partners");
   return { status: "ok", message: "Partner reactivated." };

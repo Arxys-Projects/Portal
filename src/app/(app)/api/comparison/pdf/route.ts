@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { requireActive } from "@/lib/auth/viewer";
 import {
   renderComparisonPdfBuffer,
   comparisonPdfFilename,
@@ -42,12 +42,12 @@ const pdfBodySchema = z.object({
 });
 
 export async function POST(request: Request) {
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  // Active partners only (ADR 0164).
+  const gate = await requireActive();
+  if (!gate.ok) {
+    return gate.reason === "unauthenticated"
+      ? NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      : NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   let rawBody: unknown;

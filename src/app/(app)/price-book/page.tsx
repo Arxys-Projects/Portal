@@ -1,6 +1,8 @@
 import Link from "next/link";
 import Image from "next/image";
+import { notFound } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { requireActive } from "@/lib/auth/viewer";
 import {
   FAMILIES,
   FAMILY_CATEGORIES,
@@ -23,6 +25,9 @@ function formatEffectiveDate(iso: string | null): string | null {
 }
 
 export default async function PriceBookIndexPage() {
+  // Pages render in parallel with the (app) layout and are not re-gated by it
+  // on client navigation, so the price book gates itself (ADR 0164).
+  if (!(await requireActive()).ok) notFound();
   const supabase = await createSupabaseServerClient();
 
   const allGroups = FAMILIES.flatMap((f) => f.productGroups);

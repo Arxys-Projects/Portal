@@ -1,6 +1,6 @@
 # 0021 — Suspend gate in `(app)/layout.tsx`, not in the proxy or RLS
 
-- **Status**: Accepted
+- **Status**: Superseded by #0164 (2026-10-19: suspension now bans the Auth user, and every partner entry point calls `requireActive()`)
 - **Date**: 2026-05-20
 
 ## Context

@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { requireActive } from "@/lib/auth/viewer";
 import {
   CODECS,
   COMPLEXITIES,
@@ -798,11 +799,10 @@ export async function searchCameraModels(
   const q = (query ?? "").trim();
   if (!v || q.length < 1) return [];
 
+  // Active partners only (ADR 0164).
+  const gate = await requireActive();
+  if (!gate.ok) return [];
   const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return [];
 
   const { data, error } = await supabase.rpc("search_camera_specs", {
     p_vendor: v,

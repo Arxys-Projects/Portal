@@ -7,6 +7,7 @@
 
 import { z } from "zod";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { NOT_ACTIVE_MESSAGE, requireActive } from "@/lib/auth/viewer";
 import { RESOLUTIONS, CODECS, COMPLEXITIES } from "@/lib/calculator/tables";
 import { computeGroup, vsrLoad, type GroupInput } from "@/lib/calculator/compute";
 import {
@@ -55,13 +56,18 @@ export async function quickCalcPreview(payload: unknown): Promise<QuickCalcPrevi
   }
   const { cameras, retentionDays } = parsed.data;
 
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return { status: "error", error: "Your session has expired. Sign in and try again." };
+  // Active partners only (ADR 0164).
+  const gate = await requireActive();
+  if (!gate.ok) {
+    return {
+      status: "error",
+      error:
+        gate.reason === "unauthenticated"
+          ? "Your session has expired. Sign in and try again."
+          : NOT_ACTIVE_MESSAGE,
+    };
   }
+  const supabase = await createSupabaseServerClient();
 
   const resolution = RESOLUTIONS[QUICK_CALC_GROUP.resolutionIdx];
   const gi: GroupInput = {

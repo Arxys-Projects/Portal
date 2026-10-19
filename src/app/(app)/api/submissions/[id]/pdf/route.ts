@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { requireActive } from "@/lib/auth/viewer";
 import {
   loadSubmissionPdfInput,
   pdfFilename,
@@ -16,13 +17,14 @@ export async function GET(
 ) {
   const { id } = await params;
 
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return new NextResponse("Unauthorized", { status: 401 });
+  // Active partners only (ADR 0164).
+  const gate = await requireActive();
+  if (!gate.ok) {
+    return gate.reason === "unauthenticated"
+      ? new NextResponse("Unauthorized", { status: 401 })
+      : new NextResponse("Forbidden", { status: 403 });
   }
+  const supabase = await createSupabaseServerClient();
 
   // RLS scopes the submission lookup to partner_id = auth.uid() OR is_admin().
   // A partner asking for someone else's submission gets null → 404.

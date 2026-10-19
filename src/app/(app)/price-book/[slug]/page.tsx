@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { requireActive } from "@/lib/auth/viewer";
 import {
   familyBySlug,
   datasheetButtonsFor,
@@ -110,6 +111,8 @@ export default async function FamilyDetailPage({
   const { slug } = await params;
   const family = familyBySlug(slug);
   if (!family) notFound();
+  // Gates itself, as the index page does (ADR 0164).
+  if (!(await requireActive()).ok) notFound();
 
   const supabase = await createSupabaseServerClient();
 

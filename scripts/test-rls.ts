@@ -578,6 +578,45 @@ async function run() {
       );
     }
 
+    // Test 8l: suspending the internal user strips internal RLS reads (ADR
+    // 0164: is_internal() requires status='active'). Flip via service role,
+    // check, then restore so the internal tests below still run as active.
+    {
+      await admin
+        .from("partners")
+        .update({ status: "suspended" })
+        .eq("id", internalPersona.id);
+      const subs = await internalPersona.client
+        .from("submissions")
+        .select("id")
+        .eq("partner_id", b.id);
+      const partners = await internalPersona.client.from("partners").select("id");
+      await admin
+        .from("partners")
+        .update({ status: "active" })
+        .eq("id", internalPersona.id);
+      const partnerIds = (partners.data ?? []).map((r) => r.id);
+      record(
+        "8l: suspended internal user cannot SELECT another partner's submissions",
+        !subs.error && (subs.data?.length ?? 0) === 0,
+        subs.error ? `error: ${subs.error.message}` : `count=${subs.data?.length}`,
+      );
+      record(
+        "8l: suspended internal user sees only their own partner row",
+        !partners.error && partnerIds.length === 1 && partnerIds[0] === internalPersona.id,
+        partners.error ? `error: ${partners.error.message}` : `got ${JSON.stringify(partnerIds)}`,
+      );
+      const back = await internalPersona.client
+        .from("submissions")
+        .select("id")
+        .eq("partner_id", b.id);
+      record(
+        "8l: reactivated internal user reads another partner's submissions again",
+        !back.error && (back.data?.length ?? 0) >= 1,
+        back.error ? `error: ${back.error.message}` : `count=${back.data?.length}`,
+      );
+    }
+
     // --- Phase 8: per-user on-behalf target visibility ----------------------
     // The internal user files a submission ON BEHALF OF partner A: partner_id
     // stays the creator (internal), on_behalf_of_partner_id = A. The new

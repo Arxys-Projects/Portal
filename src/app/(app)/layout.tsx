@@ -2,36 +2,28 @@ import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getViewer, isActive, isStaff } from "@/lib/auth/viewer";
 import { signOut } from "./_actions/logout";
 import InternalBar from "./_components/internal-bar";
 import PortalHeader from "./_components/portal-header";
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
+  const viewer = await getViewer();
+  if (!viewer) {
     redirect("/login");
   }
-
-  const { data: partner } = await supabase
-    .from("partners")
-    .select("company_name, contact_name, role, status, is_internal")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  if (partner?.status === "suspended") {
-    // Sign out before redirecting — otherwise the proxy bounces the still-authed
-    // user from /login back to /dashboard (src/lib/supabase/proxy.ts:59-64).
-    await supabase.auth.signOut();
-    redirect("/login?error=suspended");
-  }
+  const { user } = viewer;
+  let partner = viewer.partner;
 
   if (partner?.status === "invited") {
     // First protected-page load after invite → flip to 'active'. Use the
     // service-role client so we don't depend on the partners-UPDATE RLS policy
-    // admitting a self-status change; the operation is idempotent.
+    // admitting a self-status change; the operation is idempotent. A failed
+    // flip throws to the error page and keeps the session, so a reload
+    // retries it; signing the invitee out here would tell them they have no
+    // access. The page renders in parallel with this layout, so it may still
+    // see 'invited' on this first load.
     const admin = createSupabaseAdminClient();
     const { error } = await admin
       .from("partners")
@@ -39,14 +31,28 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       .eq("id", user.id);
     if (error) {
       console.error("auto-activate failed", { userId: user.id, error });
+      throw new Error("Could not finish setting up your account. Reload the page to try again.");
     }
+    partner = { ...partner, status: "active" };
   }
 
-  const isAdmin = partner?.role === "admin";
-  const isInternal = Boolean(partner?.is_internal);
+  // Fail closed (ADR 0164): only an active partners row gets in. Suspended
+  // and row-less Auth users are signed out. Sign out before redirecting —
+  // otherwise the proxy bounces the still-authed user from /login back to
+  // /dashboard (src/lib/supabase/proxy.ts:59-64). A layout runs on full
+  // document loads only: it renders in parallel with the page and does not
+  // re-run on client navigation. Actions, route handlers and sensitive pages
+  // call requireActive() themselves.
+  if (!isActive({ user, partner })) {
+    await supabase.auth.signOut();
+    redirect(
+      partner?.status === "suspended" ? "/login?error=suspended" : "/login?error=no_access",
+    );
+  }
+
   // Phase 8 Step C — internal users get the same partner-grouped pipeline
   // view + invite-partner flow as admins, read-only.
-  const isAdminOrInternal = isAdmin || isInternal;
+  const isAdminOrInternal = isStaff({ user, partner });
 
   // Pending access-request count for the internal bar's Requests badge — the
   // same query admin/layout.tsx runs, needed here too now that Requests is

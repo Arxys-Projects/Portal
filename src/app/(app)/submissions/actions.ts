@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { NOT_ACTIVE_MESSAGE, requireActive } from "@/lib/auth/viewer";
 import { SUBMISSION_STATUSES, type SubmissionStatus } from "./status";
 import { dbError } from "@/lib/errors/safe-message";
 
@@ -14,19 +15,24 @@ const statusSchema = z.enum(SUBMISSION_STATUSES);
 //   - submissions_update_authorized enforces partner_id = auth.uid() on UPDATE.
 //   - submissions_delete_authorized additionally enforces status = 'open' on
 //     DELETE (Won/Lost are protected — ADR 0081 replaces the old draft/NULL guard).
-// We only confirm a live session here; the database does the row-level work,
-// and an UPDATE/DELETE that matches no row (wrong owner, or a non-open delete)
-// returns zero rows rather than an error, which we surface to the caller.
-
-async function requireSession() {
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  return { supabase, user };
-}
+// Here we confirm the caller is an active partner (ADR 0164); the database
+// does the row-level work, and an UPDATE/DELETE that matches no row (wrong
+// owner, or a non-open delete) returns zero rows rather than an error, which
+// we surface to the caller.
 
 const SESSION_EXPIRED = "Your session has expired. Sign in and try again.";
+
+async function requireActiveSession() {
+  const gate = await requireActive();
+  if (!gate.ok) {
+    return {
+      supabase: null,
+      error: gate.reason === "unauthenticated" ? SESSION_EXPIRED : NOT_ACTIVE_MESSAGE,
+    } as const;
+  }
+  return { supabase: await createSupabaseServerClient(), error: null } as const;
+}
+
 const NOT_YOURS = "Submission not found, or it is not yours to edit.";
 
 export async function updateSubmissionStatus(
@@ -36,8 +42,8 @@ export async function updateSubmissionStatus(
   const parsed = statusSchema.safeParse(status);
   if (!parsed.success) return { ok: false, error: "Invalid status value." };
 
-  const { supabase, user } = await requireSession();
-  if (!user) return { ok: false, error: SESSION_EXPIRED };
+  const { supabase, error: gateError } = await requireActiveSession();
+  if (!supabase) return { ok: false, error: gateError };
 
   const { data, error } = await supabase
     .from("submissions")
@@ -52,8 +58,8 @@ export async function updateSubmissionStatus(
 }
 
 export async function togglePreferred(submissionId: string): Promise<ActionResult> {
-  const { supabase, user } = await requireSession();
-  if (!user) return { ok: false, error: SESSION_EXPIRED };
+  const { supabase, error: gateError } = await requireActiveSession();
+  if (!supabase) return { ok: false, error: gateError };
 
   // RLS scopes this read to the caller's own rows.
   const { data: target, error: loadError } = await supabase
@@ -113,8 +119,8 @@ export async function togglePreferred(submissionId: string): Promise<ActionResul
 }
 
 export async function deleteSubmission(submissionId: string): Promise<ActionResult> {
-  const { supabase, user } = await requireSession();
-  if (!user) return { ok: false, error: SESSION_EXPIRED };
+  const { supabase, error: gateError } = await requireActiveSession();
+  if (!supabase) return { ok: false, error: gateError };
 
   // submissions_delete_authorized enforces ownership AND the status='open' guard
   // at the DB level. A blocked delete returns zero rows, not an error.

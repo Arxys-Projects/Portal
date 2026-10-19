@@ -77,10 +77,11 @@ export default async function CalculatorPage({
   if (user) {
     const { data: caller } = await supabase
       .from("partners")
-      .select("is_internal")
+      .select("is_internal, status")
       .eq("id", user.id)
       .maybeSingle();
-    isInternal = Boolean(caller?.is_internal);
+    // Active only, matching public.is_internal() (ADR 0164).
+    isInternal = caller?.status === "active" && Boolean(caller?.is_internal);
     if (isInternal) {
       const admin = createSupabaseAdminClient();
       // Only active, non-internal partners are valid on-behalf targets — an
