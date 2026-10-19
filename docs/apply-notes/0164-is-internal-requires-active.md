@@ -1,6 +1,9 @@
 # Apply note — `is_internal()` requires an active partner (ADR 0164)
 
-> **Not applied yet.** Andy applies it by hand in the Supabase dashboard SQL editor.
+> **Applied 2026-10-19** by Andy in the Supabase dashboard SQL editor. Verified the same day: the
+> function body has the status check, `anon` has no EXECUTE and `authenticated` does. Still to
+> run: the RLS suite (step 4), the sign-up check (RUNBOOK §8d), and the post-deploy persona
+> checks (step 5).
 
 | | File |
 |---|---|

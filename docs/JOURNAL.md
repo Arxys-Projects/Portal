@@ -31,6 +31,8 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
   `is_admin()`, so it needed no change. PGlite: 18/18 (before/after reads for active, suspended
   and invited internal users, grants, `SECURITY DEFINER`, guard still holds, re-runnable, rollback
   reopens). New live RLS test `8l` (suspended internal user), for Andy to run after applying.
+  **Andy applied it the same day** and the read-back confirmed the status check and grants. He
+  also ran the backfill query first: no partners were suspended, so there was nothing to ban.
 - **`isSafeNext`** resolves `next` against a fixed origin and requires it to stay there, and
   rejects backslashes and control characters. Unit tests cover the audit's cases.
 - RUNBOOK §8d: turn off public sign-up and verify it. ADR 0021 marked superseded. The Project
