@@ -41,7 +41,7 @@ RUNBOOK unchanged.
 
 ---
 
-## 2026-10-19 - Failover days default to the longest retention (ADR 0162, migration to apply)
+## 2026-10-19 - Failover days default to the longest retention (ADR 0162, applied and verified)
 
 ### Work done
 
@@ -50,7 +50,8 @@ RUNBOOK unchanged.
   so there is no code change. Migration `20261019000001_failover_days_default_longest_retention.sql`
   sets the rule to 1 and rewrites its description. It is guarded to change the row only while it
   still holds the seeded 0.5. Rollback: `supabase/rollback/failover-days-default-longest-retention-rollback.sql`.
-  **Not applied**: Andy runs it in the SQL editor.
+  **Applied and verified the same day**: Andy ran it in the SQL editor, and a read-back shows
+  `value` 1 with `updated_at` 2026-10-19 20:59 UTC.
 - **Tested in PGlite**, replaying the rules migration first: 14/14. The checks cover the update,
   the no-op re-run, the rollback, the re-apply, the guard that leaves an admin's own value alone,
   and the audit rows.
@@ -66,6 +67,11 @@ RUNBOOK unchanged.
   server. The mixed-retention test that checks counts and add-ons uses an explicit 14 days.
 - Capping each group at its own retention would make each failover exactly one primary's share.
   It is still Andy's call.
+
+- **The first paste ran the shell command instead of the SQL.** The SQL editor received
+  `pbcopy < ...` itself and rejected it with a syntax error; nothing ran. The update was then
+  pasted as SQL directly. The editor answers any UPDATE with "Success. No rows returned", so the
+  read-back select is what confirms it.
 
 ### Decisions captured
 
