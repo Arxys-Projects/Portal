@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { requireAdminOrInternal } from "@/lib/auth/require-admin-or-internal";
+import { gateError, requireStaff } from "@/lib/auth/viewer";
 import { dbError } from "@/lib/errors/safe-message";
 
 export type RequestActionState =
@@ -20,8 +20,8 @@ export async function rejectAccessRequest(
   _prev: RequestActionState | null,
   formData: FormData,
 ): Promise<RequestActionState> {
-  const gate = await requireAdminOrInternal();
-  if (!gate.ok) return { status: "error", error: gate.error };
+  const gate = await requireStaff();
+  if (!gate.ok) return { status: "error", error: gateError(gate) };
 
   const id = String(formData.get("id") ?? "");
   if (!z.uuid().safeParse(id).success) {

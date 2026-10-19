@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { requireStaff } from "@/lib/auth/viewer";
 import { loadCurrentProjectQuote } from "@/lib/project-quote/assemble";
 import {
   projectQuotePdfFilename,
@@ -22,20 +23,13 @@ export async function GET(
 ) {
   const { id } = await params;
 
+  const gate = await requireStaff();
+  if (!gate.ok) {
+    return gate.reason === "unauthenticated"
+      ? new NextResponse("Unauthorized", { status: 401 })
+      : new NextResponse("Forbidden", { status: 403 });
+  }
   const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return new NextResponse("Unauthorized", { status: 401 });
-
-  const { data: caller } = await supabase
-    .from("partners")
-    .select("role, status, is_internal")
-    .eq("id", user.id)
-    .maybeSingle<{ role: string; status: string; is_internal: boolean }>();
-  const allowed =
-    caller?.status === "active" && (caller.is_internal === true || caller.role === "admin");
-  if (!allowed) return new NextResponse("Forbidden", { status: 403 });
 
   // Derived-current read (max version). RLS scopes this to internal callers, so
   // this is null for anyone who slipped past the check above.

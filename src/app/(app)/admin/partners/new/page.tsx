@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { requireAdminOrInternal } from "@/lib/auth/require-admin-or-internal";
+import { isAdmin, requireStaff } from "@/lib/auth/viewer";
 import { InviteForm } from "./invite-form";
 
 type Search = Promise<{
@@ -15,7 +15,7 @@ export default async function NewPartnerPage({
 }: {
   searchParams: Search;
 }) {
-  const gate = await requireAdminOrInternal();
+  const gate = await requireStaff();
   if (!gate.ok) notFound();
 
   // Approve → prefill handoff from /admin/requests (ADR 0077).
@@ -45,7 +45,7 @@ export default async function NewPartnerPage({
       ) : null}
       <div className="mt-6 rounded-xl border-2 border-line bg-surface p-6">
         <InviteForm
-          showInternalToggle={gate.isAdmin}
+          showInternalToggle={isAdmin(gate.viewer)}
           defaultEmail={email ?? ""}
           defaultContactName={contactName ?? ""}
           defaultCompanyName={companyName ?? ""}

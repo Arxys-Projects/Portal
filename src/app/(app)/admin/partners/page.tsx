@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { requireAdminOrInternal } from "@/lib/auth/require-admin-or-internal";
+import { notFound } from "next/navigation";
+import { isAdmin as viewerIsAdmin, requireStaff } from "@/lib/auth/viewer";
 import { EditableName, InternalToggle, LogoUpload, PartnerRowActions } from "./partner-row-actions";
 import {
   updatePartnerCompanyName,
@@ -37,8 +38,10 @@ function statusPill(status: string) {
 }
 
 export default async function AdminPartnersPage() {
-  const gate = await requireAdminOrInternal();
-  const isAdmin = gate.ok && gate.isAdmin;
+  // Each admin page gates itself; the /admin layout is not a boundary.
+  const gate = await requireStaff();
+  if (!gate.ok) notFound();
+  const isAdmin = viewerIsAdmin(gate.viewer);
   const supabase = await createSupabaseServerClient();
   const { data: rows, error } = await supabase
     .from("partners")

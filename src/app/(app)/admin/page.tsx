@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { requireAdminOrInternal } from "@/lib/auth/require-admin-or-internal";
+import { notFound } from "next/navigation";
+import { isAdmin as viewerIsAdmin, requireStaff } from "@/lib/auth/viewer";
 import { NavCard } from "@/app/(app)/_components/ui";
 import type { ReactNode } from "react";
 
@@ -66,8 +67,10 @@ function StatCard({ label, value, detail, link }: { label: string; value: ReactN
 }
 
 export default async function AdminOverviewPage() {
-  const gate = await requireAdminOrInternal();
-  const isAdmin = gate.ok && gate.isAdmin;
+  // Each admin page gates itself; the /admin layout is not a boundary.
+  const gate = await requireStaff();
+  if (!gate.ok) notFound();
+  const isAdmin = viewerIsAdmin(gate.viewer);
 
   const supabase = await createSupabaseServerClient();
   const last30Cutoff = cutoffIsoDaysAgo(30);

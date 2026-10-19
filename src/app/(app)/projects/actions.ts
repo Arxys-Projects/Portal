@@ -9,7 +9,7 @@
 // Pipedrive but writes nothing.
 
 import { revalidatePath } from "next/cache";
-import { requireAdminOrInternal } from "@/lib/auth/require-admin-or-internal";
+import { requireStaff } from "@/lib/auth/viewer";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { archiveProject, restoreProject } from "@/lib/projects/archive";
 import { projectQueueDealIds } from "@/lib/projects/queue";
@@ -29,7 +29,7 @@ export type SimpleResult = { ok: true } | { ok: false; error: string };
 // user deliberately choosing to pay that cost.
 // ---------------------------------------------------------------------------
 export async function refreshProjectsAction(): Promise<SimpleResult> {
-  const gate = await requireAdminOrInternal();
+  const gate = await requireStaff();
   if (!gate.ok) return { ok: false, error: NOT_AUTHORIZED };
 
   const supabase = await createSupabaseServerClient();
@@ -47,11 +47,11 @@ export async function refreshProjectsAction(): Promise<SimpleResult> {
 // strip's Undo, and slot 1's "Restore to my queue" all call these two.
 // ---------------------------------------------------------------------------
 export async function archiveProjectAction(submissionId: string): Promise<SimpleResult> {
-  const gate = await requireAdminOrInternal();
+  const gate = await requireStaff();
   if (!gate.ok) return { ok: false, error: NOT_AUTHORIZED };
 
   const supabase = await createSupabaseServerClient();
-  const result = await archiveProject(supabase, submissionId, gate.userId);
+  const result = await archiveProject(supabase, submissionId, gate.viewer.user.id);
   if (!result.ok) return { ok: false, error: result.error };
 
   revalidatePath("/projects");
@@ -59,7 +59,7 @@ export async function archiveProjectAction(submissionId: string): Promise<Simple
 }
 
 export async function restoreProjectAction(submissionId: string): Promise<SimpleResult> {
-  const gate = await requireAdminOrInternal();
+  const gate = await requireStaff();
   if (!gate.ok) return { ok: false, error: NOT_AUTHORIZED };
 
   const supabase = await createSupabaseServerClient();
@@ -119,7 +119,7 @@ export type DealPreviewResult =
   | { ok: false; error: string };
 
 export async function previewDealForGenerateAction(dealId: number): Promise<DealPreviewResult> {
-  const gate = await requireAdminOrInternal();
+  const gate = await requireStaff();
   if (!gate.ok) return { ok: false, error: NOT_AUTHORIZED };
   if (!Number.isInteger(dealId) || dealId <= 0) {
     return { ok: false, error: "Invalid deal id." };

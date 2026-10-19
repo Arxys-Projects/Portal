@@ -4,7 +4,7 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { requireAdminOrInternal } from "@/lib/auth/require-admin-or-internal";
+import { requireAdmin, requireStaff } from "@/lib/auth/viewer";
 import { dbError } from "@/lib/errors/safe-message";
 import { SUBMISSION_STATUSES, type SubmissionStatus } from "@/app/(app)/submissions/status";
 import { buildRelinkInputs, type RelinkSubmissionRow } from "@/lib/pipedrive/relink";
@@ -23,18 +23,9 @@ const statusSchema = z.enum(SUBMISSION_STATUSES);
 const SESSION_EXPIRED = "Your session has expired. Sign in and try again.";
 const NOT_ADMIN = "You do not have permission to perform this action.";
 
-async function requireAdmin() {
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { supabase, user: null, isAdmin: false };
-  const { data: partner } = await supabase
-    .from("partners")
-    .select("role, status")
-    .eq("id", user.id)
-    .maybeSingle<{ role: string; status: string }>();
-  return { supabase, user, isAdmin: partner?.role === "admin" && partner?.status === "active" };
+// Session expired reads differently from a signed-in non-admin.
+function refusal(reason: "unauthenticated" | "forbidden"): string {
+  return reason === "unauthenticated" ? SESSION_EXPIRED : NOT_ADMIN;
 }
 
 export async function adminUpdateStatus(
@@ -44,9 +35,9 @@ export async function adminUpdateStatus(
   const parsed = statusSchema.safeParse(status);
   if (!parsed.success) return { ok: false, error: "Invalid status value." };
 
-  const { supabase, user, isAdmin } = await requireAdmin();
-  if (!user) return { ok: false, error: SESSION_EXPIRED };
-  if (!isAdmin) return { ok: false, error: NOT_ADMIN };
+  const gate = await requireAdmin();
+  if (!gate.ok) return { ok: false, error: refusal(gate.reason) };
+  const supabase = await createSupabaseServerClient();
 
   const { error } = await supabase
     .from("submissions")
@@ -61,9 +52,9 @@ export async function adminUpdateStatus(
 export async function adminDeleteSubmission(
   submissionId: string,
 ): Promise<ActionResult> {
-  const { supabase, user, isAdmin } = await requireAdmin();
-  if (!user) return { ok: false, error: SESSION_EXPIRED };
-  if (!isAdmin) return { ok: false, error: NOT_ADMIN };
+  const gate = await requireAdmin();
+  if (!gate.ok) return { ok: false, error: refusal(gate.reason) };
+  const supabase = await createSupabaseServerClient();
 
   const { data, error } = await supabase
     .from("submissions")
@@ -118,7 +109,7 @@ export async function adminRelinkPipedriveDeal(submissionId: string): Promise<Re
     return { ok: false, error: "Invalid submission id." };
   }
 
-  const gate = await requireAdminOrInternal();
+  const gate = await requireStaff();
   if (!gate.ok) return { ok: false, error: NOT_ADMIN };
 
   const supabase = await createSupabaseServerClient();

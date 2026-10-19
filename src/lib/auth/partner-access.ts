@@ -23,7 +23,12 @@ export type PartnerAccessClient = {
   };
   from(table: "partners"): {
     update(values: { status: "active" | "suspended" }): {
-      eq(column: "id", value: string): PromiseLike<{ error: unknown }>;
+      eq(column: "id", value: string): PromiseLike<{ error: unknown }> & {
+        // Reactivate's conditional write: only a row still suspended flips.
+        eq(column: "status", value: "suspended"): {
+          select(columns: "id"): PromiseLike<{ data: unknown[] | null; error: unknown }>;
+        };
+      };
     };
   };
 };
@@ -57,17 +62,24 @@ export async function suspendPartnerAccess(
 // status back to suspended, so the row stays consistent (banned and
 // suspended) and still shows Reactivate for a retry. Unbanning first would
 // leave a half-state where the user can sign in again and read partner-tier
-// data over REST. The caller only reactivates rows that are suspended.
+// data over REST. The status write is conditional on the row still being
+// suspended, so a row that changed since the caller's check (or was never
+// suspended) is refused atomically and its Auth user is never unbanned.
 export async function reactivatePartnerAccess(
   admin: PartnerAccessClient,
   targetId: string,
 ): Promise<AccessResult> {
-  const { error } = await admin
+  const { data, error } = await admin
     .from("partners")
     .update({ status: "active" })
-    .eq("id", targetId);
+    .eq("id", targetId)
+    .eq("status", "suspended")
+    .select("id");
   if (error) {
     return { ok: false, error: dbError(error, "reactivate partner") };
+  }
+  if (!data || data.length === 0) {
+    return { ok: false, error: "Cannot reactivate — partner is no longer suspended." };
   }
   const unban = await admin.auth.admin.updateUserById(targetId, {
     ban_duration: "none",

@@ -3,7 +3,7 @@
 import { z } from "zod";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { requireActive } from "@/lib/auth/viewer";
+import { isInternal, requireActive } from "@/lib/auth/viewer";
 import {
   CODECS,
   COMPLEXITIES,
@@ -153,29 +153,40 @@ export async function submitCalculation(
     return { status: "error", error: `Unknown VMS option: ${input.vms}` };
   }
 
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return { status: "error", error: "Your session has expired. Sign in and try again." };
+  // Defense-in-depth: the (app) layout gate already keeps a suspended partner
+  // out of the calculator UI; this catches direct POSTs from a stale tab or
+  // scripted client (ADR 0164). A failed account read returns a message
+  // rather than throwing to the error page, which would lose the unsaved form.
+  let gate: Awaited<ReturnType<typeof requireActive>>;
+  try {
+    gate = await requireActive();
+  } catch {
+    return { status: "error", error: "We could not check your account. Please try again." };
   }
-
-  // Defense-in-depth: the (app)/layout.tsx gate (ADR 0021) already prevents a
-  // suspended partner from reaching the calculator UI; this catches direct
-  // POSTs from a stale tab or scripted client.
-  // ADR 0118 — pipedrive_user_id rides along on this same read so the deal
-  // owner can be routed to the caller below without a second query.
-  const { data: callerStatus } = await supabase
-    .from("partners")
-    .select("status, is_internal, pipedrive_user_id")
-    .eq("id", user.id)
-    .maybeSingle();
-  if (!callerStatus || callerStatus.status !== "active") {
+  if (!gate.ok) {
     return {
       status: "error",
-      error: "Your account is not active. Sign out and back in, or contact your administrator.",
+      error:
+        gate.reason === "unauthenticated"
+          ? "Your session has expired. Sign in and try again."
+          : "Your account is not active. Sign out and back in, or contact your administrator.",
     };
+  }
+  const { user } = gate.viewer;
+  const callerIsInternal = isInternal(gate.viewer);
+  const supabase = await createSupabaseServerClient();
+
+  // ADR 0118 — the caller's Pipedrive user id, so the deal owner can be routed
+  // to them below.
+  // A failed read only loses the owner routing (the deal falls back to the
+  // default owner); it does not block the submission.
+  const { data: callerPipedrive, error: callerPipedriveError } = await supabase
+    .from("partners")
+    .select("pipedrive_user_id")
+    .eq("id", user.id)
+    .maybeSingle();
+  if (callerPipedriveError) {
+    console.error("[submit load caller pipedrive id]", callerPipedriveError);
   }
 
   // Phase 7 Step 1 / Phase 8 — resolve the on-behalf-of target. Authorization is
@@ -193,7 +204,7 @@ export async function submitCalculation(
   let dealTarget: { companyName: string; contactName: string | null; email: string | null } | null =
     null;
 
-  if (callerStatus.is_internal && input.onBehalfOfPartnerId) {
+  if (callerIsInternal && input.onBehalfOfPartnerId) {
     // Picker path: trust the id only after confirming it is a real, active,
     // non-internal partner — the same eligibility the picker filters on. An
     // ineligible or unknown id is dropped silently (no FK bound), so a crafted
@@ -220,7 +231,7 @@ export async function submitCalculation(
         email: targetEmail,
       };
     }
-  } else if (callerStatus.is_internal && input.onBehalfOfCompanyName) {
+  } else if (callerIsInternal && input.onBehalfOfCompanyName) {
     // Fallback: a company with no portal user yet. Org-only, no FK, no
     // visibility — there is no user to grant it to.
     const name = input.onBehalfOfCompanyName.trim();
@@ -235,7 +246,7 @@ export async function submitCalculation(
   // act on. The on-behalf block above either binds onBehalfPartnerId (picker
   // path) or onBehalfCompanyName (fallback path); if both are still null after
   // resolution (id not found / inactive, or company field blank), refuse here.
-  if (callerStatus.is_internal && !onBehalfPartnerId && !onBehalfCompanyName) {
+  if (callerIsInternal && !onBehalfPartnerId && !onBehalfCompanyName) {
     return {
       status: "error",
       error: "Company name is required for internal submissions.",
@@ -685,7 +696,7 @@ export async function submitCalculation(
   // existing single-owner default inside resolveOwnerIdForCreator. Applies to
   // every submitter, on-behalf or not; a normal external partner's own calc
   // was already always owned by the default, so this changes nothing for them.
-  const creatorPipedriveUserId = callerStatus.pipedrive_user_id ?? null;
+  const creatorPipedriveUserId = callerPipedrive?.pipedrive_user_id ?? null;
 
   let pipedriveWarnings: string[] = [];
   try {

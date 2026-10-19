@@ -2,9 +2,11 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import type { User } from "@supabase/supabase-js";
 import {
+  gateError,
   gateViewer,
   isActive,
   isAdmin,
+  isInternal,
   isStaff,
   loadViewer,
   type Viewer,
@@ -157,5 +159,23 @@ describe("loadViewer", () => {
     } finally {
       console.error = original;
     }
+  });
+});
+
+describe("isInternal", () => {
+  it("needs an active row with the flag; admin alone is not internal", () => {
+    assert.equal(isInternal(null), false);
+    assert.equal(isInternal(viewer(null)), false);
+    assert.equal(isInternal(viewer(partner({ is_internal: true }))), true);
+    assert.equal(isInternal(viewer(partner({ is_internal: true, status: "suspended" }))), false);
+    assert.equal(isInternal(viewer(partner({ role: "admin" }))), false);
+    assert.equal(isInternal(viewer(partner({ is_internal: null }))), false);
+  });
+});
+
+describe("gateError", () => {
+  it("keeps the two refusal messages the admin actions return", () => {
+    assert.equal(gateError({ reason: "unauthenticated" }), "Not authenticated.");
+    assert.equal(gateError({ reason: "forbidden" }), "Not authorized.");
   });
 });

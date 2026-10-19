@@ -4,14 +4,13 @@
 // internal users too.
 
 import { notFound } from "next/navigation";
-import { requireAdminOrInternal } from "@/lib/auth/require-admin-or-internal";
+import { requireAdmin } from "@/lib/auth/viewer";
 import { initialValuesFromRow } from "../fields";
 import { createSpec } from "../actions";
 import { SpecForm } from "../_components/spec-form";
 
 export default async function NewSpecPage() {
-  const gate = await requireAdminOrInternal();
-  if (!gate.ok || !gate.isAdmin) notFound();
+  if (!(await requireAdmin()).ok) notFound();
 
   return (
     <div>

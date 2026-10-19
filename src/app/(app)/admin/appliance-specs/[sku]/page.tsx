@@ -5,7 +5,7 @@
 
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { requireAdminOrInternal } from "@/lib/auth/require-admin-or-internal";
+import { requireAdmin } from "@/lib/auth/viewer";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { productGroupToFamilySlug } from "@/lib/price-book/families";
 import {
@@ -32,8 +32,7 @@ export default async function EditApplianceSpecPage({
   params: Promise<{ sku: string }>;
   searchParams: Promise<{ created?: string; prefillFrom?: string }>;
 }) {
-  const gate = await requireAdminOrInternal();
-  if (!gate.ok || !gate.isAdmin) notFound();
+  if (!(await requireAdmin()).ok) notFound();
 
   const { sku } = await params;
   const { created, prefillFrom } = await searchParams;

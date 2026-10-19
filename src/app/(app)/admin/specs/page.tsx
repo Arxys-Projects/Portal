@@ -1,14 +1,14 @@
 // /admin/specs — the product_specs index (design §3).
 //
 // Admin-only, NOT admin-or-internal. The /admin layout gate admits both, so this
-// page checks gate.isAdmin specifically and 404s otherwise — the same
+// page calls requireAdmin() and 404s otherwise — the same
 // admin-only-existence treatment project-quote-actions.ts and the admin XLSX
 // export use. RLS is still the real enforcement point for writes; this is the
 // surface check.
 
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { requireAdminOrInternal } from "@/lib/auth/require-admin-or-internal";
+import { requireAdmin } from "@/lib/auth/viewer";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { usableCapacityTb } from "@/lib/capacity-utils";
 import { formatTb } from "@/lib/price-book/cell-value";
@@ -33,8 +33,7 @@ function formatTimestamp(value: string | null): string {
 }
 
 export default async function AdminSpecsPage() {
-  const gate = await requireAdminOrInternal();
-  if (!gate.ok || !gate.isAdmin) notFound();
+  if (!(await requireAdmin()).ok) notFound();
 
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase

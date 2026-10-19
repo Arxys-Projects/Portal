@@ -12,8 +12,8 @@
 // refuses a delete even for an admin; this file is the other half of that, so
 // the UI cannot offer the control by mistake.
 //
-// AUTHORISATION. The /admin layout gate (requireAdminOrInternal) admits internal
-// users as well as admins, so every action below checks `gate.isAdmin`
+// AUTHORISATION. The /admin layout gate (requireStaff) admits internal
+// users as well as admins, so every action below checks `isAdmin(gate.viewer)`
 // specifically — matching project-quote-actions.ts and the admin XLSX export,
 // the other two admin-only surfaces inside that shell.
 //
@@ -26,7 +26,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requireAdminOrInternal } from "@/lib/auth/require-admin-or-internal";
+import { gateError, isAdmin, requireStaff } from "@/lib/auth/viewer";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { dbError } from "@/lib/errors/safe-message";
 import { productGroupToFamilySlug } from "@/lib/price-book/families";
@@ -39,20 +39,9 @@ import type { SpecActionState } from "@/lib/spec-form";
 import { specWarnings, type SpecRuleValues } from "./fields";
 import { parseSpecForm, specInputFromFormData, type SpecFormValues } from "./schema";
 
-async function requireAdmin(): Promise<
-  { ok: true; userId: string } | { ok: false; error: string }
-> {
-  const gate = await requireAdminOrInternal();
-  if (!gate.ok) return { ok: false, error: gate.error };
-  if (!gate.isAdmin) {
-    return {
-      ok: false,
-      error:
-        "Editing product specs is admin-only. Internal users can view this page but not save changes.",
-    };
-  }
-  return { ok: true, userId: gate.userId };
-}
+// Staff see the page; only an admin may save.
+const ADMIN_ONLY =
+  "Editing product specs is admin-only. Internal users can view this page but not save changes.";
 
 /**
  * The Price Book family page a SKU appears on, e.g. VX5-V500-192 -> /price-book/v500.
@@ -92,8 +81,9 @@ export async function createSpec(
   _prev: SpecActionState | null,
   formData: FormData,
 ): Promise<SpecActionState> {
-  const gate = await requireAdmin();
-  if (!gate.ok) return { status: "error", error: gate.error };
+  const gate = await requireStaff();
+  if (!gate.ok) return { status: "error", error: gateError(gate) };
+  if (!isAdmin(gate.viewer)) return { status: "error", error: ADMIN_ONLY };
 
   const parsed = parseSpecForm(specInputFromFormData(formData));
   if (!parsed.ok) {
@@ -139,8 +129,9 @@ export async function updateSpec(
   _prev: SpecActionState | null,
   formData: FormData,
 ): Promise<SpecActionState> {
-  const gate = await requireAdmin();
-  if (!gate.ok) return { status: "error", error: gate.error };
+  const gate = await requireStaff();
+  if (!gate.ok) return { status: "error", error: gateError(gate) };
+  if (!isAdmin(gate.viewer)) return { status: "error", error: ADMIN_ONLY };
 
   const parsed = parseSpecForm(specInputFromFormData(formData));
   if (!parsed.ok) {

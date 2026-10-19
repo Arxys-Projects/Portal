@@ -16,7 +16,7 @@
 // internal users too.
 
 import { notFound } from "next/navigation";
-import { requireAdminOrInternal } from "@/lib/auth/require-admin-or-internal";
+import { requireAdmin } from "@/lib/auth/viewer";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
   APPLIANCE_PREFILL_FIELD_NAMES,
@@ -37,8 +37,7 @@ export default async function NewApplianceSpecPage({
 }: {
   searchParams: Promise<{ prefillFrom?: string }>;
 }) {
-  const gate = await requireAdminOrInternal();
-  if (!gate.ok || !gate.isAdmin) notFound();
+  if (!(await requireAdmin()).ok) notFound();
 
   const { prefillFrom } = await searchParams;
 

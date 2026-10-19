@@ -70,7 +70,9 @@ Andy decided on 2026-10-19 that suspension should end access at once, through an
 - If the invited flip fails, the layout throws and the invitee keeps their session, where before
   they got in as `invited`. The app has no `error.tsx` yet, so they see Next's generic error
   page and have to reload on their own. A transient partners-read error in `getViewer` lands on
-  the same page.
+  the same page. *Update 2026-10-19:* the root `src/app/error.tsx` now shows a plain
+  "Something went wrong" page with a Reload button; `submitCalculation` catches the read error
+  and returns a message instead, so a failed Save keeps the unsaved form.
 - The page renders in parallel with the flip, so an invitee's very first page still sees
   `invited`: an internal user may see the partner-only view once, and a price-book page returns
   "not found" once. The normal invite path lands on `/dashboard`, which has no such gate.
@@ -83,6 +85,8 @@ Andy decided on 2026-10-19 that suspension should end access at once, through an
   local `requireAdmin` copies in `admin/partners/actions.ts` and `admin/submissions/actions.ts`,
   the two spec-action wrappers, the datasheet guard and the inline checks remain. They already
   check status, so they are a consolidation follow-up and do not leave a hole.
+  *Update 2026-10-19:* done in the B2-A-1 follow-up (JOURNAL); every viewer check now calls
+  `viewer.ts` and each admin page gates itself.
 - Partner-tier RLS (prices, specs, a user's own submissions) does not check status. A token
   issued before the ban keeps working over REST until it expires. Gating those SELECT and DML
   policies on an active partner row is deferred: it touches every partner-tier policy, needs

@@ -1,5 +1,5 @@
 import "server-only";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { requireActive } from "@/lib/auth/viewer";
 
 // WHO MAY DOWNLOAD A DATASHEET — the one place that decides, so widening it is a
 // single edit rather than a hunt through a route and a page (ADR 0110).
@@ -23,24 +23,13 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 //
 // The admin picker at /admin/datasheets does NOT relax with this — it belongs
 // with the other spec-admin surfaces regardless of who may download the PDF, and
-// it keeps its own requireAdminOrInternal() call.
+// it keeps its own requireStaff() call.
 
 export type DatasheetGate = { ok: true } | { ok: false; status: 401 | 403 };
 
 export async function requireDatasheetAccess(): Promise<DatasheetGate> {
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const gate = await requireActive();
+  if (gate.ok) return { ok: true };
   // An expired session gets a 401 the client can act on, never a flat 403.
-  if (!user) return { ok: false, status: 401 };
-
-  const { data: partner } = await supabase
-    .from("partners")
-    .select("status")
-    .eq("id", user.id)
-    .maybeSingle<{ status: string | null }>();
-  if (partner?.status !== "active") return { ok: false, status: 403 };
-
-  return { ok: true };
+  return { ok: false, status: gate.reason === "unauthenticated" ? 401 : 403 };
 }

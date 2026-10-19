@@ -2,7 +2,7 @@
 // (design §3).
 //
 // Admin-only, NOT admin-or-internal: the /admin layout gate admits both, so this
-// page checks gate.isAdmin specifically and 404s otherwise. RLS is still the
+// page calls requireAdmin() and 404s otherwise. RLS is still the
 // real enforcement point for writes; this is the surface check.
 //
 // THE GROUPING IS THE POINT, not decoration. A datasheet renders one
@@ -14,7 +14,7 @@
 
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { requireAdminOrInternal } from "@/lib/auth/require-admin-or-internal";
+import { requireAdmin } from "@/lib/auth/viewer";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { buttonClasses, Table, THead, TBody, TR, TH, TD } from "@/app/(app)/_components/ui";
 import { FAMILY_TYPE_OPTIONS, sheetGroupWarnings, type SheetGroupRow } from "./fields";
@@ -41,8 +41,7 @@ function formatTimestamp(value: string | null): string {
 }
 
 export default async function AdminApplianceSpecsPage() {
-  const gate = await requireAdminOrInternal();
-  if (!gate.ok || !gate.isAdmin) notFound();
+  if (!(await requireAdmin()).ok) notFound();
 
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase

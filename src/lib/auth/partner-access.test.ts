@@ -9,9 +9,10 @@ import {
 
 type Call =
   | { kind: "ban"; uid: string; ban_duration: string }
-  | { kind: "status"; id: string; status: string };
+  | { kind: "status"; id: string; status: string; ifStatus?: string };
 
-function fakeAdmin(fail: { ban?: boolean; status?: boolean } = {}) {
+// notSuspended: the conditional reactivate write matches no row.
+function fakeAdmin(fail: { ban?: boolean; status?: boolean; notSuspended?: boolean } = {}) {
   const calls: Call[] = [];
   const client: PartnerAccessClient = {
     auth: {
@@ -26,9 +27,24 @@ function fakeAdmin(fail: { ban?: boolean; status?: boolean } = {}) {
       return {
         update(values) {
           return {
-            async eq(_column, id) {
-              calls.push({ kind: "status", id, status: values.status });
-              return { error: fail.status ? { message: "db down" } : null };
+            eq(_column, id) {
+              const error = fail.status ? { message: "db down" } : null;
+              // Awaited directly: the unconditional write. Chained with
+              // .eq("status", ...).select(): the conditional one.
+              return {
+                then(resolve, reject) {
+                  calls.push({ kind: "status", id, status: values.status });
+                  return Promise.resolve({ error }).then(resolve, reject);
+                },
+                eq(_c, ifStatus) {
+                  return {
+                    async select() {
+                      calls.push({ kind: "status", id, status: values.status, ifStatus });
+                      return { data: error || fail.notSuspended ? [] : [{ id }], error };
+                    },
+                  };
+                },
+              };
             },
           };
         },
@@ -81,7 +97,7 @@ describe("reactivatePartnerAccess", () => {
     const res = await reactivatePartnerAccess(client, "p-1");
     assert.deepEqual(res, { ok: true });
     assert.deepEqual(calls, [
-      { kind: "status", id: "p-1", status: "active" },
+      { kind: "status", id: "p-1", status: "active", ifStatus: "suspended" },
       { kind: "ban", uid: "p-1", ban_duration: "none" },
     ]);
   });
@@ -90,7 +106,21 @@ describe("reactivatePartnerAccess", () => {
     const { client, calls } = fakeAdmin({ status: true });
     const res = await reactivatePartnerAccess(client, "p-1");
     assert.equal(res.ok, false);
-    assert.deepEqual(calls, [{ kind: "status", id: "p-1", status: "active" }]);
+    assert.deepEqual(calls, [
+      { kind: "status", id: "p-1", status: "active", ifStatus: "suspended" },
+    ]);
+  });
+
+  it("refuses without unbanning when the row is no longer suspended", async () => {
+    const { client, calls } = fakeAdmin({ notSuspended: true });
+    const res = await reactivatePartnerAccess(client, "p-1");
+    assert.deepEqual(res, {
+      ok: false,
+      error: "Cannot reactivate — partner is no longer suspended.",
+    });
+    assert.deepEqual(calls, [
+      { kind: "status", id: "p-1", status: "active", ifStatus: "suspended" },
+    ]);
   });
 
   it("re-asserts the ban and puts the status back to suspended when the unban fails", async () => {
@@ -98,7 +128,7 @@ describe("reactivatePartnerAccess", () => {
     const res = await reactivatePartnerAccess(client, "p-1");
     assert.equal(res.ok, false);
     assert.deepEqual(calls, [
-      { kind: "status", id: "p-1", status: "active" },
+      { kind: "status", id: "p-1", status: "active", ifStatus: "suspended" },
       { kind: "ban", uid: "p-1", ban_duration: "none" },
       { kind: "ban", uid: "p-1", ban_duration: BAN_FOREVER },
       { kind: "status", id: "p-1", status: "suspended" },

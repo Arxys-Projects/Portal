@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { requireAdminOrInternal } from "@/lib/auth/require-admin-or-internal";
+import { notFound } from "next/navigation";
+import { isAdmin as viewerIsAdmin, requireStaff } from "@/lib/auth/viewer";
 import {
   STATUS_META,
   SUBMISSION_STATUSES,
@@ -88,8 +89,10 @@ export default async function AdminSubmissionsPage({
   // Phase 8 Step C — internal users see this page read-only. isAdmin gates
   // the XLSX export and per-row status / delete controls. The action handlers
   // themselves still re-check role = admin (defense in depth).
-  const gate = await requireAdminOrInternal();
-  const isAdmin = gate.ok && gate.isAdmin;
+  // Each admin page gates itself; the /admin layout is not a boundary.
+  const gate = await requireStaff();
+  if (!gate.ok) notFound();
+  const isAdmin = viewerIsAdmin(gate.viewer);
 
   const supabase = await createSupabaseServerClient();
 

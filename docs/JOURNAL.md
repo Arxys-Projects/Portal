@@ -4,6 +4,62 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-10-19 - Every role and status check goes through viewer.ts (B2-A-1, B2-S-7)
+
+### Work done
+
+- Finishes the baseline audit's B2-A-1 (16 places each defining staff, admin or active their own
+  way). Every check on the signed-in viewer now calls `src/lib/auth/viewer.ts`. On the normal
+  path each check keeps its meaning, its messages and its HTTP codes; the exceptions are under
+  Detours.
+- **Deleted `src/lib/auth/require-admin-or-internal.ts`.** Its callers use `requireStaff()`; the
+  `isAdmin` it returned is now `isAdmin(gate.viewer)`. The local `requireAdmin` in
+  `admin/partners/actions.ts` and `admin/submissions/actions.ts` and the wrappers in
+  `admin/specs/actions.ts` and `admin/appliance-specs/actions.ts` are gone. The spec actions call
+  `requireStaff()` then `isAdmin()`, so an internal user still gets the "admin-only" message.
+- **Inline checks moved:** `generateProjectQuote`, the forecast XLSX route (admin), both Project
+  Quote PDF routes, `lib/datasheet/guard.ts` and `submitCalculation` (which now reads only
+  `pipedrive_user_id` itself and logs a failed read instead of refusing).
+- **Status-blind reads fixed:** the admin submission detail page, dashboard, calculator and Quick
+  Calc pages read the cached viewer. The submission detail's Project Quote panel and the
+  on-behalf picker key on the new `isInternal()` (active and `is_internal`).
+- **B2-S-7:** every page under `/admin` gates itself and 404s. `/admin`, `/admin/partners`,
+  `/admin/submissions`, `/admin/requests` and `/admin/submissions/[id]` had relied on the layout.
+  The six spec pages call `requireAdmin()`.
+- `viewer-core.ts` gains `isInternal()` and `gateError()` (the shared "Not authenticated." /
+  "Not authorized." text), with tests.
+- **`src/app/error.tsx`**: a plain "Something went wrong" page with a Reload button and the error's
+  reference digest (to match a partner's report to the Vercel log). It sits at the
+  root because an `error.tsx` does not catch its own segment's layout, and the `(app)` layout is
+  what throws (failed viewer read, failed invite flip).
+- **Reactivate is a conditional write:** `.eq("status", "suspended").select("id")`; zero rows
+  refuses without unbanning. The action's earlier read stays for its specific message.
+
+### Detours & fixes
+
+- **No `requireActive()` notFound gate on dashboard, calculator or Quick Calc.** The `(app)`
+  layout flips `invited` to `active`, but the page shares the `cache()`d viewer, so on an
+  invitee's first load the page always sees `invited` and a page gate would 404 it. Their writes
+  are already gated in the actions. The same first load now hides the dashboard's Admin card from
+  an invited admin (the old check ignored status); it appears on the next click.
+- Left alone on purpose: checks on *another* partner's row (the on-behalf target's eligibility,
+  the last-active-admin count, the suspend/reactivate/resend status rules, the admin counts) and
+  the `(app)` layout's invited flip and suspended-banner choice. Those are business rules about
+  rows, not the viewer's access.
+- `getViewer()` throws on a failed `partners` read, so surfaces that used to read a DB error as
+  "forbidden" now show the error page, and the forecast XLSX, Project Quote PDF and datasheet
+  routes return 500 where they returned 403 (ADR 0164's choice). The review gate (architect A-1)
+  flagged that this would lose an unsaved calculator on Save, so `submitCalculation` catches it
+  and returns "We could not check your account. Please try again." The spec and invite actions
+  still throw; their forms are short.
+- Review gate: security PASS WITH NOTES (no findings to fix); architect PASS WITH NOTES with
+  A-1 (above) and A-3 (stale ADR 0164 and JOURNAL wording) fixed before commit. Not verified:
+  real PostgREST behaviour of the conditional reactivate on zero rows (fake-tested only); Andy
+  can check by clicking Reactivate twice on a test persona.
+- Removed an unused `projectQuoteTitle` import in `project-quote-actions.ts` that eslint flagged.
+
+---
+
 ## 2026-10-19 - Suspension bans the Auth user; every partner entry point requires an active partner (ADR 0164)
 
 ### Work done

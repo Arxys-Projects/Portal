@@ -22,8 +22,8 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     // admitting a self-status change; the operation is idempotent. A failed
     // flip throws to the error page and keeps the session, so a reload
     // retries it; signing the invitee out here would tell them they have no
-    // access. The page renders in parallel with this layout, so it may still
-    // see 'invited' on this first load.
+    // access. The page shares the cache()d viewer, so on this first load it
+    // always sees 'invited'; a page gate on requireActive() would 404 it.
     const admin = createSupabaseAdminClient();
     const { error } = await admin
       .from("partners")
