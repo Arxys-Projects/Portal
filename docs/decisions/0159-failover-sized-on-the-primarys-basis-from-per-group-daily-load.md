@@ -1,8 +1,8 @@
 # 0159 - Failover servers are sized on the primary's basis, from each group's own daily load
 
-- **Status**: Accepted. One open question for Andy: the retention cap under "Options considered". The
-  failover days default it describes changed to the longest retention in [0162](./0162-failover-days-default-to-the-longest-retention.md),
-  which makes the cap decide whether mixed-retention calcs get a failover at all.
+- **Status**: Accepted; its storage formula is amended by [0163](./0163-failover-holds-each-group-at-most-its-own-retention.md)
+  (Andy adopted the retention cap, 2026-10-19). The failover days default it describes changed to the
+  longest retention in [0162](./0162-failover-days-default-to-the-longest-retention.md).
 - **Date**: 2026-10-19
 - **Related**: 0068 (storage-first sizing), 0126/0127 (the one buffer and the binary charge), 0132 (per-group retention), 0160 (SFP+ 1U exclusion)
 

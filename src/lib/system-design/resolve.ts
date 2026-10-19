@@ -190,8 +190,8 @@ export function resolveSystemDesign(
       };
       if (resolvedDays > longestRetentionDays) {
         warnings.push(
-          `Failover days (${resolvedDays}) are more than the longest retention (${longestRetentionDays}), ` +
-            "so each failover server holds more than a primary does.",
+          `Failover days (${resolvedDays}) are more than the longest retention (${longestRetentionDays}). ` +
+            "A failover holds no group longer than its own retention, so the extra days change nothing.",
         );
       }
     }

@@ -1,6 +1,7 @@
 # 0162 - Failover days default to the calc's longest retention
 
-- **Status**: Accepted (Andy, 2026-10-19). Migration written, not yet applied.
+- **Status**: Accepted (Andy, 2026-10-19). Migration written, not yet applied. The mixed-retention
+  problem under "Consequences" is resolved by [0163](./0163-failover-holds-each-group-at-most-its-own-retention.md).
 - **Date**: 2026-10-19
 - **Related**: 0154 (rules are admin-edited), 0158 (system design resolution), 0159 (failover sizing and its open retention-cap question)
 

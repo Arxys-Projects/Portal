@@ -4,6 +4,43 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-10-19 - A failover holds each group for at most its own retention (ADR 0163)
+
+### Work done
+
+- **Andy adopted the retention cap** left open in ADR 0159. `recommendFailover` now adds each
+  group's `(storage ÷ retention) × min(failover days, retention)` to what one failover holds. A
+  group held for its whole retention adds its storage as is.
+- At the new default (the longest retention, ADR 0162), each failover holds exactly one primary's
+  share, so the primary's own SKU always qualifies. The 90 / 14 / 30-day test calc went from no
+  failover (1,299 TB needed per unit) to 2 × V800-864. Uniform calcs are unchanged.
+- Tests:
+  - The literal-formula test became a cap test: 50 days on a 20-day and a 100-day group needs
+    250 TB (V700-384), and 365 days needs exactly 400 TB.
+  - The chained "nothing fits at the default" test now asserts one primary's share.
+  - A new invariant test checks that the failover is never pricier than the primary's SKU, for
+    failover days from 1 to 730.
+  - The old chained "no qualifying SKU" case cannot occur any more, so it was removed; the unit
+    test in `failover.test.ts` still covers that path.
+- The resolver's warning for failover days past the longest retention now says the extra days
+  change nothing.
+- Full suite 954/954, golden and recommender 31/31 with the golden files unchanged, `tsc` and eslint
+  clean.
+
+### Detours & fixes
+
+- **A test-editing script deleted one test by accident.** It removed a block of tests between two
+  markers and took "a retired BOM rule adds nothing" with it. It was restored from HEAD, and the
+  test list was checked against the committed file.
+
+### Decisions captured
+
+- [`0163-failover-holds-each-group-at-most-its-own-retention.md`](./decisions/0163-failover-holds-each-group-at-most-its-own-retention.md)
+
+RUNBOOK unchanged.
+
+---
+
 ## 2026-10-19 - Failover days default to the longest retention (ADR 0162, migration to apply)
 
 ### Work done

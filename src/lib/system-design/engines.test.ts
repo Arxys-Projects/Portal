@@ -87,8 +87,8 @@ describe("project calc engines, chained", () => {
       { cameras: 400, retentionDays: 14 },
       { cameras: 250, retentionDays: 30 },
     ];
-    // 14 days, at or under every group's retention. The default (90) finds
-    // nothing on this calc; the next test pins that.
+    // 14 days, at or under every group's retention, where the cap changes
+    // nothing. The next test runs the same calc at the default.
     const days = 14;
     const r = runProjectCalc(groups, { sfp: true, gpu: true, failover: { enabled: true, days } });
     assert.ok(r.design.failover.enabled);
@@ -133,45 +133,57 @@ describe("project calc engines, chained", () => {
     );
   });
 
-  it("at the default (the longest retention), the same mixed calc finds no failover (ADR 0159 open question)", () => {
-    // The locked formula counts the 14- and 30-day groups for 90 days each, so
-    // one failover would need more than one primary holds. Capping each group at
-    // its own retention would make it exactly one primary's share. Until Andy
-    // decides, this pins what the literal formula does.
-    const r = runProjectCalc(
-      [
-        { cameras: 300, retentionDays: 90 },
-        { cameras: 400, retentionDays: 14 },
-        { cameras: 250, retentionDays: 30 },
-      ],
-      { failover: { enabled: true } },
-    );
+  it("at the default (the longest retention), a mixed calc's failover holds one primary's share (ADR 0163)", () => {
+    const groups = [
+      { cameras: 300, retentionDays: 90 },
+      { cameras: 400, retentionDays: 14 },
+      { cameras: 250, retentionDays: 30 },
+    ];
+    const r = runProjectCalc(groups, { failover: { enabled: true } });
     assert.ok(r.design.failover.enabled && r.design.failover.days === 90);
-    assert.equal(r.failover?.choice, null);
-    const largest = Math.max(...POOL.map((s) => s.usableStorageTb));
-    const primarySpec = POOL.find((s) => s.sku === r.primary.winner.sku)!;
-    assert.ok(r.failover!.requiredPerUnitTb > largest);
-    assert.ok(r.failover!.requiredPerUnitTb > primarySpec.usableStorageTb);
-    assert.match(r.failover!.warnings[0], /No failover server fits/);
+    const total = groups.reduce(
+      (sum, g) =>
+        sum +
+        computeGroup({
+          cameras: g.cameras,
+          resolution: RESOLUTIONS[14],
+          codec: CODECS[0],
+          complexity: COMPLEXITIES[2],
+          fps: 15,
+          retentionDays: g.retentionDays,
+          recordingMode: "constant",
+          recordingPercent: 100,
+          motionPercent: 100,
+        }).storageGb,
+      0,
+    );
+    // Every group is held for its whole retention: one primary's share, exactly.
+    const share = total / r.primary.winner.units / GB_PER_TB;
+    assert.ok(Math.abs(r.failover!.requiredPerUnitTb - share) < 1e-9);
+    const choice = r.failover?.choice;
+    assert.ok(choice, r.failover?.warnings.join(" | "));
+    assert.ok(choice.usableStorageTb >= share);
+    assert.ok(choice.unitMsrp <= r.primary.winner.unitMsrp);
   });
 
-  it("failover with no qualifying SKU: a warning, no failover lines, and the primary stands", () => {
-    // A heavy 7-day group beside a light 365-day one. The default failover days
-    // are the longest retention (365, ADR 0162), and 365 days of the heavy
-    // group's daily load is far more than any one server holds.
-    const r = runProjectCalc(
-      [
-        { cameras: 600, retentionDays: 7 },
-        { cameras: 20, retentionDays: 365 },
-      ],
-      { sfp: true, failover: { enabled: true, primariesPerFailover: 1 } },
-    );
-    assert.ok(r.design.failover.enabled && r.design.failover.days === 365);
-    assert.equal(r.failover?.choice, null);
-    assert.equal(r.failover?.units, r.primary.winner.units);
-    assert.match(r.failover!.warnings[0], /No failover server fits/);
-    assert.ok(!r.bom.some((l) => l.role === "failover"));
-    assert.equal(r.bom[0].role, "recorder");
+  it("the failover is never bigger than the primary's SKU, whatever the failover days", () => {
+    for (const days of [1, 7, 45, 183, 365, 730]) {
+      const r = runProjectCalc(
+        [
+          { cameras: 600, retentionDays: 7 },
+          { cameras: 20, retentionDays: 365 },
+        ],
+        { sfp: true, failover: { enabled: true, days, primariesPerFailover: 1 } },
+      );
+      const choice = r.failover?.choice;
+      assert.ok(choice, `${days} days: ${r.failover?.warnings.join(" | ")}`);
+      assert.ok(choice.unitMsrp <= r.primary.winner.unitMsrp, `${days} days: ${choice.sku}`);
+      assert.equal(choice.units, r.primary.winner.units);
+      assert.deepEqual(
+        r.bom.filter((l) => l.role === "failover").map((l) => l.sku),
+        [choice.sku, "VX5-NIC-SFP28", "VX5-NIC-SFP28x10"],
+      );
+    }
   });
 
   it("a retired BOM rule adds nothing; its twin for the other role still applies", () => {

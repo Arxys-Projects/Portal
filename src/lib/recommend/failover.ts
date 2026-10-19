@@ -1,7 +1,7 @@
 import { GB_PER_TB, type ServerSpec } from "./types";
 import { applyPoolOptions, type PoolOptions } from "./pool-filters";
 
-// Failover server sizing for project calcs (ADR 0159). Pure: no I/O.
+// Failover server sizing for project calcs (ADRs 0159 and 0163). Pure: no I/O.
 //
 // A failover server takes over ONE failed primary recorder for `failoverDays`.
 // One failover covers `primariesPerFailover` primaries, one failure at a time,
@@ -9,7 +9,9 @@ import { applyPoolOptions, type PoolOptions } from "./pool-filters";
 //
 //   units              = ceil(primary units / primaries per failover)
 //   daily load         = sum over groups of (group storageGb / group retentionDays)
-//   per-unit storage   = (daily load / primary units) x failover days
+//   held               = sum over groups of (group storageGb / group retentionDays)
+//                          x min(failover days, group retentionDays)
+//   per-unit storage   = held / primary units
 //   per-unit cameras   = the primary SKU's max_cameras
 //
 // The choice is the cheapest SKU (by MSRP, every unit being the same SKU) whose
@@ -28,9 +30,14 @@ import { applyPoolOptions, type PoolOptions } from "./pool-filters";
 // groups' share; total / shortest would over-size the rest. The calc's totals
 // (RecommendationInput) carry no retention, which is why this takes groups.
 //
-// Failover days multiply every group's daily load, including a group whose own
-// retention is shorter than the failover days (ADR 0159 records the capped
-// alternative for Andy).
+// THE CAP (Andy, 2026-10-19, ADR 0163): a group is held for at most its own
+// retention. Failover days default to the LONGEST retention (ADR 0162), so on a
+// mixed calc they exceed every shorter group's; past that point the failover
+// keeps no more of that group than the primary does. With the failover days at
+// or past every retention, each failover holds exactly one primary's share of
+// the calc's storage, so the primary's own SKU always qualifies and a calc sized
+// by recommend() never gets a failover bigger than its primary. The "nothing
+// fits" warning then only fires on input that disagrees with the primary's sizing.
 //
 // POOL: the same candidate pool and filters as the primary (numeric price, the
 // V200 to V800 allowlist the loader applies, and the SFP+ 1U exclusion when the
@@ -69,7 +76,7 @@ export type FailoverRecommendation = {
   // Required capacity written per day across the whole calc, decimal GB.
   dailyLoadGb: number;
   // What each failover server must hold for the failover days, decimal TB
-  // (net-usable basis).
+  // (net-usable basis), each group held for at most its own retention.
   requiredPerUnitTb: number;
   // The primary SKU's per-unit camera capacity, which each failover must match.
   requiredMaxCameras: number;
@@ -136,7 +143,16 @@ export function recommendFailover(
 
   const units = Math.ceil(primary.units / primariesPerFailover);
   const dailyLoadGb = groups.reduce((sum, g) => sum + g.storageGb / g.retentionDays, 0);
-  const requiredPerUnitTb = ((dailyLoadGb / primary.units) * failoverDays) / GB_PER_TB;
+  // A group held for its whole retention adds its storage as is, never
+  // (storage / days) x days, so floating point cannot lift the total a hair past
+  // what the primary was sized on.
+  const heldGb = groups.reduce(
+    (sum, g) =>
+      sum +
+      (failoverDays >= g.retentionDays ? g.storageGb : (g.storageGb / g.retentionDays) * failoverDays),
+    0,
+  );
+  const requiredPerUnitTb = heldGb / primary.units / GB_PER_TB;
   const requiredMaxCameras = primarySpec.maxCameras;
 
   const qualifying = pool

@@ -106,17 +106,22 @@ describe("recommendFailover: sizing", () => {
     assert.equal(r.choice?.sku, "VX5-V500-192");
   });
 
-  it("failover days past a short group's retention still multiply its daily load (the locked formula)", () => {
-    // 50 failover days on a 20-day group and a 100-day group: (5 + 3) TB/day x 50
-    // = 400 TB for one primary. Capping each group at its own retention would ask
-    // for 100 + 150 = 250 TB (a V700-384); ADR 0159 records that alternative.
+  it("a group is held for at most its own retention (ADR 0163)", () => {
+    // 50 failover days, but the first group keeps only 20: it adds its 100 TB,
+    // not 5 TB/day x 50 = 250 TB. The second adds 3 TB/day x 50 = 150 TB.
     const groups = [
       { storageGb: tb(100), retentionDays: 20 },
       { storageGb: tb(300), retentionDays: 100 },
     ];
     const r = recommendFailover({ sku: "VX5-V700-480", units: 1 }, groups, 50, 2, POOL);
-    assert.equal(r.requiredPerUnitTb, 400);
-    assert.equal(r.choice?.sku, "VX5-V700-480");
+    assert.ok(Math.abs(r.dailyLoadGb - tb(8)) < 1e-6);
+    assert.ok(Math.abs(r.requiredPerUnitTb - 250) < 1e-9);
+    assert.equal(r.choice?.sku, "VX5-V700-384");
+
+    // Failover days at or past every retention: exactly the primary's share.
+    const all = recommendFailover({ sku: "VX5-V700-480", units: 1 }, groups, 365, 2, POOL);
+    assert.equal(all.requiredPerUnitTb, 400);
+    assert.equal(all.choice?.sku, "VX5-V700-480");
   });
 
   it("each failover must match the primary SKU's camera capacity", () => {
@@ -135,7 +140,9 @@ describe("recommendFailover: sizing", () => {
 
   it("no qualifying SKU: no choice, a warning, and the count still given", () => {
     // 2 × 900 TB per primary at 30 days; 30 failover days needs 900 TB per unit,
-    // above the largest usable in the pool (V800-864, 720 TB).
+    // above the largest usable in the pool (V800-864, 720 TB). A primary that
+    // recommend() sized cannot get here (its own SKU always holds one share, see
+    // the cap), so this guards input that disagrees with the primary's sizing.
     const r = recommendFailover(
       { sku: "VX5-V800-864", units: 2 },
       [{ storageGb: tb(1800), retentionDays: 30 }],
