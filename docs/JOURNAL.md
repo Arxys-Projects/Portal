@@ -33,6 +33,7 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
   reopens). New live RLS test `8l` (suspended internal user), for Andy to run after applying.
   **Andy applied it the same day** and the read-back confirmed the status check and grants. He
   also ran the backfill query first: no partners were suspended, so there was nothing to ban.
+  The live RLS suite then passed in full, including all three `8l` lines.
 - **`isSafeNext`** resolves `next` against a fixed origin and requires it to stay there, and
   rejects backslashes and control characters. Unit tests cover the audit's cases.
 - RUNBOOK §8d: turn off public sign-up and verify it. ADR 0021 marked superseded. The Project

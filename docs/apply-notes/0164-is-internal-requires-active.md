@@ -1,9 +1,10 @@
 # Apply note — `is_internal()` requires an active partner (ADR 0164)
 
 > **Applied 2026-10-19** by Andy in the Supabase dashboard SQL editor. Verified the same day: the
-> function body has the status check, `anon` has no EXECUTE and `authenticated` does. Still to
-> run: the RLS suite (step 4), the sign-up check (RUNBOOK §8d), and the post-deploy persona
-> checks (step 5).
+> function body has the status check, `anon` has no EXECUTE and `authenticated` does. The live
+> RLS suite passed in full the same day, including the three `8l` lines (suspended internal user
+> reads only their own rows; reads return after reactivation). Still to run: the sign-up check
+> (RUNBOOK §8d) and the post-deploy persona checks (step 5).
 
 | | File |
 |---|---|
