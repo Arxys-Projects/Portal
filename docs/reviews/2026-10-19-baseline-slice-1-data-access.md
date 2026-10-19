@@ -210,6 +210,26 @@ What the advisor cannot see:
 
 Its silence on those is expected and does not clear them. It raised nothing on the 13 live-only Project Portal tables or the ADR 0151 guard trigger: no table without RLS, no definer view and no mutable `search_path`.
 
+### Live catalog snapshot (Action 7)
+
+Andy ran the read-only catalog snapshot on 2026-10-19 (20:18 UTC). The comparison is in [`2026-10-19-live-catalog-snapshot.md`](./2026-10-19-live-catalog-snapshot.md). **No security drift was found.**
+
+| Object | Live | Migrations at `2ae9350` |
+|---|---|---|
+| Tables | 26, RLS on | 26 |
+| Policies | 70 (66 public + 4 storage) | 70 |
+| Triggers | 17 | 17 |
+| SECURITY DEFINER functions | 7 | 7 |
+| Guard function | Matches its migration | |
+| View | `current_products`, `security_invoker` on | Same |
+| Bucket | `partner-logos` | Same |
+
+It also confirms these findings in production:
+- **B1-S-2 / B1-A-1:** `authenticated` holds full INSERT/UPDATE/DELETE on `submissions` behind row-only policies.
+- **B1-S-3:** the live `is_internal()` has no status check.
+- **B1-S-10:** anon holds grants on `current_products` and can execute `camera_aliases_text` and the `pg_trgm` functions.
+- **B1-S-11** and **B1-A-18 / B1-S-14:** the internal write grants are as reported.
+
 ### Supabase Performance Advisor
 
 Same run (observed 18:43:31 UTC). Every result is INFO.
