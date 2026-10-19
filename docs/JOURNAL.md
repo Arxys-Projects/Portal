@@ -15,7 +15,12 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
   recommender's pool, it shows `rack_units` and `sfp_addon`, whether they agree, and whether the
   server stays in the pool when SFP+ is on. It reads both columns the way `pool-filters.ts` does.
   Tested in PGlite against stub tables with each edge case (1U spellings, "Tower", blank, "NO" on a
-  4U, a hidden NCD SKU, the V100). Andy runs it before Step 4 turns SFP+ on. Result pending.
+  4U, a hidden NCD SKU, the V100).
+- **Andy ran it on production the same day: all 18 pool SKUs "ok".** The three V200s are 1U with
+  "No" and are left out under SFP+. V400 to V800 are 2U to 4U and stay. The live long spelling is
+  "Optional - 2x 10Gb SFP+ or 2x 25Gb SFP28 upgrade available", on the V400-160 and the lowest SKU
+  of V500 to V800. The code comments, ADR 0160 and the reader test now quote it exactly; the earlier
+  text guessed "each family's lowest SKU", which is wrong for the V400.
 
 RUNBOOK unchanged.
 

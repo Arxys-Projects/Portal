@@ -153,7 +153,7 @@ All tables are internal-only (policies gated on `is_internal(auth.uid()) OR is_a
 - **Failover days default changed (Andy, 2026-10-19, ADR 0162):** the default is now the longest retention. The rule value moves from 0.5 to 1 in migration `20261019000001_failover_days_default_longest_retention.sql` (guarded, rollback written, tested in PGlite 14/14), **applied and verified by Andy 2026-10-19** (read-back: `value` 1). No engine change.
 - **Failover retention cap adopted (Andy, 2026-10-19, ADR 0163):** each group is held for at most its own retention, so at the default each failover holds exactly one primary's share and the primary's SKU always fits. A tested 90 / 14 / 30-day calc went from no failover (1,299 TB needed per unit) to 2 × V800-864.
 - **Open for Andy:**
-  - **Live specs check** before Step 4 turns SFP+ on: run `scripts/check-sfp-pool-specs.sql` (read-only) in the SQL editor. Expect every row "ok" and only the three V200s "left out". The unit test reads the June seed file; live values were last read in Step 0.
+  - (Live specs check: done 2026-10-19. `scripts/check-sfp-pool-specs.sql` found all 18 pool SKUs "ok", with only the three V200s left out under SFP+. Re-run it after any spec edit.)
   - (Caps of 100 primaries per failover, 500 workstations and 100 of one add-on per server: confirmed by Andy 2026-10-19.)
 - **Review gate (2026-10-19), three passes:** architect and security reviews as fresh subagents. Each confirmed the partner path is identical to HEAD by fuzzing the old against the new `recommend()` (60,000 comparisons per run, 0 differences). Fixed before commit: exact-"1U" match (A-1), silent missing add-ons (A-2, closed on the third pass), snapshot claim too broad (A-3), sizing glue only in a test (A-4), retention resolved two ways (A-5), the old Step 4 bullet offering `submissions` (A-6), groups and design retention unchecked in the sizing chain (A-7), and the input hardening S-2 to S-5 and S-7. S-1 is a Step 4 constraint, below.
 - **For Step 4:**
@@ -164,7 +164,7 @@ All tables are internal-only (policies gated on `is_internal(auth.uid()) OR is_a
   - Call `resolveSystemDesign`, then `sizeProjectDesign` with the same `totals` the partner path passes to `recommend()` and each computed group's `storageGb` and resolved `retentionDays`.
   - **Bank the resolved design, the snapshot and the BOM in a side table with no INSERT, UPDATE or DELETE grant for `authenticated`, written only by server code that first checks the caller owns the submission** (security review S-1, ADR 0158). Never bank them on `submissions`. Add a `scripts/test-rls.ts` case that a partner and an internal non-admin cannot write the table. Display and reopen from the banked design; re-resolve only on a new save.
 - **Unverified:**
-  - Live `product_specs` values. The agreement test reads the seed file `20260602000001_quickcompare_columns.sql`; live drift shows only as the runtime warning.
+  - (Verified 2026-10-19: live `rack_units` and `sfp_addon` agree on all 18 pool SKUs; see the live specs check above.)
   - How any VMS handles retention on a failover server.
   - No server action or database path was exercised.
 

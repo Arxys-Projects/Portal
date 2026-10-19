@@ -9,8 +9,8 @@
 With SFP+ on, every recorder and failover gets the SFP28 NIC and the 10Gb transceiver pair, and a
 1U chassis has no slot for them. Step 0 found that in the V200 to V800 pool only the V200-64/80/96 are
 1U, and their `sfp_addon` reads "No". V400 to V800 are 2U to 4U and read "Optional", in two
-spellings: "Optional - 2x 10Gb SFP+ ... available" on each family's lowest SKU and a bare "Optional"
-on the other two. The partner path, Quick Calc and the golden tests must not change.
+spellings: "Optional - 2x 10Gb SFP+ or 2x 25Gb SFP28 upgrade available" on one SKU per family and a
+bare "Optional" on the other two. The partner path, Quick Calc and the golden tests must not change.
 
 ## Options considered
 
@@ -45,6 +45,8 @@ pass unchanged, plus a test that the option off is identical). A spec edit that 
 agreement shows up on the next SFP+ calc.
 
 **Negative:** the agreement test reads the seed file. A later admin edit to the live rows is caught
-only by the runtime warning on the next SFP+ calc. Step 4 has one more column pair to load.
+only by the runtime warning on the next SFP+ calc, or by re-running the read-only
+`scripts/check-sfp-pool-specs.sql`. Its first live run (2026-10-19) found all 18 pool SKUs in
+agreement and only the three V200s left out under SFP+. Step 4 has one more column pair to load.
 
 **When to revisit:** if a 1U model ever takes SFP+, or if `sfp_addon` becomes a clean yes/no.

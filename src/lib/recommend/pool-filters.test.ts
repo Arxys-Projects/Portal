@@ -18,10 +18,10 @@ import {
 // rack_units and sfp_addon for every pool SKU, from the repo's seed file.
 const POOL_WITH_RACK = seededPool();
 
-// The live table also carries a longer spelling on each family's lowest SKU
-// (JOURNAL, 2026-08 datasheet sweep, quoted there with its middle elided). The
-// seed file has only the short one, so the reader is tested on both.
-const LONG_OPTIONAL = "Optional - 2x 10Gb SFP+ ... available";
+// The live table also carries a longer spelling on one SKU per family (read
+// with scripts/check-sfp-pool-specs.sql on 2026-10-19). The seed file has only
+// the short one, so the reader is tested on both.
+const LONG_OPTIONAL = "Optional - 2x 10Gb SFP+ or 2x 25Gb SFP28 upgrade available";
 
 const tb = (n: number) => n * GB_PER_TB;
 const V200S = ["VX5-V200-64", "VX5-V200-80", "VX5-V200-96"];

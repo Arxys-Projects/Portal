@@ -38,9 +38,11 @@ function takesSfpChassis(rackUnits: string | null | undefined): boolean {
 }
 
 /**
- * What product_specs.sfp_addon says, read leniently. Live values are "No" on the
- * V200 and two spellings of optional on V400 to V800: "Optional - 2x 10Gb SFP+ ...
- * available" on each family's lowest SKU and a bare "Optional" on the other two.
+ * What product_specs.sfp_addon says, read leniently. Live values (read
+ * 2026-10-19) are "No" on the V200s and, on V400 to V800, either a bare
+ * "Optional" or "Optional - 2x 10Gb SFP+ or 2x 25Gb SFP28 upgrade available"
+ * (one SKU per family carries the long form: the V400-160, and the lowest SKU of
+ * V500 to V800).
  */
 export function sfpAddonOffered(sfpAddon: string | null | undefined): "yes" | "no" | "unknown" {
   if (typeof sfpAddon !== "string") return "unknown";
