@@ -60,6 +60,29 @@ Source of truth for every baseline finding. Created in Group 1 (2026-10-19). Eac
 | 2026-10-19 | Supabase Performance Advisor (production, 18:43 UTC) | INFO only. 16 unindexed foreign keys: 5 confirm B1-A-13, and 11 are on the live-only Project Portal tables. The composite `partner_contact_links_contact_id_company_id_fkey` should be indexed when the 2026-10-16 work is reviewed. 7 unused indexes: 4 in the base portal are removal candidates after a longer window, and 3 are on new tables (expected). Auth is capped at 10 absolute DB connections (Slice 2 dashboard checklist). No `auth_rls_initplan` and no `multiple_permissive_policies` warnings, which fits ADR 0055. |
 | 2026-10-19 | Live catalog snapshot (production, 20:18 UTC) | **No security drift.** Production matches the migrations at `2ae9350`: 26 tables with RLS, 70 policies, 17 triggers, 7 SECURITY DEFINER functions, the guard function, the view and the bucket. It confirms B1-S-2 / B1-A-1 (full DML on `submissions`), B1-S-3 (`is_internal()` without a status check), B1-S-10, B1-S-11 and B1-A-18 / B1-S-14 live. Details in [`2026-10-19-live-catalog-snapshot.md`](./2026-10-19-live-catalog-snapshot.md). |
 
+## Andy's actions and decisions (2026-10-19)
+
+**Checks Andy ran (all read only unless marked):**
+
+| Item | Result |
+|---|---|
+| Quote-row misuse queries (B1-S-2) | **Clean.** Five deals were linked from two creators. All ten rows are staff revisions: Andy (admin) on Pathway Tech quotes, Richard Kershaw (internal) on an Intelli-tec quote. No non-staff on-behalf fields. No future-dated rows. |
+| API logs for PATCH and DELETE on `submissions` and `partners` | **Clean** for the retained window (short, plan-dependent). |
+| Suspended staff (B1-S-3) | **None today.** The fix still has to land before anyone is next suspended. |
+| Leftover RLS test personas (B1-S-6, K-6) | **16 found** (one per run since June, "RLS Hijack Co" included). None was admin or internal, and nothing referenced them. **Deleted by Andy** (write). |
+| ADR 0151 "was the hole used" | **Clean.** Only expected Arxys accounts hold admin, internal or a Pipedrive owner. |
+| Login-to-contact links (B1-S-15) | **All 68 correct.** 21 differ only by spelling and have no alias, so the Step 4 company-match rule must add aliases first or it will reject them. `linked_by` is null on all 68, which is expected because the sync wrote them as service role. |
+| Catalog snapshot | No security drift (see Live evidence). |
+| Leaked password protection | **Turned on by Andy** (write, Auth settings). |
+
+**Decisions (these shape the fix sessions):**
+
+1. **Won and lost quotes are staff-only to reopen.** The B1-A-1 / B1-S-2 guard refuses partner changes of `status` away from `won` or `lost`. ADR 0037's guarantee becomes true.
+2. **ADR 0004 is superseded by the hand-apply practice.** A new ADR records it: commit the migration first, apply by hand, then commit a catalog snapshot (B1-A-2).
+3. **ADR 0076 keeps its structure.** Fix B1-A-4 by having `push-prices.ts` copy `active` and `hidden_from_catalog` forward and warn "would reactivate". Fix B1-S-9 by narrowing the `products` policy. No per-SKU attribute table.
+4. **Role helpers become no-argument `is_staff()` and `is_admin()`** called as `(select ...)` (B1-A-6, which also closes B1-S-8). The one-line `status = 'active'` fix to `is_internal()` (B1-S-3) ships first. The ADR 0151 guard must be updated in the same migration.
+
+
 ## Known issues (tracked, not new findings)
 
 | ID | Issue | Status | Last checked | Related rows |

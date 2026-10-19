@@ -249,6 +249,13 @@ What the Performance Advisor did not report:
 
 ## Andy action items
 
+**Status 2026-10-19:**
+- Items 1 to 3, 6 and 7 are done.
+- The four decisions in item 9 are made.
+- Leaked password protection is on.
+- Results and decisions are recorded in `BASELINE-BACKLOG.md`, "Andy's actions and decisions".
+- Still open: item 4 (fix session), item 5 (PGlite harness), and item 8 (data checks).
+
 Items 1 to 4 are urgent.
 
 1. **Run the read-only detection queries in Appendix B, action item 3.** They cover:
