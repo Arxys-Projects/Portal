@@ -56,9 +56,9 @@ export type SpecCapacityRow = {
   hdd_count: number | string | null;
   raid_level_display: string | null;
   // For the SFP+ 1U exclusion (ADR 0160). Optional: loadCandidateSpecs does not
-  // select them yet, so on today's partner path both come through as null and
-  // nothing reads them. The project path selects them when it passes excludeOneU
-  // (Step 4); left unselected, excludeOneU empties the pool and errors.
+  // select them, so on the partner path both come through as null and nothing
+  // reads them. loadProjectCandidateSpecs selects them (ADR 0168); left
+  // unselected, excludeOneU empties the pool and errors.
   rack_units?: string | null;
   sfp_addon?: string | null;
 };
@@ -113,8 +113,33 @@ export function selectCandidates(
   return specs;
 }
 
+// The partner query's spec columns. Changing this string changes the request
+// every partner save and Quick Calc preview sends, which the submitCalculation
+// snapshot pins byte for byte (ADR 0166).
+const PARTNER_SPEC_COLUMNS = "id, max_cameras, storage_raw_tb, hdd_count, raid_level_display";
+// Project calcs also read the SFP+ columns (ADRs 0160, 0168).
+const PROJECT_SPEC_COLUMNS = `${PARTNER_SPEC_COLUMNS}, rack_units, sfp_addon`;
+
 export async function loadCandidateSpecs(
   supabase: SupabaseClient,
+): Promise<CandidatePool> {
+  return loadPool(supabase, PARTNER_SPEC_COLUMNS);
+}
+
+/**
+ * The same pool with rack_units and sfp_addon, for project calcs only (ADR
+ * 0168), so the SFP+ 1U exclusion has something to read. The partner loader
+ * above keeps its own query.
+ */
+export async function loadProjectCandidateSpecs(
+  supabase: SupabaseClient,
+): Promise<CandidatePool> {
+  return loadPool(supabase, PROJECT_SPEC_COLUMNS);
+}
+
+async function loadPool(
+  supabase: SupabaseClient,
+  specColumns: string,
 ): Promise<CandidatePool> {
   // recommend() filters MKT/CFQ defensively but we also filter at the query
   // level to keep the candidate pool tight (Q4(a)). Price and product naming
@@ -136,7 +161,7 @@ export async function loadCandidateSpecs(
 
   const { data: specRows, error: specError } = await supabase
     .from("product_specs")
-    .select("id, max_cameras, storage_raw_tb, hdd_count, raid_level_display");
+    .select(specColumns);
   if (specError) {
     return { status: "db-error", context: "load product specs", error: specError };
   }

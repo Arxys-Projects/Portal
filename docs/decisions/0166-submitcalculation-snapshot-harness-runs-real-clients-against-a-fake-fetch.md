@@ -58,6 +58,13 @@ modules, renders a PDF, sends mail, and calls Pipedrive through `fetch`. The tes
   `client` field of those two PATCH requests going from `anon` to `service` (one per revision,
   which sends no email, two per other scenario). Bodies, paths, order and everything else were
   identical.
+- Step 4 Phase B (2026-10-22) did not re-record. A partner revision now makes one more request: a
+  service-role read of the source's `project_submissions` link, which decides whether the source is
+  a project calc the partner may not revise. That is a Step 4 change, so the rule above forbids
+  re-recording for it. Instead the two revision scenarios assert that exactly one such request
+  exists, that it equals the expected method, client, URL and empty body, and that it comes right
+  after the source read; the test removes it and compares the rest with the fixtures byte for byte.
+  Phase B's project-calc tests live in the same file as behavior tests with no fixtures.
 
 ## Consequences
 

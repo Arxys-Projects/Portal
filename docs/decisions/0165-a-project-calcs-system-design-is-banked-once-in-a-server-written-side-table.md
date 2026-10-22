@@ -59,6 +59,18 @@ changed. So one banked design per submission row always describes the calc store
 - Simpler of two equal options: `submission_id` is the primary key itself, as on
   `project_submissions`. A separate id plus a unique constraint would add nothing.
 
+## As built in Phase B (2026-10-22)
+
+- The one writer is `bankSystemDesign` (`src/lib/system-design/bank.ts`): it reads the submission's
+  `partner_id` as service role, refuses unless it is the caller, then inserts.
+- A project save writes in this order: the `submissions` row (the rep's session, with
+  `on_behalf_of_partner_id` null), the `project_submissions` link (the rep's session, through the
+  internal policy), the banked design (service role), then the contact login's visibility grant
+  (service role, ADR 0152). If any step fails, the row is deleted as service role and both link
+  tables cascade. The grant goes last, so a save that dies halfway leaves a row only Arxys can see.
+- A project calc must carry a system design, even one with everything off, so a revision opened
+  from the plain calculator cannot drop the add-ons.
+
 ## Consequences
 
 **Positive:** nothing a browser session sends can create, change or remove a banked design, and B1-S-2

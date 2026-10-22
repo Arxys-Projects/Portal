@@ -5,7 +5,7 @@
 
 Written 2026-10-16 from a planning session with Andy. This file is the source of truth for the build. Update it at each gate with anything discovered or decided, so the next session starts from the corrected brief.
 
-**Status:** Step 0 done 2026-10-16. Its results and Andy's decisions are folded in below; see "Step 0 results" and the JOURNAL entry "Project Portal backend, Step 0". Two prerequisites it surfaced are fixed and live: the partner self-escalation hole (ADR 0151) and the price push deleting Pipedrive products (ADR 0150). Step 1 done 2026-10-16: migrations 20261016000002 to 000005 applied by Andy, live RLS suite all pass (section 24 included); ADRs 0153 to 0155, apply note `docs/apply-notes/0153-project-portal-schema.md`. Addendum 20261016000006 (company include list, ADR 0156) applied and verified the same day (24i passes). Step 2 done 2026-10-16 (ADR 0157; see "Step 2 results"): Andy ran `--execute` (64 companies, 413 contacts) and `--apply-mapping` with the full proposed file (8 aliases, 68 login links). Step 3 done 2026-10-19 (ADRs 0158 to 0161; see "Step 3 results"): pure engines and tests, review gate passed after fixes, committed locally, nothing live touched. Same day, Andy set the failover days default to the longest retention (ADR 0162; migration 20261019000001 applied and verified by Andy the same day) and adopted the per-group retention cap on failover storage (ADR 0163), so each failover holds at most one primary's share. ADR 0164 was then taken by the auth fixes from the baseline audit (suspension ban, active-partner gate). Step 4 Phase A done 2026-10-22 (ADRs 0165 and 0166): snapshot harness captured on `029bb87` and committed alone (`08749e6`); side table migration `20261022000001_submission_system_designs.sql` applied by Andy 2026-10-22, found missing from production later that day (cause unknown), re-applied, and verified (apply note `docs/apply-notes/0165-submission-system-designs.md`). Snapshot re-baselined on the merge of `origin/main` (`b8925f6`; only the account read changed, ADR 0166). The `submissions` write guard for audit rows B1-S-2 / B1-A-1 and B1-S-13 (ADR 0167, migration `20261022000002_submissions_guard_writes.sql`) was pushed with Phase A (`a817cc0`), deployed, and applied by Andy 2026-10-22; the live RLS suite passes in full (`25` to `25d`, `26a` to `26g`). Both Phase B gates are met. Still to run from the 0167 apply note: the portal checks (steps 6 and 7) and the planted-value queries. Next free ADR: 0168. Next: Step 4 Phase B.
+**Status:** Step 0 done 2026-10-16. Its results and Andy's decisions are folded in below; see "Step 0 results" and the JOURNAL entry "Project Portal backend, Step 0". Two prerequisites it surfaced are fixed and live: the partner self-escalation hole (ADR 0151) and the price push deleting Pipedrive products (ADR 0150). Step 1 done 2026-10-16: migrations 20261016000002 to 000005 applied by Andy, live RLS suite all pass (section 24 included); ADRs 0153 to 0155, apply note `docs/apply-notes/0153-project-portal-schema.md`. Addendum 20261016000006 (company include list, ADR 0156) applied and verified the same day (24i passes). Step 2 done 2026-10-16 (ADR 0157; see "Step 2 results"): Andy ran `--execute` (64 companies, 413 contacts) and `--apply-mapping` with the full proposed file (8 aliases, 68 login links). Step 3 done 2026-10-19 (ADRs 0158 to 0161; see "Step 3 results"): pure engines and tests, review gate passed after fixes, committed locally, nothing live touched. Same day, Andy set the failover days default to the longest retention (ADR 0162; migration 20261019000001 applied and verified by Andy the same day) and adopted the per-group retention cap on failover storage (ADR 0163), so each failover holds at most one primary's share. ADR 0164 was then taken by the auth fixes from the baseline audit (suspension ban, active-partner gate). Step 4 Phase A done 2026-10-22 (ADRs 0165 and 0166): snapshot harness captured on `029bb87` and committed alone (`08749e6`); side table migration `20261022000001_submission_system_designs.sql` applied by Andy 2026-10-22, found missing from production later that day (cause unknown), re-applied, and verified (apply note `docs/apply-notes/0165-submission-system-designs.md`). Snapshot re-baselined on the merge of `origin/main` (`b8925f6`; only the account read changed, ADR 0166). The `submissions` write guard for audit rows B1-S-2 / B1-A-1 and B1-S-13 (ADR 0167, migration `20261022000002_submissions_guard_writes.sql`) was pushed with Phase A (`a817cc0`), deployed, and applied by Andy 2026-10-22; the live RLS suite passes in full (`25` to `25d`, `26a` to `26g`). Both Phase B gates are met. Still to run from the 0167 apply note: the portal checks (steps 6 and 7) and the planted-value queries. Step 4 Phase B done 2026-10-22 (ADRs 0168 and 0169; see "Step 4 results"): project calcs save through `submitCalculation`, banked and linked, with no Pipedrive call; review gate passed after fixes; committed locally, not pushed, nothing live touched. Next free ADR: 0170. Next: Step 5, which stops before any live Pipedrive write.
 
 ## How to run this brief
 - Run one step per session unless a step is small enough to pair with the next.
@@ -168,7 +168,7 @@ All tables are internal-only (policies gated on `is_internal(auth.uid()) OR is_a
   - How any VMS handles retention on a failover server.
   - No server action or database path was exercised.
 
-## Step 4: Calc save integration (server side)
+## Step 4: Calc save integration (server side). DONE 2026-10-22.
 - `submitCalculation` accepts optional `projectId` and `systemDesign`, honored **only** when the caller is internal and the project exists (verified server side).
 - `input_state` version → 4; the normalizer defaults v1 to v3 rows unchanged. Bump `calc_version` only if banked figures change.
 - Bank the resolved design, the rules snapshot and the BOM in a side table that only server code writes, as "Step 3 results" (For Step 4) and ADR 0158 set out; never on `submissions`. Decide its shape and record it in an ADR. The project link goes in `project_submissions`.
@@ -176,6 +176,37 @@ All tables are internal-only (policies gated on `is_internal(auth.uid()) OR is_a
 - Scope the 14-day duplicate guard to the project for project calcs.
 - Keep the old failover / management add-on booleans readable for legacy rows; project calcs use system design instead.
 - **Prove** with snapshot tests that a partner save and a Quick Calc save produce byte-identical rows and Pipedrive payloads to today. Quick Calc saves through `submitCalculation` (`quick-calc-form.tsx:163`), so one harness covers both.
+
+### Step 4 results (2026-10-22; server side only, no UI sends a project calc yet)
+- **Phase A** (ADRs 0165, 0166): the snapshot harness, captured before any Step 4 change, and the side table `submission_system_designs` (applied by Andy, live RLS suite passes). The `submissions` write guard (ADR 0167) shipped in its own session and gated Phase B.
+- **Built in Phase B:**
+  - `submitCalculation` reads `projectId` and `systemDesign` only for an internal caller (zod, SKUs capped at 40 characters). A partner's copy is never parsed.
+  - `src/lib/projects/calc-save.ts`: the service-role reads (the source's project link, the project, its primary contact and that contact's logins, the project-scoped duplicate guard).
+  - `src/lib/system-design/catalog.ts`: rules, BOM rules and the dropdown catalog (active V250/V255 management servers, active SW workstations), always from the database.
+  - `src/lib/system-design/bank.ts`: `bankSystemDesign`, the side table's only writer, ownership check and service-role insert in one function.
+  - `loadProjectCandidateSpecs` adds `rack_units, sfp_addon` for project calcs only (ADR 0168).
+  - `PROJECT_INPUT_STATE_VERSION = 4` for project calcs only; partner saves keep writing 3. The normalizer reads v4 like v3 with the old add-on booleans off.
+  - Staff "Retry Pipedrive link" refuses a project calc, or a row whose parent is one.
+- **Save order for a project calc:** the row (rep's session, no on-behalf), the `project_submissions` link as `'primary'` (rep's session, internal policy), the banked design (service role), then the contact login's visibility grant (service role). Any failure deletes the row and both links cascade. A crash halfway leaves a row only Arxys can see.
+- **Decisions:**
+  - No Pipedrive call on a project calc, fresh or revised; a fresh one emails sales only with the PDF (no partner copy); a revision sends nothing (ADR 0169).
+  - A non-internal caller revising a project calc is refused. A revision takes its project from the source; a different `projectId` is refused; revising a calc outside any project into one is refused (legacy rows are not migrated).
+  - A project calc must carry a `systemDesign` (all off is fine), so a revision opened from the plain calculator cannot drop the add-ons.
+  - A nonexistent project, or a project revision whose source is not found, is refused before any write.
+  - The visibility grant needs the primary contact active and still at the project's company, exactly one linked login at that company, and that login active and non-internal (ADR 0152).
+  - The duplicate guard counts the project's other current calcs: open, last 14 days, not superseded by a revision.
+  - `project_name` falls back to the project's name, cut to 50 characters, when the calc has none.
+  - Resolver errors (a SKU outside the catalog, a broken rule) go back to the rep as written; a sizing failure is logged and the rep gets a plain message.
+  - `calc_version` is not bumped: the banked figures keep their meaning. `total_list_price_usd` on a project calc is the primary recorders only, as on every partner row.
+  - The snapshot fixtures were not re-recorded. A partner revision makes one more request (the source's project-link read), which the harness asserts exactly and strips (ADR 0166).
+- **Tests:** full suite 1035/1035 (995 before), golden 3/3, recommender 57/57 (56 plus the loader test), `tsc` clean. The seven HEAD fixtures pass unchanged. 30 project-calc behavior tests cover every case in the Step 4 prompt's item 10 plus each review fix. PGlite (scratchpad, real migrations): 30/30 on the save order, revisions by two reps, what the contact login sees, the refusals and the undo cascade.
+- **Review gate:** first pass FIX BEFORE COMMIT (architect A-1 to A-3 Should fix; security S-1, S-2, S-3 Low, S-4 Info). All fixed except the S-3 residual. Second pass: both PASS WITH NOTES. Its notes S-5, N-2 and N-3 were fixed too, and a third, narrow security pass on those fixes was PASS WITH NOTES (one test strengthened).
+- **For Step 5 (open):**
+  - S-3 (ADR 0167 residual): a contact login can insert a child row of a project calc over REST. Any "current calc of a project" reader must consider only rows linked in `project_submissions`, or the guard must refuse a non-internal parent that is project-linked.
+  - N-1: if the undo itself fails, a linked row can exist with no banked design. Treat a linked calc with no design row as a failed save.
+  - The "Retry Pipedrive link" button still shows on project calcs (the action refuses). Hide it when the screens read the link.
+  - A-5 (Step 6): the sales email and PDF name the rep's company and list the recorders only.
+- **Unverified:** nothing ran against live Supabase, Pipedrive or SMTP. No UI sends `projectId` yet, so the path has run only in the harness and PGlite. The `current_products` columns the catalog reads are assumed from the pool loader's use of them.
 
 ## Step 5: Pipedrive deal with products (behind `PROJECT_DEAL_PRODUCTS`, default off)
 - `previewDealLines(bom)`: resolves SKU → Pipedrive product id by exact `code` from one full `GET /api/v2/products` read (deleted products are never returned); reads the USD price from the Pipedrive product; refuses missing products, duplicate codes, products with `is_linkable=false`, and $0 / MKT / CFQ lines. **Never** reads prices from `current_products` for this path. `src/lib/pipedrive/product-sync.ts` and `product-api.ts` (ADR 0150) already hold the v2 product read and the duplicate-code grouping.
@@ -206,6 +237,7 @@ UI screens and screen server actions (after the design pass), renaming `/project
 - STOP after Step 0 (report). Done 2026-10-16.
 - STOP after Step 1 (migrations for Andy to apply; RLS tests run after he applies). Done 2026-10-16: applied, live suite all pass.
 - STOP before the Step 2 `--execute` runs (mapping approval). Done 2026-10-16: Andy approved and ran both writes.
+- STOP after Step 4 (report). Done 2026-10-22: committed locally, waiting for Andy.
 - STOP before any live Pipedrive write in Step 5.
 - At the end of each step, report what changed, tests run, and what is unverified.
 
@@ -215,7 +247,7 @@ UI screens and screen server actions (after the design pass), renaming `/project
 >
 > Read `docs/Portal-Project revamp/claude-code-brief-project-portal-backend.md` in full, then `AGENTS.md` and the files it lists under "Read first". Execute **Step 0 only** (read-only discovery). Report findings and the final step plan, then stop. Do not write code, migrations, or docs in this session.
 
-For later sessions, change the step number and add one line pointing to the previous step's JOURNAL entry. Step 3 ran from its own prompt file, `claude-code-prompt-step-3-pure-engines.md` (beside this brief). Step 4 previous step: JOURNAL 2026-10-19 "Project Portal backend, Step 3: pure engines" (ADRs 0158 to 0161), and "Step 3 results" above.
+For later sessions, change the step number and add one line pointing to the previous step's JOURNAL entry. Step 3 ran from its own prompt file, `claude-code-prompt-step-3-pure-engines.md` (beside this brief). Step 5 previous step: JOURNAL 2026-10-22 "Project Portal backend, Step 4 Phase B" (ADRs 0168, 0169), and "Step 4 results" above. Step 4 previous step: JOURNAL 2026-10-19 "Project Portal backend, Step 3: pure engines" (ADRs 0158 to 0161), and "Step 3 results" above.
 
 ## Kickoff prompt (Step 1)
 

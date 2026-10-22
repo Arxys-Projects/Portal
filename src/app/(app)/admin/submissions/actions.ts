@@ -8,6 +8,7 @@ import { requireAdmin, requireStaff } from "@/lib/auth/viewer";
 import { dbError } from "@/lib/errors/safe-message";
 import { SUBMISSION_STATUSES, type SubmissionStatus } from "@/app/(app)/submissions/status";
 import { buildRelinkInputs, type RelinkSubmissionRow } from "@/lib/pipedrive/relink";
+import { readProjectLink } from "@/lib/projects/calc-save";
 import {
   createDealFromSubmission,
   updateDealFromRevision,
@@ -143,6 +144,24 @@ export async function adminRelinkPipedriveDeal(submissionId: string): Promise<Re
     return {
       ok: false,
       error: `Already linked to Pipedrive deal #${sub.pipedrive_deal_id}. Nothing to retry.`,
+    };
+  }
+
+  // A project calc has no deal on purpose: Step 5 creates it by Pipedrive id.
+  // Relinking would make one by name through the partner path (ADR 0169). A
+  // row whose parent is a project calc is refused too: relink would inherit
+  // the parent's deal, and such a child can only come from a direct insert
+  // (the calculator refuses partner revisions of project calcs).
+  for (const id of [sub.id, sub.parent_submission_id]) {
+    if (!id) continue;
+    const projectLink = await readProjectLink(admin, id);
+    if (projectLink.status === "db-error") {
+      return { ok: false, error: dbError(projectLink.error, "load project link for relink") };
+    }
+    if (!projectLink.projectId) continue;
+    return {
+      ok: false,
+      error: "This calc belongs to a project, or revises one. Its Pipedrive deal is made from the project, so there is nothing to relink here.",
     };
   }
 

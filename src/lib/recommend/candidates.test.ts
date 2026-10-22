@@ -1,6 +1,9 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import {
+  loadCandidateSpecs,
+  loadProjectCandidateSpecs,
   selectCandidates,
   type ProductPriceRow,
   type SpecCapacityRow,
@@ -129,5 +132,48 @@ describe("selectCandidates (pool assembly, ADR 0094)", () => {
   it("returns an empty pool when nothing joins, leaving the caller to report it", () => {
     assert.deepEqual(selectCandidates([price("VX5-V400-160", "V400", 34206)], []), []);
     assert.deepEqual(selectCandidates([], [spec("VX5-V400-160", 150, 160, 8, "6")]), []);
+  });
+});
+
+describe("loadCandidateSpecs vs loadProjectCandidateSpecs (ADR 0168)", () => {
+  // Records the product_specs column list each loader asks for.
+  function fakeClient() {
+    const specSelects: string[] = [];
+    const client = {
+      from(table: string) {
+        let columns = "";
+        const builder = {
+          select(c: string) { columns = c; return builder; },
+          eq() { return builder; },
+          order() { return builder; },
+          then(resolve: (r: { data: unknown[]; error: null }) => unknown) {
+            if (table === "product_specs") specSelects.push(columns);
+            const data =
+              table === "current_products"
+                ? [price("VX5-V200-64", "V200", 20470)]
+                : [{ ...spec("VX5-V200-64", 100, 64, 4, "RAID 5"), rack_units: "1U", sfp_addon: "No" }];
+            return Promise.resolve({ data, error: null }).then(resolve);
+          },
+        };
+        return builder;
+      },
+    } as unknown as SupabaseClient;
+    return { client, specSelects };
+  }
+
+  it("keeps the partner query's columns, and adds the SFP+ columns for project calcs only", async () => {
+    const partner = fakeClient();
+    await loadCandidateSpecs(partner.client);
+    assert.deepStrictEqual(partner.specSelects, ["id, max_cameras, storage_raw_tb, hdd_count, raid_level_display"]);
+
+    const project = fakeClient();
+    const pool = await loadProjectCandidateSpecs(project.client);
+    assert.deepStrictEqual(project.specSelects, [
+      "id, max_cameras, storage_raw_tb, hdd_count, raid_level_display, rack_units, sfp_addon",
+    ]);
+    assert.equal(pool.status, "ok");
+    assert.ok(pool.status === "ok");
+    assert.equal(pool.specs[0].rackUnits, "1U");
+    assert.equal(pool.specs[0].sfpAddon, "No");
   });
 });

@@ -21,6 +21,12 @@ import type { DesignRulesSnapshot, SystemDesignValues } from "./rules";
 // A thrown sizing error (an empty pool, bad input) comes back as ok: false, so
 // the save can show it instead of failing with a 500.
 
+// Banked with every project calc (submission_system_designs.engine_version).
+// Bump it when resolveSystemDesign, sizeProjectDesign or buildBom would give a
+// different design or BOM for the same inputs, rules and pool, so a banked row
+// says which engine built it. The date is the Step 3 engines' (ADRs 0158 to 0163).
+export const SYSTEM_DESIGN_ENGINE_VERSION = "2026-10-19";
+
 export type ProjectSizingInput = {
   resolution: {
     design: ResolvedSystemDesign;

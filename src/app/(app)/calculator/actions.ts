@@ -20,10 +20,23 @@ import {
   vsrLoad,
   type GroupInput,
 } from "@/lib/calculator/compute";
-import { INPUT_STATE_VERSION } from "@/lib/calculator/rehydrate";
+import { INPUT_STATE_VERSION, PROJECT_INPUT_STATE_VERSION } from "@/lib/calculator/rehydrate";
 import { recommend } from "@/lib/recommend/algorithm";
-import { loadCandidateSpecs } from "@/lib/recommend/candidates";
+import { loadCandidateSpecs, loadProjectCandidateSpecs } from "@/lib/recommend/candidates";
+import type { FailoverRecommendation } from "@/lib/recommend/failover";
 import { GB_PER_TB, type ServerSpec, type RecommendationResult } from "@/lib/recommend/types";
+import { bankSystemDesign } from "@/lib/system-design/bank";
+import type { BomLine } from "@/lib/system-design/bom";
+import { loadDesignInputs } from "@/lib/system-design/catalog";
+import { resolveSystemDesign } from "@/lib/system-design/resolve";
+import { MAX_PRIMARIES_PER_FAILOVER, MAX_WORKSTATIONS } from "@/lib/system-design/rules";
+import { sizeProjectDesign } from "@/lib/system-design/size";
+import {
+  loadProjectForCalc,
+  projectDuplicateWarnings,
+  readProjectLink,
+  type ProjectForCalc,
+} from "@/lib/projects/calc-save";
 import { sendSubmissionNotification } from "@/lib/email/submission-notification";
 import { buildServerSpec, pdfFilename, renderSubmissionPdfBuffer } from "@/lib/pdf/render";
 import { loadHeroDataUri, loadLogoDataUri } from "@/lib/pdf/assets";
@@ -110,10 +123,80 @@ const submissionSchema = z.object({
   sourceSubmissionId: z.string().uuid().optional().nullable(),
 });
 
+// Project Portal Step 4: the project fields. Parsed only for an internal
+// caller (see submitCalculation); a partner's copy is never read, so their save
+// stays today's save whatever they send. Only the rep's choices come in here.
+// The rules, the dropdown catalog, the snapshot and the BOM are always loaded
+// or built on the server (ADR 0158). Every SKU is capped in length.
+const designSkuSchema = z.string().trim().max(40);
+const systemDesignSchema = z.object({
+  sfp: z.boolean().nullable().optional(),
+  gpu: z.boolean().nullable().optional(),
+  failover: z
+    .object({
+      enabled: z.boolean(),
+      days: z.number().int().min(1).max(730).nullable().optional(),
+      primariesPerFailover: z
+        .number()
+        .int()
+        .min(1)
+        .max(MAX_PRIMARIES_PER_FAILOVER)
+        .nullable()
+        .optional(),
+    })
+    .nullable()
+    .optional(),
+  management: z
+    .object({
+      dedicated: z.boolean(),
+      failoverPair: z.boolean().nullable().optional(),
+      sku: designSkuSchema.nullable().optional(),
+    })
+    .nullable()
+    .optional(),
+  workstations: z
+    .object({
+      count: z.number().int().min(0).max(MAX_WORKSTATIONS),
+      sku: designSkuSchema.nullable().optional(),
+    })
+    .nullable()
+    .optional(),
+});
+const projectRequestSchema = z.object({
+  projectId: z.string().uuid().optional().nullable(),
+  systemDesign: systemDesignSchema.optional().nullable(),
+});
+
+function invalidInput(issues: readonly z.core.$ZodIssue[]): SubmissionState {
+  const fieldErrors: Record<string, string[]> = {};
+  for (const issue of issues) {
+    const key = issue.path.join(".") || "_form";
+    (fieldErrors[key] ??= []).push(issue.message);
+  }
+  return {
+    status: "error",
+    error: "Some inputs are invalid. Adjust the form and try again.",
+    fieldErrors,
+  };
+}
+
 export type SubmissionState =
   | { status: "idle" }
   | { status: "error"; error: string; fieldErrors?: Record<string, string[]> }
-  | { status: "ok"; recommendation: PublicRecommendation; submissionId: string };
+  | {
+      status: "ok";
+      recommendation: PublicRecommendation;
+      submissionId: string;
+      // Project calcs only: what was banked with the calc (ADR 0165).
+      project?: ProjectCalcResult;
+    };
+
+export type ProjectCalcResult = {
+  projectId: string;
+  // null when failover is off.
+  failover: FailoverRecommendation | null;
+  bom: BomLine[];
+};
 
 export type PublicRecommendation = {
   winner: RecommendationResult["winner"];
@@ -136,18 +219,7 @@ export async function submitCalculation(
   payload: unknown,
 ): Promise<SubmissionState> {
   const parsed = submissionSchema.safeParse(payload);
-  if (!parsed.success) {
-    const fieldErrors: Record<string, string[]> = {};
-    for (const issue of parsed.error.issues) {
-      const key = issue.path.join(".") || "_form";
-      (fieldErrors[key] ??= []).push(issue.message);
-    }
-    return {
-      status: "error",
-      error: "Some inputs are invalid. Adjust the form and try again.",
-      fieldErrors,
-    };
-  }
+  if (!parsed.success) return invalidInput(parsed.error.issues);
   const input = parsed.data;
   if (input.vms && !VMS_OPTIONS.includes(input.vms)) {
     return { status: "error", error: `Unknown VMS option: ${input.vms}` };
@@ -189,6 +261,106 @@ export async function submitCalculation(
     console.error("[submit load caller pipedrive id]", callerPipedriveError);
   }
 
+  // Project Portal Step 4: the project fields count only for an internal
+  // caller. Anyone else's copy is never parsed, so it can neither change nor
+  // fail their save.
+  let requestedProjectId: string | null = null;
+  let systemDesignRequest: z.infer<typeof systemDesignSchema> | null = null;
+  if (callerIsInternal) {
+    const projectRequest = projectRequestSchema.safeParse(payload);
+    if (!projectRequest.success) return invalidInput(projectRequest.error.issues);
+    requestedProjectId = projectRequest.data.projectId ?? null;
+    systemDesignRequest = projectRequest.data.systemDesign ?? null;
+  }
+
+  const admin = createSupabaseAdminClient();
+
+  // ADR 0093 step 2 — validated revision source. RLS-scoped read: a caller can
+  // only link lineage to a source row they can see, so a guessed/foreign id
+  // silently fails to attach rather than leaking or binding cross-partner.
+  // Fetched once here and reused below for the Pipedrive-inherit check, so a
+  // revision costs one extra query total, not two.
+  let sourceSubmission: { id: string; pipedrive_deal_id: number | null } | null = null;
+  if (input.isRevision && input.sourceSubmissionId) {
+    const { data } = await supabase
+      .from("submissions")
+      .select("id, pipedrive_deal_id")
+      .eq("id", input.sourceSubmissionId)
+      .maybeSingle();
+    if (data) sourceSubmission = data as { id: string; pipedrive_deal_id: number | null };
+  }
+
+  // Project Portal Step 4 (ADR 0165): is the source a project calc? The link
+  // is internal-only, so it is read as service role: the primary contact's
+  // login can see a project calc through on_behalf_of_partner_id (ADR 0152),
+  // never its link. A revision of a project calc is a project calc in the
+  // source's project; anyone but Arxys staff is refused, because the partner
+  // revise path would make a Pipedrive deal by name for a calc that has none.
+  let projectId: string | null = null;
+  if (sourceSubmission) {
+    const link = await readProjectLink(admin, sourceSubmission.id);
+    if (link.status === "db-error") {
+      console.error("[submit load source project link]", link.error);
+      return { status: "error", error: "We could not check the quote you are revising. Please try again." };
+    }
+    if (link.projectId) {
+      if (!callerIsInternal) {
+        return {
+          status: "error",
+          error: "Arxys prepared this quote, so only Arxys can revise it. Ask your Arxys rep for a change.",
+        };
+      }
+      if (requestedProjectId && requestedProjectId !== link.projectId) {
+        return {
+          status: "error",
+          error: "This calc belongs to a different project. Open it from its own project and try again.",
+        };
+      }
+      projectId = link.projectId;
+    } else if (requestedProjectId) {
+      // Legacy calcs are not moved into projects by a revision (brief: legacy
+      // rows are not migrated; a later "Make project" action links them).
+      return {
+        status: "error",
+        error: "The quote you are revising is not part of a project. Revise it without a project, or start a new calc in the project.",
+      };
+    }
+  } else if (requestedProjectId && input.isRevision) {
+    // A project revision whose source cannot be found would save as a fresh
+    // calc that sends no email (it is flagged a revision) and makes no deal
+    // (it is a project calc), so sales would never hear of it.
+    return {
+      status: "error",
+      error: "The calc you are revising was not found. Reload its project and try again.",
+    };
+  } else {
+    projectId = requestedProjectId;
+  }
+
+  // Honored only when the project exists, checked here on the server.
+  let project: ProjectForCalc | null = null;
+  if (projectId) {
+    const loaded = await loadProjectForCalc(admin, projectId);
+    if (loaded.status === "db-error") {
+      console.error(`[submit ${loaded.context}]`, loaded.error);
+      return { status: "error", error: "We could not load the project. Please try again." };
+    }
+    if (loaded.status === "not-found") {
+      return { status: "error", error: "That project was not found. It may have been deleted." };
+    }
+    project = loaded.project;
+    // A missing design would resolve to every add-on off and quote recorders
+    // only, which is how a revision opened from the plain calculator page
+    // (it sends no design) would silently under-quote. The project screens
+    // always send one, even with everything off.
+    if (!systemDesignRequest) {
+      return {
+        status: "error",
+        error: "This calc belongs to a project. Open it from its project so its system design is saved with it.",
+      };
+    }
+  }
+
   // Phase 7 Step 1 / Phase 8 — resolve the on-behalf-of target. Authorization is
   // enforced here, server-side: only an internal user (is_internal) can direct a
   // calc at another partner. The picker sends a partner-user id, which binds the
@@ -196,15 +368,20 @@ export async function submitCalculation(
   // person); the not-yet-onboarded fallback sends a company name, banked as
   // free text with the deal created against the org only. The two are mutually
   // exclusive, matching the DB CHECK (at most one column set).
-  const admin = createSupabaseAdminClient();
-  let onBehalfPartnerId: string | null = null;
+  //
+  // A project calc skips the picker: the project's company and primary contact
+  // replace it (ADR 0152). It never writes the company name, and writes the
+  // partner FK only as the contact login's visibility grant.
+  let onBehalfPartnerId: string | null = project?.visibleToPartnerId ?? null;
   let onBehalfCompanyName: string | null = null;
   // Pipedrive identity to bill the deal against — the target when on-behalf,
   // otherwise (left null) the creator's own partner record, resolved below.
   let dealTarget: { companyName: string; contactName: string | null; email: string | null } | null =
     null;
 
-  if (callerIsInternal && input.onBehalfOfPartnerId) {
+  if (project) {
+    // No picker, no deal target: a project calc makes no Pipedrive call (ADR 0169).
+  } else if (callerIsInternal && input.onBehalfOfPartnerId) {
     // Picker path: trust the id only after confirming it is a real, active,
     // non-internal partner — the same eligibility the picker filters on. An
     // ineligible or unknown id is dropped silently (no FK bound), so a crafted
@@ -246,26 +423,12 @@ export async function submitCalculation(
   // act on. The on-behalf block above either binds onBehalfPartnerId (picker
   // path) or onBehalfCompanyName (fallback path); if both are still null after
   // resolution (id not found / inactive, or company field blank), refuse here.
-  if (callerIsInternal && !onBehalfPartnerId && !onBehalfCompanyName) {
+  // A project calc is filed against its project's company instead.
+  if (callerIsInternal && !project && !onBehalfPartnerId && !onBehalfCompanyName) {
     return {
       status: "error",
       error: "Company name is required for internal submissions.",
     };
-  }
-
-  // ADR 0093 step 2 — validated revision source. RLS-scoped read: a caller can
-  // only link lineage to a source row they can see, so a guessed/foreign id
-  // silently fails to attach rather than leaking or binding cross-partner.
-  // Fetched once here and reused below for the Pipedrive-inherit check, so a
-  // revision costs one extra query total, not two.
-  let sourceSubmission: { id: string; pipedrive_deal_id: number | null } | null = null;
-  if (input.isRevision && input.sourceSubmissionId) {
-    const { data } = await supabase
-      .from("submissions")
-      .select("id, pipedrive_deal_id")
-      .eq("id", input.sourceSubmissionId)
-      .maybeSingle();
-    if (data) sourceSubmission = data as { id: string; pipedrive_deal_id: number | null };
   }
 
   // ADR 0093 guardrail — an on-behalf submission has no lineage tracking
@@ -276,8 +439,16 @@ export async function submitCalculation(
   // revision source. Scoped to on-behalf submissions only — a partner's own
   // normal revision flow legitimately leaves its source row open and must not
   // trigger this on every revise.
+  // A project calc is checked against its own project instead.
   let duplicateWarnings: string[] = [];
-  if (onBehalfPartnerId || onBehalfCompanyName) {
+  if (project) {
+    duplicateWarnings = await projectDuplicateWarnings(
+      admin,
+      project.id,
+      sourceSubmission?.id ?? null,
+      new Date(),
+    );
+  } else if (onBehalfPartnerId || onBehalfCompanyName) {
     const sinceIso = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
     let dupQuery = supabase
       .from("submissions")
@@ -355,7 +526,9 @@ export async function submitCalculation(
   // Candidate pool — shared with the Quick Calc preview (ADR 0082) so both
   // tools size against exactly the same SKU set (query filters + net-usable
   // storage derivation live in loadCandidateSpecs; ADR 0068).
-  const pool = await loadCandidateSpecs(supabase);
+  // A project calc reads the same pool plus the SFP+ columns, through its own
+  // loader, so the partner query stays byte-identical (ADR 0168).
+  const pool = project ? await loadProjectCandidateSpecs(supabase) : await loadCandidateSpecs(supabase);
   if (pool.status === "db-error") {
     return { status: "error", error: dbError(pool.error, pool.context) };
   }
@@ -373,10 +546,64 @@ export async function submitCalculation(
     0,
   );
 
-  const recommendation = recommend(
-    { totalCameras: totals.cameras, totalStorageGb: totals.storageGb, totalVsr },
-    specs,
-  );
+  const recommendationInput = { totalCameras: totals.cameras, totalStorageGb: totals.storageGb, totalVsr };
+  let recommendation: RecommendationResult;
+  // Project calcs: the project, the resolved design and its sizing, banked
+  // after the insert. Set exactly when `project` is.
+  let projectDesign: {
+    project: ProjectForCalc;
+    resolution: Extract<ReturnType<typeof resolveSystemDesign>, { ok: true }>;
+    sizing: Extract<ReturnType<typeof sizeProjectDesign>, { ok: true }>;
+  } | null = null;
+  if (project) {
+    // Project Portal Step 4 (ADR 0158): resolve the rep's choices against the
+    // rules and catalog read here, then size primary and failover from the
+    // same totals and pool the partner path would use, plus SFP+.
+    const designInputs = await loadDesignInputs(admin);
+    if (designInputs.status === "db-error") {
+      return { status: "error", error: dbError(designInputs.error, designInputs.context) };
+    }
+    const resolution = resolveSystemDesign(
+      {
+        retentionDays: input.retentionDays,
+        groups: input.groups,
+        vms: input.vms ?? null,
+        systemDesign: systemDesignRequest,
+      },
+      { vms: project.vms },
+      designInputs.rules,
+      designInputs.catalog,
+    );
+    if (!resolution.ok) {
+      // Worded for the rep: a choice to change, or a rule for an admin to fix.
+      return {
+        status: "error",
+        error: `The system design needs changes: ${resolution.errors.join(" ")}`,
+        fieldErrors: { systemDesign: resolution.errors },
+      };
+    }
+    const sizing = sizeProjectDesign({
+      resolution,
+      totals: recommendationInput,
+      groups: computed.map((r) => ({
+        storageGb: r.computed.storageGb,
+        retentionDays: r.input.retentionDays!,
+      })),
+      specs,
+    });
+    if (!sizing.ok) {
+      // The engine's text describes its internals, so it stays in the log.
+      console.error("project calc sizing failed", { projectId: project.id, error: sizing.error });
+      return {
+        status: "error",
+        error: "This system design could not be sized. Check the choices and try again, or ask an admin for help.",
+      };
+    }
+    projectDesign = { project, resolution, sizing };
+    recommendation = sizing.primary;
+  } else {
+    recommendation = recommend(recommendationInput, specs);
+  }
 
   // Primary group = the one with the most cameras (canonical resolution/codec/complexity).
   const primary = [...computed].sort((a, b) => b.input.cameras - a.input.cameras)[0];
@@ -386,16 +613,27 @@ export async function submitCalculation(
     // Bank only the calculator inputs (plus the version stamp) — the revision
     // flags are submit-flow control, not part of the reconstructable state.
     // normalizeInputState() reads `version` to know which defaults to apply.
-    input_state: {
-      version: INPUT_STATE_VERSION,
-      projectName: input.projectName ?? null,
-      vms: input.vms ?? null,
-      retentionDays: input.retentionDays,
-      utilizationPct: input.utilizationPct,
-      groups: input.groups,
-      addOnFailoverRecorder: input.addOnFailoverRecorder,
-      addOnManagementServer: input.addOnManagementServer,
-    },
+    // Only a project calc writes v4, without the add-on booleans: its system
+    // design is banked in submission_system_designs instead (ADR 0165).
+    input_state: project
+      ? {
+          version: PROJECT_INPUT_STATE_VERSION,
+          projectName: input.projectName ?? null,
+          vms: input.vms ?? null,
+          retentionDays: input.retentionDays,
+          utilizationPct: input.utilizationPct,
+          groups: input.groups,
+        }
+      : {
+          version: INPUT_STATE_VERSION,
+          projectName: input.projectName ?? null,
+          vms: input.vms ?? null,
+          retentionDays: input.retentionDays,
+          utilizationPct: input.utilizationPct,
+          groups: input.groups,
+          addOnFailoverRecorder: input.addOnFailoverRecorder,
+          addOnManagementServer: input.addOnManagementServer,
+        },
     // The sizing model this row was produced by (see CALC_VERSION). Version 1 is
     // everything before Phase A; 2 is the re-anchored engine with the single Max
     // disk utilization buffer and a +5% audio/metadata term; 3 drops that term,
@@ -412,9 +650,15 @@ export async function submitCalculation(
     parent_submission_id: sourceSubmission?.id ?? null,
     // partner_id stays = creator (auth.uid()); the on-behalf columns are what
     // redirect grouping + the Pipedrive deal to the target partner.
-    on_behalf_of_partner_id: onBehalfPartnerId,
+    // A project calc's visibility grant is set only once its link and design
+    // are saved (below), so a save that dies halfway leaves a row only Arxys
+    // can see.
+    on_behalf_of_partner_id: project ? null : onBehalfPartnerId,
     on_behalf_of_company_name: onBehalfCompanyName,
-    project_name: input.projectName?.trim() || null,
+    // A project calc with no name of its own takes the project's, cut to the
+    // column's 50 characters.
+    project_name:
+      input.projectName?.trim() || (project ? project.name.trim().slice(0, 50) || null : null),
     cameras_count: totals.cameras,
     resolution_code: RESOLUTIONS[primary.input.resolutionIdx].label,
     codec: CODECS[primary.input.codecIdx].value,
@@ -492,6 +736,57 @@ export async function submitCalculation(
       status: "error",
       error: dbError(insertError, "save submission"),
     };
+  }
+
+  // Project Portal Step 4: link the calc to its project, bank its design,
+  // then grant the contact's login its view. A project calc without its link or
+  // design cannot be shown or reopened, so if a step fails the new row is
+  // deleted (both link tables cascade from it) and the rep is asked to save
+  // again. The grant goes last so it marks a complete save: until then the row
+  // is visible to Arxys only, and a crash leaves nothing a partner can revise
+  // into a deal by name. Every row has its own link as 'primary', a revision
+  // included; the source's link stays as it is (ADR 0165).
+  if (projectDesign) {
+    let failure: { context: string; error: unknown } | null = null;
+    const { error: linkError } = await supabase.from("project_submissions").insert({
+      submission_id: inserted.id,
+      project_id: projectDesign.project.id,
+      calc_role: "primary",
+      linked_by: user.id,
+    });
+    if (linkError) {
+      failure = { context: "link project calc", error: linkError };
+    } else {
+      const banked = await bankSystemDesign(admin, {
+        submissionId: inserted.id,
+        callerId: user.id,
+        design: projectDesign.resolution.design,
+        snapshot: projectDesign.resolution.snapshot,
+        bom: projectDesign.sizing.bom,
+      });
+      if (!banked.ok) {
+        failure =
+          banked.reason === "not-owner"
+            ? { context: "bank system design", error: "caller does not own the new submission" }
+            : { context: `bank system design: ${banked.context}`, error: banked.error };
+      } else if (onBehalfPartnerId) {
+        // ADR 0167: on-behalf is a server-written column after insert, so
+        // service role, scoped to the row this caller just inserted.
+        const { error: grantError } = await admin
+          .from("submissions")
+          .update({ on_behalf_of_partner_id: onBehalfPartnerId })
+          .eq("id", inserted.id);
+        if (grantError) failure = { context: "grant project calc visibility", error: grantError };
+      }
+    }
+    if (failure) {
+      console.error(`[${failure.context}]`, { submissionId: inserted.id, error: failure.error });
+      const { error: undoError } = await admin.from("submissions").delete().eq("id", inserted.id);
+      if (undoError) {
+        console.error("[undo project calc]", { submissionId: inserted.id, error: undoError });
+      }
+      return { status: "error", error: "The calc could not be saved to its project. Please try again." };
+    }
   }
 
   // Look up partner display fields via the admin client so we don't depend on
@@ -616,7 +911,9 @@ export async function submitCalculation(
         submissionId: inserted.id,
         pdfBuffer,
         pdfFilename: pdfBuffer ? pdfFilename(pdfInput) : undefined,
-        partnerEmail,
+        // A project calc emails sales only (Andy, 2026-10-22; ADR 0169): the
+        // rep is the caller, and Step 6 sends the customer's "Quote ready".
+        partnerEmail: project ? undefined : partnerEmail,
       });
       // ADR 0167: a server-written stamp, so service role: the submissions
       // guard refuses it from a partner session. Scoped to the row this
@@ -630,6 +927,30 @@ export async function submitCalculation(
       // the partner — their submission persisted and admins can re-send later.
       console.error("submission notification failed", err);
     }
+  }
+
+  // Project Portal Step 4 (ADR 0169): a project calc makes no Pipedrive call,
+  // fresh or revised: Step 5 creates its deal by Pipedrive id, with product
+  // lines. So the name-based upsert and the revise path below never run for it,
+  // and its pipedrive_deal_id stays null.
+  if (projectDesign) {
+    return {
+      status: "ok",
+      submissionId: inserted.id,
+      recommendation: {
+        winner: recommendation.winner,
+        alternatives: recommendation.alternatives,
+        // Resolution, primary, failover and management advice, then duplicates.
+        warnings: [...projectDesign.sizing.warnings, ...duplicateWarnings],
+        totals,
+        utilizationPct: input.utilizationPct,
+      },
+      project: {
+        projectId: projectDesign.project.id,
+        failover: projectDesign.sizing.failover,
+        bom: projectDesign.sizing.bom,
+      },
+    };
   }
 
   // Pipedrive Deal sync. Pipedrive failure must not regress submission persist,

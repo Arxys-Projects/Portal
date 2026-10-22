@@ -4,6 +4,83 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-10-22 - Project Portal backend, Step 4 Phase B: project calcs save through submitCalculation (ADRs 0168, 0169)
+
+### Work done
+
+- Started at `cea9b17` on `main` (equal to `origin/main`). Both Phase B gates were met: the side
+  table applied and verified, and the ADR 0167 guard deployed and applied, with the live RLS suite
+  passing in full. Baseline on the clean tree: golden 3/3, recommender 56/56, full suite 995/995,
+  `tsc` clean.
+- **Request shape.** `submitCalculation` parses `projectId` and `systemDesign` only for an internal
+  caller, with zod and a 40-character cap on each SKU. A partner's copy is never parsed, so it can
+  neither change nor fail their save.
+- **Project decision.** The revision source is read earlier (before the on-behalf picker), then its
+  `project_submissions` link is read as service role. A project calc's revision takes the project
+  from the source. Refused with a plain message: a non-internal caller revising a project calc, a
+  `projectId` that differs from the source's, revising a calc outside any project into one, a
+  project that does not exist, a project revision whose source is not found, and a project calc with
+  no `systemDesign`.
+- **Engines.** Rules, BOM rules and the dropdown catalog are loaded on the server
+  (`src/lib/system-design/catalog.ts`), then `resolveSystemDesign` and `sizeProjectDesign` run on the
+  same totals the partner path passes to `recommend()` and each group's storage and resolved
+  retention. The pool comes from `loadProjectCandidateSpecs`, which adds `rack_units, sfp_addon`
+  while the partner query stays byte-identical (ADR 0168). Resolver errors go to the rep as written;
+  a sizing failure is logged and the rep gets a plain message. Design warnings come back in the save
+  result with the BOM and the failover choice.
+- **Persist.** Project calcs write `input_state` version 4 (`PROJECT_INPUT_STATE_VERSION`, without the
+  add-on booleans); partner saves keep 3. The normalizer reads v4 like v3 with the add-ons off.
+  Order: the row (rep's session, no on-behalf), the `project_submissions` link as `'primary'` (rep's
+  session), the banked design through `bankSystemDesign` (ownership check plus service-role insert,
+  `src/lib/system-design/bank.ts`), then the contact login's visibility grant (service role). Any
+  failure deletes the row as service role; both links cascade.
+- **Attribution.** `on_behalf_of_company_name` is never written. The grant goes to the primary
+  contact's login only when the contact is active and still at the project's company and exactly one
+  login is linked, active and non-internal (`src/lib/projects/calc-save.ts`). The duplicate guard
+  counts the project's other open, unsuperseded calcs from the last 14 days.
+- **Pipedrive and email.** A project calc returns before the Pipedrive block, fresh or revised, so
+  the name-based upsert never runs for one. A fresh project calc sends the sales notification with
+  the PDF and no `partnerEmail`; a revision sends nothing (ADR 0169). Staff "Retry Pipedrive link"
+  now refuses a project calc or a row whose parent is one.
+- **Tests.** The seven HEAD fixtures pass unchanged. 30 project-calc behavior tests in the same
+  harness, plus unit tests for `bankSystemDesign`, the catalog loader, both pool loaders and the v4
+  normalizer. Full suite 1035/1035, golden 3/3, recommender 57/57, `tsc` and lint clean. PGlite in
+  the scratchpad on the real migrations: 30/30 (save order, revisions by two reps, what the contact
+  login sees, the refusals, the undo cascade).
+- **Review gate.** First pass FIX BEFORE COMMIT: architect A-1 (a crash halfway left a row the
+  contact could revise into a deal by name; security S-2 found the same), A-2 (a revision with no
+  design dropped every add-on), A-3 (staff relink made a deal by name); security S-1 (grant did not
+  check the contact was still at the company), S-4 (`server-only`). All fixed. Second pass: both
+  PASS WITH NOTES; its S-5 (relink through a project calc's child), N-2 (a project revision with a
+  missing source sent no email) and N-3 (an untested undo branch) were fixed as well. A third,
+  narrow security pass on those last fixes was PASS WITH NOTES; its one note (the parent-relink test
+  would have passed without the fix) was fixed by adding a control run that relinks the same row
+  when its parent is outside any project.
+- Brief updated: Step 4 done, "Step 4 results", Status line, next free ADR 0170.
+
+### Detours & fixes
+
+- **The snapshot could not stay byte-identical on partner revisions.** The prompt requires a
+  service-role read of the source's project link, so every partner revision makes one more request.
+  Re-recording would break ADR 0166's rule for a Step 4 change, so the harness asserts that exact
+  request (shape and position) and strips it before comparing the rest with the fixtures. A failed
+  read of that link now refuses a partner revision where HEAD would have saved; failing closed was
+  kept on purpose.
+- **First version granted visibility in the insert.** Both reviewers showed a crash between the
+  insert and the link left a v4 row the contact login could see and revise through the partner path.
+  The grant now goes last, as a service-role update. PGlite confirmed it has to be service role: the
+  guard refuses the rep's own session changing `on_behalf_of_partner_id` after insert.
+- A PGlite case for that refusal first passed for the wrong reason (it set the value already there,
+  so the guard saw no change); it now sets a different value.
+
+### Decisions captured
+
+- [`0168-project-calcs-load-the-pool-through-their-own-loader.md`](./decisions/0168-project-calcs-load-the-pool-through-their-own-loader.md)
+- [`0169-project-calc-saves-make-no-pipedrive-call-and-email-sales-only.md`](./decisions/0169-project-calc-saves-make-no-pipedrive-call-and-email-sales-only.md)
+- ADR 0165 gained an "As built in Phase B" section and ADR 0166 a note on the stripped request.
+
+---
+
 ## 2026-10-22 - Guard deployed and applied; the Step 4 side table re-applied; Phase B gates met
 
 ### Work done

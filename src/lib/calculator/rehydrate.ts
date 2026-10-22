@@ -44,6 +44,14 @@ import {
 // itself.
 export const INPUT_STATE_VERSION = 3;
 
+// v4 = a project calc (Project Portal Step 4). Written by project calcs only;
+// every partner, Quick Calc and on-behalf save keeps writing v3, so this is a
+// second constant and the one above stays where it is. The group shape is v3's.
+// A v4 row banks no failover / management add-on booleans: its system design
+// lives in submission_system_designs (ADR 0165), and the old booleans read as
+// false. Rows v1 to v3 normalize exactly as before.
+export const PROJECT_INPUT_STATE_VERSION = 4;
+
 // v1 CODECS was [h265, h264, smart]; v2 is [h265, h265smart, h264, smart].
 // A banked `codecIdx` is only ever consulted when groups_payload carries no
 // resolved codec value (fromStoredSubmission prefers the value), but when it IS
@@ -224,8 +232,9 @@ export function normalizeInputState(raw: unknown): NormalizedInputState {
 
   // The add-on booleans arrived in v1 (Phase 4 Step 2). For older / absent
   // versions they were never stored, so we ignore any stray value and default
-  // to false rather than trusting a field the writer never wrote.
-  const supportsAddOns = version >= 1;
+  // to false rather than trusting a field the writer never wrote. A v4 project
+  // calc never writes them either: its system design replaces them.
+  const supportsAddOns = version >= 1 && version !== PROJECT_INPUT_STATE_VERSION;
 
   return {
     version,

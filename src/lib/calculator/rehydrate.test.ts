@@ -5,6 +5,7 @@ import {
   fromStoredSubmission,
   normalizeInputState,
   INPUT_STATE_VERSION,
+  PROJECT_INPUT_STATE_VERSION,
 } from "./rehydrate";
 
 // Resolve the *current* index of a few known table entries so the assertions
@@ -101,6 +102,29 @@ describe("normalizeInputState", () => {
     });
     assert.equal(n.addOnFailoverRecorder, true);
     assert.equal(n.addOnManagementServer, false);
+  });
+
+  it("reads a v4 project calc like v3, with the add-on booleans off (Step 4)", () => {
+    assert.equal(INPUT_STATE_VERSION, 3, "partner saves keep writing v3");
+    assert.equal(PROJECT_INPUT_STATE_VERSION, 4);
+    const raw = {
+      version: PROJECT_INPUT_STATE_VERSION,
+      projectName: "West Wing",
+      vms: "Avigilon",
+      retentionDays: 30,
+      utilizationPct: 85,
+      groups: [{ name: "Cells", cameras: 120, retentionDays: 90, recordingMode: "motion" }],
+      // Never written on v4; a stray value must not turn a legacy add-on on.
+      addOnFailoverRecorder: true,
+      addOnManagementServer: true,
+    };
+    const v4 = normalizeInputState(raw);
+    assert.equal(v4.version, 4);
+    assert.equal(v4.addOnFailoverRecorder, false);
+    assert.equal(v4.addOnManagementServer, false);
+    // Everything else reads exactly as the same blob stamped v3.
+    const v3 = normalizeInputState({ ...raw, version: 3, addOnFailoverRecorder: false, addOnManagementServer: false });
+    assert.deepStrictEqual({ ...v4, version: 3 }, v3);
   });
 
   it("reads recordingMode, defaulting absent/garbage to constant", () => {
