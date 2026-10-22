@@ -4,6 +4,33 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-10-22 - Guard deployed and applied; the Step 4 side table re-applied; Phase B gates met
+
+### Work done
+
+- With Andy's go-ahead, pushed `main` (`7268cdf..a817cc0`): Step 4 Phase A, the merge of
+  `origin/main`, both snapshot re-baselines, and the ADR 0167 guard. Checked first: 0 behind, no
+  excluded audit file in the push, full suite 995/995, `tsc` clean, changed files lint clean.
+- After the Vercel deploy, Andy applied `20261022000002_submissions_guard_writes.sql`. The trigger
+  check returned the one expected row.
+- The live RLS suite then passed everything except `25` to `25d` (below). After the fix, it passed
+  in full, `25` to `25d` and `26a` to `26g` included.
+- Both Phase B gates are met. Still to run from the 0167 apply note: the portal checks (steps 6 and
+  7) and the planted-value queries.
+
+### Detours & fixes
+
+- **The Step 4 side table was not in production.** Section 25 failed with PGRST205 ("Could not find
+  the table 'public.submission_system_designs' in the schema cache"). `to_regclass` returned null
+  and the trigger function was gone too, so it was missing, not a stale API cache. The guard
+  migration does not touch it. Andy had reported it applied with section 25 passing earlier the
+  same day; why it was absent is not known (a rollback run, or the first apply going to another
+  project, would both explain it). Andy re-ran the forward migration, the grant check matched the
+  apply note exactly, and the suite passed. Lesson: when a table's tests fail with PGRST205, check
+  `to_regclass` before reloading the schema cache.
+
+---
+
 ## 2026-10-22 - Baseline B1-S-2 / B1-S-13: submissions write guard (ADR 0167), written, not applied
 
 ### Work done

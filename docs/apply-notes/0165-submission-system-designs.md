@@ -1,8 +1,13 @@
 # Apply note: `submission_system_designs` (ADR 0165)
 
-> **Applied 2026-10-22** by Andy in the Supabase dashboard SQL editor. The live RLS suite passed in
-> full the same day, including the new section 25 lines (`25`, `25a`, `25b`, `25c`, `25d`).
-> Written earlier that day in Project Portal Step 4, Phase A.
+> **Applied 2026-10-22, then re-applied the same day.** Andy first reported it applied with the
+> live suite passing section 25. Later that day, after the ADR 0167 guard was applied, the suite
+> failed `25` to `25d` with PGRST205 (table not in the API's schema cache), and
+> `to_regclass('public.submission_system_designs')` returned null with no trigger function: the
+> table was not in production. The cause is not known; the 0167 migration does not touch it.
+> Andy re-ran the forward migration, the grant check matched step 2 exactly, and the live suite
+> passed in full (`25` to `25d` and `26a` to `26g` included). If section 25 ever fails again, run
+> the `to_regclass` check first.
 
 | | File |
 |---|---|

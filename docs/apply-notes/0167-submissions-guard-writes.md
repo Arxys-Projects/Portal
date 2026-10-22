@@ -1,8 +1,14 @@
 # Apply note - submissions write guard (ADR 0167)
 
-> **Not applied yet.** Written 2026-10-22. Checked offline in PGlite: 47/47 with and without
-> `service_role` holding EXECUTE on `is_admin()` / `is_internal()`. Without the migration, or after
-> the rollback, 32 of the 45 behavior checks fail.
+> **Applied 2026-10-22** by Andy in the dashboard SQL editor, after `main` was pushed
+> (`7268cdf..a817cc0`) and deployed. Step 4's query returned the one expected row
+> (`trg_submissions_guard_writes`, `prosecdef = false`, empty `search_path`). The live RLS suite
+> passed in full, `26a` to `26g` included. **Still to do:** the portal checks in steps 6 and 7, and
+> the planted-value queries below.
+>
+> Written 2026-10-22. Checked offline in PGlite: 47/47 with and without `service_role` holding
+> EXECUTE on `is_admin()` / `is_internal()`. Without the migration, or after the rollback, 32 of
+> the 45 behavior checks fail.
 
 | | File |
 |---|---|
