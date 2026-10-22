@@ -14,8 +14,10 @@ import {
 
 export {
   NOT_ACTIVE_MESSAGE,
+  gateError,
   isActive,
   isAdmin,
+  isInternal,
   isStaff,
   type ActiveViewer,
   type Viewer,

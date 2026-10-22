@@ -3,9 +3,10 @@
 // load step can be unit tested with a fake client. App code imports
 // viewer.ts, never this file.
 //
-// The words match the SQL side: active = status 'active'; staff = active and
-// (admin or internal); admin = active and role 'admin'. Every predicate fails
-// closed on a missing partners row, so an Auth user with no row gets nothing.
+// The words match the SQL side: active = status 'active'; internal = active
+// and is_internal; staff = active and (admin or internal); admin = active and
+// role 'admin'. Every predicate fails closed on a missing partners row, so an
+// Auth user with no row gets nothing.
 
 import type { User } from "@supabase/supabase-js";
 
@@ -22,6 +23,12 @@ export type Viewer = { user: User; partner: ViewerPartner | null };
 
 export function isActive(v: Viewer | null): boolean {
   return v?.partner?.status === "active";
+}
+
+// Internal alone, without admin: the on-behalf picker and the Project Quote
+// panel key on the flag, matching public.is_internal().
+export function isInternal(v: Viewer | null): boolean {
+  return isActive(v) && v?.partner?.is_internal === true;
 }
 
 export function isAdmin(v: Viewer | null): boolean {
@@ -45,6 +52,11 @@ export function gateViewer(
   if (!v) return { ok: false, reason: "unauthenticated" };
   if (!v.partner || !allowed(v)) return { ok: false, reason: "forbidden" };
   return { ok: true, viewer: { user: v.user, partner: v.partner } };
+}
+
+// The plain refusal text the admin and staff actions return.
+export function gateError(gate: { reason: "unauthenticated" | "forbidden" }): string {
+  return gate.reason === "unauthenticated" ? "Not authenticated." : "Not authorized.";
 }
 
 // What loadViewer needs from the session-scoped Supabase client; viewer.ts

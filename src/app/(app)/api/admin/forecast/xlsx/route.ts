@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import ExcelJS from "exceljs";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { requireAdmin } from "@/lib/auth/viewer";
 import { dbError } from "@/lib/errors/safe-message";
 import {
   groupIntoDeals,
@@ -16,23 +17,14 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
+  // Admin-only (active admin).
+  const gate = await requireAdmin();
+  if (!gate.ok) {
+    return gate.reason === "unauthenticated"
+      ? NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      : NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
   const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  // Admin-only: mirror the layout gate (role=admin AND status=active).
-  const { data: me } = await supabase
-    .from("partners")
-    .select("role, status")
-    .eq("id", user.id)
-    .maybeSingle();
-  if (me?.role !== "admin" || me.status !== "active") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
 
   const [{ data: subRows, error: subError }, { data: partnerRows }] =
     await Promise.all([

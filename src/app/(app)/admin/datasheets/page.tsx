@@ -4,7 +4,7 @@
 // /admin/appliance-specs, which are admin-only because they WRITE. This page
 // only reads and hands back a PDF.
 //
-// It gates on requireAdminOrInternal() DIRECTLY rather than on the route's
+// It gates on requireStaff() DIRECTLY rather than on the route's
 // requireDatasheetAccess(), which ADR 0116 widened to any active partner so the
 // Price Book could link to the live sheets. The download is now partner-facing;
 // this picker is not. It shows gaps, warnings, template names and the reasons
@@ -24,7 +24,7 @@
 
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { requireAdminOrInternal } from "@/lib/auth/require-admin-or-internal";
+import { requireStaff } from "@/lib/auth/viewer";
 import { loadDatasheetSpecData } from "@/lib/datasheet/load";
 import { EXPECTED_PAGES } from "@/lib/datasheet/render";
 import type { CatalogueEntry } from "@/lib/datasheet/catalogue";
@@ -132,7 +132,7 @@ function SheetCard({ entry }: { entry: CatalogueEntry }) {
 }
 
 export default async function AdminDatasheetsPage() {
-  const gate = await requireAdminOrInternal();
+  const gate = await requireStaff();
   if (!gate.ok) notFound();
 
   let catalogue: CatalogueEntry[];

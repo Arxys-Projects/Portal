@@ -6,7 +6,7 @@
 // policies gated on is_internal — which is exactly the pattern the brief says to
 // match rather than extend. So this takes the ordinary authenticated server
 // client and reads across every partner; there is no service-role client here and
-// no new policy in either migration. requireAdminOrInternal() is the caller's
+// no new policy in either migration. requireStaff() is the caller's
 // gate, and RLS is the second layer underneath it.
 //
 // Pipedrive is not read on a plain load. The queue reads pipedrive_deal_cache

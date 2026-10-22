@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { getViewer, isInternal as viewerIsInternal } from "@/lib/auth/viewer";
 import { CalculatorForm } from "./calculator-form";
 import {
   fromStoredSubmission,
@@ -18,9 +19,8 @@ export default async function CalculatorPage({
 }) {
   const { revise } = await searchParams;
   const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const viewer = await getViewer();
+  const user = viewer?.user ?? null;
 
   // Quote revision (Phase 4 Step 3): load the source submission RLS-scoped so a
   // partner can only rehydrate their own quote. A missing/forbidden row simply
@@ -72,47 +72,39 @@ export default async function CalculatorPage({
   // gated behind is_internal. Phase 8 makes the named target a real portal user
   // (so the FK grants them visibility), so we expose the user identity — id,
   // company, contact, email — not just company-name suggestions.
-  let isInternal = false;
+  // Active only, matching public.is_internal() (ADR 0164).
+  const isInternal = viewerIsInternal(viewer);
   const onBehalfPartners: OnBehalfPartner[] = [];
-  if (user) {
-    const { data: caller } = await supabase
+  if (isInternal) {
+    const admin = createSupabaseAdminClient();
+    // Only active, non-internal partners are valid on-behalf targets — an
+    // invited/suspended account can't sign in to see the work, and internal
+    // users aren't external partners to roll a deal up to.
+    const { data: partnerRows } = await admin
       .from("partners")
-      .select("is_internal, status")
-      .eq("id", user.id)
-      .maybeSingle();
-    // Active only, matching public.is_internal() (ADR 0164).
-    isInternal = caller?.status === "active" && Boolean(caller?.is_internal);
-    if (isInternal) {
-      const admin = createSupabaseAdminClient();
-      // Only active, non-internal partners are valid on-behalf targets — an
-      // invited/suspended account can't sign in to see the work, and internal
-      // users aren't external partners to roll a deal up to.
-      const { data: partnerRows } = await admin
-        .from("partners")
-        .select("id, company_name, contact_name")
-        .eq("status", "active")
-        .eq("is_internal", false)
-        .order("company_name");
-      // Emails live on auth.users, not partners — join in memory, mirroring
-      // admin/partners/page.tsx. listUsers caps at perPage=200; paginate here
-      // and note it in JOURNAL if the partner base outgrows that.
-      const emailById = new Map<string, string>();
-      const list = await admin.auth.admin.listUsers({ perPage: 200 });
-      if (list.error) {
-        console.error("listUsers failed", list.error);
-      } else {
-        for (const u of list.data.users) {
-          if (u.email) emailById.set(u.id, u.email);
-        }
+      .select("id, company_name, contact_name")
+      .eq("status", "active")
+      .eq("is_internal", false)
+      .order("company_name");
+    // Emails live on auth.users, not partners — join in memory, mirroring
+    // admin/partners/page.tsx. listUsers caps at perPage=200; paginate here
+    // and note it in JOURNAL if the partner base outgrows that.
+    const emailById = new Map<string, string>();
+    const list = await admin.auth.admin.listUsers({ perPage: 200 });
+    if (list.error) {
+      console.error("listUsers failed", list.error);
+    } else {
+      for (const u of list.data.users) {
+        if (u.email) emailById.set(u.id, u.email);
       }
-      for (const row of partnerRows ?? []) {
-        onBehalfPartners.push({
-          id: row.id as string,
-          companyName: (row.company_name as string)?.trim() ?? "",
-          contactName: (row.contact_name as string)?.trim() ?? "",
-          email: emailById.get(row.id as string) ?? null,
-        });
-      }
+    }
+    for (const row of partnerRows ?? []) {
+      onBehalfPartners.push({
+        id: row.id as string,
+        companyName: (row.company_name as string)?.trim() ?? "",
+        contactName: (row.contact_name as string)?.trim() ?? "",
+        email: emailById.get(row.id as string) ?? null,
+      });
     }
   }
 

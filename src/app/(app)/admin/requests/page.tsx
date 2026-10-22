@@ -1,4 +1,5 @@
-import { requireAdminOrInternal } from "@/lib/auth/require-admin-or-internal";
+import { notFound } from "next/navigation";
+import { requireStaff } from "@/lib/auth/viewer";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { RequestRowActions } from "./request-row-actions";
 
@@ -39,7 +40,7 @@ type Row = {
 };
 
 export default async function AdminRequestsPage() {
-  await requireAdminOrInternal();
+  if (!(await requireStaff()).ok) notFound();
 
   // Read via the authenticated server client — RLS restricts this to
   // admin/internal. anon and plain partners get nothing.

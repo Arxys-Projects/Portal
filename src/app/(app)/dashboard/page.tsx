@@ -1,5 +1,6 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { getViewer, isAdmin as viewerIsAdmin, isStaff } from "@/lib/auth/viewer";
 import Footer from "@/app/(app)/_components/footer";
 import {
   Card,
@@ -26,24 +27,16 @@ import { partnerLogoPublicUrl } from "@/lib/storage/partner-logo";
 
 export default async function DashboardPage() {
   const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  const { data: partner } = user
-    ? await supabase
-        .from("partners")
-        .select("id, role, company_name, contact_name, is_internal")
-        .eq("id", user.id)
-        .maybeSingle()
-    : { data: null };
-  const isAdmin = partner?.role === "admin";
+  const viewer = await getViewer();
+  const user = viewer?.user ?? null;
+  const partner = viewer?.partner ? { id: viewer.user.id, ...viewer.partner } : null;
+  const isAdmin = viewerIsAdmin(viewer);
 
   // ADR 0089 — the partner's own logo next to the greeting, on the partner
   // dashboard only (not internal/admin views). Read best-effort in a separate
   // query so the dashboard still loads before migration A is applied: a missing
   // logo_path column degrades to no logo rather than erroring.
-  const isPartnerViewer = Boolean(partner) && !isAdmin && !partner?.is_internal;
+  const isPartnerViewer = Boolean(partner) && !isStaff(viewer);
   let dashboardLogoUrl: string | null = null;
   if (user && isPartnerViewer) {
     const { data: logoRow } = await supabase
@@ -71,7 +64,7 @@ export default async function DashboardPage() {
   // viewer can't read under their own RLS scope. Resolve just those targets'
   // names via the admin client so the dashboard shows a company, not a UUID.
   const partnersForGrouping = partner
-    ? [{ id: partner.id, company_name: partner.company_name }]
+    ? [{ id: partner.id, company_name: partner.company_name ?? "" }]
     : [];
   const onBehalfIds = [
     ...new Set(

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { isStaff, requireActive } from "@/lib/auth/viewer";
 import {
   loadCurrentProjectQuote,
   loadProjectQuoteVersion,
@@ -34,20 +35,14 @@ export async function GET(
 ) {
   const { id } = await params;
 
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return new NextResponse("Unauthorized", { status: 401 });
-
-  const { data: caller } = await supabase
-    .from("partners")
-    .select("role, status, is_internal")
-    .eq("id", user.id)
-    .maybeSingle<{ role: string; status: string; is_internal: boolean }>();
-  if (caller?.status !== "active") {
-    return new NextResponse("Forbidden", { status: 403 });
+  const gate = await requireActive();
+  if (!gate.ok) {
+    return gate.reason === "unauthenticated"
+      ? new NextResponse("Unauthorized", { status: 401 })
+      : new NextResponse("Forbidden", { status: 403 });
   }
+  const { user } = gate.viewer;
+  const supabase = await createSupabaseServerClient();
 
   // Ownership check (defense-in-depth on top of RLS): the submission read is
   // RLS-scoped, so a foreign id reads null; we additionally require the caller
@@ -61,7 +56,7 @@ export async function GET(
       partner_id: string;
       on_behalf_of_partner_id: string | null;
     }>();
-  const isInternalOrAdmin = caller.is_internal === true || caller.role === "admin";
+  const isInternalOrAdmin = isStaff(gate.viewer);
   const ownsSubmission =
     submission !== null &&
     (submission.partner_id === user.id ||

@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { requireAdminOrInternal } from "@/lib/auth/require-admin-or-internal";
+import { gateError, isAdmin, requireAdmin, requireStaff } from "@/lib/auth/viewer";
 import {
   reactivatePartnerAccess,
   suspendPartnerAccess,
@@ -29,28 +29,6 @@ export type SimpleActionState =
   | { status: "error"; error: string }
   | { status: "ok"; message: string };
 
-async function requireAdmin(): Promise<
-  | { ok: true; userId: string }
-  | { ok: false; error: string }
-> {
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return { ok: false, error: "Not authenticated." };
-  }
-  const { data: partner } = await supabase
-    .from("partners")
-    .select("role, status")
-    .eq("id", user.id)
-    .maybeSingle();
-  if (partner?.role !== "admin" || partner.status !== "active") {
-    return { ok: false, error: "Not authorized." };
-  }
-  return { ok: true, userId: user.id };
-}
-
 async function inviteRedirectUrl(): Promise<string> {
   const h = await headers();
   const origin =
@@ -69,8 +47,8 @@ export async function invitePartner(
   // Phase 8 Step C — internal users may also invite partners. Only admins may
   // flip the is_internal flag on the new partner; for non-admin callers we
   // force it false on the server regardless of what the client sends.
-  const gate = await requireAdminOrInternal();
-  if (!gate.ok) return { status: "error", error: gate.error };
+  const gate = await requireStaff();
+  if (!gate.ok) return { status: "error", error: gateError(gate) };
 
   const parsed = inviteSchema.safeParse({
     email: formData.get("email"),
@@ -94,7 +72,7 @@ export async function invitePartner(
   // Checkboxes are absent from FormData when unchecked.
   // Phase 8 Step C — only admins may set is_internal at invite time.
   const isInternal =
-    gate.isAdmin && formData.get("isInternal") === "on";
+    isAdmin(gate.viewer) && formData.get("isInternal") === "on";
 
   const admin = createSupabaseAdminClient();
   const redirectTo = await inviteRedirectUrl();
@@ -174,11 +152,11 @@ export async function suspendPartner(
   formData: FormData,
 ): Promise<SimpleActionState> {
   const gate = await requireAdmin();
-  if (!gate.ok) return { status: "error", error: gate.error };
+  if (!gate.ok) return { status: "error", error: gateError(gate) };
   const targetId = String(formData.get("id") ?? "");
   if (!targetId) return { status: "error", error: "Missing partner id." };
 
-  if (targetId === gate.userId) {
+  if (targetId === gate.viewer.user.id) {
     return {
       status: "error",
       error:
@@ -225,15 +203,17 @@ export async function reactivatePartner(
   formData: FormData,
 ): Promise<SimpleActionState> {
   const gate = await requireAdmin();
-  if (!gate.ok) return { status: "error", error: gate.error };
+  if (!gate.ok) return { status: "error", error: gateError(gate) };
   const targetId = String(formData.get("id") ?? "");
   if (!targetId) return { status: "error", error: "Missing partner id." };
 
   const admin = createSupabaseAdminClient();
-  // Only a suspended partner row can be reactivated (TOCTOU re-check, as in
-  // resendInvite). This keeps the unban off Auth users the portal does not
-  // manage, and keeps the unban-failure revert below from suspending an
-  // active or invited partner.
+  // Only a suspended partner row can be reactivated. This read gives the
+  // specific message; the status write in reactivatePartnerAccess is itself
+  // conditional on 'suspended', so a row that changes in between is still
+  // refused. This keeps the unban off Auth users the portal does not manage,
+  // and keeps the unban-failure revert from suspending an active or invited
+  // partner.
   const { data: target, error: targetErr } = await admin
     .from("partners")
     .select("status")
@@ -261,7 +241,7 @@ export async function resendInvite(
   formData: FormData,
 ): Promise<SimpleActionState> {
   const gate = await requireAdmin();
-  if (!gate.ok) return { status: "error", error: gate.error };
+  if (!gate.ok) return { status: "error", error: gateError(gate) };
   const targetId = String(formData.get("id") ?? "");
   if (!targetId) return { status: "error", error: "Missing partner id." };
 
@@ -325,7 +305,7 @@ async function updatePartnerNameField(
   label: string,
 ): Promise<SimpleActionState> {
   const gate = await requireAdmin();
-  if (!gate.ok) return { status: "error", error: gate.error };
+  if (!gate.ok) return { status: "error", error: gateError(gate) };
   const targetId = String(formData.get("id") ?? "");
   if (!targetId) return { status: "error", error: "Missing partner id." };
 
@@ -359,7 +339,7 @@ export async function uploadPartnerLogo(
   formData: FormData,
 ): Promise<SimpleActionState> {
   const gate = await requireAdmin();
-  if (!gate.ok) return { status: "error", error: gate.error };
+  if (!gate.ok) return { status: "error", error: gateError(gate) };
   const targetId = String(formData.get("id") ?? "");
   if (!targetId) return { status: "error", error: "Missing partner id." };
 
@@ -415,7 +395,7 @@ export async function updatePartnerPipedriveUserId(
   formData: FormData,
 ): Promise<SimpleActionState> {
   const gate = await requireAdmin();
-  if (!gate.ok) return { status: "error", error: gate.error };
+  if (!gate.ok) return { status: "error", error: gateError(gate) };
   const targetId = String(formData.get("id") ?? "");
   if (!targetId) return { status: "error", error: "Missing partner id." };
 
@@ -450,7 +430,7 @@ export async function setPartnerInternal(
   formData: FormData,
 ): Promise<SimpleActionState> {
   const gate = await requireAdmin();
-  if (!gate.ok) return { status: "error", error: gate.error };
+  if (!gate.ok) return { status: "error", error: gateError(gate) };
   const targetId = String(formData.get("id") ?? "");
   if (!targetId) return { status: "error", error: "Missing partner id." };
   const value = formData.get("value") === "true";

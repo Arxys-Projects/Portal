@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { isInternal as viewerIsInternal, requireStaff } from "@/lib/auth/viewer";
 import {
   loadSubmissionDetail,
   loadSubmissionLineage,
@@ -23,6 +24,10 @@ export default async function AdminSubmissionDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  // Each admin page gates itself; the /admin layout is not a boundary.
+  const gate = await requireStaff();
+  if (!gate.ok) notFound();
+
   const { id } = await params;
 
   const submission = await loadSubmissionDetail(id);
@@ -30,9 +35,6 @@ export default async function AdminSubmissionDetailPage({
   const lineage = await loadSubmissionLineage(id);
 
   const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
 
   // Fetch creating-partner data (company + contact) and on-behalf-of columns.
   const { data: subRow } = await supabase
@@ -91,15 +93,7 @@ export default async function AdminSubmissionDetailPage({
   // view. Phase 8 Step C gave internal users access to this view but the
   // Edit/revise button was absent here — they had to navigate to /submissions
   // instead. canRevise restores the affordance for them.
-  let isInternal = false;
-  if (user) {
-    const { data: callerRow } = await supabase
-      .from("partners")
-      .select("is_internal")
-      .eq("id", user.id)
-      .maybeSingle();
-    isInternal = Boolean(callerRow?.is_internal);
-  }
+  const isInternal = viewerIsInternal(gate.viewer);
 
   // Project Quote is internal-only (ADR 0059). Load the derived-current quote
   // (max version) and pass a serializable summary to the panel. RLS on

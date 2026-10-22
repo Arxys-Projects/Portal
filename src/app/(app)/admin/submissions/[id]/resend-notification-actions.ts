@@ -4,7 +4,7 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { requireAdminOrInternal } from "@/lib/auth/require-admin-or-internal";
+import { requireStaff } from "@/lib/auth/viewer";
 import { UTILIZATION_DEFAULT_PCT } from "@/lib/calculator/tables";
 import { retentionSummary } from "@/lib/calculator/compute";
 import { GB_PER_TB } from "@/lib/recommend/types";
@@ -35,7 +35,7 @@ export async function adminResendSubmissionNotification(
     return { ok: false, error: "Invalid submission id." };
   }
 
-  const gate = await requireAdminOrInternal();
+  const gate = await requireStaff();
   if (!gate.ok) {
     return { ok: false, error: "You do not have permission to perform this action." };
   }
