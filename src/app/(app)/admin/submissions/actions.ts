@@ -249,7 +249,11 @@ export async function adminRelinkPipedriveDeal(submissionId: string): Promise<Re
       ));
     }
 
-    const { error: writeError } = await supabase
+    // ADR 0167: the link is server-written, so service role: the submissions
+    // guard refuses pipedrive_deal_id from any non-admin session, and an
+    // internal user's session matched no row on another partner's submission
+    // anyway. requireStaff() above gates the caller; the row was read above.
+    const { error: writeError } = await admin
       .from("submissions")
       .update({ pipedrive_deal_id: dealId })
       .eq("id", sub.id);

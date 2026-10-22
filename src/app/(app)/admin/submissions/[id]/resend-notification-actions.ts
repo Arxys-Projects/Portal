@@ -121,8 +121,10 @@ export async function adminResendSubmissionNotification(
   }
 
   // Best-effort — the email already sent by this point either way, so a stamp
-  // failure here must not be reported as a send failure.
-  await supabase
+  // failure here must not be reported as a send failure. Service role (ADR
+  // 0167): the submissions guard refuses email_sent_at from a non-admin
+  // session, and requireStaff() above already gated the caller.
+  await admin
     .from("submissions")
     .update({ email_sent_at: new Date().toISOString() })
     .eq("id", submissionId);

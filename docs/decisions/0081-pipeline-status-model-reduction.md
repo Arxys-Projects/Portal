@@ -1,6 +1,6 @@
 # 0081 — Pipeline status model reduction and forecast retirement
 
-Status: Accepted (2026-07-17)
+Status: Accepted (2026-07-17). For partners, moving a row out of Won or Lost became staff-only in [ADR 0167](./0167-submissions-write-guard-partners-change-only-status-and-preferred.md) (2026-10-22); the per-row dropdown locks on those rows.
 Deciders: Andy Newbom
 Relates to: My Pipeline and dashboard pipeline summary. Portal-only; not mapped to Pipedrive.
 Implemented by: commit e9990aa; migration 20260717000002_pipeline_status_model_reduction.sql (applied 2026-07-17). Decisions taken at build time: stored values are lowercase (open/won/lost); the column is NOT NULL default 'open' (the old NULL "No status" state was folded into open and retired).

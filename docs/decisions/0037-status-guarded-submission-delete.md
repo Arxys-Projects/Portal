@@ -1,6 +1,6 @@
 # 0037 — Status-guarded, RLS-enforced, draft-only submission delete (A3 redesign)
 
-- **Status**: Accepted
+- **Status**: Accepted. Partly superseded by [ADR 0167](./0167-submissions-write-guard-partners-change-only-status-and-preferred.md): this ADR's Negatives let a partner set a closed row's status back and then delete it. Since 0167 (Andy's decision of 2026-10-19), only Arxys staff can move a row out of won or lost, so a partner can no longer delete one.
 - **Date**: 2026-05-27
 
 ## Context

@@ -4,6 +4,79 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-10-22 - Baseline B1-S-2 / B1-S-13: submissions write guard (ADR 0167), written, not applied
+
+### Work done
+
+- Started at `7dcb96f` on local `main` (5 ahead of origin, unpushed). Audit rows read from
+  `refs/heads/claude/group-1-audit-preflight-n8s0yw`: B1-S-2 / B1-A-1, B1-S-13, and through them
+  B2-S-10 / B2-A-12. This is the last gate before Project Portal Step 4 Phase B.
+- **Write-path inventory.** Partner sessions write `submissions` in four places: the
+  `submitCalculation` INSERT, its `email_sent_at` stamp and `pipedrive_deal_id` link, and the
+  status / preferred toggles in `submissions/actions.ts`. Staff paths: `adminUpdateStatus` and
+  `adminDeleteSubmission` (admin JWT), and `adminRelinkPipedriveDeal` and
+  `adminResendSubmissionNotification`, which are gated by `requireStaff()` yet wrote
+  `pipedrive_deal_id` / `email_sent_at` through the session client.
+- **Migration** `20261022000002_submissions_guard_writes.sql` and its rollback, written and not
+  applied. Allow-list guard on the ADR 0151 pattern: non-admin sessions may UPDATE only `status`
+  and `is_preferred` (won and lost stay put unless internal); INSERT refuses a deal id, email stamp,
+  `pdf_url`, partner price, custom `created_at`, an on-behalf target unless internal, and a parent
+  row the caller cannot see.
+- **App.** All four stamps now go through the service-role client, scoped to the row just inserted
+  or the row the staff gate loaded. My Pipeline's `isIncomingOnBehalf` now needs a staff creator,
+  and a row shared in by anyone else is dropped (unless the creator lookup itself fails, so a
+  transient error never hides real "Prepared by Arxys" quotes). For partners, setting Won or Lost
+  asks for confirmation first, and the row's status then shows as locked with "Ask your Arxys rep
+  to change"; a refused reopen that reaches the server says the same. Rows the viewer can see but
+  not change now show a locked status too, where they used to offer a change that failed.
+- **PGlite check** (scratchpad, Supabase-style roles, real `is_admin` / `is_internal`, final
+  `submissions` policies, migration read verbatim): 47/47 with `service_role` holding EXECUTE on
+  the role helpers and 47/47 without it. Controls: without the migration and after the rollback,
+  32 of the 45 behavior checks fail.
+- **Live RLS cases** `26a` to `26g` added to `scripts/test-rls.ts`, each denial checked for 42501,
+  including the upsert route, lost to won, a parent visible only through on-behalf, and the FK
+  set-null on a parent delete. Section 26 cleans up in its own `finally`, and `teardownPersona` now
+  also deletes rows prepared on the persona's behalf (audit gap 22). Not run: the suite runs
+  against production, so Andy runs it after applying.
+- **Review gate.** First pass: FIX BEFORE COMMIT (security PASS WITH NOTES, architect Should-fix
+  items, no Critical or Must fix). Fixed before committing: the apply note's pre-apply expectations,
+  a check for values planted before the guard, a no-app-rollback warning and the one-sitting apply;
+  ADR 0167 now states that forged INSERT figures reach Pipedrive through a staff relink, that the
+  INSERT rules are a named list, and the trigger-ordering trap; the Won/Lost lock-in UX; the
+  lookup-failure case on My Pipeline; test robustness; the Project Portal brief's ADR counter (now
+  0168); a pointer from ADR 0037. Second pass: both PASS WITH NOTES; its notes (ADR 0037 / 0081
+  wording, apply note step 6, a query for a planted deal id no other row shares, locking rows the
+  viewer cannot change, a note that "Prepared by Arxys" reads the creator's current flags) were
+  fixed before committing. Doc and UI only, so no third pass. Left open for Andy: see the next list.
+- **Open after this change:** a partner's direct INSERT can still bank forged price figures, which a
+  staff "Retry Pipedrive link" would carry into the deal (fix by moving the INSERT to service role
+  in Step 4, or recomputing the value in relink); internal non-admin relinks before this change
+  may have left unlinked duplicate deals in Pipedrive (read-only check, touches Pipedrive); the
+  PGlite harness is still in a session scratchpad (B1-S-7 asks for it committed, which adds a dev
+  dependency); the dashboard's on-behalf count has no staff-creator check; relink's link write is
+  not conditional on the link still being empty.
+- **Snapshot re-baseline** (separate commit). The harness failed all seven scenarios, as expected.
+  A leaf-by-leaf diff found 12 differences, all the `client` of the two moved PATCHes going from
+  `anon` to `service`. Re-recorded and noted in ADR 0166.
+- `tsc` clean; `npm test` 995/995.
+
+### Detours & fixes
+
+- **Staff relink silently failed for internal users.** `adminRelinkPipedriveDeal` let any staff
+  member relink, but wrote the link with the session client, and the UPDATE policy only matches
+  an internal user's own rows. On another partner's submission the write matched zero rows, no
+  error came back, and the action reported success with the link unsaved. The service-role move
+  fixes this as a side effect. The resend stamp had the same shape.
+- First draft built the refused-column list with `text[] || 'literal'`. Postgres reads the
+  untyped literal as an array and raises `malformed array literal` (confirmed in a separate
+  PGlite probe). Switched to `array_append` before the first full run.
+
+### Decisions captured
+
+- [`0167-submissions-write-guard-partners-change-only-status-and-preferred.md`](./decisions/0167-submissions-write-guard-partners-change-only-status-and-preferred.md)
+
+---
+
 ## 2026-10-22 - Step 4 Phase A gate: side table applied; snapshot re-baselined on origin/main
 
 ### Work done

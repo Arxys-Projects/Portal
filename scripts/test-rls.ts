@@ -81,6 +81,9 @@ async function provisionPersona(
 
 async function teardownPersona(p: Persona): Promise<void> {
   await admin.from("submissions").delete().eq("partner_id", p.id);
+  // Rows another persona prepared on p's behalf reference p with no ON DELETE
+  // action, so they would block the partners delete below (gap 22).
+  await admin.from("submissions").delete().eq("on_behalf_of_partner_id", p.id);
   await admin.from("partners").delete().eq("id", p.id);
   await admin.auth.admin.deleteUser(p.id);
 }
@@ -2420,6 +2423,206 @@ async function run() {
           notBlocked.length === 0,
           notBlocked.join("; ") || "all blocked",
         );
+      }
+    }
+    // =========================================================================
+    // Section 26: submissions write guard (ADR 0167, migration
+    // 20261022000002; baseline B1-S-2 / B1-A-1 / B1-S-13). A non-admin session
+    // may UPDATE only status and is_preferred, cannot move a won or lost row
+    // unless internal, and cannot INSERT a deal id, email stamp, custom
+    // created_at, an on-behalf target (unless internal) or a parent row it
+    // cannot see. Tests 11 and 12 still cover the allowed partner updates.
+    // Every denial is checked for 42501 explicitly (B1-S-7). Rows seeded here
+    // for internalPersona are deleted in the block's own finally, so a throw
+    // part-way cannot leave an on-behalf row that blocks teardown of A.
+    // =========================================================================
+    {
+      const is42501 = (e: { code?: string } | null) => e?.code === "42501";
+      const sizing = {
+        project_name: "RLS-guard-test",
+        cameras_count: 10,
+        resolution_code: "4K",
+        codec: "H.265",
+        complexity: "MED",
+        retention_days: 30,
+        bandwidth_mbps: 250,
+        storage_tb: 5,
+      };
+      const guardedCols = "pipedrive_deal_id, on_behalf_of_partner_id, parent_submission_id, created_at, storage_tb, status, email_sent_at";
+      const snapshot = async (id: string) =>
+        JSON.stringify((await admin.from("submissions").select(guardedCols).eq("id", id).single()).data);
+      const intRows: string[] = [];
+      try {
+        const aOpen = await seedSubmission(a.id, "open");
+        const aWon = await seedSubmission(a.id, "won");
+        const aLost = await seedSubmission(a.id, "lost");
+        const bOpen = await seedSubmission(b.id, "open");
+        const intWon = await seedSubmission(internalPersona.id, "won");
+        intRows.push(intWon);
+
+        // 26a: partner A cannot PATCH (or upsert) a protected column on their
+        // own row.
+        {
+          const notDenied: string[] = [];
+          for (const [label, patch] of [
+            ["pipedrive_deal_id", { pipedrive_deal_id: 999999999 }],
+            ["on_behalf_of_partner_id", { on_behalf_of_partner_id: b.id }],
+            ["parent_submission_id", { parent_submission_id: bOpen }],
+            ["created_at", { created_at: "2099-01-01T00:00:00Z" }],
+            ["storage_tb", { storage_tb: 500 }],
+            ["email_sent_at", { email_sent_at: new Date().toISOString() }],
+          ] as const) {
+            const before = await snapshot(aOpen);
+            const { error } = await a.client.from("submissions").update(patch).eq("id", aOpen).select("id");
+            const after = await snapshot(aOpen);
+            if (!is42501(error) || before !== after) notDenied.push(`${label}: ${error?.code ?? "WENT THROUGH"}`);
+          }
+          const before = await snapshot(aOpen);
+          const upsert = await a.client
+            .from("submissions")
+            .upsert({ id: aOpen, partner_id: a.id, ...sizing, pipedrive_deal_id: 999999999 })
+            .select("id");
+          if (!is42501(upsert.error) || before !== (await snapshot(aOpen))) {
+            notDenied.push(`upsert pipedrive_deal_id: ${upsert.error?.code ?? "WENT THROUGH"}`);
+          }
+          record(
+            "26a: partner cannot PATCH or upsert own pipedrive_deal_id / on-behalf / parent / created_at / figures / email stamp (42501)",
+            notDenied.length === 0,
+            notDenied.join("; ") || "all blocked, row unchanged",
+          );
+        }
+
+        // 26b: partner A cannot move their own won or lost row, so the delete
+        // guard (status = 'open') still holds.
+        {
+          const reopen = await a.client.from("submissions").update({ status: "open" }).eq("id", aWon).select("id");
+          const del = await a.client.from("submissions").delete().eq("id", aWon).select("id");
+          const { data: still } = await admin.from("submissions").select("status").eq("id", aWon).maybeSingle();
+          const flip = await a.client.from("submissions").update({ status: "won" }).eq("id", aLost).select("id");
+          const { data: lost } = await admin.from("submissions").select("status").eq("id", aLost).maybeSingle();
+          record(
+            "26b: partner cannot reopen own won or flip own lost to won (42501), so cannot delete them",
+            is42501(reopen.error) &&
+              !del.error &&
+              (del.data?.length ?? 0) === 0 &&
+              still?.status === "won" &&
+              is42501(flip.error) &&
+              lost?.status === "lost",
+            `reopen=${reopen.error?.code ?? "WENT THROUGH"} deleted=${del.data?.length} status=${still?.status} ` +
+              `lost->won=${flip.error?.code ?? "WENT THROUGH"} status=${lost?.status}`,
+          );
+        }
+
+        // 26c: partner A cannot INSERT a row carrying a server-written or
+        // visibility column.
+        {
+          const notDenied: string[] = [];
+          for (const [label, extra] of [
+            ["pipedrive_deal_id", { pipedrive_deal_id: 999999999 }],
+            ["email_sent_at", { email_sent_at: new Date().toISOString() }],
+            ["created_at", { created_at: "2020-01-01T00:00:00Z" }],
+            ["on_behalf_of_partner_id", { on_behalf_of_partner_id: b.id }],
+            ["on_behalf_of_company_name", { on_behalf_of_company_name: "RLS Victim Co" }],
+            ["parent_submission_id (B's row)", { parent_submission_id: bOpen }],
+          ] as const) {
+            const { data, error } = await a.client
+              .from("submissions")
+              .insert({ partner_id: a.id, ...sizing, ...extra })
+              .select("id");
+            if (!is42501(error)) notDenied.push(`${label}: ${error?.code ?? `INSERTED ${data?.[0]?.id}`}`);
+          }
+          record(
+            "26c: partner cannot INSERT a deal id, email stamp, created_at, on-behalf target or foreign parent (42501)",
+            notDenied.length === 0,
+            notDenied.join("; ") || "all blocked",
+          );
+        }
+
+        // 26d: a partner revision of their own row still saves, and deleting
+        // the open parent clears the child's link (the FK's ON DELETE SET NULL
+        // runs as the table owner and passes the guard).
+        {
+          const failed: string[] = [];
+          const parent = await seedSubmission(a.id, "open");
+          const child = await a.client
+            .from("submissions")
+            .insert({ partner_id: a.id, ...sizing, parent_submission_id: parent })
+            .select("id");
+          if (child.error || child.data?.length !== 1) failed.push(`revision insert: ${child.error?.message ?? "no row"}`);
+          const del = await a.client.from("submissions").delete().eq("id", parent).select("id");
+          if (del.error || del.data?.length !== 1) failed.push(`parent delete: ${del.error?.message ?? "no row"}`);
+          if (child.data?.[0]) {
+            const { data: after } = await admin.from("submissions").select("parent_submission_id").eq("id", child.data[0].id).maybeSingle();
+            if (after?.parent_submission_id !== null) failed.push(`child parent still ${after?.parent_submission_id}`);
+          }
+          record(
+            "26d: partner CAN insert a revision of their own row and delete its open parent (link cleared)",
+            failed.length === 0,
+            failed.join("; ") || "as expected",
+          );
+        }
+
+        // 26e: an active internal user files on behalf of partner A and
+        // reopens their own won row, but still cannot write a deal id. A can
+        // revise the row prepared for them; unrelated partner B cannot parent
+        // onto it.
+        {
+          const failed: string[] = [];
+          const onBehalf = await internalPersona.client
+            .from("submissions")
+            .insert({ partner_id: internalPersona.id, ...sizing, on_behalf_of_partner_id: a.id })
+            .select("id");
+          if (onBehalf.error || onBehalf.data?.length !== 1) {
+            failed.push(`on-behalf insert: ${onBehalf.error?.message ?? "no row"}`);
+          } else {
+            const onBehalfId = onBehalf.data[0].id as string;
+            intRows.push(onBehalfId);
+            const aRevise = await a.client
+              .from("submissions")
+              .insert({ partner_id: a.id, ...sizing, parent_submission_id: onBehalfId })
+              .select("id");
+            if (aRevise.error || aRevise.data?.length !== 1) failed.push(`target revise: ${aRevise.error?.message ?? "no row"}`);
+            const bRevise = await b.client
+              .from("submissions")
+              .insert({ partner_id: b.id, ...sizing, parent_submission_id: onBehalfId })
+              .select("id");
+            if (!is42501(bRevise.error)) failed.push(`unrelated parent: ${bRevise.error?.code ?? "WENT THROUGH"}`);
+          }
+          const reopen = await internalPersona.client.from("submissions").update({ status: "open" }).eq("id", intWon).select("id");
+          if (reopen.error || reopen.data?.length !== 1) failed.push(`reopen: ${reopen.error?.message ?? "no row"}`);
+          const deal = await internalPersona.client.from("submissions").update({ pipedrive_deal_id: 999999999 }).eq("id", intWon).select("id");
+          if (!is42501(deal.error)) failed.push(`deal id: ${deal.error?.code ?? "WENT THROUGH"}`);
+          record(
+            "26e: internal CAN insert on behalf and reopen own won, CANNOT write a deal id (42501); only the target may revise it",
+            failed.length === 0,
+            failed.join("; ") || "as expected",
+          );
+        }
+
+        // 26f: an active admin with their own JWT can write every column.
+        // Seeds its own won row so the result does not depend on 26b.
+        {
+          const adminTarget = await seedSubmission(a.id, "won");
+          const { data, error } = await adminPersona.client
+            .from("submissions")
+            .update({ pipedrive_deal_id: 999999998, status: "open", on_behalf_of_partner_id: b.id })
+            .eq("id", adminTarget)
+            .select("id");
+          record("26f: admin JWT CAN set a deal id, an on-behalf target and reopen a partner's won row", !error && data?.length === 1, error?.message);
+        }
+
+        // 26g: service_role (the app's server stamps) writes the two columns
+        // submitCalculation now writes as service role.
+        {
+          const { data, error } = await admin
+            .from("submissions")
+            .update({ pipedrive_deal_id: 999999997, email_sent_at: new Date().toISOString() })
+            .eq("id", aOpen)
+            .select("id");
+          record("26g: service_role CAN stamp pipedrive_deal_id and email_sent_at", !error && data?.length === 1, error?.message);
+        }
+      } finally {
+        if (intRows.length > 0) await admin.from("submissions").delete().in("id", intRows);
       }
     }
   } finally {

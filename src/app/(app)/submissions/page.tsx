@@ -4,6 +4,7 @@ import { productGroupToFamilySlug } from "@/lib/price-book/families";
 import { SUBMISSION_STATUSES, type SubmissionStatus } from "./status";
 import { Pipeline, type PipelineGroup, type PipelineRow, type StatusFilter } from "./pipeline";
 import { groupIntoDeals, computePipelineTotals, type SubmissionRow } from "@/lib/pipeline/forecast";
+import { getViewer, isAdmin, isStaff } from "@/lib/auth/viewer";
 
 // A UUID-shaped recommended_product_id signals a pre-Step-3+4 submission whose
 // FK target was dropped. Post-migration rows carry SKU strings.
@@ -33,6 +34,8 @@ export default async function PartnerSubmissionsPage({
     data: { user },
   } = await supabase.auth.getUser();
   const viewerId = user?.id ?? null;
+  const viewer = await getViewer();
+  const viewerIsAdmin = isAdmin(viewer);
   let query = supabase
     .from("submissions")
     .select(
@@ -71,13 +74,12 @@ export default async function PartnerSubmissionsPage({
     on_behalf_of_partner_id: string | null;
     on_behalf_of_company_name: string | null;
   };
-  const rows = (data ?? []) as Row[];
+  const allRows = (data ?? []) as Row[];
 
-  // A row is "incoming on-behalf" when it was prepared FOR the viewer by someone
-  // else (Phase 8 surfaces these): the FK target is the viewer, but the creator
-  // is not. These get a "Prepared by Arxys" marker, not an "On behalf of …"
-  // label — labeling the viewer's own company as the target reads as nonsense.
-  function isIncomingOnBehalf(r: Row): boolean {
+  // A row targets the viewer when it was prepared FOR them by someone else
+  // (Phase 8 surfaces these): the FK target is the viewer, but the creator is
+  // not.
+  function targetsViewer(r: Row): boolean {
     return (
       viewerId !== null &&
       r.on_behalf_of_partner_id === viewerId &&
@@ -91,8 +93,8 @@ export default async function PartnerSubmissionsPage({
   // prepared for the viewer). Both are off-RLS lookups by id.
   const outgoingTargetIds = new Set<string>();
   const incomingCreatorIds = new Set<string>();
-  for (const r of rows) {
-    if (isIncomingOnBehalf(r)) {
+  for (const r of allRows) {
+    if (targetsViewer(r)) {
       incomingCreatorIds.add(r.partner_id);
     } else if (r.on_behalf_of_partner_id) {
       outgoingTargetIds.add(r.on_behalf_of_partner_id);
@@ -100,18 +102,42 @@ export default async function PartnerSubmissionsPage({
   }
   const obNameById = new Map<string, string>();
   const repNameById = new Map<string, string>();
+  const staffCreatorIds = new Set<string>();
+  // A failed lookup must not hide quotes Arxys prepared for this partner. The
+  // submissions guard stops new non-staff on-behalf rows, so on an error the
+  // creator check is skipped for this load instead.
+  let creatorCheckFailed = false;
   const lookupIds = [...new Set([...outgoingTargetIds, ...incomingCreatorIds])];
   if (lookupIds.length > 0) {
     const admin = createSupabaseAdminClient();
-    const { data: partnersData } = await admin
+    const { data: partnersData, error: partnersError } = await admin
       .from("partners")
-      .select("id, company_name, contact_name")
+      .select("id, company_name, contact_name, role, is_internal")
       .in("id", lookupIds);
+    if (partnersError) {
+      console.error("[load on-behalf names]", partnersError);
+      creatorCheckFailed = true;
+    }
     for (const p of partnersData ?? []) {
       obNameById.set(p.id, p.company_name);
       repNameById.set(p.id, p.contact_name);
+      if (p.is_internal === true || p.role === "admin") staffCreatorIds.add(p.id);
     }
   }
+
+  // "Incoming on-behalf" also needs an Arxys creator (B1-S-13, ADR 0167):
+  // only staff may file on someone's behalf, so a row another partner shared
+  // in is not "Prepared by Arxys". These get that marker, not an "On behalf
+  // of …" label, since labeling the viewer's own company as the target reads
+  // as nonsense.
+  function isIncomingOnBehalf(r: Row): boolean {
+    return targetsViewer(r) && (creatorCheckFailed || staffCreatorIds.has(r.partner_id));
+  }
+
+  // A row that targets the viewer but whose creator is not staff is dropped:
+  // it can only exist through a write the submissions guard now refuses, and
+  // it must not sit in the viewer's pipeline.
+  const rows = allRows.filter((r) => !targetsViewer(r) || isIncomingOnBehalf(r));
 
   // Outgoing on-behalf target name for the group label. Incoming rows return
   // null here — they carry the "Prepared by Arxys" marker instead.
@@ -167,6 +193,9 @@ export default async function PartnerSubmissionsPage({
         r.total_list_price_usd === null ? null : Number(r.total_list_price_usd),
       status: r.status as SubmissionStatus,
       isPreferred: Boolean(r.is_preferred),
+      // submissions_update_authorized: only the creator or an admin can
+      // change a row, so every other row's controls are locked.
+      canEdit: r.partner_id === viewerId || viewerIsAdmin,
       productGroup,
       familySlug,
     };
@@ -279,6 +308,7 @@ export default async function PartnerSubmissionsPage({
       groups={groups}
       activeStatus={activeStatus}
       openPipeline={openPipeline}
+      canReopen={isStaff(viewer)}
     />
   );
 }

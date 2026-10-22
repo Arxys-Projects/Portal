@@ -618,7 +618,10 @@ export async function submitCalculation(
         pdfFilename: pdfBuffer ? pdfFilename(pdfInput) : undefined,
         partnerEmail,
       });
-      await supabase
+      // ADR 0167: a server-written stamp, so service role: the submissions
+      // guard refuses it from a partner session. Scoped to the row this
+      // caller just inserted.
+      await admin
         .from("submissions")
         .update({ email_sent_at: new Date().toISOString() })
         .eq("id", inserted.id);
@@ -751,7 +754,10 @@ export async function submitCalculation(
       ));
     }
 
-    const { error: linkError } = await supabase
+    // ADR 0167: only the server links a deal, as service role, to the row
+    // this caller just inserted. A partner session can no longer write
+    // pipedrive_deal_id, so a revise can only inherit a deal the server set.
+    const { error: linkError } = await admin
       .from("submissions")
       .update({ pipedrive_deal_id: dealId })
       .eq("id", inserted.id);

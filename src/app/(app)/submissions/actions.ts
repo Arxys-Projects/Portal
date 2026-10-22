@@ -34,6 +34,8 @@ async function requireActiveSession() {
 }
 
 const NOT_YOURS = "Submission not found, or it is not yours to edit.";
+const STAFF_ONLY_REOPEN =
+  "This quote is marked Won or Lost. Only Arxys staff can change that. Contact your Arxys rep.";
 
 export async function updateSubmissionStatus(
   submissionId: string,
@@ -50,6 +52,9 @@ export async function updateSubmissionStatus(
     .update({ status: parsed.data })
     .eq("id", submissionId)
     .select("id");
+  // ADR 0167: the submissions guard keeps Won and Lost where they are unless
+  // the caller is Arxys staff, and refuses with 42501.
+  if (error?.code === "42501") return { ok: false, error: STAFF_ONLY_REOPEN };
   if (error) return { ok: false, error: dbError(error, "update submission status") };
   if (!data || data.length === 0) return { ok: false, error: NOT_YOURS };
 

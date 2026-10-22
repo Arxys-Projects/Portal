@@ -32,6 +32,9 @@ export type PipelineRow = {
   totalListPriceUsd: number | null;
   status: SubmissionStatus;
   isPreferred: boolean;
+  // False for rows the viewer can see but not change (prepared for them by
+  // Arxys, or another partner's row seen by staff).
+  canEdit: boolean;
   productGroup: string | null;
   familySlug: string | null;
 };
@@ -138,10 +141,13 @@ export function Pipeline({
   groups,
   activeStatus,
   openPipeline,
+  canReopen = false,
 }: {
   groups: PipelineGroup[];
   activeStatus: StatusFilter;
   openPipeline?: number;
+  // ADR 0167: only Arxys staff may move a quote out of Won or Lost.
+  canReopen?: boolean;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -168,6 +174,10 @@ export function Pipeline({
 
   // Shared between the desktop table cells and the <sm card layout.
   function renderStatusControl(row: PipelineRow) {
+    // Won and Lost are final for a partner (ADR 0167): the database refuses
+    // the change, so the control says so instead of offering it.
+    const closed = !canReopen && row.status !== "open";
+    const locked = !row.canEdit || closed;
     return (
       <div className="flex items-center gap-2">
         <span
@@ -178,13 +188,28 @@ export function Pipeline({
         <div className="w-36">
           <Select
             aria-label="Submission status"
-            disabled={isPending}
-            value={row.status}
-            onChange={(e) =>
-              perform(row.id, () =>
-                updateSubmissionStatus(row.id, e.target.value as SubmissionStatus),
-              )
+            disabled={isPending || locked}
+            title={
+              !row.canEdit
+                ? "Only the person who created this quote, or an admin, can change it."
+                : closed
+                  ? "Only Arxys staff can change a Won or Lost quote."
+                  : undefined
             }
+            value={row.status}
+            onChange={(e) => {
+              const next = e.target.value as SubmissionStatus;
+              if (
+                !canReopen &&
+                next !== "open" &&
+                !window.confirm(
+                  `Mark this quote ${STATUS_META[next].label}? After that, only Arxys staff can change it.`,
+                )
+              ) {
+                return;
+              }
+              perform(row.id, () => updateSubmissionStatus(row.id, next));
+            }}
             className="py-1.5 pr-8 text-xs"
           >
             {SUBMISSION_STATUSES.map((s) => (
@@ -194,6 +219,11 @@ export function Pipeline({
             ))}
           </Select>
         </div>
+        {locked && (
+          <span className="text-xs text-ink-soft">
+            {canReopen ? "Only its creator or an admin can change" : "Ask your Arxys rep to change"}
+          </span>
+        )}
       </div>
     );
   }
