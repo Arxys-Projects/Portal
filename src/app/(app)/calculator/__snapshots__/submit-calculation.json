@@ -1,0 +1,1925 @@
+{
+  "partner-full-calculator-fresh": {
+    "result": {
+      "status": "ok",
+      "submissionId": "aaaaaaaa-aaaa-4aaa-8aaa-000000000001",
+      "recommendation": {
+        "winner": {
+          "sku": "VX5-V800-864",
+          "productGroup": "V800",
+          "productName": "VideoX V800 864TB",
+          "units": 1,
+          "unitMsrp": 117054,
+          "totalCostUsd": 117054,
+          "coveredCameras": 600,
+          "coveredStorageTb": 840,
+          "driverDimension": "storage"
+        },
+        "alternatives": [
+          {
+            "sku": "VX5-V500-192",
+            "productGroup": "V500",
+            "productName": "VideoX V500 192TB",
+            "units": 3,
+            "unitMsrp": 52950,
+            "totalCostUsd": 158850,
+            "coveredCameras": 900,
+            "coveredStorageTb": 528,
+            "driverDimension": "storage"
+          },
+          {
+            "sku": "VX5-V400-128",
+            "productGroup": "V400",
+            "productName": "VideoX V400 128TB",
+            "units": 5,
+            "unitMsrp": 39950,
+            "totalCostUsd": 199750,
+            "coveredCameras": 1000,
+            "coveredStorageTb": 560,
+            "driverDimension": "storage"
+          },
+          {
+            "sku": "VX5-V200-64",
+            "productGroup": "V200",
+            "productName": "VideoX V200 64TB",
+            "units": 11,
+            "unitMsrp": 20470,
+            "totalCostUsd": 225170,
+            "coveredCameras": 1100,
+            "coveredStorageTb": 528,
+            "driverDimension": "storage"
+          }
+        ],
+        "warnings": [],
+        "totals": {
+          "cameras": 432,
+          "bandwidthMbps": 1901.3387430965201,
+          "recordedStorageGb": 364456.16497809696,
+          "storageGb": 480094.0082832394
+        },
+        "utilizationPct": 85
+      }
+    },
+    "requests": [
+      {
+        "service": "supabase",
+        "client": "anon",
+        "method": "GET",
+        "url": "/rest/v1/partners?select=status,is_internal,pipedrive_user_id&id=eq.11111111-1111-4111-8111-111111111111",
+        "body": null
+      },
+      {
+        "service": "supabase",
+        "client": "anon",
+        "method": "GET",
+        "url": "/rest/v1/current_products?select=sku,product_name,product_group,msrp,price_type&active=eq.true&price_type=eq.numeric&hidden_from_catalog=eq.false&order=sort_order.asc",
+        "body": null
+      },
+      {
+        "service": "supabase",
+        "client": "anon",
+        "method": "GET",
+        "url": "/rest/v1/product_specs?select=id,max_cameras,storage_raw_tb,hdd_count,raid_level_display",
+        "body": null
+      },
+      {
+        "service": "supabase",
+        "client": "anon",
+        "method": "POST",
+        "url": "/rest/v1/submissions?select=id",
+        "prefer": "return=representation",
+        "body": "{\"partner_id\":\"11111111-1111-4111-8111-111111111111\",\"input_state\":{\"version\":3,\"projectName\":\"Harbor Logistics Yard\",\"vms\":\"Milestone\",\"retentionDays\":14,\"utilizationPct\":85,\"groups\":[{\"name\":\"Perimeter\",\"cameras\":420,\"resolutionIdx\":14,\"codecIdx\":0,\"complexityIdx\":2,\"fps\":15,\"recordingMode\":\"motion\",\"recordingPercent\":100,\"motionPercent\":60,\"retentionDays\":30,\"cameraVendor\":\"Axis\",\"cameraModel\":\"P1468-LE\",\"units\":420,\"sensorsPerCamera\":1,\"cameraModelModified\":false},{\"name\":\"Gates\",\"cameras\":12,\"resolutionIdx\":10,\"codecIdx\":1,\"complexityIdx\":4,\"fps\":20,\"recordingMode\":\"constant\",\"recordingPercent\":50,\"motionPercent\":100,\"cameraVendor\":null,\"cameraModel\":null,\"units\":1,\"sensorsPerCamera\":1,\"cameraModelModified\":false,\"retentionDays\":14}],\"addOnFailoverRecorder\":true,\"addOnManagementServer\":false},\"calc_version\":3,\"max_disk_utilization_pct\":85,\"status\":\"open\",\"parent_submission_id\":null,\"on_behalf_of_partner_id\":null,\"on_behalf_of_company_name\":null,\"project_name\":\"Harbor Logistics Yard\",\"cameras_count\":432,\"resolution_code\":\"4MP (2560×1440)\",\"codec\":\"h265\",\"complexity\":\"med\",\"vms\":\"Milestone\",\"retention_days\":30,\"bandwidth_mbps\":1901.34,\"storage_tb\":480.09,\"recorded_storage_tb\":364.46,\"recommended_product_id\":\"VX5-V800-864\",\"recommended_units\":1,\"total_list_price_usd\":117054,\"groups_payload\":{\"retentionDays\":14,\"utilizationPct\":85,\"calcVersion\":3,\"groups\":[{\"name\":\"Perimeter\",\"cameras\":420,\"resolutionIdx\":14,\"resolutionLabel\":\"4MP (2560×1440)\",\"codec\":\"h265\",\"complexity\":\"med\",\"complexityLabel\":\"Medium detail, low motion\",\"fps\":15,\"retentionDays\":30,\"recordingMode\":\"motion\",\"recordingPercent\":100,\"motionPercent\":60,\"cameraVendor\":\"Axis\",\"cameraModel\":\"P1468-LE\",\"units\":420,\"sensorsPerCamera\":1,\"cameraModelModified\":false,\"computed\":{\"frameKb\":35.99853515625,\"bitrateMbps\":4.4235,\"bandwidthMbps\":1857.87,\"recordedStorageGb\":361169.928,\"storageGb\":475765.08526151476}},{\"name\":\"Gates\",\"cameras\":12,\"resolutionIdx\":10,\"resolutionLabel\":\"1.3MP (1280×1024)\",\"codec\":\"h265smart\",\"complexity\":\"high\",\"complexityLabel\":\"High detail, low motion\",\"fps\":20,\"retentionDays\":14,\"recordingMode\":\"constant\",\"recordingPercent\":50,\"motionPercent\":100,\"cameraVendor\":null,\"cameraModel\":null,\"units\":1,\"sensorsPerCamera\":1,\"cameraModelModified\":false,\"computed\":{\"frameKb\":22.754629629629626,\"bitrateMbps\":3.6223952580433583,\"bandwidthMbps\":43.4687430965203,\"recordedStorageGb\":3286.2369780969348,\"storageGb\":4328.92302172464}}]}}"
+      },
+      {
+        "service": "supabase",
+        "client": "service",
+        "method": "GET",
+        "url": "/rest/v1/partners?select=company_name,contact_name&id=eq.11111111-1111-4111-8111-111111111111",
+        "body": null
+      },
+      {
+        "service": "supabase",
+        "client": "anon",
+        "method": "GET",
+        "url": "/rest/v1/product_specs?select=id,model_name,form_factor,storage_raw_tb,max_cameras,max_bandwidth_mbps,drive_bays,cpu_model_full,ram_spec,os_edition,hdd_count,raid_level_display&id=eq.VX5-V800-864",
+        "body": null
+      },
+      {
+        "service": "supabase",
+        "client": "anon",
+        "method": "PATCH",
+        "url": "/rest/v1/submissions?id=eq.aaaaaaaa-aaaa-4aaa-8aaa-000000000001",
+        "body": "{\"email_sent_at\":\"2026-10-22T17:00:00.000Z\"}"
+      },
+      {
+        "service": "pipedrive",
+        "method": "GET",
+        "url": "/v1/pipelines?api_token=REDACTED",
+        "body": null
+      },
+      {
+        "service": "pipedrive",
+        "method": "GET",
+        "url": "/v1/users?api_token=REDACTED&term=Andy+Newbom",
+        "body": null
+      },
+      {
+        "service": "pipedrive",
+        "method": "GET",
+        "url": "/v1/dealFields?api_token=REDACTED",
+        "body": null
+      },
+      {
+        "service": "pipedrive",
+        "method": "GET",
+        "url": "/v1/stages?api_token=REDACTED&pipeline_id=1",
+        "body": null
+      },
+      {
+        "service": "pipedrive",
+        "method": "GET",
+        "url": "/v1/organizations/search?api_token=REDACTED&term=Acme+Security&fields=name&exact_match=true",
+        "body": null
+      },
+      {
+        "service": "pipedrive",
+        "method": "GET",
+        "url": "/v1/persons/search?api_token=REDACTED&term=pat.partner@acme-security.test&fields=email&exact_match=true",
+        "body": null
+      },
+      {
+        "service": "pipedrive",
+        "method": "POST",
+        "url": "/v1/persons?api_token=REDACTED",
+        "body": "{\"name\":\"Pat Partner\",\"email\":[{\"value\":\"pat.partner@acme-security.test\",\"primary\":true}],\"org_id\":500}"
+      },
+      {
+        "service": "pipedrive",
+        "method": "POST",
+        "url": "/v1/deals?api_token=REDACTED",
+        "body": "{\"value\":117054,\"key_arxys_submission_id\":\"aaaaaaaa-aaaa-4aaa-8aaa-000000000001\",\"key_arxys_total_cameras\":432,\"key_arxys_bandwidth_mbps\":1901.34,\"key_arxys_storage_gb\":480,\"key_arxys_recommended_models\":\"1 × V800\",\"key_arxys_portal_url\":\"https://portal-arxys.vercel.app/submissions/aaaaaaaa-aaaa-4aaa-8aaa-000000000001\",\"key_project_name\":\"Harbor Logistics Yard\",\"key_vms\":14,\"key_camera_streams\":432,\"key_recording_new\":\"Record Only On Motion\",\"key_motion_activity_est_\":\"60, 100\",\"key_frame_rate\":\"15, 20\",\"key_resolution\":\"1MP, 4MP\",\"key_retention_days\":\"30\",\"key_codec_new\":\"H.265\",\"key_total_storage\":\"480.09 TB\",\"key_complexity_scene_motion\":\"Medium, High\",\"key_recording_hours\":\"Record Only On Motion\",\"key_recommended_server\":\"1 × V800\",\"title\":\"Arxys Quote - Acme Security - Harbor Logistics Yard - 2026-10-22\",\"currency\":\"USD\",\"user_id\":99,\"person_id\":700,\"org_id\":500,\"pipeline_id\":1,\"stage_id\":11}"
+      },
+      {
+        "service": "pipedrive",
+        "method": "POST",
+        "url": "/v1/notes?api_token=REDACTED",
+        "body": "{\"deal_id\":9001,\"content\":\"Add-ons requested — Failover recorder: Yes · Management server: No\",\"pinned_to_deal_flag\":1}"
+      },
+      {
+        "service": "supabase",
+        "client": "anon",
+        "method": "PATCH",
+        "url": "/rest/v1/submissions?id=eq.aaaaaaaa-aaaa-4aaa-8aaa-000000000001",
+        "body": "{\"pipedrive_deal_id\":9001}"
+      }
+    ],
+    "pdfRenders": [
+      {
+        "generatedAt": "2026-10-22T17:00:00.000Z",
+        "submissionId": "aaaaaaaa-aaaa-4aaa-8aaa-000000000001",
+        "partner": {
+          "companyName": "Acme Security",
+          "contactName": "Pat Partner",
+          "email": "pat.partner@acme-security.test"
+        },
+        "projectName": "Harbor Logistics Yard",
+        "vms": "Milestone",
+        "retentionDays": 30,
+        "totals": {
+          "cameras": 432,
+          "bandwidthMbps": 1901.3387430965201,
+          "storageGb": 480094.0082832394
+        },
+        "storageTb": 480.09400828323936,
+        "bandwidthMbps": 1901.3387430965201,
+        "calcVersion": 3,
+        "recordedStorageTb": 364.456164978097,
+        "maxDiskUtilizationPct": 85,
+        "groups": [
+          {
+            "name": "Perimeter",
+            "cameras": 420,
+            "resolutionLabel": "4MP (2560×1440)",
+            "codec": "h265",
+            "complexityLabel": "Medium detail, low motion",
+            "recordingMode": "motion",
+            "fps": 15,
+            "retentionDays": 30,
+            "hoursPerDay": 24,
+            "motionPercent": 60,
+            "bandwidthMbps": 1857.87,
+            "storageGb": 475765.08526151476
+          },
+          {
+            "name": "Gates",
+            "cameras": 12,
+            "resolutionLabel": "1.3MP (1280×1024)",
+            "codec": "h265smart",
+            "complexityLabel": "High detail, low motion",
+            "recordingMode": "constant",
+            "fps": 20,
+            "retentionDays": 14,
+            "hoursPerDay": 12,
+            "motionPercent": 100,
+            "bandwidthMbps": 43.4687430965203,
+            "storageGb": 4328.92302172464
+          }
+        ],
+        "recommendation": {
+          "units": 1,
+          "modelCode": "V800",
+          "productDescription": "VideoX V800 864TB",
+          "coveredCameras": 600,
+          "coveredStorageTb": 840,
+          "warnings": []
+        },
+        "serverSpec": {
+          "sku": "VX5-V800-864",
+          "modelName": "VideoX V800",
+          "formFactor": "4U",
+          "maxCameras": 600,
+          "maxBandwidthMbps": 3000,
+          "driveBays": 36,
+          "cpuModelFull": "CPU D",
+          "ramSpec": "128GB",
+          "osEdition": "Win Server",
+          "warranty": "5yr NBD, Advanced Replacement",
+          "msrp": 117054,
+          "usablePerUnitTb": 840
+        },
+        "logoDataUri": "sha256:cefc2941bc813ba6 (8814 chars)",
+        "heroDataUri": "sha256:7aac67651f7112c2 (124362 chars)"
+      }
+    ],
+    "emails": [
+      {
+        "partner": {
+          "companyName": "Acme Security",
+          "contactName": "Pat Partner",
+          "email": "pat.partner@acme-security.test"
+        },
+        "projectName": "Harbor Logistics Yard",
+        "totals": {
+          "cameras": 432,
+          "bandwidthMbps": 1901.3387430965201,
+          "storageGb": 480094.0082832394,
+          "recordedStorageGb": 364456.16497809696,
+          "retentionLabel": "14–30 days"
+        },
+        "utilizationPct": 85,
+        "vms": "Milestone",
+        "recommendation": {
+          "winner": {
+            "sku": "VX5-V800-864",
+            "productGroup": "V800",
+            "productName": "VideoX V800 864TB",
+            "units": 1,
+            "unitMsrp": 117054,
+            "totalCostUsd": 117054,
+            "coveredCameras": 600,
+            "coveredStorageTb": 840,
+            "driverDimension": "storage"
+          },
+          "alternatives": [
+            {
+              "sku": "VX5-V500-192",
+              "productGroup": "V500",
+              "productName": "VideoX V500 192TB",
+              "units": 3,
+              "unitMsrp": 52950,
+              "totalCostUsd": 158850,
+              "coveredCameras": 900,
+              "coveredStorageTb": 528,
+              "driverDimension": "storage"
+            },
+            {
+              "sku": "VX5-V400-128",
+              "productGroup": "V400",
+              "productName": "VideoX V400 128TB",
+              "units": 5,
+              "unitMsrp": 39950,
+              "totalCostUsd": 199750,
+              "coveredCameras": 1000,
+              "coveredStorageTb": 560,
+              "driverDimension": "storage"
+            },
+            {
+              "sku": "VX5-V200-64",
+              "productGroup": "V200",
+              "productName": "VideoX V200 64TB",
+              "units": 11,
+              "unitMsrp": 20470,
+              "totalCostUsd": 225170,
+              "coveredCameras": 1100,
+              "coveredStorageTb": 528,
+              "driverDimension": "storage"
+            }
+          ],
+          "warnings": []
+        },
+        "submissionId": "aaaaaaaa-aaaa-4aaa-8aaa-000000000001",
+        "pdfBuffer": "PDF-STUB",
+        "pdfFilename": "Acme Security - Harbor Logistics Yard - 2026-10-22.pdf",
+        "partnerEmail": "pat.partner@acme-security.test"
+      }
+    ],
+    "logs": []
+  },
+  "partner-quick-calc-fresh": {
+    "result": {
+      "status": "ok",
+      "submissionId": "aaaaaaaa-aaaa-4aaa-8aaa-000000000001",
+      "recommendation": {
+        "winner": {
+          "sku": "VX5-V400-128",
+          "productGroup": "V400",
+          "productName": "VideoX V400 128TB",
+          "units": 1,
+          "unitMsrp": 39950,
+          "totalCostUsd": 39950,
+          "coveredCameras": 200,
+          "coveredStorageTb": 112,
+          "driverDimension": "storage"
+        },
+        "alternatives": [
+          {
+            "sku": "VX5-V200-64",
+            "productGroup": "V200",
+            "productName": "VideoX V200 64TB",
+            "units": 2,
+            "unitMsrp": 20470,
+            "totalCostUsd": 40940,
+            "coveredCameras": 200,
+            "coveredStorageTb": 96,
+            "driverDimension": "storage"
+          },
+          {
+            "sku": "VX5-V500-192",
+            "productGroup": "V500",
+            "productName": "VideoX V500 192TB",
+            "units": 1,
+            "unitMsrp": 52950,
+            "totalCostUsd": 52950,
+            "coveredCameras": 300,
+            "coveredStorageTb": 176,
+            "driverDimension": "storage"
+          },
+          {
+            "sku": "VX5-V800-864",
+            "productGroup": "V800",
+            "productName": "VideoX V800 864TB",
+            "units": 1,
+            "unitMsrp": 117054,
+            "totalCostUsd": 117054,
+            "coveredCameras": 600,
+            "coveredStorageTb": 840,
+            "driverDimension": "storage"
+          }
+        ],
+        "warnings": [],
+        "totals": {
+          "cameras": 40,
+          "bandwidthMbps": 176.94,
+          "recordedStorageGb": 42996.42,
+          "storageGb": 60178.61941551897
+        },
+        "utilizationPct": 80
+      }
+    },
+    "requests": [
+      {
+        "service": "supabase",
+        "client": "anon",
+        "method": "GET",
+        "url": "/rest/v1/partners?select=status,is_internal,pipedrive_user_id&id=eq.11111111-1111-4111-8111-111111111111",
+        "body": null
+      },
+      {
+        "service": "supabase",
+        "client": "anon",
+        "method": "GET",
+        "url": "/rest/v1/current_products?select=sku,product_name,product_group,msrp,price_type&active=eq.true&price_type=eq.numeric&hidden_from_catalog=eq.false&order=sort_order.asc",
+        "body": null
+      },
+      {
+        "service": "supabase",
+        "client": "anon",
+        "method": "GET",
+        "url": "/rest/v1/product_specs?select=id,max_cameras,storage_raw_tb,hdd_count,raid_level_display",
+        "body": null
+      },
+      {
+        "service": "supabase",
+        "client": "anon",
+        "method": "POST",
+        "url": "/rest/v1/submissions?select=id",
+        "prefer": "return=representation",
+        "body": "{\"partner_id\":\"11111111-1111-4111-8111-111111111111\",\"input_state\":{\"version\":3,\"projectName\":\"Quick Estimate Store 12\",\"vms\":null,\"retentionDays\":30,\"utilizationPct\":80,\"groups\":[{\"name\":\"Camera streams\",\"cameras\":40,\"resolutionIdx\":14,\"codecIdx\":0,\"complexityIdx\":2,\"fps\":15,\"recordingMode\":\"motion\",\"recordingPercent\":100,\"motionPercent\":75,\"cameraVendor\":null,\"cameraModel\":null,\"units\":1,\"sensorsPerCamera\":1,\"cameraModelModified\":false,\"retentionDays\":30}],\"addOnFailoverRecorder\":false,\"addOnManagementServer\":false},\"calc_version\":3,\"max_disk_utilization_pct\":80,\"status\":\"open\",\"parent_submission_id\":null,\"on_behalf_of_partner_id\":null,\"on_behalf_of_company_name\":null,\"project_name\":\"Quick Estimate Store 12\",\"cameras_count\":40,\"resolution_code\":\"4MP (2560×1440)\",\"codec\":\"h265\",\"complexity\":\"med\",\"vms\":null,\"retention_days\":30,\"bandwidth_mbps\":176.94,\"storage_tb\":60.18,\"recorded_storage_tb\":43,\"recommended_product_id\":\"VX5-V400-128\",\"recommended_units\":1,\"total_list_price_usd\":39950,\"groups_payload\":{\"retentionDays\":30,\"utilizationPct\":80,\"calcVersion\":3,\"groups\":[{\"name\":\"Camera streams\",\"cameras\":40,\"resolutionIdx\":14,\"resolutionLabel\":\"4MP (2560×1440)\",\"codec\":\"h265\",\"complexity\":\"med\",\"complexityLabel\":\"Medium detail, low motion\",\"fps\":15,\"retentionDays\":30,\"recordingMode\":\"motion\",\"recordingPercent\":100,\"motionPercent\":75,\"cameraVendor\":null,\"cameraModel\":null,\"units\":1,\"sensorsPerCamera\":1,\"cameraModelModified\":false,\"computed\":{\"frameKb\":35.99853515625,\"bitrateMbps\":4.4235,\"bandwidthMbps\":176.94,\"recordedStorageGb\":42996.42,\"storageGb\":60178.61941551897}}]}}"
+      },
+      {
+        "service": "supabase",
+        "client": "service",
+        "method": "GET",
+        "url": "/rest/v1/partners?select=company_name,contact_name&id=eq.11111111-1111-4111-8111-111111111111",
+        "body": null
+      },
+      {
+        "service": "supabase",
+        "client": "anon",
+        "method": "GET",
+        "url": "/rest/v1/product_specs?select=id,model_name,form_factor,storage_raw_tb,max_cameras,max_bandwidth_mbps,drive_bays,cpu_model_full,ram_spec,os_edition,hdd_count,raid_level_display&id=eq.VX5-V400-128",
+        "body": null
+      },
+      {
+        "service": "supabase",
+        "client": "anon",
+        "method": "PATCH",
+        "url": "/rest/v1/submissions?id=eq.aaaaaaaa-aaaa-4aaa-8aaa-000000000001",
+        "body": "{\"email_sent_at\":\"2026-10-22T17:00:00.000Z\"}"
+      },
+      {
+        "service": "pipedrive",
+        "method": "GET",
+        "url": "/v1/pipelines?api_token=REDACTED",
+        "body": null
+      },
+      {
+        "service": "pipedrive",
+        "method": "GET",
+        "url": "/v1/users?api_token=REDACTED&term=Andy+Newbom",
+        "body": null
+      },
+      {
+        "service": "pipedrive",
+        "method": "GET",
+        "url": "/v1/dealFields?api_token=REDACTED",
+        "body": null
+      },
+      {
+        "service": "pipedrive",
+        "method": "GET",
+        "url": "/v1/stages?api_token=REDACTED&pipeline_id=1",
+        "body": null
+      },
+      {
+        "service": "pipedrive",
+        "method": "GET",
+        "url": "/v1/organizations/search?api_token=REDACTED&term=Acme+Security&fields=name&exact_match=true",
+        "body": null
+      },
+      {
+        "service": "pipedrive",
+        "method": "GET",
+        "url": "/v1/persons/search?api_token=REDACTED&term=pat.partner@acme-security.test&fields=email&exact_match=true",
+        "body": null
+      },
+      {
+        "service": "pipedrive",
+        "method": "POST",
+        "url": "/v1/persons?api_token=REDACTED",
+        "body": "{\"name\":\"Pat Partner\",\"email\":[{\"value\":\"pat.partner@acme-security.test\",\"primary\":true}],\"org_id\":500}"
+      },
+      {
+        "service": "pipedrive",
+        "method": "POST",
+        "url": "/v1/deals?api_token=REDACTED",
+        "body": "{\"value\":39950,\"key_arxys_submission_id\":\"aaaaaaaa-aaaa-4aaa-8aaa-000000000001\",\"key_arxys_total_cameras\":40,\"key_arxys_bandwidth_mbps\":176.94,\"key_arxys_storage_gb\":60,\"key_arxys_recommended_models\":\"1 × V400\",\"key_arxys_portal_url\":\"https://portal-arxys.vercel.app/submissions/aaaaaaaa-aaaa-4aaa-8aaa-000000000001\",\"key_project_name\":\"Quick Estimate Store 12\",\"key_camera_streams\":40,\"key_recording_new\":\"24 Hour Continuous\",\"key_motion_activity_est_\":\"75\",\"key_frame_rate\":\"15\",\"key_resolution\":\"4MP\",\"key_retention_days\":\"30\",\"key_codec_new\":\"H.265\",\"key_total_storage\":\"60.18 TB\",\"key_complexity_scene_motion\":\"Medium\",\"key_recording_hours\":\"24 Hour Continuous\",\"key_recommended_server\":\"1 × V400\",\"title\":\"Arxys Quote - Acme Security - Quick Estimate Store 12 - 2026-10-22\",\"currency\":\"USD\",\"user_id\":99,\"person_id\":700,\"org_id\":500,\"pipeline_id\":1,\"stage_id\":11}"
+      },
+      {
+        "service": "supabase",
+        "client": "anon",
+        "method": "PATCH",
+        "url": "/rest/v1/submissions?id=eq.aaaaaaaa-aaaa-4aaa-8aaa-000000000001",
+        "body": "{\"pipedrive_deal_id\":9001}"
+      }
+    ],
+    "pdfRenders": [
+      {
+        "generatedAt": "2026-10-22T17:00:00.000Z",
+        "submissionId": "aaaaaaaa-aaaa-4aaa-8aaa-000000000001",
+        "partner": {
+          "companyName": "Acme Security",
+          "contactName": "Pat Partner",
+          "email": "pat.partner@acme-security.test"
+        },
+        "projectName": "Quick Estimate Store 12",
+        "vms": null,
+        "retentionDays": 30,
+        "totals": {
+          "cameras": 40,
+          "bandwidthMbps": 176.94,
+          "storageGb": 60178.61941551897
+        },
+        "storageTb": 60.17861941551897,
+        "bandwidthMbps": 176.94,
+        "calcVersion": 3,
+        "recordedStorageTb": 42.99642,
+        "maxDiskUtilizationPct": 80,
+        "groups": [
+          {
+            "name": "Camera streams",
+            "cameras": 40,
+            "resolutionLabel": "4MP (2560×1440)",
+            "codec": "h265",
+            "complexityLabel": "Medium detail, low motion",
+            "recordingMode": "motion",
+            "fps": 15,
+            "retentionDays": 30,
+            "hoursPerDay": 24,
+            "motionPercent": 75,
+            "bandwidthMbps": 176.94,
+            "storageGb": 60178.61941551897
+          }
+        ],
+        "recommendation": {
+          "units": 1,
+          "modelCode": "V400",
+          "productDescription": "VideoX V400 128TB",
+          "coveredCameras": 200,
+          "coveredStorageTb": 112,
+          "warnings": []
+        },
+        "serverSpec": {
+          "sku": "VX5-V400-128",
+          "modelName": "VideoX V400",
+          "formFactor": "2U",
+          "maxCameras": 200,
+          "maxBandwidthMbps": 800,
+          "driveBays": 8,
+          "cpuModelFull": "CPU B",
+          "ramSpec": "64GB",
+          "osEdition": "Win Server",
+          "warranty": "5yr NBD, Advanced Replacement",
+          "msrp": 39950,
+          "usablePerUnitTb": 112
+        },
+        "logoDataUri": "sha256:cefc2941bc813ba6 (8814 chars)",
+        "heroDataUri": "sha256:bc387537423ab1a5 (200982 chars)"
+      }
+    ],
+    "emails": [
+      {
+        "partner": {
+          "companyName": "Acme Security",
+          "contactName": "Pat Partner",
+          "email": "pat.partner@acme-security.test"
+        },
+        "projectName": "Quick Estimate Store 12",
+        "totals": {
+          "cameras": 40,
+          "bandwidthMbps": 176.94,
+          "storageGb": 60178.61941551897,
+          "recordedStorageGb": 42996.42,
+          "retentionLabel": "30 days"
+        },
+        "utilizationPct": 80,
+        "vms": null,
+        "recommendation": {
+          "winner": {
+            "sku": "VX5-V400-128",
+            "productGroup": "V400",
+            "productName": "VideoX V400 128TB",
+            "units": 1,
+            "unitMsrp": 39950,
+            "totalCostUsd": 39950,
+            "coveredCameras": 200,
+            "coveredStorageTb": 112,
+            "driverDimension": "storage"
+          },
+          "alternatives": [
+            {
+              "sku": "VX5-V200-64",
+              "productGroup": "V200",
+              "productName": "VideoX V200 64TB",
+              "units": 2,
+              "unitMsrp": 20470,
+              "totalCostUsd": 40940,
+              "coveredCameras": 200,
+              "coveredStorageTb": 96,
+              "driverDimension": "storage"
+            },
+            {
+              "sku": "VX5-V500-192",
+              "productGroup": "V500",
+              "productName": "VideoX V500 192TB",
+              "units": 1,
+              "unitMsrp": 52950,
+              "totalCostUsd": 52950,
+              "coveredCameras": 300,
+              "coveredStorageTb": 176,
+              "driverDimension": "storage"
+            },
+            {
+              "sku": "VX5-V800-864",
+              "productGroup": "V800",
+              "productName": "VideoX V800 864TB",
+              "units": 1,
+              "unitMsrp": 117054,
+              "totalCostUsd": 117054,
+              "coveredCameras": 600,
+              "coveredStorageTb": 840,
+              "driverDimension": "storage"
+            }
+          ],
+          "warnings": []
+        },
+        "submissionId": "aaaaaaaa-aaaa-4aaa-8aaa-000000000001",
+        "pdfBuffer": "PDF-STUB",
+        "pdfFilename": "Acme Security - Quick Estimate Store 12 - 2026-10-22.pdf",
+        "partnerEmail": "pat.partner@acme-security.test"
+      }
+    ],
+    "logs": []
+  },
+  "partner-sends-project-fields": {
+    "result": {
+      "status": "ok",
+      "submissionId": "aaaaaaaa-aaaa-4aaa-8aaa-000000000001",
+      "recommendation": {
+        "winner": {
+          "sku": "VX5-V800-864",
+          "productGroup": "V800",
+          "productName": "VideoX V800 864TB",
+          "units": 1,
+          "unitMsrp": 117054,
+          "totalCostUsd": 117054,
+          "coveredCameras": 600,
+          "coveredStorageTb": 840,
+          "driverDimension": "storage"
+        },
+        "alternatives": [
+          {
+            "sku": "VX5-V500-192",
+            "productGroup": "V500",
+            "productName": "VideoX V500 192TB",
+            "units": 3,
+            "unitMsrp": 52950,
+            "totalCostUsd": 158850,
+            "coveredCameras": 900,
+            "coveredStorageTb": 528,
+            "driverDimension": "storage"
+          },
+          {
+            "sku": "VX5-V400-128",
+            "productGroup": "V400",
+            "productName": "VideoX V400 128TB",
+            "units": 5,
+            "unitMsrp": 39950,
+            "totalCostUsd": 199750,
+            "coveredCameras": 1000,
+            "coveredStorageTb": 560,
+            "driverDimension": "storage"
+          },
+          {
+            "sku": "VX5-V200-64",
+            "productGroup": "V200",
+            "productName": "VideoX V200 64TB",
+            "units": 11,
+            "unitMsrp": 20470,
+            "totalCostUsd": 225170,
+            "coveredCameras": 1100,
+            "coveredStorageTb": 528,
+            "driverDimension": "storage"
+          }
+        ],
+        "warnings": [],
+        "totals": {
+          "cameras": 432,
+          "bandwidthMbps": 1901.3387430965201,
+          "recordedStorageGb": 364456.16497809696,
+          "storageGb": 480094.0082832394
+        },
+        "utilizationPct": 85
+      }
+    },
+    "requests": [
+      {
+        "service": "supabase",
+        "client": "anon",
+        "method": "GET",
+        "url": "/rest/v1/partners?select=status,is_internal,pipedrive_user_id&id=eq.11111111-1111-4111-8111-111111111111",
+        "body": null
+      },
+      {
+        "service": "supabase",
+        "client": "anon",
+        "method": "GET",
+        "url": "/rest/v1/current_products?select=sku,product_name,product_group,msrp,price_type&active=eq.true&price_type=eq.numeric&hidden_from_catalog=eq.false&order=sort_order.asc",
+        "body": null
+      },
+      {
+        "service": "supabase",
+        "client": "anon",
+        "method": "GET",
+        "url": "/rest/v1/product_specs?select=id,max_cameras,storage_raw_tb,hdd_count,raid_level_display",
+        "body": null
+      },
+      {
+        "service": "supabase",
+        "client": "anon",
+        "method": "POST",
+        "url": "/rest/v1/submissions?select=id",
+        "prefer": "return=representation",
+        "body": "{\"partner_id\":\"11111111-1111-4111-8111-111111111111\",\"input_state\":{\"version\":3,\"projectName\":\"Harbor Logistics Yard\",\"vms\":\"Milestone\",\"retentionDays\":14,\"utilizationPct\":85,\"groups\":[{\"name\":\"Perimeter\",\"cameras\":420,\"resolutionIdx\":14,\"codecIdx\":0,\"complexityIdx\":2,\"fps\":15,\"recordingMode\":\"motion\",\"recordingPercent\":100,\"motionPercent\":60,\"retentionDays\":30,\"cameraVendor\":\"Axis\",\"cameraModel\":\"P1468-LE\",\"units\":420,\"sensorsPerCamera\":1,\"cameraModelModified\":false},{\"name\":\"Gates\",\"cameras\":12,\"resolutionIdx\":10,\"codecIdx\":1,\"complexityIdx\":4,\"fps\":20,\"recordingMode\":\"constant\",\"recordingPercent\":50,\"motionPercent\":100,\"cameraVendor\":null,\"cameraModel\":null,\"units\":1,\"sensorsPerCamera\":1,\"cameraModelModified\":false,\"retentionDays\":14}],\"addOnFailoverRecorder\":true,\"addOnManagementServer\":false},\"calc_version\":3,\"max_disk_utilization_pct\":85,\"status\":\"open\",\"parent_submission_id\":null,\"on_behalf_of_partner_id\":null,\"on_behalf_of_company_name\":null,\"project_name\":\"Harbor Logistics Yard\",\"cameras_count\":432,\"resolution_code\":\"4MP (2560×1440)\",\"codec\":\"h265\",\"complexity\":\"med\",\"vms\":\"Milestone\",\"retention_days\":30,\"bandwidth_mbps\":1901.34,\"storage_tb\":480.09,\"recorded_storage_tb\":364.46,\"recommended_product_id\":\"VX5-V800-864\",\"recommended_units\":1,\"total_list_price_usd\":117054,\"groups_payload\":{\"retentionDays\":14,\"utilizationPct\":85,\"calcVersion\":3,\"groups\":[{\"name\":\"Perimeter\",\"cameras\":420,\"resolutionIdx\":14,\"resolutionLabel\":\"4MP (2560×1440)\",\"codec\":\"h265\",\"complexity\":\"med\",\"complexityLabel\":\"Medium detail, low motion\",\"fps\":15,\"retentionDays\":30,\"recordingMode\":\"motion\",\"recordingPercent\":100,\"motionPercent\":60,\"cameraVendor\":\"Axis\",\"cameraModel\":\"P1468-LE\",\"units\":420,\"sensorsPerCamera\":1,\"cameraModelModified\":false,\"computed\":{\"frameKb\":35.99853515625,\"bitrateMbps\":4.4235,\"bandwidthMbps\":1857.87,\"recordedStorageGb\":361169.928,\"storageGb\":475765.08526151476}},{\"name\":\"Gates\",\"cameras\":12,\"resolutionIdx\":10,\"resolutionLabel\":\"1.3MP (1280×1024)\",\"codec\":\"h265smart\",\"complexity\":\"high\",\"complexityLabel\":\"High detail, low motion\",\"fps\":20,\"retentionDays\":14,\"recordingMode\":\"constant\",\"recordingPercent\":50,\"motionPercent\":100,\"cameraVendor\":null,\"cameraModel\":null,\"units\":1,\"sensorsPerCamera\":1,\"cameraModelModified\":false,\"computed\":{\"frameKb\":22.754629629629626,\"bitrateMbps\":3.6223952580433583,\"bandwidthMbps\":43.4687430965203,\"recordedStorageGb\":3286.2369780969348,\"storageGb\":4328.92302172464}}]}}"
+      },
+      {
+        "service": "supabase",
+        "client": "service",
+        "method": "GET",
+        "url": "/rest/v1/partners?select=company_name,contact_name&id=eq.11111111-1111-4111-8111-111111111111",
+        "body": null
+      },
+      {
+        "service": "supabase",
+        "client": "anon",
+        "method": "GET",
+        "url": "/rest/v1/product_specs?select=id,model_name,form_factor,storage_raw_tb,max_cameras,max_bandwidth_mbps,drive_bays,cpu_model_full,ram_spec,os_edition,hdd_count,raid_level_display&id=eq.VX5-V800-864",
+        "body": null
+      },
+      {
+        "service": "supabase",
+        "client": "anon",
+        "method": "PATCH",
+        "url": "/rest/v1/submissions?id=eq.aaaaaaaa-aaaa-4aaa-8aaa-000000000001",
+        "body": "{\"email_sent_at\":\"2026-10-22T17:00:00.000Z\"}"
+      },
+      {
+        "service": "pipedrive",
+        "method": "GET",
+        "url": "/v1/pipelines?api_token=REDACTED",
+        "body": null
+      },
+      {
+        "service": "pipedrive",
+        "method": "GET",
+        "url": "/v1/users?api_token=REDACTED&term=Andy+Newbom",
+        "body": null
+      },
+      {
+        "service": "pipedrive",
+        "method": "GET",
+        "url": "/v1/dealFields?api_token=REDACTED",
+        "body": null
+      },
+      {
+        "service": "pipedrive",
+        "method": "GET",
+        "url": "/v1/stages?api_token=REDACTED&pipeline_id=1",
+        "body": null
+      },
+      {
+        "service": "pipedrive",
+        "method": "GET",
+        "url": "/v1/organizations/search?api_token=REDACTED&term=Acme+Security&fields=name&exact_match=true",
+        "body": null
+      },
+      {
+        "service": "pipedrive",
+        "method": "GET",
+        "url": "/v1/persons/search?api_token=REDACTED&term=pat.partner@acme-security.test&fields=email&exact_match=true",
+        "body": null
+      },
+      {
+        "service": "pipedrive",
+        "method": "POST",
+        "url": "/v1/persons?api_token=REDACTED",
+        "body": "{\"name\":\"Pat Partner\",\"email\":[{\"value\":\"pat.partner@acme-security.test\",\"primary\":true}],\"org_id\":500}"
+      },
+      {
+        "service": "pipedrive",
+        "method": "POST",
+        "url": "/v1/deals?api_token=REDACTED",
+        "body": "{\"value\":117054,\"key_arxys_submission_id\":\"aaaaaaaa-aaaa-4aaa-8aaa-000000000001\",\"key_arxys_total_cameras\":432,\"key_arxys_bandwidth_mbps\":1901.34,\"key_arxys_storage_gb\":480,\"key_arxys_recommended_models\":\"1 × V800\",\"key_arxys_portal_url\":\"https://portal-arxys.vercel.app/submissions/aaaaaaaa-aaaa-4aaa-8aaa-000000000001\",\"key_project_name\":\"Harbor Logistics Yard\",\"key_vms\":14,\"key_camera_streams\":432,\"key_recording_new\":\"Record Only On Motion\",\"key_motion_activity_est_\":\"60, 100\",\"key_frame_rate\":\"15, 20\",\"key_resolution\":\"1MP, 4MP\",\"key_retention_days\":\"30\",\"key_codec_new\":\"H.265\",\"key_total_storage\":\"480.09 TB\",\"key_complexity_scene_motion\":\"Medium, High\",\"key_recording_hours\":\"Record Only On Motion\",\"key_recommended_server\":\"1 × V800\",\"title\":\"Arxys Quote - Acme Security - Harbor Logistics Yard - 2026-10-22\",\"currency\":\"USD\",\"user_id\":99,\"person_id\":700,\"org_id\":500,\"pipeline_id\":1,\"stage_id\":11}"
+      },
+      {
+        "service": "pipedrive",
+        "method": "POST",
+        "url": "/v1/notes?api_token=REDACTED",
+        "body": "{\"deal_id\":9001,\"content\":\"Add-ons requested — Failover recorder: Yes · Management server: No\",\"pinned_to_deal_flag\":1}"
+      },
+      {
+        "service": "supabase",
+        "client": "anon",
+        "method": "PATCH",
+        "url": "/rest/v1/submissions?id=eq.aaaaaaaa-aaaa-4aaa-8aaa-000000000001",
+        "body": "{\"pipedrive_deal_id\":9001}"
+      }
+    ],
+    "pdfRenders": [
+      {
+        "generatedAt": "2026-10-22T17:00:00.000Z",
+        "submissionId": "aaaaaaaa-aaaa-4aaa-8aaa-000000000001",
+        "partner": {
+          "companyName": "Acme Security",
+          "contactName": "Pat Partner",
+          "email": "pat.partner@acme-security.test"
+        },
+        "projectName": "Harbor Logistics Yard",
+        "vms": "Milestone",
+        "retentionDays": 30,
+        "totals": {
+          "cameras": 432,
+          "bandwidthMbps": 1901.3387430965201,
+          "storageGb": 480094.0082832394
+        },
+        "storageTb": 480.09400828323936,
+        "bandwidthMbps": 1901.3387430965201,
+        "calcVersion": 3,
+        "recordedStorageTb": 364.456164978097,
+        "maxDiskUtilizationPct": 85,
+        "groups": [
+          {
+            "name": "Perimeter",
+            "cameras": 420,
+            "resolutionLabel": "4MP (2560×1440)",
+            "codec": "h265",
+            "complexityLabel": "Medium detail, low motion",
+            "recordingMode": "motion",
+            "fps": 15,
+            "retentionDays": 30,
+            "hoursPerDay": 24,
+            "motionPercent": 60,
+            "bandwidthMbps": 1857.87,
+            "storageGb": 475765.08526151476
+          },
+          {
+            "name": "Gates",
+            "cameras": 12,
+            "resolutionLabel": "1.3MP (1280×1024)",
+            "codec": "h265smart",
+            "complexityLabel": "High detail, low motion",
+            "recordingMode": "constant",
+            "fps": 20,
+            "retentionDays": 14,
+            "hoursPerDay": 12,
+            "motionPercent": 100,
+            "bandwidthMbps": 43.4687430965203,
+            "storageGb": 4328.92302172464
+          }
+        ],
+        "recommendation": {
+          "units": 1,
+          "modelCode": "V800",
+          "productDescription": "VideoX V800 864TB",
+          "coveredCameras": 600,
+          "coveredStorageTb": 840,
+          "warnings": []
+        },
+        "serverSpec": {
+          "sku": "VX5-V800-864",
+          "modelName": "VideoX V800",
+          "formFactor": "4U",
+          "maxCameras": 600,
+          "maxBandwidthMbps": 3000,
+          "driveBays": 36,
+          "cpuModelFull": "CPU D",
+          "ramSpec": "128GB",
+          "osEdition": "Win Server",
+          "warranty": "5yr NBD, Advanced Replacement",
+          "msrp": 117054,
+          "usablePerUnitTb": 840
+        },
+        "logoDataUri": "sha256:cefc2941bc813ba6 (8814 chars)",
+        "heroDataUri": "sha256:7aac67651f7112c2 (124362 chars)"
+      }
+    ],
+    "emails": [
+      {
+        "partner": {
+          "companyName": "Acme Security",
+          "contactName": "Pat Partner",
+          "email": "pat.partner@acme-security.test"
+        },
+        "projectName": "Harbor Logistics Yard",
+        "totals": {
+          "cameras": 432,
+          "bandwidthMbps": 1901.3387430965201,
+          "storageGb": 480094.0082832394,
+          "recordedStorageGb": 364456.16497809696,
+          "retentionLabel": "14–30 days"
+        },
+        "utilizationPct": 85,
+        "vms": "Milestone",
+        "recommendation": {
+          "winner": {
+            "sku": "VX5-V800-864",
+            "productGroup": "V800",
+            "productName": "VideoX V800 864TB",
+            "units": 1,
+            "unitMsrp": 117054,
+            "totalCostUsd": 117054,
+            "coveredCameras": 600,
+            "coveredStorageTb": 840,
+            "driverDimension": "storage"
+          },
+          "alternatives": [
+            {
+              "sku": "VX5-V500-192",
+              "productGroup": "V500",
+              "productName": "VideoX V500 192TB",
+              "units": 3,
+              "unitMsrp": 52950,
+              "totalCostUsd": 158850,
+              "coveredCameras": 900,
+              "coveredStorageTb": 528,
+              "driverDimension": "storage"
+            },
+            {
+              "sku": "VX5-V400-128",
+              "productGroup": "V400",
+              "productName": "VideoX V400 128TB",
+              "units": 5,
+              "unitMsrp": 39950,
+              "totalCostUsd": 199750,
+              "coveredCameras": 1000,
+              "coveredStorageTb": 560,
+              "driverDimension": "storage"
+            },
+            {
+              "sku": "VX5-V200-64",
+              "productGroup": "V200",
+              "productName": "VideoX V200 64TB",
+              "units": 11,
+              "unitMsrp": 20470,
+              "totalCostUsd": 225170,
+              "coveredCameras": 1100,
+              "coveredStorageTb": 528,
+              "driverDimension": "storage"
+            }
+          ],
+          "warnings": []
+        },
+        "submissionId": "aaaaaaaa-aaaa-4aaa-8aaa-000000000001",
+        "pdfBuffer": "PDF-STUB",
+        "pdfFilename": "Acme Security - Harbor Logistics Yard - 2026-10-22.pdf",
+        "partnerEmail": "pat.partner@acme-security.test"
+      }
+    ],
+    "logs": []
+  },
+  "partner-revision-source-with-deal": {
+    "result": {
+      "status": "ok",
+      "submissionId": "aaaaaaaa-aaaa-4aaa-8aaa-000000000001",
+      "recommendation": {
+        "winner": {
+          "sku": "VX5-V800-864",
+          "productGroup": "V800",
+          "productName": "VideoX V800 864TB",
+          "units": 1,
+          "unitMsrp": 117054,
+          "totalCostUsd": 117054,
+          "coveredCameras": 600,
+          "coveredStorageTb": 840,
+          "driverDimension": "storage"
+        },
+        "alternatives": [
+          {
+            "sku": "VX5-V500-192",
+            "productGroup": "V500",
+            "productName": "VideoX V500 192TB",
+            "units": 3,
+            "unitMsrp": 52950,
+            "totalCostUsd": 158850,
+            "coveredCameras": 900,
+            "coveredStorageTb": 528,
+            "driverDimension": "storage"
+          },
+          {
+            "sku": "VX5-V400-128",
+            "productGroup": "V400",
+            "productName": "VideoX V400 128TB",
+            "units": 5,
+            "unitMsrp": 39950,
+            "totalCostUsd": 199750,
+            "coveredCameras": 1000,
+            "coveredStorageTb": 560,
+            "driverDimension": "storage"
+          },
+          {
+            "sku": "VX5-V200-64",
+            "productGroup": "V200",
+            "productName": "VideoX V200 64TB",
+            "units": 11,
+            "unitMsrp": 20470,
+            "totalCostUsd": 225170,
+            "coveredCameras": 1100,
+            "coveredStorageTb": 528,
+            "driverDimension": "storage"
+          }
+        ],
+        "warnings": [],
+        "totals": {
+          "cameras": 432,
+          "bandwidthMbps": 1901.3387430965201,
+          "recordedStorageGb": 364456.16497809696,
+          "storageGb": 480094.0082832394
+        },
+        "utilizationPct": 85
+      }
+    },
+    "requests": [
+      {
+        "service": "supabase",
+        "client": "anon",
+        "method": "GET",
+        "url": "/rest/v1/partners?select=status,is_internal,pipedrive_user_id&id=eq.11111111-1111-4111-8111-111111111111",
+        "body": null
+      },
+      {
+        "service": "supabase",
+        "client": "anon",
+        "method": "GET",
+        "url": "/rest/v1/submissions?select=id,pipedrive_deal_id&id=eq.44444444-4444-4444-8444-444444444444",
+        "body": null
+      },
+      {
+        "service": "supabase",
+        "client": "anon",
+        "method": "GET",
+        "url": "/rest/v1/current_products?select=sku,product_name,product_group,msrp,price_type&active=eq.true&price_type=eq.numeric&hidden_from_catalog=eq.false&order=sort_order.asc",
+        "body": null
+      },
+      {
+        "service": "supabase",
+        "client": "anon",
+        "method": "GET",
+        "url": "/rest/v1/product_specs?select=id,max_cameras,storage_raw_tb,hdd_count,raid_level_display",
+        "body": null
+      },
+      {
+        "service": "supabase",
+        "client": "anon",
+        "method": "POST",
+        "url": "/rest/v1/submissions?select=id",
+        "prefer": "return=representation",
+        "body": "{\"partner_id\":\"11111111-1111-4111-8111-111111111111\",\"input_state\":{\"version\":3,\"projectName\":\"Harbor Logistics Yard\",\"vms\":\"Milestone\",\"retentionDays\":14,\"utilizationPct\":85,\"groups\":[{\"name\":\"Perimeter\",\"cameras\":420,\"resolutionIdx\":14,\"codecIdx\":0,\"complexityIdx\":2,\"fps\":15,\"recordingMode\":\"motion\",\"recordingPercent\":100,\"motionPercent\":60,\"retentionDays\":30,\"cameraVendor\":\"Axis\",\"cameraModel\":\"P1468-LE\",\"units\":420,\"sensorsPerCamera\":1,\"cameraModelModified\":false},{\"name\":\"Gates\",\"cameras\":12,\"resolutionIdx\":10,\"codecIdx\":1,\"complexityIdx\":4,\"fps\":20,\"recordingMode\":\"constant\",\"recordingPercent\":50,\"motionPercent\":100,\"cameraVendor\":null,\"cameraModel\":null,\"units\":1,\"sensorsPerCamera\":1,\"cameraModelModified\":false,\"retentionDays\":14}],\"addOnFailoverRecorder\":true,\"addOnManagementServer\":false},\"calc_version\":3,\"max_disk_utilization_pct\":85,\"status\":\"open\",\"parent_submission_id\":\"44444444-4444-4444-8444-444444444444\",\"on_behalf_of_partner_id\":null,\"on_behalf_of_company_name\":null,\"project_name\":\"Harbor Logistics Yard\",\"cameras_count\":432,\"resolution_code\":\"4MP (2560×1440)\",\"codec\":\"h265\",\"complexity\":\"med\",\"vms\":\"Milestone\",\"retention_days\":30,\"bandwidth_mbps\":1901.34,\"storage_tb\":480.09,\"recorded_storage_tb\":364.46,\"recommended_product_id\":\"VX5-V800-864\",\"recommended_units\":1,\"total_list_price_usd\":117054,\"groups_payload\":{\"retentionDays\":14,\"utilizationPct\":85,\"calcVersion\":3,\"groups\":[{\"name\":\"Perimeter\",\"cameras\":420,\"resolutionIdx\":14,\"resolutionLabel\":\"4MP (2560×1440)\",\"codec\":\"h265\",\"complexity\":\"med\",\"complexityLabel\":\"Medium detail, low motion\",\"fps\":15,\"retentionDays\":30,\"recordingMode\":\"motion\",\"recordingPercent\":100,\"motionPercent\":60,\"cameraVendor\":\"Axis\",\"cameraModel\":\"P1468-LE\",\"units\":420,\"sensorsPerCamera\":1,\"cameraModelModified\":false,\"computed\":{\"frameKb\":35.99853515625,\"bitrateMbps\":4.4235,\"bandwidthMbps\":1857.87,\"recordedStorageGb\":361169.928,\"storageGb\":475765.08526151476}},{\"name\":\"Gates\",\"cameras\":12,\"resolutionIdx\":10,\"resolutionLabel\":\"1.3MP (1280×1024)\",\"codec\":\"h265smart\",\"complexity\":\"high\",\"complexityLabel\":\"High detail, low motion\",\"fps\":20,\"retentionDays\":14,\"recordingMode\":\"constant\",\"recordingPercent\":50,\"motionPercent\":100,\"cameraVendor\":null,\"cameraModel\":null,\"units\":1,\"sensorsPerCamera\":1,\"cameraModelModified\":false,\"computed\":{\"frameKb\":22.754629629629626,\"bitrateMbps\":3.6223952580433583,\"bandwidthMbps\":43.4687430965203,\"recordedStorageGb\":3286.2369780969348,\"storageGb\":4328.92302172464}}]}}"
+      },
+      {
+        "service": "supabase",
+        "client": "service",
+        "method": "GET",
+        "url": "/rest/v1/partners?select=company_name,contact_name&id=eq.11111111-1111-4111-8111-111111111111",
+        "body": null
+      },
+      {
+        "service": "supabase",
+        "client": "anon",
+        "method": "GET",
+        "url": "/rest/v1/product_specs?select=id,model_name,form_factor,storage_raw_tb,max_cameras,max_bandwidth_mbps,drive_bays,cpu_model_full,ram_spec,os_edition,hdd_count,raid_level_display&id=eq.VX5-V800-864",
+        "body": null
+      },
+      {
+        "service": "pipedrive",
+        "method": "GET",
+        "url": "/v1/dealFields?api_token=REDACTED",
+        "body": null
+      },
+      {
+        "service": "pipedrive",
+        "method": "PUT",
+        "url": "/v1/deals/8001?api_token=REDACTED",
+        "body": "{\"value\":117054,\"key_arxys_submission_id\":\"aaaaaaaa-aaaa-4aaa-8aaa-000000000001\",\"key_arxys_total_cameras\":432,\"key_arxys_bandwidth_mbps\":1901.34,\"key_arxys_storage_gb\":480,\"key_arxys_recommended_models\":\"1 × V800\",\"key_arxys_portal_url\":\"https://portal-arxys.vercel.app/submissions/aaaaaaaa-aaaa-4aaa-8aaa-000000000001\",\"key_project_name\":\"Harbor Logistics Yard\",\"key_vms\":14,\"key_camera_streams\":432,\"key_recording_new\":\"Record Only On Motion\",\"key_motion_activity_est_\":\"60, 100\",\"key_frame_rate\":\"15, 20\",\"key_resolution\":\"1MP, 4MP\",\"key_retention_days\":\"30\",\"key_codec_new\":\"H.265\",\"key_total_storage\":\"480.09 TB\",\"key_complexity_scene_motion\":\"Medium, High\",\"key_recording_hours\":\"Record Only On Motion\",\"key_recommended_server\":\"1 × V800\"}"
+      },
+      {
+        "service": "pipedrive",
+        "method": "POST",
+        "url": "/v1/notes?api_token=REDACTED",
+        "body": "{\"deal_id\":8001,\"content\":\"Revised from portal on 2026-10-22. Add-ons — Failover recorder: Yes · Management server: No\",\"pinned_to_deal_flag\":1}"
+      },
+      {
+        "service": "supabase",
+        "client": "anon",
+        "method": "PATCH",
+        "url": "/rest/v1/submissions?id=eq.aaaaaaaa-aaaa-4aaa-8aaa-000000000001",
+        "body": "{\"pipedrive_deal_id\":8001}"
+      }
+    ],
+    "pdfRenders": [],
+    "emails": [],
+    "logs": []
+  },
+  "partner-revision-source-without-deal": {
+    "result": {
+      "status": "ok",
+      "submissionId": "aaaaaaaa-aaaa-4aaa-8aaa-000000000001",
+      "recommendation": {
+        "winner": {
+          "sku": "VX5-V800-864",
+          "productGroup": "V800",
+          "productName": "VideoX V800 864TB",
+          "units": 1,
+          "unitMsrp": 117054,
+          "totalCostUsd": 117054,
+          "coveredCameras": 600,
+          "coveredStorageTb": 840,
+          "driverDimension": "storage"
+        },
+        "alternatives": [
+          {
+            "sku": "VX5-V500-192",
+            "productGroup": "V500",
+            "productName": "VideoX V500 192TB",
+            "units": 3,
+            "unitMsrp": 52950,
+            "totalCostUsd": 158850,
+            "coveredCameras": 900,
+            "coveredStorageTb": 528,
+            "driverDimension": "storage"
+          },
+          {
+            "sku": "VX5-V400-128",
+            "productGroup": "V400",
+            "productName": "VideoX V400 128TB",
+            "units": 5,
+            "unitMsrp": 39950,
+            "totalCostUsd": 199750,
+            "coveredCameras": 1000,
+            "coveredStorageTb": 560,
+            "driverDimension": "storage"
+          },
+          {
+            "sku": "VX5-V200-64",
+            "productGroup": "V200",
+            "productName": "VideoX V200 64TB",
+            "units": 11,
+            "unitMsrp": 20470,
+            "totalCostUsd": 225170,
+            "coveredCameras": 1100,
+            "coveredStorageTb": 528,
+            "driverDimension": "storage"
+          }
+        ],
+        "warnings": [],
+        "totals": {
+          "cameras": 432,
+          "bandwidthMbps": 1901.3387430965201,
+          "recordedStorageGb": 364456.16497809696,
+          "storageGb": 480094.0082832394
+        },
+        "utilizationPct": 85
+      }
+    },
+    "requests": [
+      {
+        "service": "supabase",
+        "client": "anon",
+        "method": "GET",
+        "url": "/rest/v1/partners?select=status,is_internal,pipedrive_user_id&id=eq.11111111-1111-4111-8111-111111111111",
+        "body": null
+      },
+      {
+        "service": "supabase",
+        "client": "anon",
+        "method": "GET",
+        "url": "/rest/v1/submissions?select=id,pipedrive_deal_id&id=eq.55555555-5555-4555-8555-555555555555",
+        "body": null
+      },
+      {
+        "service": "supabase",
+        "client": "anon",
+        "method": "GET",
+        "url": "/rest/v1/current_products?select=sku,product_name,product_group,msrp,price_type&active=eq.true&price_type=eq.numeric&hidden_from_catalog=eq.false&order=sort_order.asc",
+        "body": null
+      },
+      {
+        "service": "supabase",
+        "client": "anon",
+        "method": "GET",
+        "url": "/rest/v1/product_specs?select=id,max_cameras,storage_raw_tb,hdd_count,raid_level_display",
+        "body": null
+      },
+      {
+        "service": "supabase",
+        "client": "anon",
+        "method": "POST",
+        "url": "/rest/v1/submissions?select=id",
+        "prefer": "return=representation",
+        "body": "{\"partner_id\":\"11111111-1111-4111-8111-111111111111\",\"input_state\":{\"version\":3,\"projectName\":\"Harbor Logistics Yard\",\"vms\":\"Milestone\",\"retentionDays\":14,\"utilizationPct\":85,\"groups\":[{\"name\":\"Perimeter\",\"cameras\":420,\"resolutionIdx\":14,\"codecIdx\":0,\"complexityIdx\":2,\"fps\":15,\"recordingMode\":\"motion\",\"recordingPercent\":100,\"motionPercent\":60,\"retentionDays\":30,\"cameraVendor\":\"Axis\",\"cameraModel\":\"P1468-LE\",\"units\":420,\"sensorsPerCamera\":1,\"cameraModelModified\":false},{\"name\":\"Gates\",\"cameras\":12,\"resolutionIdx\":10,\"codecIdx\":1,\"complexityIdx\":4,\"fps\":20,\"recordingMode\":\"constant\",\"recordingPercent\":50,\"motionPercent\":100,\"cameraVendor\":null,\"cameraModel\":null,\"units\":1,\"sensorsPerCamera\":1,\"cameraModelModified\":false,\"retentionDays\":14}],\"addOnFailoverRecorder\":true,\"addOnManagementServer\":false},\"calc_version\":3,\"max_disk_utilization_pct\":85,\"status\":\"open\",\"parent_submission_id\":\"55555555-5555-4555-8555-555555555555\",\"on_behalf_of_partner_id\":null,\"on_behalf_of_company_name\":null,\"project_name\":\"Harbor Logistics Yard\",\"cameras_count\":432,\"resolution_code\":\"4MP (2560×1440)\",\"codec\":\"h265\",\"complexity\":\"med\",\"vms\":\"Milestone\",\"retention_days\":30,\"bandwidth_mbps\":1901.34,\"storage_tb\":480.09,\"recorded_storage_tb\":364.46,\"recommended_product_id\":\"VX5-V800-864\",\"recommended_units\":1,\"total_list_price_usd\":117054,\"groups_payload\":{\"retentionDays\":14,\"utilizationPct\":85,\"calcVersion\":3,\"groups\":[{\"name\":\"Perimeter\",\"cameras\":420,\"resolutionIdx\":14,\"resolutionLabel\":\"4MP (2560×1440)\",\"codec\":\"h265\",\"complexity\":\"med\",\"complexityLabel\":\"Medium detail, low motion\",\"fps\":15,\"retentionDays\":30,\"recordingMode\":\"motion\",\"recordingPercent\":100,\"motionPercent\":60,\"cameraVendor\":\"Axis\",\"cameraModel\":\"P1468-LE\",\"units\":420,\"sensorsPerCamera\":1,\"cameraModelModified\":false,\"computed\":{\"frameKb\":35.99853515625,\"bitrateMbps\":4.4235,\"bandwidthMbps\":1857.87,\"recordedStorageGb\":361169.928,\"storageGb\":475765.08526151476}},{\"name\":\"Gates\",\"cameras\":12,\"resolutionIdx\":10,\"resolutionLabel\":\"1.3MP (1280×1024)\",\"codec\":\"h265smart\",\"complexity\":\"high\",\"complexityLabel\":\"High detail, low motion\",\"fps\":20,\"retentionDays\":14,\"recordingMode\":\"constant\",\"recordingPercent\":50,\"motionPercent\":100,\"cameraVendor\":null,\"cameraModel\":null,\"units\":1,\"sensorsPerCamera\":1,\"cameraModelModified\":false,\"computed\":{\"frameKb\":22.754629629629626,\"bitrateMbps\":3.6223952580433583,\"bandwidthMbps\":43.4687430965203,\"recordedStorageGb\":3286.2369780969348,\"storageGb\":4328.92302172464}}]}}"
+      },
+      {
+        "service": "supabase",
+        "client": "service",
+        "method": "GET",
+        "url": "/rest/v1/partners?select=company_name,contact_name&id=eq.11111111-1111-4111-8111-111111111111",
+        "body": null
+      },
+      {
+        "service": "supabase",
+        "client": "anon",
+        "method": "GET",
+        "url": "/rest/v1/product_specs?select=id,model_name,form_factor,storage_raw_tb,max_cameras,max_bandwidth_mbps,drive_bays,cpu_model_full,ram_spec,os_edition,hdd_count,raid_level_display&id=eq.VX5-V800-864",
+        "body": null
+      },
+      {
+        "service": "pipedrive",
+        "method": "GET",
+        "url": "/v1/pipelines?api_token=REDACTED",
+        "body": null
+      },
+      {
+        "service": "pipedrive",
+        "method": "GET",
+        "url": "/v1/users?api_token=REDACTED&term=Andy+Newbom",
+        "body": null
+      },
+      {
+        "service": "pipedrive",
+        "method": "GET",
+        "url": "/v1/dealFields?api_token=REDACTED",
+        "body": null
+      },
+      {
+        "service": "pipedrive",
+        "method": "GET",
+        "url": "/v1/stages?api_token=REDACTED&pipeline_id=1",
+        "body": null
+      },
+      {
+        "service": "pipedrive",
+        "method": "GET",
+        "url": "/v1/organizations/search?api_token=REDACTED&term=Acme+Security&fields=name&exact_match=true",
+        "body": null
+      },
+      {
+        "service": "pipedrive",
+        "method": "GET",
+        "url": "/v1/persons/search?api_token=REDACTED&term=pat.partner@acme-security.test&fields=email&exact_match=true",
+        "body": null
+      },
+      {
+        "service": "pipedrive",
+        "method": "POST",
+        "url": "/v1/persons?api_token=REDACTED",
+        "body": "{\"name\":\"Pat Partner\",\"email\":[{\"value\":\"pat.partner@acme-security.test\",\"primary\":true}],\"org_id\":500}"
+      },
+      {
+        "service": "pipedrive",
+        "method": "POST",
+        "url": "/v1/deals?api_token=REDACTED",
+        "body": "{\"value\":117054,\"key_arxys_submission_id\":\"aaaaaaaa-aaaa-4aaa-8aaa-000000000001\",\"key_arxys_total_cameras\":432,\"key_arxys_bandwidth_mbps\":1901.34,\"key_arxys_storage_gb\":480,\"key_arxys_recommended_models\":\"1 × V800\",\"key_arxys_portal_url\":\"https://portal-arxys.vercel.app/submissions/aaaaaaaa-aaaa-4aaa-8aaa-000000000001\",\"key_project_name\":\"Harbor Logistics Yard\",\"key_vms\":14,\"key_camera_streams\":432,\"key_recording_new\":\"Record Only On Motion\",\"key_motion_activity_est_\":\"60, 100\",\"key_frame_rate\":\"15, 20\",\"key_resolution\":\"1MP, 4MP\",\"key_retention_days\":\"30\",\"key_codec_new\":\"H.265\",\"key_total_storage\":\"480.09 TB\",\"key_complexity_scene_motion\":\"Medium, High\",\"key_recording_hours\":\"Record Only On Motion\",\"key_recommended_server\":\"1 × V800\",\"title\":\"Arxys Quote - Acme Security - Harbor Logistics Yard - 2026-10-22\",\"currency\":\"USD\",\"user_id\":99,\"person_id\":700,\"org_id\":500,\"pipeline_id\":1,\"stage_id\":11}"
+      },
+      {
+        "service": "pipedrive",
+        "method": "POST",
+        "url": "/v1/notes?api_token=REDACTED",
+        "body": "{\"deal_id\":9001,\"content\":\"Add-ons requested — Failover recorder: Yes · Management server: No\",\"pinned_to_deal_flag\":1}"
+      },
+      {
+        "service": "supabase",
+        "client": "anon",
+        "method": "PATCH",
+        "url": "/rest/v1/submissions?id=eq.aaaaaaaa-aaaa-4aaa-8aaa-000000000001",
+        "body": "{\"pipedrive_deal_id\":9001}"
+      }
+    ],
+    "pdfRenders": [],
+    "emails": [],
+    "logs": []
+  },
+  "internal-on-behalf-of-partner": {
+    "result": {
+      "status": "ok",
+      "submissionId": "aaaaaaaa-aaaa-4aaa-8aaa-000000000001",
+      "recommendation": {
+        "winner": {
+          "sku": "VX5-V800-864",
+          "productGroup": "V800",
+          "productName": "VideoX V800 864TB",
+          "units": 1,
+          "unitMsrp": 117054,
+          "totalCostUsd": 117054,
+          "coveredCameras": 600,
+          "coveredStorageTb": 840,
+          "driverDimension": "storage"
+        },
+        "alternatives": [
+          {
+            "sku": "VX5-V500-192",
+            "productGroup": "V500",
+            "productName": "VideoX V500 192TB",
+            "units": 3,
+            "unitMsrp": 52950,
+            "totalCostUsd": 158850,
+            "coveredCameras": 900,
+            "coveredStorageTb": 528,
+            "driverDimension": "storage"
+          },
+          {
+            "sku": "VX5-V400-128",
+            "productGroup": "V400",
+            "productName": "VideoX V400 128TB",
+            "units": 5,
+            "unitMsrp": 39950,
+            "totalCostUsd": 199750,
+            "coveredCameras": 1000,
+            "coveredStorageTb": 560,
+            "driverDimension": "storage"
+          },
+          {
+            "sku": "VX5-V200-64",
+            "productGroup": "V200",
+            "productName": "VideoX V200 64TB",
+            "units": 11,
+            "unitMsrp": 20470,
+            "totalCostUsd": 225170,
+            "coveredCameras": 1100,
+            "coveredStorageTb": 528,
+            "driverDimension": "storage"
+          }
+        ],
+        "warnings": [
+          "1 other open submission already exists for this customer from the last 14 days (\"Earlier Target Quote\") — check the admin Grouped view before this creates a second Pipedrive deal."
+        ],
+        "totals": {
+          "cameras": 432,
+          "bandwidthMbps": 1901.3387430965201,
+          "recordedStorageGb": 364456.16497809696,
+          "storageGb": 480094.0082832394
+        },
+        "utilizationPct": 85
+      }
+    },
+    "requests": [
+      {
+        "service": "supabase",
+        "client": "anon",
+        "method": "GET",
+        "url": "/rest/v1/partners?select=status,is_internal,pipedrive_user_id&id=eq.22222222-2222-4222-8222-222222222222",
+        "body": null
+      },
+      {
+        "service": "supabase",
+        "client": "service",
+        "method": "GET",
+        "url": "/rest/v1/partners?select=id,company_name,contact_name,status,is_internal&id=eq.33333333-3333-4333-8333-333333333333",
+        "body": null
+      },
+      {
+        "service": "supabase",
+        "client": "anon",
+        "method": "GET",
+        "url": "/rest/v1/submissions?select=id,project_name,created_at&status=eq.open&created_at=gte.2026-10-08T17:00:00.000Z&on_behalf_of_partner_id=eq.33333333-3333-4333-8333-333333333333",
+        "body": null
+      },
+      {
+        "service": "supabase",
+        "client": "anon",
+        "method": "GET",
+        "url": "/rest/v1/current_products?select=sku,product_name,product_group,msrp,price_type&active=eq.true&price_type=eq.numeric&hidden_from_catalog=eq.false&order=sort_order.asc",
+        "body": null
+      },
+      {
+        "service": "supabase",
+        "client": "anon",
+        "method": "GET",
+        "url": "/rest/v1/product_specs?select=id,max_cameras,storage_raw_tb,hdd_count,raid_level_display",
+        "body": null
+      },
+      {
+        "service": "supabase",
+        "client": "anon",
+        "method": "POST",
+        "url": "/rest/v1/submissions?select=id",
+        "prefer": "return=representation",
+        "body": "{\"partner_id\":\"22222222-2222-4222-8222-222222222222\",\"input_state\":{\"version\":3,\"projectName\":\"Harbor Logistics Yard\",\"vms\":\"Milestone\",\"retentionDays\":14,\"utilizationPct\":85,\"groups\":[{\"name\":\"Perimeter\",\"cameras\":420,\"resolutionIdx\":14,\"codecIdx\":0,\"complexityIdx\":2,\"fps\":15,\"recordingMode\":\"motion\",\"recordingPercent\":100,\"motionPercent\":60,\"retentionDays\":30,\"cameraVendor\":\"Axis\",\"cameraModel\":\"P1468-LE\",\"units\":420,\"sensorsPerCamera\":1,\"cameraModelModified\":false},{\"name\":\"Gates\",\"cameras\":12,\"resolutionIdx\":10,\"codecIdx\":1,\"complexityIdx\":4,\"fps\":20,\"recordingMode\":\"constant\",\"recordingPercent\":50,\"motionPercent\":100,\"cameraVendor\":null,\"cameraModel\":null,\"units\":1,\"sensorsPerCamera\":1,\"cameraModelModified\":false,\"retentionDays\":14}],\"addOnFailoverRecorder\":true,\"addOnManagementServer\":false},\"calc_version\":3,\"max_disk_utilization_pct\":85,\"status\":\"open\",\"parent_submission_id\":null,\"on_behalf_of_partner_id\":\"33333333-3333-4333-8333-333333333333\",\"on_behalf_of_company_name\":null,\"project_name\":\"Harbor Logistics Yard\",\"cameras_count\":432,\"resolution_code\":\"4MP (2560×1440)\",\"codec\":\"h265\",\"complexity\":\"med\",\"vms\":\"Milestone\",\"retention_days\":30,\"bandwidth_mbps\":1901.34,\"storage_tb\":480.09,\"recorded_storage_tb\":364.46,\"recommended_product_id\":\"VX5-V800-864\",\"recommended_units\":1,\"total_list_price_usd\":117054,\"groups_payload\":{\"retentionDays\":14,\"utilizationPct\":85,\"calcVersion\":3,\"groups\":[{\"name\":\"Perimeter\",\"cameras\":420,\"resolutionIdx\":14,\"resolutionLabel\":\"4MP (2560×1440)\",\"codec\":\"h265\",\"complexity\":\"med\",\"complexityLabel\":\"Medium detail, low motion\",\"fps\":15,\"retentionDays\":30,\"recordingMode\":\"motion\",\"recordingPercent\":100,\"motionPercent\":60,\"cameraVendor\":\"Axis\",\"cameraModel\":\"P1468-LE\",\"units\":420,\"sensorsPerCamera\":1,\"cameraModelModified\":false,\"computed\":{\"frameKb\":35.99853515625,\"bitrateMbps\":4.4235,\"bandwidthMbps\":1857.87,\"recordedStorageGb\":361169.928,\"storageGb\":475765.08526151476}},{\"name\":\"Gates\",\"cameras\":12,\"resolutionIdx\":10,\"resolutionLabel\":\"1.3MP (1280×1024)\",\"codec\":\"h265smart\",\"complexity\":\"high\",\"complexityLabel\":\"High detail, low motion\",\"fps\":20,\"retentionDays\":14,\"recordingMode\":\"constant\",\"recordingPercent\":50,\"motionPercent\":100,\"cameraVendor\":null,\"cameraModel\":null,\"units\":1,\"sensorsPerCamera\":1,\"cameraModelModified\":false,\"computed\":{\"frameKb\":22.754629629629626,\"bitrateMbps\":3.6223952580433583,\"bandwidthMbps\":43.4687430965203,\"recordedStorageGb\":3286.2369780969348,\"storageGb\":4328.92302172464}}]}}"
+      },
+      {
+        "service": "supabase",
+        "client": "service",
+        "method": "GET",
+        "url": "/rest/v1/partners?select=company_name,contact_name&id=eq.22222222-2222-4222-8222-222222222222",
+        "body": null
+      },
+      {
+        "service": "supabase",
+        "client": "anon",
+        "method": "GET",
+        "url": "/rest/v1/product_specs?select=id,model_name,form_factor,storage_raw_tb,max_cameras,max_bandwidth_mbps,drive_bays,cpu_model_full,ram_spec,os_edition,hdd_count,raid_level_display&id=eq.VX5-V800-864",
+        "body": null
+      },
+      {
+        "service": "supabase",
+        "client": "anon",
+        "method": "PATCH",
+        "url": "/rest/v1/submissions?id=eq.aaaaaaaa-aaaa-4aaa-8aaa-000000000001",
+        "body": "{\"email_sent_at\":\"2026-10-22T17:00:00.000Z\"}"
+      },
+      {
+        "service": "pipedrive",
+        "method": "GET",
+        "url": "/v1/pipelines?api_token=REDACTED",
+        "body": null
+      },
+      {
+        "service": "pipedrive",
+        "method": "GET",
+        "url": "/v1/dealFields?api_token=REDACTED",
+        "body": null
+      },
+      {
+        "service": "pipedrive",
+        "method": "GET",
+        "url": "/v1/stages?api_token=REDACTED&pipeline_id=1",
+        "body": null
+      },
+      {
+        "service": "pipedrive",
+        "method": "GET",
+        "url": "/v1/organizations/search?api_token=REDACTED&term=Target+Integrators&fields=name&exact_match=true",
+        "body": null
+      },
+      {
+        "service": "pipedrive",
+        "method": "GET",
+        "url": "/v1/persons/search?api_token=REDACTED&term=terry.target@target-integrators.test&fields=email&exact_match=true",
+        "body": null
+      },
+      {
+        "service": "pipedrive",
+        "method": "POST",
+        "url": "/v1/persons?api_token=REDACTED",
+        "body": "{\"name\":\"Terry Target\",\"email\":[{\"value\":\"terry.target@target-integrators.test\",\"primary\":true}],\"org_id\":500}"
+      },
+      {
+        "service": "pipedrive",
+        "method": "POST",
+        "url": "/v1/deals?api_token=REDACTED",
+        "body": "{\"value\":117054,\"key_arxys_submission_id\":\"aaaaaaaa-aaaa-4aaa-8aaa-000000000001\",\"key_arxys_total_cameras\":432,\"key_arxys_bandwidth_mbps\":1901.34,\"key_arxys_storage_gb\":480,\"key_arxys_recommended_models\":\"1 × V800\",\"key_arxys_portal_url\":\"https://portal-arxys.vercel.app/submissions/aaaaaaaa-aaaa-4aaa-8aaa-000000000001\",\"key_project_name\":\"Harbor Logistics Yard\",\"key_vms\":14,\"key_camera_streams\":432,\"key_recording_new\":\"Record Only On Motion\",\"key_motion_activity_est_\":\"60, 100\",\"key_frame_rate\":\"15, 20\",\"key_resolution\":\"1MP, 4MP\",\"key_retention_days\":\"30\",\"key_codec_new\":\"H.265\",\"key_total_storage\":\"480.09 TB\",\"key_complexity_scene_motion\":\"Medium, High\",\"key_recording_hours\":\"Record Only On Motion\",\"key_recommended_server\":\"1 × V800\",\"title\":\"Arxys Quote - Target Integrators - Harbor Logistics Yard - 2026-10-22\",\"currency\":\"USD\",\"user_id\":4242,\"person_id\":700,\"org_id\":500,\"pipeline_id\":1,\"stage_id\":11}"
+      },
+      {
+        "service": "pipedrive",
+        "method": "POST",
+        "url": "/v1/notes?api_token=REDACTED",
+        "body": "{\"deal_id\":9001,\"content\":\"Created on behalf of: Target Integrators\\nBy Arxys rep: Rita Rep (rep@arxys.test)\\nPortal user id: 22222222-2222-4222-8222-222222222222\",\"pinned_to_deal_flag\":1}"
+      },
+      {
+        "service": "pipedrive",
+        "method": "POST",
+        "url": "/v1/notes?api_token=REDACTED",
+        "body": "{\"deal_id\":9001,\"content\":\"Add-ons requested — Failover recorder: Yes · Management server: No\",\"pinned_to_deal_flag\":1}"
+      },
+      {
+        "service": "supabase",
+        "client": "anon",
+        "method": "PATCH",
+        "url": "/rest/v1/submissions?id=eq.aaaaaaaa-aaaa-4aaa-8aaa-000000000001",
+        "body": "{\"pipedrive_deal_id\":9001}"
+      }
+    ],
+    "pdfRenders": [
+      {
+        "generatedAt": "2026-10-22T17:00:00.000Z",
+        "submissionId": "aaaaaaaa-aaaa-4aaa-8aaa-000000000001",
+        "partner": {
+          "companyName": "Arxys",
+          "contactName": "Rita Rep",
+          "email": "rep@arxys.test"
+        },
+        "projectName": "Harbor Logistics Yard",
+        "vms": "Milestone",
+        "retentionDays": 30,
+        "totals": {
+          "cameras": 432,
+          "bandwidthMbps": 1901.3387430965201,
+          "storageGb": 480094.0082832394
+        },
+        "storageTb": 480.09400828323936,
+        "bandwidthMbps": 1901.3387430965201,
+        "calcVersion": 3,
+        "recordedStorageTb": 364.456164978097,
+        "maxDiskUtilizationPct": 85,
+        "groups": [
+          {
+            "name": "Perimeter",
+            "cameras": 420,
+            "resolutionLabel": "4MP (2560×1440)",
+            "codec": "h265",
+            "complexityLabel": "Medium detail, low motion",
+            "recordingMode": "motion",
+            "fps": 15,
+            "retentionDays": 30,
+            "hoursPerDay": 24,
+            "motionPercent": 60,
+            "bandwidthMbps": 1857.87,
+            "storageGb": 475765.08526151476
+          },
+          {
+            "name": "Gates",
+            "cameras": 12,
+            "resolutionLabel": "1.3MP (1280×1024)",
+            "codec": "h265smart",
+            "complexityLabel": "High detail, low motion",
+            "recordingMode": "constant",
+            "fps": 20,
+            "retentionDays": 14,
+            "hoursPerDay": 12,
+            "motionPercent": 100,
+            "bandwidthMbps": 43.4687430965203,
+            "storageGb": 4328.92302172464
+          }
+        ],
+        "recommendation": {
+          "units": 1,
+          "modelCode": "V800",
+          "productDescription": "VideoX V800 864TB",
+          "coveredCameras": 600,
+          "coveredStorageTb": 840,
+          "warnings": []
+        },
+        "serverSpec": {
+          "sku": "VX5-V800-864",
+          "modelName": "VideoX V800",
+          "formFactor": "4U",
+          "maxCameras": 600,
+          "maxBandwidthMbps": 3000,
+          "driveBays": 36,
+          "cpuModelFull": "CPU D",
+          "ramSpec": "128GB",
+          "osEdition": "Win Server",
+          "warranty": "5yr NBD, Advanced Replacement",
+          "msrp": 117054,
+          "usablePerUnitTb": 840
+        },
+        "logoDataUri": "sha256:cefc2941bc813ba6 (8814 chars)",
+        "heroDataUri": "sha256:7aac67651f7112c2 (124362 chars)"
+      }
+    ],
+    "emails": [
+      {
+        "partner": {
+          "companyName": "Arxys",
+          "contactName": "Rita Rep",
+          "email": "rep@arxys.test"
+        },
+        "projectName": "Harbor Logistics Yard",
+        "totals": {
+          "cameras": 432,
+          "bandwidthMbps": 1901.3387430965201,
+          "storageGb": 480094.0082832394,
+          "recordedStorageGb": 364456.16497809696,
+          "retentionLabel": "14–30 days"
+        },
+        "utilizationPct": 85,
+        "vms": "Milestone",
+        "recommendation": {
+          "winner": {
+            "sku": "VX5-V800-864",
+            "productGroup": "V800",
+            "productName": "VideoX V800 864TB",
+            "units": 1,
+            "unitMsrp": 117054,
+            "totalCostUsd": 117054,
+            "coveredCameras": 600,
+            "coveredStorageTb": 840,
+            "driverDimension": "storage"
+          },
+          "alternatives": [
+            {
+              "sku": "VX5-V500-192",
+              "productGroup": "V500",
+              "productName": "VideoX V500 192TB",
+              "units": 3,
+              "unitMsrp": 52950,
+              "totalCostUsd": 158850,
+              "coveredCameras": 900,
+              "coveredStorageTb": 528,
+              "driverDimension": "storage"
+            },
+            {
+              "sku": "VX5-V400-128",
+              "productGroup": "V400",
+              "productName": "VideoX V400 128TB",
+              "units": 5,
+              "unitMsrp": 39950,
+              "totalCostUsd": 199750,
+              "coveredCameras": 1000,
+              "coveredStorageTb": 560,
+              "driverDimension": "storage"
+            },
+            {
+              "sku": "VX5-V200-64",
+              "productGroup": "V200",
+              "productName": "VideoX V200 64TB",
+              "units": 11,
+              "unitMsrp": 20470,
+              "totalCostUsd": 225170,
+              "coveredCameras": 1100,
+              "coveredStorageTb": 528,
+              "driverDimension": "storage"
+            }
+          ],
+          "warnings": []
+        },
+        "submissionId": "aaaaaaaa-aaaa-4aaa-8aaa-000000000001",
+        "pdfBuffer": "PDF-STUB",
+        "pdfFilename": "Arxys - Harbor Logistics Yard - 2026-10-22.pdf",
+        "partnerEmail": "rep@arxys.test"
+      }
+    ],
+    "logs": []
+  },
+  "internal-on-behalf-of-company-name": {
+    "result": {
+      "status": "ok",
+      "submissionId": "aaaaaaaa-aaaa-4aaa-8aaa-000000000001",
+      "recommendation": {
+        "winner": {
+          "sku": "VX5-V400-128",
+          "productGroup": "V400",
+          "productName": "VideoX V400 128TB",
+          "units": 1,
+          "unitMsrp": 39950,
+          "totalCostUsd": 39950,
+          "coveredCameras": 200,
+          "coveredStorageTb": 112,
+          "driverDimension": "storage"
+        },
+        "alternatives": [
+          {
+            "sku": "VX5-V200-64",
+            "productGroup": "V200",
+            "productName": "VideoX V200 64TB",
+            "units": 2,
+            "unitMsrp": 20470,
+            "totalCostUsd": 40940,
+            "coveredCameras": 200,
+            "coveredStorageTb": 96,
+            "driverDimension": "storage"
+          },
+          {
+            "sku": "VX5-V500-192",
+            "productGroup": "V500",
+            "productName": "VideoX V500 192TB",
+            "units": 1,
+            "unitMsrp": 52950,
+            "totalCostUsd": 52950,
+            "coveredCameras": 300,
+            "coveredStorageTb": 176,
+            "driverDimension": "storage"
+          },
+          {
+            "sku": "VX5-V800-864",
+            "productGroup": "V800",
+            "productName": "VideoX V800 864TB",
+            "units": 1,
+            "unitMsrp": 117054,
+            "totalCostUsd": 117054,
+            "coveredCameras": 600,
+            "coveredStorageTb": 840,
+            "driverDimension": "storage"
+          }
+        ],
+        "warnings": [
+          "1 other open submission already exists for this customer from the last 14 days (\"(untitled)\") — check the admin Grouped view before this creates a second Pipedrive deal."
+        ],
+        "totals": {
+          "cameras": 40,
+          "bandwidthMbps": 176.94,
+          "recordedStorageGb": 42996.42,
+          "storageGb": 60178.61941551897
+        },
+        "utilizationPct": 80
+      }
+    },
+    "requests": [
+      {
+        "service": "supabase",
+        "client": "anon",
+        "method": "GET",
+        "url": "/rest/v1/partners?select=status,is_internal,pipedrive_user_id&id=eq.22222222-2222-4222-8222-222222222222",
+        "body": null
+      },
+      {
+        "service": "supabase",
+        "client": "anon",
+        "method": "GET",
+        "url": "/rest/v1/submissions?select=id,project_name,created_at&status=eq.open&created_at=gte.2026-10-08T17:00:00.000Z&on_behalf_of_company_name=ilike.Not+Yet+Onboarded+LLC",
+        "body": null
+      },
+      {
+        "service": "supabase",
+        "client": "anon",
+        "method": "GET",
+        "url": "/rest/v1/current_products?select=sku,product_name,product_group,msrp,price_type&active=eq.true&price_type=eq.numeric&hidden_from_catalog=eq.false&order=sort_order.asc",
+        "body": null
+      },
+      {
+        "service": "supabase",
+        "client": "anon",
+        "method": "GET",
+        "url": "/rest/v1/product_specs?select=id,max_cameras,storage_raw_tb,hdd_count,raid_level_display",
+        "body": null
+      },
+      {
+        "service": "supabase",
+        "client": "anon",
+        "method": "POST",
+        "url": "/rest/v1/submissions?select=id",
+        "prefer": "return=representation",
+        "body": "{\"partner_id\":\"22222222-2222-4222-8222-222222222222\",\"input_state\":{\"version\":3,\"projectName\":\"Quick Estimate Store 12\",\"vms\":null,\"retentionDays\":30,\"utilizationPct\":80,\"groups\":[{\"name\":\"Camera streams\",\"cameras\":40,\"resolutionIdx\":14,\"codecIdx\":0,\"complexityIdx\":2,\"fps\":15,\"recordingMode\":\"motion\",\"recordingPercent\":100,\"motionPercent\":75,\"cameraVendor\":null,\"cameraModel\":null,\"units\":1,\"sensorsPerCamera\":1,\"cameraModelModified\":false,\"retentionDays\":30}],\"addOnFailoverRecorder\":false,\"addOnManagementServer\":false},\"calc_version\":3,\"max_disk_utilization_pct\":80,\"status\":\"open\",\"parent_submission_id\":null,\"on_behalf_of_partner_id\":null,\"on_behalf_of_company_name\":\"Not Yet Onboarded LLC\",\"project_name\":\"Quick Estimate Store 12\",\"cameras_count\":40,\"resolution_code\":\"4MP (2560×1440)\",\"codec\":\"h265\",\"complexity\":\"med\",\"vms\":null,\"retention_days\":30,\"bandwidth_mbps\":176.94,\"storage_tb\":60.18,\"recorded_storage_tb\":43,\"recommended_product_id\":\"VX5-V400-128\",\"recommended_units\":1,\"total_list_price_usd\":39950,\"groups_payload\":{\"retentionDays\":30,\"utilizationPct\":80,\"calcVersion\":3,\"groups\":[{\"name\":\"Camera streams\",\"cameras\":40,\"resolutionIdx\":14,\"resolutionLabel\":\"4MP (2560×1440)\",\"codec\":\"h265\",\"complexity\":\"med\",\"complexityLabel\":\"Medium detail, low motion\",\"fps\":15,\"retentionDays\":30,\"recordingMode\":\"motion\",\"recordingPercent\":100,\"motionPercent\":75,\"cameraVendor\":null,\"cameraModel\":null,\"units\":1,\"sensorsPerCamera\":1,\"cameraModelModified\":false,\"computed\":{\"frameKb\":35.99853515625,\"bitrateMbps\":4.4235,\"bandwidthMbps\":176.94,\"recordedStorageGb\":42996.42,\"storageGb\":60178.61941551897}}]}}"
+      },
+      {
+        "service": "supabase",
+        "client": "service",
+        "method": "GET",
+        "url": "/rest/v1/partners?select=company_name,contact_name&id=eq.22222222-2222-4222-8222-222222222222",
+        "body": null
+      },
+      {
+        "service": "supabase",
+        "client": "anon",
+        "method": "GET",
+        "url": "/rest/v1/product_specs?select=id,model_name,form_factor,storage_raw_tb,max_cameras,max_bandwidth_mbps,drive_bays,cpu_model_full,ram_spec,os_edition,hdd_count,raid_level_display&id=eq.VX5-V400-128",
+        "body": null
+      },
+      {
+        "service": "supabase",
+        "client": "anon",
+        "method": "PATCH",
+        "url": "/rest/v1/submissions?id=eq.aaaaaaaa-aaaa-4aaa-8aaa-000000000001",
+        "body": "{\"email_sent_at\":\"2026-10-22T17:00:00.000Z\"}"
+      },
+      {
+        "service": "pipedrive",
+        "method": "GET",
+        "url": "/v1/pipelines?api_token=REDACTED",
+        "body": null
+      },
+      {
+        "service": "pipedrive",
+        "method": "GET",
+        "url": "/v1/dealFields?api_token=REDACTED",
+        "body": null
+      },
+      {
+        "service": "pipedrive",
+        "method": "GET",
+        "url": "/v1/stages?api_token=REDACTED&pipeline_id=1",
+        "body": null
+      },
+      {
+        "service": "pipedrive",
+        "method": "GET",
+        "url": "/v1/organizations/search?api_token=REDACTED&term=Not+Yet+Onboarded+LLC&fields=name&exact_match=true",
+        "body": null
+      },
+      {
+        "service": "pipedrive",
+        "method": "POST",
+        "url": "/v1/deals?api_token=REDACTED",
+        "body": "{\"value\":39950,\"key_arxys_submission_id\":\"aaaaaaaa-aaaa-4aaa-8aaa-000000000001\",\"key_arxys_total_cameras\":40,\"key_arxys_bandwidth_mbps\":176.94,\"key_arxys_storage_gb\":60,\"key_arxys_recommended_models\":\"1 × V400\",\"key_arxys_portal_url\":\"https://portal-arxys.vercel.app/submissions/aaaaaaaa-aaaa-4aaa-8aaa-000000000001\",\"key_project_name\":\"Quick Estimate Store 12\",\"key_camera_streams\":40,\"key_recording_new\":\"24 Hour Continuous\",\"key_motion_activity_est_\":\"75\",\"key_frame_rate\":\"15\",\"key_resolution\":\"4MP\",\"key_retention_days\":\"30\",\"key_codec_new\":\"H.265\",\"key_total_storage\":\"60.18 TB\",\"key_complexity_scene_motion\":\"Medium\",\"key_recording_hours\":\"24 Hour Continuous\",\"key_recommended_server\":\"1 × V400\",\"title\":\"Arxys Quote - Not Yet Onboarded LLC - Quick Estimate Store 12 - 2026-10-22\",\"currency\":\"USD\",\"user_id\":4242,\"org_id\":500,\"pipeline_id\":1,\"stage_id\":11}"
+      },
+      {
+        "service": "pipedrive",
+        "method": "POST",
+        "url": "/v1/notes?api_token=REDACTED",
+        "body": "{\"deal_id\":9001,\"content\":\"Created on behalf of: Not Yet Onboarded LLC\\nBy Arxys rep: Rita Rep (rep@arxys.test)\\nPortal user id: 22222222-2222-4222-8222-222222222222\",\"pinned_to_deal_flag\":1}"
+      },
+      {
+        "service": "supabase",
+        "client": "anon",
+        "method": "PATCH",
+        "url": "/rest/v1/submissions?id=eq.aaaaaaaa-aaaa-4aaa-8aaa-000000000001",
+        "body": "{\"pipedrive_deal_id\":9001}"
+      }
+    ],
+    "pdfRenders": [
+      {
+        "generatedAt": "2026-10-22T17:00:00.000Z",
+        "submissionId": "aaaaaaaa-aaaa-4aaa-8aaa-000000000001",
+        "partner": {
+          "companyName": "Arxys",
+          "contactName": "Rita Rep",
+          "email": "rep@arxys.test"
+        },
+        "projectName": "Quick Estimate Store 12",
+        "vms": null,
+        "retentionDays": 30,
+        "totals": {
+          "cameras": 40,
+          "bandwidthMbps": 176.94,
+          "storageGb": 60178.61941551897
+        },
+        "storageTb": 60.17861941551897,
+        "bandwidthMbps": 176.94,
+        "calcVersion": 3,
+        "recordedStorageTb": 42.99642,
+        "maxDiskUtilizationPct": 80,
+        "groups": [
+          {
+            "name": "Camera streams",
+            "cameras": 40,
+            "resolutionLabel": "4MP (2560×1440)",
+            "codec": "h265",
+            "complexityLabel": "Medium detail, low motion",
+            "recordingMode": "motion",
+            "fps": 15,
+            "retentionDays": 30,
+            "hoursPerDay": 24,
+            "motionPercent": 75,
+            "bandwidthMbps": 176.94,
+            "storageGb": 60178.61941551897
+          }
+        ],
+        "recommendation": {
+          "units": 1,
+          "modelCode": "V400",
+          "productDescription": "VideoX V400 128TB",
+          "coveredCameras": 200,
+          "coveredStorageTb": 112,
+          "warnings": []
+        },
+        "serverSpec": {
+          "sku": "VX5-V400-128",
+          "modelName": "VideoX V400",
+          "formFactor": "2U",
+          "maxCameras": 200,
+          "maxBandwidthMbps": 800,
+          "driveBays": 8,
+          "cpuModelFull": "CPU B",
+          "ramSpec": "64GB",
+          "osEdition": "Win Server",
+          "warranty": "5yr NBD, Advanced Replacement",
+          "msrp": 39950,
+          "usablePerUnitTb": 112
+        },
+        "logoDataUri": "sha256:cefc2941bc813ba6 (8814 chars)",
+        "heroDataUri": "sha256:bc387537423ab1a5 (200982 chars)"
+      }
+    ],
+    "emails": [
+      {
+        "partner": {
+          "companyName": "Arxys",
+          "contactName": "Rita Rep",
+          "email": "rep@arxys.test"
+        },
+        "projectName": "Quick Estimate Store 12",
+        "totals": {
+          "cameras": 40,
+          "bandwidthMbps": 176.94,
+          "storageGb": 60178.61941551897,
+          "recordedStorageGb": 42996.42,
+          "retentionLabel": "30 days"
+        },
+        "utilizationPct": 80,
+        "vms": null,
+        "recommendation": {
+          "winner": {
+            "sku": "VX5-V400-128",
+            "productGroup": "V400",
+            "productName": "VideoX V400 128TB",
+            "units": 1,
+            "unitMsrp": 39950,
+            "totalCostUsd": 39950,
+            "coveredCameras": 200,
+            "coveredStorageTb": 112,
+            "driverDimension": "storage"
+          },
+          "alternatives": [
+            {
+              "sku": "VX5-V200-64",
+              "productGroup": "V200",
+              "productName": "VideoX V200 64TB",
+              "units": 2,
+              "unitMsrp": 20470,
+              "totalCostUsd": 40940,
+              "coveredCameras": 200,
+              "coveredStorageTb": 96,
+              "driverDimension": "storage"
+            },
+            {
+              "sku": "VX5-V500-192",
+              "productGroup": "V500",
+              "productName": "VideoX V500 192TB",
+              "units": 1,
+              "unitMsrp": 52950,
+              "totalCostUsd": 52950,
+              "coveredCameras": 300,
+              "coveredStorageTb": 176,
+              "driverDimension": "storage"
+            },
+            {
+              "sku": "VX5-V800-864",
+              "productGroup": "V800",
+              "productName": "VideoX V800 864TB",
+              "units": 1,
+              "unitMsrp": 117054,
+              "totalCostUsd": 117054,
+              "coveredCameras": 600,
+              "coveredStorageTb": 840,
+              "driverDimension": "storage"
+            }
+          ],
+          "warnings": []
+        },
+        "submissionId": "aaaaaaaa-aaaa-4aaa-8aaa-000000000001",
+        "pdfBuffer": "PDF-STUB",
+        "pdfFilename": "Arxys - Quick Estimate Store 12 - 2026-10-22.pdf",
+        "partnerEmail": "rep@arxys.test"
+      }
+    ],
+    "logs": []
+  }
+}
