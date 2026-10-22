@@ -2329,6 +2329,99 @@ async function run() {
         await admin.from("company_sync_includes").delete().in("pipedrive_org_id", [orgId, orgId + 3, orgId + 4, orgId + 5, orgId + 6]);
       }
     }
+    // =========================================================================
+    // Section 25: submission_system_designs (ADR 0165, migration
+    // 20261022000001). Internal and admin read; partners and anon read nothing.
+    // No API role can UPDATE or DELETE; only service_role can INSERT, and only
+    // for a submission owned by an active internal user or admin. Denials are
+    // checked for 42501 (insufficient_privilege) explicitly, so an unrelated
+    // error never passes as one. Seeded submissions are removed by
+    // teardownPersona, and the banked rows go with them (on delete cascade).
+    // =========================================================================
+    {
+      const banked = (submissionId: string, createdBy: string) => ({
+        submission_id: submissionId,
+        resolved_design: { sfp: false, gpu: true },
+        rules_snapshot: { snapshotVersion: 1, systemDesignRules: [], bomRules: [] },
+        bom: [{ sku: "VX5-GPU-A1000", qty: 1, role: "recorder", ruleId: null }],
+        engine_version: "rls-test",
+        created_by: createdBy,
+      });
+      const is42501 = (e: { code?: string } | null) => e?.code === "42501";
+      const internalSub = await seedSubmission(internalPersona.id, "open");
+      const otherInternalSub = await seedSubmission(internalPersona.id, "open");
+      const partnerSub = await seedSubmission(a.id, "open");
+
+      // 25: service_role banks a design for the internal owner's submission.
+      const seed = await admin.from("submission_system_designs").insert(banked(internalSub, internalPersona.id));
+      record("25: service_role banks a design for an internal owner's submission", !seed.error, seed.error?.message);
+
+      // 25a: partner A, linked partner B and anon read nothing.
+      {
+        const anonClient = createClient(supabaseUrl, anonKey, { auth: { persistSession: false, autoRefreshToken: false } });
+        const leaks: string[] = [];
+        for (const [label, c] of [["partner", a.client], ["linked partner", b.client], ["anon", anonClient]] as const) {
+          const { data, error } = await c.from("submission_system_designs").select("submission_id").limit(5);
+          if (!error && (data?.length ?? 0) > 0) leaks.push(`${label}=${data!.length}`);
+        }
+        record("25a: partners and anon read no banked design", leaks.length === 0, leaks.join(", ") || "all empty or denied");
+      }
+
+      // 25b: internal and admin read it.
+      {
+        const missing: string[] = [];
+        for (const [label, p] of [["internal", internalPersona], ["admin", adminPersona]] as const) {
+          const { data, error } = await p.client.from("submission_system_designs").select("submission_id").eq("submission_id", internalSub);
+          if (error || (data?.length ?? 0) !== 1) missing.push(`${label}${error ? `: ${error.message}` : " saw none"}`);
+        }
+        record("25b: internal and admin read the banked design", missing.length === 0, missing.join("; "));
+      }
+
+      // 25c: partner, internal non-admin and admin sessions cannot INSERT,
+      // UPDATE or DELETE. With no grant, each must fail with 42501.
+      {
+        const notDenied: string[] = [];
+        for (const [label, p, owner] of [
+          ["partner", a, a.id],
+          ["internal", internalPersona, internalPersona.id],
+          ["admin", adminPersona, adminPersona.id],
+        ] as const) {
+          const ins = await p.client.from("submission_system_designs").insert(banked(otherInternalSub, owner));
+          if (!is42501(ins.error)) notDenied.push(`${label} insert: ${ins.error?.code ?? "WENT THROUGH"}`);
+          const upd = await p.client.from("submission_system_designs").update({ engine_version: "tampered" }).eq("submission_id", internalSub).select("submission_id");
+          if (!is42501(upd.error)) notDenied.push(`${label} update: ${upd.error?.code ?? `rows=${upd.data?.length}`}`);
+          const del = await p.client.from("submission_system_designs").delete().eq("submission_id", internalSub).select("submission_id");
+          if (!is42501(del.error)) notDenied.push(`${label} delete: ${del.error?.code ?? `rows=${del.data?.length}`}`);
+        }
+        const { data: still } = await admin.from("submission_system_designs").select("engine_version").eq("submission_id", internalSub).maybeSingle();
+        record(
+          "25c: partner, internal and admin sessions cannot insert, update or delete a banked design (42501)",
+          notDenied.length === 0 && still?.engine_version === "rls-test",
+          notDenied.join("; ") || `row intact (engine_version=${still?.engine_version})`,
+        );
+      }
+
+      // 25d: service_role limits: no update, no delete, no second row for a
+      // submission, no row a non-owner or a partner owner would create.
+      {
+        const notBlocked: string[] = [];
+        const upd = await admin.from("submission_system_designs").update({ engine_version: "tampered" }).eq("submission_id", internalSub).select("submission_id");
+        if (!is42501(upd.error)) notBlocked.push(`update: ${upd.error?.code ?? `rows=${upd.data?.length}`}`);
+        const del = await admin.from("submission_system_designs").delete().eq("submission_id", internalSub).select("submission_id");
+        if (!is42501(del.error)) notBlocked.push(`delete: ${del.error?.code ?? `rows=${del.data?.length}`}`);
+        const twice = await admin.from("submission_system_designs").insert(banked(internalSub, internalPersona.id));
+        if (twice.error?.code !== "23505") notBlocked.push(`second row: ${twice.error?.code ?? "WENT THROUGH"}`);
+        const notOwner = await admin.from("submission_system_designs").insert(banked(otherInternalSub, adminPersona.id));
+        if (!is42501(notOwner.error)) notBlocked.push(`non-owner created_by: ${notOwner.error?.code ?? "WENT THROUGH"}`);
+        const partnerOwner = await admin.from("submission_system_designs").insert(banked(partnerSub, a.id));
+        if (!is42501(partnerOwner.error)) notBlocked.push(`partner-owned submission: ${partnerOwner.error?.code ?? "WENT THROUGH"}`);
+        record(
+          "25d: service_role cannot update, delete, bank twice, or bank for a non-owner or a partner",
+          notBlocked.length === 0,
+          notBlocked.join("; ") || "all blocked",
+        );
+      }
+    }
   } finally {
     await teardownPersona(a);
     await teardownPersona(b);

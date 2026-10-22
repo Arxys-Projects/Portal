@@ -4,6 +4,57 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-10-22 - Project Portal backend, Step 4 Phase A: snapshot harness and the banked-design table (ADRs 0165, 0166)
+
+### Work done
+
+- Started at `029bb87` on `main`. Untracked files not from this session (`Claude outputs/`, `skills/`,
+  the Step 4 prompt) were left alone.
+- **Audit check.** The baseline audit reports are not on `main`; they were read from
+  `refs/heads/claude/group-1-audit-preflight-n8s0yw`. Rows that touch this step: B1-S-2 / B1-A-1
+  (partners can write any `submissions` column; "must ship before Project Portal Step 4") and
+  B1-S-13 (planting a row via `on_behalf_of_partner_id`) are open and **gate Phase B**, fixed in their
+  own session. B2-S-10 / B2-A-12 close with the same guard. B1-S-7 / B1-A-9 shaped the new RLS
+  cases, which check for 42501 explicitly.
+- **Baseline on the clean tree:** golden 3/3, `src/lib/recommend/*.test.ts` 56/56, full unit suite
+  984/984, `tsc` clean.
+- **Snapshot harness** (`src/app/(app)/calculator/submit-calculation.snapshot.test.ts`, ADR 0166),
+  committed alone as `08749e6` before any Step 4 change. Real supabase-js and the real Pipedrive
+  client run against a fake `fetch`; it records every request body, the PDF render input, the
+  sales-notification arguments, logs and the returned state for seven of today's save paths. Two
+  captures on `029bb87` were byte-identical, and changing one character of the saved row failed all
+  seven scenarios. `npm test` now passes `--experimental-test-module-mocks`: 992/992.
+- **Migration `20261022000001_submission_system_designs.sql`** plus rollback and
+  [apply note](./apply-notes/0165-submission-system-designs.md), written and not applied (ADR 0165).
+  One row per project calc, insert once and never updated: internal and admin read; only
+  `service_role` inserts; no API role can update or delete; a `SECURITY DEFINER` insert trigger
+  requires `created_by` to own the submission and be an active internal user or admin.
+- **`scripts/test-rls.ts` section 25** (`25` to `25d`): partners and anon read nothing; internal and
+  admin read; partner, internal and admin sessions cannot insert, update or delete (42501);
+  service_role cannot update, delete, bank twice, or bank for a non-owner or a partner. Written,
+  not run: it runs against production, so Andy runs it after applying.
+- Checked in PGlite: 60 of 60 checks pass, with and without `service_role` holding EXECUTE on
+  `is_internal()` / `is_admin()`.
+
+### Detours & fixes
+
+- **First capture snapshotted errors.** The fake product rows had no `active` column, so the pool
+  query's `active=eq.true` matched nothing and every scenario stopped at "No active numeric-priced
+  SKUs". The harness now asserts each scenario saves. The fake also ignored `ilike`, so the
+  company-name duplicate check matched every open row; it now honors `ilike`.
+- **The ownership trigger would have blocked every real insert.** `is_internal()` and `is_admin()`
+  grant EXECUTE to `authenticated` only, and the writer is `service_role`. A plain trigger function
+  failed in PGlite with "permission denied for function is_internal" when `service_role` lacked that
+  grant. The function is now `SECURITY DEFINER` with an empty `search_path`, and EXECUTE is revoked
+  from `public`, `anon` and `authenticated`.
+
+### Decisions captured
+
+- [`0165-a-project-calcs-system-design-is-banked-once-in-a-server-written-side-table.md`](./decisions/0165-a-project-calcs-system-design-is-banked-once-in-a-server-written-side-table.md)
+- [`0166-submitcalculation-snapshot-harness-runs-real-clients-against-a-fake-fetch.md`](./decisions/0166-submitcalculation-snapshot-harness-runs-real-clients-against-a-fake-fetch.md)
+
+---
+
 ## 2026-10-19 - Suspension bans the Auth user; every partner entry point requires an active partner (ADR 0164)
 
 ### Work done
