@@ -1,6 +1,8 @@
 # Apply note: `submission_system_designs` (ADR 0165)
 
-> **Not applied yet.** Written 2026-10-22 in Project Portal Step 4, Phase A.
+> **Applied 2026-10-22** by Andy in the Supabase dashboard SQL editor. The live RLS suite passed in
+> full the same day, including the new section 25 lines (`25`, `25a`, `25b`, `25c`, `25d`).
+> Written earlier that day in Project Portal Step 4, Phase A.
 
 | | File |
 |---|---|

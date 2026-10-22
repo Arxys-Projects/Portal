@@ -46,6 +46,12 @@ modules, renders a PDF, sends mail, and calls Pipedrive through `fetch`. The tes
   commit whose partner path is the reference.
 - Captured on `029bb87` and committed alone (`08749e6`) before any Step 4 change. Two captures were
   byte-identical, and changing one character of the saved row failed all seven scenarios.
+- Re-baselined the same day (`b8925f6`) on the merge of `origin/main` (`4c3550e`), still before any
+  Step 4 change. Another session's `7268cdf` moved the account check to `requireActive()`, turning
+  one `partners` read into two. A diff across all seven scenarios showed that read as the only
+  change; the row, the Pipedrive requests, the email and PDF arguments, logs and results were
+  byte-identical. The rule for any future re-baseline is the same: diff first, and re-record only
+  when every difference is explained by a change made outside Step 4.
 
 ## Consequences
 

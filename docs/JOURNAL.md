@@ -4,6 +4,27 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-10-22 - Step 4 Phase A gate: side table applied; snapshot re-baselined on origin/main
+
+### Work done
+
+- Andy applied `20261022000001_submission_system_designs.sql` in the dashboard SQL editor, and the
+  live RLS suite passed in full, including `25` to `25d`. Recorded in the
+  [apply note](./apply-notes/0165-submission-system-designs.md).
+- The second Phase B gate is still closed: audit rows B1-S-2 / B1-A-1 and B1-S-13 are open in the
+  backlog, and no `submissions` column guard exists on `main` or any branch. Phase B has not started.
+- `origin/main` had moved by one commit from another session (`7268cdf`, every role check through
+  `viewer.ts`), which changes `submitCalculation`. Merged it locally (`4c3550e`; JOURNAL conflict
+  resolved by keeping both entries). Not pushed.
+- The snapshot test failed all seven scenarios on the merge, as it should. A diff against the
+  `029bb87` fixtures showed one change only: the account check now reads `partners` twice
+  (`requireActive()`, then `pipedrive_user_id`) where it read once. The row, every Pipedrive
+  request, the email and PDF arguments, logs and results were byte-identical, so the fixtures were
+  re-recorded on the merge and committed alone (`b8925f6`). Full suite 995/995, golden 3/3,
+  recommender 56/56, `tsc` clean.
+
+---
+
 ## 2026-10-22 - Project Portal backend, Step 4 Phase A: snapshot harness and the banked-design table (ADRs 0165, 0166)
 
 ### Work done
