@@ -113,7 +113,7 @@
       },
       {
         "service": "supabase",
-        "client": "anon",
+        "client": "service",
         "method": "PATCH",
         "url": "/rest/v1/submissions?id=eq.aaaaaaaa-aaaa-4aaa-8aaa-000000000001",
         "body": "{\"email_sent_at\":\"2026-10-22T17:00:00.000Z\"}"
@@ -174,7 +174,7 @@
       },
       {
         "service": "supabase",
-        "client": "anon",
+        "client": "service",
         "method": "PATCH",
         "url": "/rest/v1/submissions?id=eq.aaaaaaaa-aaaa-4aaa-8aaa-000000000001",
         "body": "{\"pipedrive_deal_id\":9001}"
@@ -446,7 +446,7 @@
       },
       {
         "service": "supabase",
-        "client": "anon",
+        "client": "service",
         "method": "PATCH",
         "url": "/rest/v1/submissions?id=eq.aaaaaaaa-aaaa-4aaa-8aaa-000000000001",
         "body": "{\"email_sent_at\":\"2026-10-22T17:00:00.000Z\"}"
@@ -501,7 +501,7 @@
       },
       {
         "service": "supabase",
-        "client": "anon",
+        "client": "service",
         "method": "PATCH",
         "url": "/rest/v1/submissions?id=eq.aaaaaaaa-aaaa-4aaa-8aaa-000000000001",
         "body": "{\"pipedrive_deal_id\":9001}"
@@ -759,7 +759,7 @@
       },
       {
         "service": "supabase",
-        "client": "anon",
+        "client": "service",
         "method": "PATCH",
         "url": "/rest/v1/submissions?id=eq.aaaaaaaa-aaaa-4aaa-8aaa-000000000001",
         "body": "{\"email_sent_at\":\"2026-10-22T17:00:00.000Z\"}"
@@ -820,7 +820,7 @@
       },
       {
         "service": "supabase",
-        "client": "anon",
+        "client": "service",
         "method": "PATCH",
         "url": "/rest/v1/submissions?id=eq.aaaaaaaa-aaaa-4aaa-8aaa-000000000001",
         "body": "{\"pipedrive_deal_id\":9001}"
@@ -1117,7 +1117,7 @@
       },
       {
         "service": "supabase",
-        "client": "anon",
+        "client": "service",
         "method": "PATCH",
         "url": "/rest/v1/submissions?id=eq.aaaaaaaa-aaaa-4aaa-8aaa-000000000001",
         "body": "{\"pipedrive_deal_id\":8001}"
@@ -1302,7 +1302,7 @@
       },
       {
         "service": "supabase",
-        "client": "anon",
+        "client": "service",
         "method": "PATCH",
         "url": "/rest/v1/submissions?id=eq.aaaaaaaa-aaaa-4aaa-8aaa-000000000001",
         "body": "{\"pipedrive_deal_id\":9001}"
@@ -1442,7 +1442,7 @@
       },
       {
         "service": "supabase",
-        "client": "anon",
+        "client": "service",
         "method": "PATCH",
         "url": "/rest/v1/submissions?id=eq.aaaaaaaa-aaaa-4aaa-8aaa-000000000001",
         "body": "{\"email_sent_at\":\"2026-10-22T17:00:00.000Z\"}"
@@ -1503,7 +1503,7 @@
       },
       {
         "service": "supabase",
-        "client": "anon",
+        "client": "service",
         "method": "PATCH",
         "url": "/rest/v1/submissions?id=eq.aaaaaaaa-aaaa-4aaa-8aaa-000000000001",
         "body": "{\"pipedrive_deal_id\":9001}"
@@ -1784,7 +1784,7 @@
       },
       {
         "service": "supabase",
-        "client": "anon",
+        "client": "service",
         "method": "PATCH",
         "url": "/rest/v1/submissions?id=eq.aaaaaaaa-aaaa-4aaa-8aaa-000000000001",
         "body": "{\"email_sent_at\":\"2026-10-22T17:00:00.000Z\"}"
@@ -1827,7 +1827,7 @@
       },
       {
         "service": "supabase",
-        "client": "anon",
+        "client": "service",
         "method": "PATCH",
         "url": "/rest/v1/submissions?id=eq.aaaaaaaa-aaaa-4aaa-8aaa-000000000001",
         "body": "{\"pipedrive_deal_id\":9001}"

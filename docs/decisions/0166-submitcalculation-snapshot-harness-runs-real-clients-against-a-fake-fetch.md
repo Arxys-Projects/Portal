@@ -52,6 +52,12 @@ modules, renders a PDF, sends mail, and calls Pipedrive through `fetch`. The tes
   change; the row, the Pipedrive requests, the email and PDF arguments, logs and results were
   byte-identical. The rule for any future re-baseline is the same: diff first, and re-record only
   when every difference is explained by a change made outside Step 4.
+- Re-baselined again on 2026-10-22 for ADR 0167 (the `submissions` write guard, also before any
+  Step 4 change). The `email_sent_at` stamp and the `pipedrive_deal_id` link now go through the
+  service-role client. A leaf-by-leaf diff of all seven scenarios found 12 differences, all the
+  `client` field of those two PATCH requests going from `anon` to `service` (one per revision,
+  which sends no email, two per other scenario). Bodies, paths, order and everything else were
+  identical.
 
 ## Consequences
 
