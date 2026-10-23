@@ -1,6 +1,11 @@
 # Apply note - Project Quote pin, Quote ready send log, confirmations lockdown (ADRs 0174, 0175)
 
-> Written 2026-10-23 (Step 6 Phase A). **Not applied.** Checked offline in PGlite on the real
+> **Applied 2026-10-23** by Andy in the dashboard SQL editor, both forward files. Step 2's queries
+> returned the expected rows (`trg_project_quotes_pin` with `prosecdef = true`; `authenticated`
+> `SELECT` only on both tables). The live RLS suite passed in full, `19i`, `24f`, `27`, `27a` and
+> `27b` included. **Still to do:** step 4, a real Project Quote generate.
+>
+> Written 2026-10-23 (Step 6 Phase A). Checked offline in PGlite on the real
 > migrations: 55/55, including existing rows, a legacy-shaped generate, the two race orders, and
 > each rollback reopening what it says.
 

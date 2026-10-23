@@ -37,6 +37,11 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 - **24f confirmed pricing as an internal session**, which the lockdown now refuses. The confirm step
   moved to 27b as a refusal.
 
+- **Applied the same day** by Andy in the dashboard SQL editor; the check queries matched and the
+  live RLS suite passed in full (19i, 24f, 27, 27a, 27b included). The Phase B gate's
+  partner-download check was dropped: the trigger fires only on insert, so a real generate is the
+  check that matters (pending).
+
 ### Decisions captured
 
 - [`0174-a-new-project-quote-carries-its-submissions-deal-and-the-next-version.md`](./decisions/0174-a-new-project-quote-carries-its-submissions-deal-and-the-next-version.md)
