@@ -54,6 +54,12 @@ fingerprint left out discount and role.
   calc stays quotable even after a newer revision is saved, and the rep confirms the new one when
   its lines are fixed. Simpler than per-calc confirmations.
 - A line the fingerprint cannot read (no product id) refuses, so nothing prints unchecked.
+- **Phase C test override** (Andy, 2026-10-23): test deal #5589 was rebuilt by hand during
+  development and no longer matches its calc's design. `deps.designCheckOverride = "phase-c-test"`
+  skips only the design diff in `confirmDealPricing`; every other check runs. It is set only by
+  `scripts/project-quote-phase-c.mts confirm --ignore-design-diff`, which allows deal #5589 alone, and
+  a unit test fails if any app file mentions it. The confirmation row does not record that the
+  override was used (no column for it); the JOURNAL does.
 
 ## Consequences
 

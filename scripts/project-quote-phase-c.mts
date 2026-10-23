@@ -7,7 +7,9 @@
 //   check     (default) read-only: --deal's claim, ledger, latest confirmation,
 //             current lines and fingerprint, and whether they would pass.
 //   confirm   Supabase: one quote_pricing_confirmations row for --deal, from
-//             the lines printed (confirmDealPricing as Andy).
+//             the lines printed (confirmDealPricing as Andy). --ignore-design-diff
+//             confirms a deal whose lines differ from its calc's design (test
+//             deal #5589 only, Andy 2026-10-23); the differences are printed.
 //   gate      read-only: the gate's answer for --calc's deal right now.
 //   generate  Supabase + Pipedrive: a Project Quote for --calc through the real
 //             generateProjectQuote action as Andy, with the gate on. Writes the
@@ -150,7 +152,9 @@ async function check() {
     console.log(`Would not confirm: ${pricing.message}`);
     if (pricing.diff) {
       console.log("\nThe deal's lines now:");
-      printLines(await gate.readDealLines(env.PIPEDRIVE_API_TOKEN, dealId));
+      const now = await gate.readDealLines(env.PIPEDRIVE_API_TOKEN, dealId);
+      printLines(now);
+      await compareV1V2(dealId, now);
       const d = pricing.diff;
       console.log("\nChanges to make by hand in Pipedrive so the deal matches the calc's design:");
       for (const m of d.missing) console.log(`  ADD     ${m.qty} x ${m.sku}, comment "Arxys role: ${m.role}"`);
@@ -202,14 +206,23 @@ async function compareV1V2(dealId: number, v2Lines: import("../src/lib/pipedrive
 async function confirmStep() {
   const actor = await loadActor();
   const dealId = dealArg();
-  const pricing = await gate.readDealPricing(gateDeps, dealId, actor.id);
+  const ignoreDesign = arg("ignore-design-diff") !== undefined;
+  if (ignoreDesign && dealId !== 5589) throw new Error("--ignore-design-diff is for the test deal #5589 only.");
+  const deps = ignoreDesign ? { ...gateDeps, designCheckOverride: "phase-c-test" as const } : gateDeps;
+  const pricing = await gate.readDealPricing(deps, dealId, actor.id);
   if (!pricing.ok) return console.log(`Refused: ${pricing.message}`);
+  if (!pricing.diff.clean) {
+    const d = pricing.diff;
+    console.log(
+      `OVERRIDE: deal #${dealId} does NOT match calc ${pricing.calcId}'s design (${d.missing.length} missing, ${d.extra.length} extra, ${d.quantity.length} quantity, ${d.role.length} role). Confirming anyway because --ignore-design-diff was given. The confirmation row will not show this; the JOURNAL records it.`,
+    );
+  }
   console.log(`Deal #${dealId}, current calc ${pricing.calcId}. These are the lines you are confirming (Pipedrive's values, as read now):`);
   printLines(pricing.lines);
   console.log(`Writes: one quote_pricing_confirmations row (service role) with this fingerprint and these lines, confirmed_by ${actor.id}. No Pipedrive write.`);
   if (!apply) return console.log("Dry run: nothing written. Add --apply.");
   if (!(await confirm("Confirm this deal's pricing?"))) return console.log("Nothing written.");
-  const r = await gate.confirmDealPricing(gateDeps, dealId, pricing.fingerprint, actor.id);
+  const r = await gate.confirmDealPricing(deps, dealId, pricing.fingerprint, actor.id);
   console.log(r.ok ? `Confirmed: confirmation #${r.confirmationId}.` : `Refused (${r.reason}): ${r.message}`);
   if (!r.ok) process.exitCode = 1;
 }

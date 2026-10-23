@@ -1,5 +1,7 @@
 import { describe, it, before, beforeEach, mock } from "node:test";
 import assert from "node:assert/strict";
+import { readdirSync, readFileSync, statSync } from "node:fs";
+import path from "node:path";
 
 process.env.PIPEDRIVE_API_TOKEN ??= "test-token";
 delete process.env.PIPEDRIVE_DEAL_OWNER_ID;
@@ -196,6 +198,39 @@ describe("confirmDealPricing", () => {
     assert.ok(!r.ok);
     assert.equal(r.calcId, S1);
     assert.deepEqual(r.diff?.quantity.map((q) => q.actual), [17]);
+  });
+
+  it("the Phase C override confirms a deal that differs from its design; every other check still runs", async () => {
+    lines()[0].quantity = 17;
+    const plain = await gate.readDealPricing(deps, dealId, ANDY);
+    assert.equal(!plain.ok && plain.reason, "deal-differs");
+    const over = { ...deps, designCheckOverride: "phase-c-test" as const };
+    const shown = await gate.readDealPricing(over, dealId, ANDY);
+    assert.ok(shown.ok);
+    assert.equal(shown.diff.clean, false);
+    assert.ok((await gate.confirmDealPricing(over, dealId, shown.fingerprint, ANDY)).ok);
+    // Still refused: a partner, and a pending ledger row.
+    const partner = await gate.confirmDealPricing(over, dealId, shown.fingerprint, PARTNER);
+    assert.equal(!partner.ok && partner.reason, "not-allowed");
+    db.rows("deal_line_syncs")[0].status = "failed";
+    const pending = await gate.confirmDealPricing(over, dealId, shown.fingerprint, ANDY);
+    assert.equal(!pending.ok && pending.reason, "lines-pending");
+  });
+
+  it("no app code path sets the design-check override", () => {
+    const root = path.resolve(process.cwd(), "src");
+    const hits: string[] = [];
+    const walk = (dir: string) => {
+      for (const name of readdirSync(dir)) {
+        const full = path.join(dir, name);
+        if (statSync(full).isDirectory()) walk(full);
+        else if (/\.(ts|tsx)$/.test(name) && !/\.test\.ts$/.test(name) && !full.endsWith(path.join("projects", "pricing-gate.ts"))) {
+          if (readFileSync(full, "utf8").includes("designCheckOverride")) hits.push(path.relative(root, full));
+        }
+      }
+    };
+    walk(root);
+    assert.deepEqual(hits, []);
   });
 
   it("refuses a deal the portal did not build", async () => {

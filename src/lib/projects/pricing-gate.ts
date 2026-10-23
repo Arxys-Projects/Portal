@@ -41,7 +41,15 @@ export function quoteGateEnabled(): boolean {
   return process.env[PROJECT_QUOTE_GATE_FLAG] === "true";
 }
 
-export type PricingGateDeps = { admin: SupabaseClient; pipedriveToken: string };
+export type PricingGateDeps = {
+  admin: SupabaseClient;
+  pipedriveToken: string;
+  // Step 6 Phase C live test only: confirm a deal whose lines differ from its
+  // calc's design (Andy, 2026-10-23: test deal #5589 was rebuilt by hand during
+  // development). Constructed only in scripts/; app code never sets it, and a
+  // unit test fails if any app file mentions it. Every other check still runs.
+  designCheckOverride?: "phase-c-test";
+};
 
 // The gate fingerprint, as stored on a confirmation or shown to the rep.
 export const gateFingerprintSchema = z
@@ -179,7 +187,7 @@ async function readCheckedPricing(deps: PricingGateDeps, dealId: number): Promis
     return refuse("deal-differs", `A line on deal #${dealId} could not be read. Check the deal in Pipedrive.`, { dealId });
   }
   const diff = diffBomAgainstDeal(calc.bom, lines, codeMap(products));
-  if (!diff.clean) {
+  if (!diff.clean && deps.designCheckOverride !== "phase-c-test") {
     return refuse(
       "deal-differs",
       `Deal #${dealId} does not match the system design of calc ${calc.submissionId} (${diff.missing.length} missing, ${diff.extra.length} extra, ${diff.quantity.length} quantity, ${diff.role.length} role). Fix the lines in Pipedrive first.`,
