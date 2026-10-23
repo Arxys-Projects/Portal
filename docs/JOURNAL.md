@@ -4,6 +4,36 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-10-23 - Project Portal backend, Step 6 Phase C: live test on deal #5589; Step 6 done
+
+### Work done
+
+- Andy ran `scripts/project-quote-phase-c.mts` himself, one write at a time:
+  - Confirmation #21 on deal #5589.
+  - A gated Project Quote v2 (PDF attached, deal title renamed, "Prepared for" Cornerstone
+    Detention - HQ / Ken Fuller). Andy checked the PDF.
+  - A price edit in Pipedrive that the gate refused, then restored, after which it passed.
+  - One Quote ready email to his own address, which arrived with the PDF.
+- Verified live: the v2 deal-line field names, the v1 and v2 builds of the quote lines being
+  identical, the email's line check, SMTP delivery, the BCC dropped when the To is the SMTP mailbox.
+- Both flags stay off in production.
+
+### Detours & fixes
+
+- **`check` refused with only a count.** The first run said "2 missing, 4 extra" without saying
+  against which calc or which lines. The refusal now carries the calc id and the diff, and `check`
+  prints the deal's lines and each change to make (`7a4e6a7`).
+- **Deal #5589 no longer matched its design.** Andy had rebuilt its lines by hand several times
+  during development, in shapes the design rules cannot express (V500 failovers for V800s, four
+  V255s, SFP28s). He chose a test-only override over changing the rule for every deal: `confirm
+  --ignore-design-diff`, deal #5589 only, set only in the script, guarded by a unit test (ADR 0176,
+  `1590e47`). Every other confirm check still ran.
+- **"Order DIFFERENT" in the v1/v2 comparison was a false alarm.** v1 returns lines out of
+  `order_nr` sequence; both PDF line tables sort by `order_nr`, so the comparison now uses the
+  printed order (`9ecb9b3`).
+- **CONFIRM typed in the chat does not reach the script.** Commands run from the chat's `!` input
+  cannot read the prompt; the `--apply` runs worked from the Terminal tab.
+
 ## 2026-10-23 - Project Portal backend, Step 6 Phase B: pricing gate, Prepared for, Quote ready email
 
 ### Work done
