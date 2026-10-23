@@ -4,6 +4,36 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-10-23 - Project calc revisions save and quote from the plain calculator (ADR 0173)
+
+### Work done
+
+- Andy edited the Escambia project calc (`b13830ef`, deal #5589) on `/calculator?revise=…` and
+  needed to save it and generate a Project Quote at once. Two Step 4 rules blocked him: a project
+  revision with no system design was refused (the plain page sends none), and a project revision kept
+  `pipedrive_deal_id` null, which Generate Project Quote needs.
+- `submitCalculation`: a project revision with no design now reuses the source's banked design
+  (`requestFromResolvedDesign` in `resolve.ts`, `readBankedDesignRequest` in `calc-save.ts`);
+  defaulted failover values default again, the rep's own carry over. With nothing banked it is
+  refused as before. A project revision whose source has a deal takes the same deal id, as service
+  role, with no Pipedrive call; a failed link is a warning.
+- Review gate (quick, both PASS WITH NOTES), notes fixed: every linked revision warns that the deal
+  still holds the original lines (the quote reads the deal's lines, the sizing reads the revision);
+  a missing "defaulted" flag counts as defaulted; the carried design goes through the zod bounds; the
+  contact-refusal test now proves the design is never read.
+- `scripts/project-deal-phase-b.mts` gains a read-only `diff --deal --calc` step: the changes to make
+  by hand in Pipedrive when a revision's BOM differs from the deal's lines.
+- Tests: 3 resolver tests, 4 harness tests (carried design gives the same BOM and banked design;
+  deal link inherited as service role with no Pipedrive call and no email; link failure warns; no
+  banked design still refuses). Full suite 1113/1113; the seven partner snapshots unchanged; `tsc`
+  and lint clean.
+
+### Decisions captured
+
+- [`0173-project-calc-revisions-from-the-plain-calculator-keep-their-design-and-their-deal.md`](./decisions/0173-project-calc-revisions-from-the-plain-calculator-keep-their-design-and-their-deal.md)
+
+---
+
 ## 2026-10-23 - Project Portal backend, Step 5 Phase B: live end-to-end test passed on deal #5589 (ADR 0172)
 
 ### Work done

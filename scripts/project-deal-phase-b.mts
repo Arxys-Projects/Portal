@@ -18,6 +18,8 @@
 //   create-deal           Supabase + Pipedrive: createProjectDeal for --calc after
 //                         Andy confirms the previewed lines and the deal header.
 //   retry-lines           Supabase + Pipedrive: retryMissingLines for --deal.
+//   diff                  read-only: --calc (a revision, say) against --deal's lines,
+//                         as the changes to make by hand in Pipedrive.
 //   verify                read-only: the diff, the deal header, the ledger, each
 //                         line's price, the deal value against Pipedrive's line
 //                         sums, and whether search and the org's deals show the
@@ -33,6 +35,7 @@
 //   ... create-deal --calc=<uuid> --apply
 //   ... retry-lines --deal=<id> --apply
 //   ... verify --deal=<id>
+//   ... diff --deal=<id> --calc=<uuid>
 // Options: --source=<uuid> (default the Escambia calc 59b730df-...),
 // --company-name=<text> (default "Cornerstone"), --again (save-calc when the
 // project already has a calc).
@@ -611,6 +614,28 @@ async function verify() {
   await verifyDeal(await loadActor(), dealIdArg());
 }
 
+// Read-only: a calc of the deal's project (a revision, say) against the deal's
+// current lines. Revisions never rewrite lines; this shows what to change by hand.
+async function diff() {
+  const actor = await loadActor();
+  const dealId = dealIdArg();
+  const calcId = uuidArg("calc");
+  const pd = await projectDeal();
+  const r = await pd.diffDealLines(deps, dealId, calcId, actor.id);
+  if (!r.ok) {
+    console.log(`Refused (${r.reason}): ${r.message}`);
+    process.exitCode = 1;
+    return;
+  }
+  const d = r.diff;
+  if (d.clean) return console.log(`Deal #${dealId} matches calc ${calcId}: nothing to change.`);
+  console.log(`Deal #${dealId} against calc ${calcId}:`);
+  for (const m of d.missing) console.log(`  ADD     ${m.sku} (${m.role}) qty ${m.qty}`);
+  for (const q of d.quantity) console.log(`  CHANGE  ${q.sku} (${q.role}) qty ${q.actual} -> ${q.expected} (line #${q.attachmentId})`);
+  for (const x of d.role) console.log(`  ROLE    ${x.sku} qty ${x.qty} is filed as ${x.actual}, the calc has it as ${x.expected} (line #${x.attachmentId})`);
+  for (const e of d.extra) console.log(`  EXTRA   ${e.sku ?? `product #${e.productId}`} (${e.role ?? "no role"}) qty ${e.qty} (line #${e.attachmentId}) is not in the calc`);
+}
+
 async function selfTest() {
   // The action's own import graph gets the mocked server client: the account
   // gate inside it fails with the script's message when no one is signed in.
@@ -632,6 +657,7 @@ const steps: Record<string, () => Promise<unknown>> = {
   "create-deal": createDeal,
   "retry-lines": retryLines,
   verify,
+  diff,
 };
 
 // A Ctrl-C during save-calc still signs the script session out.

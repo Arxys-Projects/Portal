@@ -298,3 +298,39 @@ export function dedicatedManagementSuggestion(
     "Consider a dedicated management server."
   );
 }
+
+/**
+ * The rep's choices behind a banked ResolvedSystemDesign, as a request again
+ * (ADR 0173): what a revision opened from the plain calculator page reuses when
+ * it sends no design. Failover days and ratio that came from the rules go back
+ * as unset, so they default again from the revised calc; the rep's own values
+ * carry over. Read from jsonb, so anything unreadable returns null and the save
+ * is refused as before.
+ */
+export function requestFromResolvedDesign(raw: unknown): SystemDesignRequest | null {
+  if (!raw || typeof raw !== "object") return null;
+  const d = raw as Record<string, unknown>;
+  const failover = (d.failover ?? null) as Record<string, unknown> | null;
+  const management = (d.management ?? null) as Record<string, unknown> | null;
+  const workstations = (d.workstations ?? null) as Record<string, unknown> | null;
+  if (typeof d.sfp !== "boolean" || typeof d.gpu !== "boolean" || !failover || !management || !workstations) return null;
+  if (typeof failover.enabled !== "boolean" || typeof management.dedicated !== "boolean") return null;
+  const count = workstations.count;
+  if (typeof count !== "number") return null;
+
+  const req: SystemDesignRequest = { sfp: d.sfp, gpu: d.gpu };
+  req.failover = failover.enabled
+    ? {
+        enabled: true,
+        // A missing flag (an older banked shape) counts as defaulted.
+        days: failover.daysDefaulted !== false ? null : (failover.days as number | null),
+        primariesPerFailover:
+          failover.ratioDefaulted !== false ? null : (failover.primariesPerFailover as number | null),
+      }
+    : { enabled: false };
+  req.management = management.dedicated
+    ? { dedicated: true, failoverPair: management.units === 2, sku: (management.sku as string | null) ?? null }
+    : { dedicated: false };
+  req.workstations = { count, sku: (workstations.sku as string | null) ?? null };
+  return req;
+}

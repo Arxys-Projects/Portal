@@ -1,5 +1,6 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { requestFromResolvedDesign, type SystemDesignRequest } from "@/lib/system-design/resolve";
 
 // The reads a project calc save makes before it writes (Project Portal Step 4;
 // ADRs 0152, 0165). `admin` is the service-role client: the project tables are
@@ -144,4 +145,25 @@ export async function projectDuplicateWarnings(
     `This project already has ${others.length} other open calc${others.length > 1 ? "s" : ""} ` +
       `from the last 14 days (${names}). Check the project before quoting it twice.`,
   ];
+}
+
+export type BankedDesignRequest =
+  | { status: "ok"; request: SystemDesignRequest }
+  | { status: "none" }
+  | { status: "db-error"; error: unknown };
+
+/**
+ * The design request behind a calc's banked design (ADR 0173), for a revision
+ * of it that sends none. "none" when the calc has no banked design or it is
+ * unreadable.
+ */
+export async function readBankedDesignRequest(admin: SupabaseClient, submissionId: string): Promise<BankedDesignRequest> {
+  const { data, error } = await admin
+    .from("submission_system_designs")
+    .select("resolved_design")
+    .eq("submission_id", submissionId)
+    .maybeSingle();
+  if (error) return { status: "db-error", error };
+  const request = data ? requestFromResolvedDesign(data.resolved_design) : null;
+  return request ? { status: "ok", request } : { status: "none" };
 }

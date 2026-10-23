@@ -159,6 +159,8 @@ function queryRows(table: string, params: URLSearchParams): Row[] {
     } else if (value.startsWith("in.(") && value.endsWith(")")) {
       const want = new Set(value.slice(4, -1).split(",").map((v) => v.replace(/^"|"$/g, "")));
       rows = rows.filter((r) => want.has(String(r[key])));
+    } else if (value === "is.null") {
+      rows = rows.filter((r) => r[key] === null || r[key] === undefined);
     } else if (value.startsWith("ilike.")) {
       const escaped = value.slice(6).replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/[%*]/g, ".*");
       const re = new RegExp(`^${escaped}$`, "i");
@@ -1073,6 +1075,8 @@ describe("submitCalculation project calcs (Phase B)", () => {
 
   it("refuses a non-internal caller revising a project calc, with no Pipedrive call", async () => {
     seedProjectCalc();
+    // A source with a deal: the refusal must come before the design carry and the deal link (ADR 0173).
+    tables.submissions.find((r) => r.id === PROJECT_CALC_ID)!.pipedrive_deal_id = 5589;
     // The primary contact's login can see the calc through on_behalf_of_partner_id.
     const o = await runProject(TARGET_ID, {
       ...FULL_CALC_PAYLOAD,
@@ -1082,6 +1086,7 @@ describe("submitCalculation project calcs (Phase B)", () => {
     assert.equal(o.result.status, "error");
     assert.equal(o.result.error, "Arxys prepared this quote, so only Arxys can revise it. Ask your Arxys rep for a change.");
     assert.equal(o.requests.filter((r) => r.method !== "GET").length, 0);
+    assert.ok(!o.requests.some((r) => r.url.includes("submission_system_designs")), "the banked design is never read");
     assert.equal(pipedriveCalls(o).length, 0);
     assert.equal(o.emails.length, 0);
   });
@@ -1194,7 +1199,69 @@ describe("submitCalculation project calcs (Phase B)", () => {
     assert.equal(requests.filter((r) => r.method !== "GET").length, 0);
   });
 
-  it("refuses a project calc sent with no system design, so a revision cannot drop its add-ons", async () => {
+  it("a revision sent with no system design keeps its source's banked design (ADR 0173)", async () => {
+    // The source is saved first, so its design is banked the way a real save banks it.
+    const first = await runProject(INTERNAL_ID, PROJECT_PAYLOAD);
+    assert.equal(first.result.status, "ok", first.result.error);
+    const sourceId = first.result.submissionId!;
+    const sourceBom = first.result.project!.bom;
+    const o = await runProject(INTERNAL_ID, {
+      ...PROJECT_PAYLOAD,
+      projectId: null,
+      systemDesign: undefined,
+      isRevision: true,
+      sourceSubmissionId: sourceId,
+    });
+    assert.equal(o.result.status, "ok", o.result.error);
+    assert.equal(o.result.project?.projectId, PROJECT_ID);
+    assert.deepStrictEqual(o.result.project?.bom, sourceBom, "same groups, same carried design, same BOM");
+    const banked = tables.submission_system_designs.find((d) => d.submission_id === o.result.submissionId);
+    const source = tables.submission_system_designs.find((d) => d.submission_id === sourceId);
+    assert.deepStrictEqual(banked?.resolved_design, source?.resolved_design);
+    assert.equal(pipedriveCalls(o).length, 0);
+  });
+
+  it("a revision of a project calc that has a deal stays on that deal, with no Pipedrive call (ADR 0173)", async () => {
+    const first = await runProject(INTERNAL_ID, PROJECT_PAYLOAD);
+    assert.equal(first.result.status, "ok", first.result.error);
+    const sourceId = first.result.submissionId!;
+    tables.submissions.find((r) => r.id === sourceId)!.pipedrive_deal_id = 5589;
+    const emailsBefore = first.emails.length;
+    const o = await runProject(INTERNAL_ID, {
+      ...PROJECT_PAYLOAD,
+      projectId: null,
+      systemDesign: undefined,
+      isRevision: true,
+      sourceSubmissionId: sourceId,
+    });
+    assert.equal(o.result.status, "ok", o.result.error);
+    assert.equal(tables.submissions.find((r) => r.id === o.result.submissionId)?.pipedrive_deal_id, 5589);
+    const link = o.requests.find((r) => r.method === "PATCH" && r.body === JSON.stringify({ pipedrive_deal_id: 5589 }));
+    assert.ok(link, "the deal link is written");
+    assert.equal(link?.client, "service");
+    assert.match(link?.url ?? "", /pipedrive_deal_id=is\.null/);
+    assert.equal(pipedriveCalls(o).length, 0, "no Pipedrive call: the deal and its lines are not touched");
+    assert.equal(o.emails.length, emailsBefore, "a revision sends no email");
+    assert.ok(o.result.recommendation?.warnings.some((w) => /deal #5589 still has the lines/.test(w)));
+  });
+
+  it("a revision whose deal link fails is still saved, with a warning (ADR 0173)", async () => {
+    const first = await runProject(INTERNAL_ID, PROJECT_PAYLOAD);
+    const sourceId = first.result.submissionId!;
+    tables.submissions.find((r) => r.id === sourceId)!.pipedrive_deal_id = 5589;
+    failPatchOn.add("pipedrive_deal_id");
+    const o = await runProject(INTERNAL_ID, {
+      ...PROJECT_PAYLOAD,
+      projectId: null,
+      isRevision: true,
+      sourceSubmissionId: sourceId,
+    });
+    assert.equal(o.result.status, "ok", o.result.error);
+    assert.ok(o.result.recommendation?.warnings.some((w) => /could not be linked to Pipedrive deal #5589/.test(w)));
+    assert.equal(pipedriveCalls(o).length, 0);
+  });
+
+  it("refuses a project revision sent with no system design when its source has none banked", async () => {
     seedProjectCalc();
     const o = await runProject(INTERNAL_ID, {
       ...PROJECT_PAYLOAD,

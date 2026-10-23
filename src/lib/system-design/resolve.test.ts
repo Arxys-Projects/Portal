@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   dedicatedManagementSuggestion,
   defaultFailoverDays,
+  requestFromResolvedDesign,
   resolveSystemDesign,
   type CalcDesignInputs,
   type SystemDesignRequest,
@@ -415,5 +416,50 @@ describe("dedicatedManagementSuggestion", () => {
       ),
     );
     assert.equal(dedicatedManagementSuggestion(dedicated, 18, 9), null);
+  });
+});
+
+describe("requestFromResolvedDesign (ADR 0173)", () => {
+  it("round-trips the rep's choices, and lets defaulted failover values default again", () => {
+    const chosen: SystemDesignRequest = {
+      sfp: false,
+      gpu: true,
+      failover: { enabled: true },
+      management: { dedicated: true, failoverPair: true, sku: "VX5-V255-MGM" },
+      workstations: { count: 2, sku: "VX5-SW20-200" },
+    };
+    const first = ok(resolveSystemDesign(calc({ systemDesign: chosen }), {}, seedRules(), CATALOG));
+    const again = requestFromResolvedDesign(JSON.parse(JSON.stringify(first.design)));
+    assert.deepEqual(again, {
+      sfp: false,
+      gpu: true,
+      failover: { enabled: true, days: null, primariesPerFailover: null },
+      management: { dedicated: true, failoverPair: true, sku: "VX5-V255-MGM" },
+      workstations: { count: 2, sku: "VX5-SW20-200" },
+    });
+    const second = ok(resolveSystemDesign(calc({ systemDesign: again }), {}, seedRules(), CATALOG));
+    assert.deepEqual(second.design, first.design);
+  });
+
+  it("keeps failover values the rep set, and an all-off design", () => {
+    const set = ok(resolveSystemDesign(calc({ systemDesign: { failover: { enabled: true, days: 20, primariesPerFailover: 3 } } }), {}, seedRules(), CATALOG));
+    assert.deepEqual(requestFromResolvedDesign(set.design)?.failover, { enabled: true, days: 20, primariesPerFailover: 3 });
+    const off = ok(resolveSystemDesign(calc(), {}, seedRules(), CATALOG));
+    assert.deepEqual(requestFromResolvedDesign(off.design), {
+      sfp: false,
+      gpu: false,
+      failover: { enabled: false },
+      management: { dedicated: false },
+      workstations: { count: 0, sku: null },
+    });
+  });
+
+  it("returns null for anything unreadable", () => {
+    assert.equal(requestFromResolvedDesign(null), null);
+    // An older banked shape with no defaulted flags: the values default again.
+    const old = { sfp: false, gpu: false, failover: { enabled: true, days: 45, primariesPerFailover: 2 }, management: { dedicated: false }, workstations: { count: 0, sku: null } };
+    assert.deepEqual(requestFromResolvedDesign(old)?.failover, { enabled: true, days: null, primariesPerFailover: null });
+    assert.equal(requestFromResolvedDesign({ sfp: "yes" }), null);
+    assert.equal(requestFromResolvedDesign({ sfp: false, gpu: false, failover: {}, management: { dedicated: false }, workstations: { count: 0 } }), null);
   });
 });

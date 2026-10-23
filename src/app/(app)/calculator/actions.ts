@@ -34,6 +34,7 @@ import { sizeProjectDesign } from "@/lib/system-design/size";
 import {
   loadProjectForCalc,
   projectDuplicateWarnings,
+  readBankedDesignRequest,
   readProjectLink,
   type ProjectForCalc,
 } from "@/lib/projects/calc-save";
@@ -352,12 +353,33 @@ export async function submitCalculation(
     // A missing design would resolve to every add-on off and quote recorders
     // only, which is how a revision opened from the plain calculator page
     // (it sends no design) would silently under-quote. The project screens
-    // always send one, even with everything off.
+    // always send one, even with everything off. Until they exist, a revision
+    // sent with none keeps its source's banked design (ADR 0173); with no
+    // readable banked design it is refused as before.
     if (!systemDesignRequest) {
-      return {
-        status: "error",
-        error: "This calc belongs to a project. Open it from its project so its system design is saved with it.",
-      };
+      const carried = sourceSubmission
+        ? await readBankedDesignRequest(admin, sourceSubmission.id)
+        : ({ status: "none" } as const);
+      if (carried.status === "db-error") {
+        console.error("[submit load source design]", carried.error);
+        return { status: "error", error: "We could not load the calc you are revising. Please try again." };
+      }
+      if (carried.status === "none") {
+        return {
+          status: "error",
+          error: "This calc belongs to a project. Open it from its project so its system design is saved with it.",
+        };
+      }
+      // The same bounds a sent design gets; a banked row that fails them refuses.
+      const checked = systemDesignSchema.safeParse(carried.request);
+      if (!checked.success) {
+        console.error("[submit carried design out of bounds]", checked.error.issues);
+        return {
+          status: "error",
+          error: "This calc belongs to a project. Open it from its project so its system design is saved with it.",
+        };
+      }
+      systemDesignRequest = checked.data;
     }
   }
 
@@ -931,9 +953,33 @@ export async function submitCalculation(
 
   // Project Portal Step 4 (ADR 0169): a project calc makes no Pipedrive call,
   // fresh or revised: Step 5 creates its deal by Pipedrive id, with product
-  // lines. So the name-based upsert and the revise path below never run for it,
-  // and its pipedrive_deal_id stays null.
+  // lines. So the name-based upsert and the revise path below never run for it.
+  // A revision stays on its source's deal (ADR 0173): the deal is the
+  // project's (ADR 0170), so the new row takes the same pipedrive_deal_id, set
+  // as service role (ADR 0167), with no Pipedrive call and no change to the
+  // deal's lines. A fresh project calc keeps it null until Step 5 creates one.
   if (projectDesign) {
+    const dealWarnings: string[] = [];
+    const sourceDealId = sourceSubmission?.pipedrive_deal_id ?? null;
+    if (sourceDealId) {
+      const { error: linkError } = await admin
+        .from("submissions")
+        .update({ pipedrive_deal_id: sourceDealId })
+        .eq("id", inserted.id)
+        .is("pipedrive_deal_id", null);
+      if (linkError) {
+        console.error("[submit link project revision to deal]", { submissionId: inserted.id, error: linkError });
+        dealWarnings.push(
+          `This revision was saved, but it could not be linked to Pipedrive deal #${sourceDealId}. Ask an admin to link it before generating a quote.`,
+        );
+      } else {
+        // The Project Quote takes its lines and prices from the deal, which still
+        // holds the lines of the calc it was built from.
+        dealWarnings.push(
+          `Pipedrive deal #${sourceDealId} still has the lines of the calc it was built from. Check them against this revision and update the deal before generating a quote.`,
+        );
+      }
+    }
     return {
       status: "ok",
       submissionId: inserted.id,
@@ -941,7 +987,7 @@ export async function submitCalculation(
         winner: recommendation.winner,
         alternatives: recommendation.alternatives,
         // Resolution, primary, failover and management advice, then duplicates.
-        warnings: [...projectDesign.sizing.warnings, ...duplicateWarnings],
+        warnings: [...projectDesign.sizing.warnings, ...duplicateWarnings, ...dealWarnings],
         totals,
         utilizationPct: input.utilizationPct,
       },
