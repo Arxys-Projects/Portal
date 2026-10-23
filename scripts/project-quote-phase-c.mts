@@ -146,7 +146,22 @@ async function check() {
     .limit(3);
   console.log("Latest confirmations:", confs);
   const pricing = await gate.readDealPricing(gateDeps, dealId, actor.id);
-  if (!pricing.ok) return console.log(`Would not confirm: ${pricing.message}`);
+  if (!pricing.ok) {
+    console.log(`Would not confirm: ${pricing.message}`);
+    if (pricing.diff) {
+      console.log("\nThe deal's lines now:");
+      printLines(await gate.readDealLines(env.PIPEDRIVE_API_TOKEN, dealId));
+      const d = pricing.diff;
+      console.log("\nChanges to make by hand in Pipedrive so the deal matches the calc's design:");
+      for (const m of d.missing) console.log(`  ADD     ${m.qty} x ${m.sku}, comment "Arxys role: ${m.role}"`);
+      for (const e of d.extra) {
+        console.log(`  EXTRA   line ${e.attachmentId}: product ${e.productId} (${e.sku ?? "no code"}), qty ${e.qty ?? "?"}, role ${e.role ?? "none in the comment"}. Remove it, or set its comment if it is a design line.`);
+      }
+      for (const q of d.quantity) console.log(`  QTY     line ${q.attachmentId}: ${q.sku} (${q.role}) is ${q.actual ?? "?"}, the design says ${q.expected}`);
+      for (const r of d.role) console.log(`  ROLE    line ${r.attachmentId}: ${r.sku} is marked ${r.actual}, the design says ${r.expected}; change its comment to "Arxys role: ${r.expected}"`);
+    }
+    return;
+  }
   console.log(`Current calc for the deal: ${pricing.calcId}. Lines now:`);
   printLines(pricing.lines);
   const now = await gate.checkQuoteGate(gateDeps, dealId, pricing.calcId);

@@ -182,8 +182,8 @@ async function readCheckedPricing(deps: PricingGateDeps, dealId: number): Promis
   if (!diff.clean) {
     return refuse(
       "deal-differs",
-      `Deal #${dealId} does not match the calc's system design (${diff.missing.length} missing, ${diff.extra.length} extra, ${diff.quantity.length} quantity, ${diff.role.length} role). Fix the lines in Pipedrive first.`,
-      { dealId },
+      `Deal #${dealId} does not match the system design of calc ${calc.submissionId} (${diff.missing.length} missing, ${diff.extra.length} extra, ${diff.quantity.length} quantity, ${diff.role.length} role). Fix the lines in Pipedrive first.`,
+      { dealId, calcId: calc.submissionId, diff },
     );
   }
   return { ok: true, dealId, calcId: calc.submissionId, lines, fingerprint: fingerprintGateLines(lines), diff };

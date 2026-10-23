@@ -99,6 +99,9 @@ export type Refusal = {
   message: string;
   refusals?: LineRefusal[];
   dealId?: number;
+  // Step 6: the calc a deal was checked against, and how it differs.
+  calcId?: string;
+  diff?: DealLinesDiff;
 };
 
 export type LineOutcome = { sku: string; role: ServerRole; status: "pending" | "sending" | "added" | "failed"; error?: string | null };

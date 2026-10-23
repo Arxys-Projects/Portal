@@ -192,6 +192,10 @@ describe("confirmDealPricing", () => {
     lines()[0].quantity = 17;
     r = await gate.readDealPricing(deps, dealId, ANDY);
     assert.equal(!r.ok && r.reason, "deal-differs");
+    // The refusal carries the calc and the diff, so the rep sees what to fix.
+    assert.ok(!r.ok);
+    assert.equal(r.calcId, S1);
+    assert.deepEqual(r.diff?.quantity.map((q) => q.actual), [17]);
   });
 
   it("refuses a deal the portal did not build", async () => {
