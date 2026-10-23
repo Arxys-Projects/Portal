@@ -34,7 +34,9 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
   comment, ledger matches the deal, prices equal the products' USD prices, deal value
   $3,174,478 equals Pipedrive's line sums, the calc is linked, and search and the org's deal list
   show the project id. **VERIFY PASSED.** Andy confirmed the sales email with the PDF arrived.
-  The flag stays off in production until Andy sets it in Vercel.
+  Andy then set `PROJECT_DEAL_PRODUCTS=true` in Vercel Production (this machine's Vercel CLI is
+  signed in to an account that cannot see the portal project), and the push of `a84c683` deployed
+  it. Nothing calls the deal functions until the screens.
 - Two operator slips cost nothing: a lowercase `confirm` wrote nothing (the prompt wants
   `CONFIRM`), and a pasted `<project-id>` placeholder failed in the shell before the script ran.
 - Pure checks in `src/lib/projects/phase-b.ts` (10 tests). Full suite 1107/1107, `tsc` and lint
