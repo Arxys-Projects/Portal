@@ -177,6 +177,13 @@ export type DealLineFingerprint = {
   quantity: number | null;
   unit_price: number | null;
   line_amount: number | null;
+  // Set only by the Step 6 pricing gate (fingerprintGateLines, ADR 0176), so a
+  // discount edit or a role change in Pipedrive changes its fingerprint. Older
+  // fingerprints (the cache, the Step 5 preview) leave them out.
+  discount?: number | null;
+  discount_type?: string | null;
+  role?: string | null;
+  currency?: string | null;
 };
 
 // ---------------------------------------------------------------------------

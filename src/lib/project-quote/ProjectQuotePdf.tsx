@@ -1474,7 +1474,10 @@ export function ProjectQuotePdf({ data }: { data: ProjectQuotePdfInput }) {
           <View style={styles.termsIdCellWide}>
             <Text style={styles.termsIdLabel}>Prepared for</Text>
             <Text style={styles.termsIdValue}>
-              {sizing.partner.companyName} — {sizing.partner.contactName}
+              {/* A project with no current contact freezes an empty name (ADR 0177). */}
+              {sizing.partner.contactName
+                ? `${sizing.partner.companyName} — ${sizing.partner.contactName}`
+                : sizing.partner.companyName}
             </Text>
           </View>
         </View>

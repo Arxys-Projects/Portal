@@ -45,6 +45,8 @@ export const GENERATE_MESSAGES = {
   deal_read_error:
     "Pipedrive could not be reached to read the deal. Try again in a moment.",
   persist_failed: "The quote could not be saved. Try again.",
+  // A version race lost twice (the pin trigger, ADR 0174, answers 23505 too).
+  version_race: "Another quote was just generated for this calc. Try again.",
   delivery_failed:
     "The quote was saved but could not be attached to the Pipedrive deal. You can retry generation to deliver it.",
 } as const;
@@ -61,6 +63,9 @@ function mapAssembleFailure(
       return { ok: false, error: GENERATE_MESSAGES.submission_not_found };
     case "deal_read_error":
       return { ok: false, error: GENERATE_MESSAGES.deal_read_error };
+    case "pricing_gate":
+    case "project_read_error":
+      return { ok: false, error: result.message };
   }
 }
 
@@ -111,7 +116,10 @@ export async function generateProjectQuoteCore(
     const code = (error as { code?: string } | null)?.code;
     if (code !== UNIQUE_VIOLATION || attempt === 1) {
       console.error("[project-quote persist]", error);
-      return { ok: false, error: GENERATE_MESSAGES.persist_failed };
+      return {
+        ok: false,
+        error: code === UNIQUE_VIOLATION ? GENERATE_MESSAGES.version_race : GENERATE_MESSAGES.persist_failed,
+      };
     }
 
     // Version race: another generate took this version. Re-assemble (which

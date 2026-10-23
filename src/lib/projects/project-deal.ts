@@ -81,7 +81,17 @@ export type RefusalReason =
   | "not-portal-deal"
   | "wrong-project"
   | "pipedrive-error"
-  | "db-error";
+  | "db-error"
+  // Step 6 (ADRs 0176, 0177): the pricing gate and the Quote ready email.
+  | "lines-pending"
+  | "empty-deal"
+  | "deal-differs"
+  | "no-confirmation"
+  | "pricing-changed"
+  | "no-recipient"
+  | "already-sent"
+  | "send-blocked"
+  | "send-failed";
 
 export type Refusal = {
   ok: false;
@@ -135,19 +145,19 @@ export function projectDealsEnabled(): boolean {
   return process.env[PROJECT_DEAL_FLAG] === "true";
 }
 
-const refuse = (reason: RefusalReason, message: string, extra: Partial<Refusal> = {}): Refusal => ({
+export const refuse = (reason: RefusalReason, message: string, extra: Partial<Refusal> = {}): Refusal => ({
   ok: false,
   reason,
   message,
   ...extra,
 });
 
-function dbRefusal(context: string, error: unknown, dealId?: number): Refusal {
+export function dbRefusal(context: string, error: unknown, dealId?: number): Refusal {
   console.error(`[project deal: ${context}]`, error);
   return refuse("db-error", `Could not ${context}. Try again, or ask an admin.`, dealId ? { dealId } : {});
 }
 
-function pipedriveRefusal(context: string, error: unknown, dealId?: number): Refusal {
+export function pipedriveRefusal(context: string, error: unknown, dealId?: number): Refusal {
   console.error(`[project deal: ${context}]`, error);
   const detail = error instanceof Error ? error.message : String(error);
   return refuse("pipedrive-error", `Pipedrive did not answer while trying to ${context}: ${detail}`, dealId ? { dealId } : {});
@@ -159,7 +169,7 @@ function pipedriveRefusal(context: string, error: unknown, dealId?: number): Ref
 
 type Actor = { id: string; pipedriveUserId: number | null };
 
-async function checkActor(admin: SupabaseClient, actorId: string): Promise<Actor | Refusal> {
+export async function checkActor(admin: SupabaseClient, actorId: string): Promise<Actor | Refusal> {
   if (!uuid.safeParse(actorId).success) return refuse("bad-input", "Invalid user id.");
   const { data, error } = await admin
     .from("partners")
@@ -173,12 +183,12 @@ async function checkActor(admin: SupabaseClient, actorId: string): Promise<Actor
   return { id: data.id as string, pipedriveUserId: typeof pd === "number" ? pd : null };
 }
 
-type CalcContext = { submissionId: string; projectId: string; bom: BomLineIn[] };
+export type CalcContext = { submissionId: string; projectId: string; bom: BomLineIn[] };
 
 // A project calc with its banked BOM. Only a calc linked in project_submissions
 // counts (Step 4 note S-3), and a linked calc with no design row is a failed
 // save (note N-1). `requireLeaf` refuses a calc a later revision supersedes.
-async function loadCalc(admin: SupabaseClient, submissionId: string, requireLeaf: boolean): Promise<CalcContext | Refusal> {
+export async function loadCalc(admin: SupabaseClient, submissionId: string, requireLeaf: boolean): Promise<CalcContext | Refusal> {
   if (!uuid.safeParse(submissionId).success) return refuse("bad-input", "Invalid calc id.");
   const link = await readProjectLink(admin, submissionId);
   if (link.status === "db-error") return dbRefusal("load the calc's project", link.error);
@@ -239,12 +249,12 @@ async function readPreview(token: string, bom: readonly BomLineIn[]): Promise<Pr
   return { lines: plan.lines, fingerprint: plan.fingerprint, products };
 }
 
-const isRefusal = (v: unknown): v is Refusal => typeof v === "object" && v !== null && (v as Refusal).ok === false;
+export const isRefusal = (v: unknown): v is Refusal => typeof v === "object" && v !== null && (v as Refusal).ok === false;
 
-const codeMap = (products: readonly PdProduct[]) =>
+export const codeMap = (products: readonly PdProduct[]) =>
   new Map(products.filter((p) => p.code).map((p) => [p.id, p.code as string]));
 
-type ClaimRow = {
+export type ClaimRow = {
   id: number;
   project_id: string;
   submission_id: string;
@@ -885,7 +895,7 @@ export async function retryMissingLines(
   return syncLines(deps, dealId, calc.bom, products, expected, warnings);
 }
 
-async function claimForDeal(admin: SupabaseClient, dealId: number): Promise<ClaimRow | Refusal> {
+export async function claimForDeal(admin: SupabaseClient, dealId: number): Promise<ClaimRow | Refusal> {
   const { data, error } = await admin
     .from("project_deal_claims")
     .select(CLAIM_COLUMNS)

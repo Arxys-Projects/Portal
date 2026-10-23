@@ -16,6 +16,7 @@ import {
 } from "@/lib/pipedrive/deal";
 import { PipedriveError } from "@/lib/pipedrive/client";
 import { resolveSubmissionPartner } from "@/lib/pdf/partner-resolution";
+import { deleteBlockedMessage } from "@/lib/pipeline/delete-blocked";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
 
@@ -63,14 +64,11 @@ export async function adminDeleteSubmission(
     .eq("id", submissionId)
     .select("id");
   if (error) {
-    // 23503 = foreign_key_violation. project_quotes.submission_id is `on
-    // delete restrict`, so a submission with a generated quote raises this
-    // instead of deleting — surface the real reason instead of a generic one.
+    // 23503 = foreign_key_violation. A quote, a deal claim, ledger rows or a
+    // pricing confirmation keep the submission (`on delete restrict`); name
+    // the one that did.
     if (error.code === "23503") {
-      return {
-        ok: false,
-        error: "This submission can't be deleted because a quote has been generated from it.",
-      };
+      return { ok: false, error: deleteBlockedMessage(error) };
     }
     return { ok: false, error: dbError(error, "admin delete submission") };
   }

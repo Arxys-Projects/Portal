@@ -1,5 +1,6 @@
 import type { DealQuote, QuoteError } from "@/lib/pipedrive/quote";
 import type { SubmissionPdfGroup, SubmissionPdfServerSpec } from "@/lib/pdf/types";
+import type { DealLineFingerprint } from "@/lib/projects/types";
 
 // ===========================================================================
 // Project Quote snapshot shape (Phase 10 Step 5a).
@@ -215,6 +216,27 @@ export type ProjectQuoteSnapshot = {
   terms: ProjectQuoteTerms;
   // Part 5.
   generation: ProjectQuoteGeneration;
+  // Step 6 (ADR 0177): present only when the calc is in a project. The Quote
+  // ready email takes its recipient from here, never from a live read.
+  preparedFor?: ProjectPreparedFor;
+  // Step 6 (ADR 0176): present only when the pricing gate checked the deal.
+  pricingGate?: ProjectQuotePricingGate;
+};
+
+export type ProjectPreparedFor = {
+  projectId: string;
+  companyId: string;
+  companyName: string;
+  contactId: string | null;
+  contactName: string | null;
+  contactEmail: string | null;
+  // Active and still at the project's company, at generation.
+  contactActive: boolean;
+};
+
+export type ProjectQuotePricingGate = {
+  confirmationId: number;
+  fingerprint: DealLineFingerprint[];
 };
 
 // ---------------------------------------------------------------------------
@@ -249,4 +271,8 @@ export type AssembleSnapshotResult =
   | { ok: false; reason: "submission_not_found"; submissionId: string }
   | { ok: false; reason: "no_deal_link"; submissionId: string }
   | { ok: false; reason: "deal_read_error"; error: QuoteError }
-  | { ok: false; reason: "empty_deal"; deal: DealQuote };
+  | { ok: false; reason: "empty_deal"; deal: DealQuote }
+  // Step 6: the pricing gate refused (ADR 0176), or the project's company and
+  // contact could not be read (ADR 0177). `message` is shown to the rep.
+  | { ok: false; reason: "pricing_gate"; message: string }
+  | { ok: false; reason: "project_read_error"; message: string };

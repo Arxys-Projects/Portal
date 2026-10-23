@@ -1,7 +1,8 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { getDealForQuote } from "@/lib/pipedrive/quote";
 import { resolveSubmissionPartner } from "@/lib/pdf/partner-resolution";
+import type { PricingGateDeps } from "@/lib/projects/pricing-gate";
+import { readQuoteInputs } from "./quote-inputs";
 import { PROJECT_QUOTE_VALIDITY_DAYS } from "./config";
 import { getProjectQuoteTerms } from "./terms";
 import {
@@ -159,9 +160,14 @@ async function loadMaxVersion(supabase: SupabaseClient, submissionId: string): P
 // stamps terms and generation meta, and returns the row ready for Step 6 to
 // insert. Surfaces the empty-deal and deal-read-error cases as typed results.
 // Does NOT insert.
+//
+// `deps` (service role and the Pipedrive token) serve the Project Portal Step 6
+// reads: the pricing gate (ADR 0176, behind PROJECT_QUOTE_GATE) and the
+// project's company and contact for "Prepared for" (ADR 0177).
 export async function assembleProjectQuoteSnapshot(
   submissionId: string,
   supabase: SupabaseClient,
+  deps: PricingGateDeps,
 ): Promise<AssembleSnapshotResult> {
   const { data: row, error } = await supabase
     .from("submissions")
@@ -177,7 +183,9 @@ export async function assembleProjectQuoteSnapshot(
     return { ok: false, reason: "no_deal_link", submissionId };
   }
 
-  const dealResult = await getDealForQuote(Number(submission.pipedrive_deal_id));
+  const inputs = await readQuoteInputs(deps, submissionId, Number(submission.pipedrive_deal_id));
+  if (!inputs.ok) return inputs;
+  const { dealResult, preparedFor: projectFor, pricingGate } = inputs;
   // Short-circuit the failure paths before doing any sizing / catalog work; the
   // pure builder re-checks and produces the same typed result.
   if (!dealResult.ok) {
@@ -245,9 +253,19 @@ export async function assembleProjectQuoteSnapshot(
       ? dealPersonName
       : preparedFor.contactName;
 
+  // A project calc is prepared for the project's company and primary contact,
+  // read by id (ADR 0177). Everything else keeps the resolver above.
+  const partner = projectFor
+    ? {
+        company_name: projectFor.companyName,
+        // No contact, or one no longer active at the company: the company alone.
+        contact_name: projectFor.contactActive ? (projectFor.contactName ?? "") : "",
+      }
+    : { company_name: preparedFor.companyName, contact_name: contactName };
+
   const sizing = buildSizingFromSubmission({
     submission,
-    partner: { company_name: preparedFor.companyName, contact_name: contactName },
+    partner,
     product,
     productSpec,
   });
@@ -262,6 +280,8 @@ export async function assembleProjectQuoteSnapshot(
     generatedAt: new Date(),
     generatedByUserId: userRes.data?.user?.id ?? "",
     validityDays: PROJECT_QUOTE_VALIDITY_DAYS,
+    ...(projectFor ? { preparedFor: projectFor } : {}),
+    ...(pricingGate ? { pricingGate } : {}),
   });
 }
 

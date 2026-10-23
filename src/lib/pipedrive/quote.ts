@@ -230,7 +230,14 @@ async function resolveProductCodes(
 
 // Single entry point for the read path. Takes a deal id and returns the typed,
 // validated quote structure or a typed error. Never throws, never writes.
-export async function getDealForQuote(dealId: number): Promise<GetDealForQuoteResult> {
+//
+// `lines`: the deal's lines already read by the Step 6 pricing gate (ADR 0176).
+// When given, they are used as they are and the deal's products are NOT read
+// again, so the quote shows exactly the lines the gate checked.
+export async function getDealForQuote(
+  dealId: number,
+  lines?: PdDealProduct[],
+): Promise<GetDealForQuoteResult> {
   if (!Number.isInteger(dealId) || dealId <= 0) {
     return { ok: false, error: { kind: "api", message: `Invalid deal id: ${String(dealId)}` } };
   }
@@ -242,17 +249,17 @@ export async function getDealForQuote(dealId: number): Promise<GetDealForQuoteRe
     // carries the line items. Both are independent reads on the same deal.
     [deal, rawProducts] = await Promise.all([
       pipedriveClient.getDeal(dealId),
-      pipedriveClient.getDealProducts(dealId),
+      lines ?? pipedriveClient.getDealProducts(dealId),
     ]);
   } catch (err) {
     return { ok: false, error: classifyError(err) };
   }
 
-  const lines = rawProducts ?? [];
+  const dealLines = rawProducts ?? [];
 
   let codeByProductId: Map<number, string | null>;
   try {
-    codeByProductId = await resolveProductCodes(lines);
+    codeByProductId = await resolveProductCodes(dealLines);
   } catch (err) {
     // resolveProductCodes already swallows per-product failures; this guards an
     // unexpected throw so the read still returns the deal (codes default null).
@@ -261,7 +268,7 @@ export async function getDealForQuote(dealId: number): Promise<GetDealForQuoteRe
   }
 
   // Preserve Pipedrive's returned line order exactly - no re-sort.
-  const lineItems = lines.map((line) =>
+  const lineItems = dealLines.map((line) =>
     mapLineItem(line, codeByProductId.get(line.product_id) ?? null),
   );
 

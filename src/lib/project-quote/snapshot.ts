@@ -6,6 +6,8 @@ import {
   type AssembleSnapshotResult,
   type ProjectQuoteCameraRow,
   type ProjectQuoteInsert,
+  type ProjectPreparedFor,
+  type ProjectQuotePricingGate,
   type ProjectQuoteServerSpec,
   type ProjectQuoteShowcaseItem,
   type ProjectQuoteShowcaseSpecHighlights,
@@ -405,6 +407,9 @@ export type SnapshotBuildInput = {
   generatedAt: Date;
   generatedByUserId: string;
   validityDays: number;
+  // Step 6: frozen only when present (ADRs 0176, 0177).
+  preparedFor?: ProjectPreparedFor;
+  pricingGate?: ProjectQuotePricingGate;
 };
 
 // Assemble the snapshot row, or surface the typed failure. The deal-read-error
@@ -442,6 +447,8 @@ export function buildProjectQuoteSnapshot(input: SnapshotBuildInput): AssembleSn
       dealId: deal.dealId,
       identifier,
     },
+    ...(input.preparedFor ? { preparedFor: input.preparedFor } : {}),
+    ...(input.pricingGate ? { pricingGate: input.pricingGate } : {}),
   };
 
   const row: ProjectQuoteInsert = {

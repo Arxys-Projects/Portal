@@ -379,3 +379,38 @@ describe("getDealForQuote - typed errors (no throw)", () => {
     assert.equal(calls.length, 0, "no fetch should be issued for an invalid id");
   });
 });
+
+// Step 6 (ADR 0176): a gated quote passes the lines the pricing gate read.
+describe("getDealForQuote - lines already read by the pricing gate", () => {
+  it("uses the given lines and never reads the deal's products again", async () => {
+    const legacy = await getDealForQuote(DEAL_ID);
+    calls.length = 0;
+    const given = await getDealForQuote(DEAL_ID, dealProducts);
+    assert.ok(legacy.ok && given.ok);
+    assert.deepEqual(given.deal.lineItems, legacy.deal.lineItems);
+    assert.equal(calls.some((c) => /\/deals\/\d+\/products/.test(c.url)), false);
+  });
+
+  it("toQuoteLines keeps every field the quote prints, so a v2 read maps like v1", async () => {
+    const { toQuoteLines } = await import("@/lib/projects/deal-lines");
+    // The same lines in the v2 shape, with the role comment v2 lines carry.
+    const v2 = dealProducts.map((l) => ({ ...l, comments: "Arxys role: recorder", tax: 0 }));
+    const mapped = toQuoteLines(v2);
+    assert.deepEqual(mapped, dealProducts);
+    const legacy = await getDealForQuote(DEAL_ID);
+    const gated = await getDealForQuote(DEAL_ID, mapped);
+    assert.ok(legacy.ok && gated.ok);
+    assert.deepEqual(gated.deal.lineItems, legacy.deal.lineItems);
+  });
+
+  it("the real chain agrees with the email's check, blank strings included (review A-10)", async () => {
+    const { toQuoteLines, fingerprintGateLines, sameQuotedLines } = await import("@/lib/projects/deal-lines");
+    const v2 = dealProducts.map((l, i) => ({ ...l, comments: "Arxys role: recorder", ...(i === 0 ? { name: "", currency: "" } : {}) }));
+    const gated = await getDealForQuote(DEAL_ID, toQuoteLines(v2));
+    assert.ok(gated.ok);
+    assert.equal(sameQuotedLines(gated.deal.lineItems, fingerprintGateLines(v2)), true);
+    // And a changed price in the stored lines does not pass.
+    const forged = gated.deal.lineItems.map((l, i) => (i === 1 ? { ...l, unitPrice: 1 } : l));
+    assert.equal(sameQuotedLines(forged, fingerprintGateLines(v2)), false);
+  });
+});

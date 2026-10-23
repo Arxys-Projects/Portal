@@ -112,6 +112,17 @@ describe("generateProjectQuoteCore — assemble failure branches", () => {
       },
       expected: GENERATE_MESSAGES.deal_read_error,
     },
+    {
+      // Step 6 (ADR 0176): the gate's own message reaches the rep.
+      name: "pricing_gate",
+      result: { ok: false, reason: "pricing_gate", message: "Deal #5589 changed in Pipedrive after its pricing was confirmed." },
+      expected: "Deal #5589 changed in Pipedrive after its pricing was confirmed.",
+    },
+    {
+      name: "project_read_error",
+      result: { ok: false, reason: "project_read_error", message: "The project's company and contact could not be read." },
+      expected: "The project's company and contact could not be read.",
+    },
   ];
 
   for (const c of cases) {
@@ -196,7 +207,9 @@ describe("generateProjectQuoteCore — version conflict retry", () => {
     assert.equal((insertedRows[1] as ProjectQuoteInsert).version, 2);
   });
 
-  it("gives up with persist_failed after a second consecutive conflict", async () => {
+  // Step 6: the plain "try again" message (the pin trigger, ADR 0174, answers
+  // a taken version with 23505 too).
+  it("gives up with the version-race message after a second consecutive conflict", async () => {
     const { supabase, insertCount } = fakeSupabase([
       { error: { code: "23505" } },
       { error: { code: "23505" } },
@@ -205,7 +218,8 @@ describe("generateProjectQuoteCore — version conflict retry", () => {
       "sub-1",
       makeDeps({ supabase, assemble: async () => okResult(makeRow(1)) }),
     );
-    assert.deepEqual(res, { ok: false, error: GENERATE_MESSAGES.persist_failed });
+    assert.deepEqual(res, { ok: false, error: GENERATE_MESSAGES.version_race });
+    assert.equal(GENERATE_MESSAGES.version_race, "Another quote was just generated for this calc. Try again.");
     assert.equal(insertCount(), 2, "retries exactly once, then stops");
   });
 

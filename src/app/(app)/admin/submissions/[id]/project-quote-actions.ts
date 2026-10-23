@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { env } from "@/lib/env";
 import { requireStaff } from "@/lib/auth/viewer";
 import { assembleProjectQuoteSnapshot } from "@/lib/project-quote/assemble";
 import {
@@ -57,7 +59,12 @@ export async function generateProjectQuote(
 
   const result = await generateProjectQuoteCore(submissionId, {
     supabase,
-    assemble: (sid) => assembleProjectQuoteSnapshot(sid, supabase),
+    // Service role for the Step 6 reads (pricing gate, project "Prepared for").
+    assemble: (sid) =>
+      assembleProjectQuoteSnapshot(sid, supabase, {
+        admin: createSupabaseAdminClient(),
+        pipedriveToken: env.PIPEDRIVE_API_TOKEN,
+      }),
     render: (snapshot) => renderProjectQuotePdfBuffer(snapshot, { partnerLogoDataUri }),
     filename: (snapshot) => projectQuotePdfFilename(snapshot),
     deliver: (dealId, filename, buffer) => pipedriveClient.addDealFile(dealId, filename, buffer),

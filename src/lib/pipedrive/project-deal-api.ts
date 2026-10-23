@@ -36,6 +36,14 @@ export type PdV2DealProduct = {
   comments?: string | null;
   sum?: number | null;
   name?: string | null;
+  // Read by the Step 6 pricing gate and the Project Quote (ADR 0176). Names
+  // from the v2 reference's request body (2026-10-23); the response is read
+  // defensively until a live read confirms them.
+  discount?: number | null;
+  discount_type?: string | null;
+  tax?: number | null;
+  currency?: string | null;
+  order_nr?: number | null;
 };
 
 type PdV2Pipeline = { id: number; name: string };
@@ -108,6 +116,8 @@ export async function addDealProductV2(token: string, dealId: number, body: AddD
   return line.id;
 }
 
-export function listDealProductsV2(token: string, dealId: number): Promise<PdV2DealProduct[]> {
-  return listAllV2<PdV2DealProduct>(token, `/deals/${dealId}/products`);
+// Every page. `params` adds query parameters (the quote gate passes
+// sort_by=order_nr so the PDF keeps the rep's order).
+export function listDealProductsV2(token: string, dealId: number, params: Record<string, string> = {}): Promise<PdV2DealProduct[]> {
+  return listAllV2<PdV2DealProduct>(token, `/deals/${dealId}/products`, params);
 }

@@ -7,6 +7,7 @@
 // or discounts it. The portal never reads current_products for these lines.
 
 import { groupByCode, pdName, usdPrice, type PdProduct } from "@/lib/pipedrive/product-sync";
+import type { PdDealProduct } from "@/lib/pipedrive/client";
 import type { PdV2DealProduct } from "@/lib/pipedrive/project-deal-api";
 import { SERVER_ROLES, type ServerRole } from "@/lib/system-design/rules";
 import type { DealLineFingerprint } from "./types";
@@ -148,6 +149,89 @@ const ROLE_COMMENT = /arxys role:\s*(recorder|failover|mgmt|workstation)\b/i;
 export function roleFromComment(comments: string | null | undefined): ServerRole | null {
   const match = ROLE_COMMENT.exec(comments ?? "");
   return match ? (match[1].toLowerCase() as ServerRole) : null;
+}
+
+// ---------------------------------------------------------------------------
+// Pricing gate fingerprint (Step 6, ADR 0176)
+// ---------------------------------------------------------------------------
+
+const numOrNull = (v: unknown): number | null => (typeof v === "number" && Number.isFinite(v) ? v : null);
+const strOrNull = (v: unknown): string | null => (typeof v === "string" && v.length > 0 ? v : null);
+
+// The deal's lines as the rep confirms them, in the DealLineFingerprint shape
+// plus discount, discount type, role and currency, so editing a line's price,
+// discount, quantity, role, name or currency in Pipedrive changes it. Every value is Pipedrive's own,
+// copied as read; nothing is computed. code stays null: it is not on the line.
+export function fingerprintGateLines(lines: readonly PdV2DealProduct[]): DealLineFingerprint[] {
+  return lines
+    .map((l) => ({
+      // Only a real number: Number(null) would be 0 and pass as a product.
+      product_id: typeof l.product_id === "number" ? l.product_id : NaN,
+      code: null,
+      name: strOrNull(l.name),
+      quantity: numOrNull(l.quantity),
+      unit_price: numOrNull(l.item_price),
+      line_amount: numOrNull(l.sum),
+      discount: numOrNull(l.discount),
+      discount_type: strOrNull(l.discount_type),
+      role: roleFromComment(l.comments),
+      currency: strOrNull(l.currency),
+    }))
+    .filter((l) => Number.isFinite(l.product_id))
+    .sort((a, b) => gateKey(a).localeCompare(gateKey(b)));
+}
+
+// What the gate compares. Unlike sameLineItems, the line's name and currency
+// count: the PDF prints both. code is left out (it is not on the line).
+function gateKey(l: DealLineFingerprint): string {
+  return JSON.stringify([l.product_id, l.quantity, l.unit_price, l.line_amount, l.discount ?? null, l.discount_type ?? null, l.role ?? null, l.name, l.currency ?? null]);
+}
+
+// True when two gate fingerprints hold the same lines, in any order.
+export function sameGateLines(a: readonly DealLineFingerprint[], b: readonly DealLineFingerprint[]): boolean {
+  if (a.length !== b.length) return false;
+  const ka = a.map(gateKey).sort();
+  const kb = b.map(gateKey).sort();
+  return ka.every((k, i) => k === kb[i]);
+}
+
+/** The gate's v2 lines in the shape the quote reader maps (getDealForQuote). */
+export function toQuoteLines(lines: readonly PdV2DealProduct[]): PdDealProduct[] {
+  const n = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : null);
+  return lines.map((l) => ({
+    id: l.id,
+    product_id: l.product_id,
+    // Blank strings become null, exactly as fingerprintGateLines reads them,
+    // so a quote's lines always compare equal to the fingerprint they passed.
+    name: strOrNull(l.name),
+    item_price: n(l.item_price),
+    discount: n(l.discount),
+    discount_type: strOrNull(l.discount_type),
+    quantity: n(l.quantity),
+    sum: n(l.sum),
+    currency: strOrNull(l.currency),
+    order_nr: n(l.order_nr),
+  }));
+}
+
+// A frozen quote's line items (snapshot.commercial.lineItems) against a gate
+// fingerprint, as a multiset, on the fields both carry (role is not on a quote
+// line). The Quote ready email uses it to check a stored snapshot prints the
+// lines its confirmation covers.
+export function sameQuotedLines(items: unknown, fingerprint: readonly DealLineFingerprint[]): boolean {
+  if (!Array.isArray(items)) return false;
+  const key = (v: unknown[]) => JSON.stringify(v);
+  const a = items.map((raw) => {
+    const l = (raw ?? {}) as Record<string, unknown>;
+    return key([l.productId, l.quantity, l.unitPrice, numOrNull(l.discount), strOrNull(l.discountType), numOrNull(l.lineAmount), strOrNull(l.productName), strOrNull(l.currency)]);
+  });
+  const b = fingerprint.map((f) =>
+    key([f.product_id, f.quantity, f.unit_price, f.discount ?? null, strOrNull(f.discount_type), f.line_amount, strOrNull(f.name), strOrNull(f.currency)]),
+  );
+  if (a.length !== b.length) return false;
+  a.sort();
+  b.sort();
+  return a.every((k, i) => k === b[i]);
 }
 
 // ---------------------------------------------------------------------------

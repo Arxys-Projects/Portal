@@ -17,6 +17,7 @@ export class FakeDb {
   unique: Record<string, string[][]> = {
     project_deal_claims: [["project_id"], ["lineage_root_submission_id"], ["pipedrive_deal_id"]],
     deal_line_syncs: [["pipedrive_deal_id", "sku", "role"]],
+    quote_email_sends: [["project_quote_id", "to_email"]],
   };
   // Return an error to make the next matching operation fail.
   failOn: (table: string, op: Op, payload: unknown) => DbError | null = () => null;
@@ -45,7 +46,9 @@ export class FakeDb {
 
   insertRow(table: string, input: Row): Row {
     const row: Row = { ...input };
-    if (table === "deal_line_syncs" || table === "project_deal_claims") row.id = this.seq++;
+    if (["deal_line_syncs", "project_deal_claims", "quote_pricing_confirmations", "quote_email_sends"].includes(table)) row.id = this.seq++;
+    if (table === "quote_pricing_confirmations") row.confirmed_at ??= this.stamp();
+    if (table === "quote_email_sends") row.created_at ??= this.stamp();
     if (table === "deal_line_syncs") {
       row.updated_at = this.stamp();
       row.error ??= null;
@@ -67,6 +70,7 @@ class Query implements PromiseLike<{ data: unknown; error: DbError | null }> {
   private returning = false;
   private mode: "many" | "single" | "maybe" = "many";
   private limitN: number | null = null;
+  private orders: { col: string; ascending: boolean }[] = [];
   private ignoreDuplicates = false;
 
   constructor(
@@ -103,6 +107,11 @@ class Query implements PromiseLike<{ data: unknown; error: DbError | null }> {
     this.filters.push((r) => same(r[col], value));
     return this;
   }
+  // Only the form the code uses: .not(col, "is", null).
+  not(col: string, _op: "is", _value: null): this {
+    this.filters.push((r) => r[col] != null);
+    return this;
+  }
   is(col: string, value: null): this {
     this.filters.push((r) => (value === null ? r[col] == null : r[col] === value));
     return this;
@@ -117,6 +126,10 @@ class Query implements PromiseLike<{ data: unknown; error: DbError | null }> {
       return { col, value: rest.join(".") };
     });
     this.filters.push((r) => parts.some((p) => same(r[p.col], p.value)));
+    return this;
+  }
+  order(col: string, opts?: { ascending?: boolean }): this {
+    this.orders.push({ col, ascending: opts?.ascending !== false });
     return this;
   }
   limit(n: number): this {
@@ -142,7 +155,17 @@ class Query implements PromiseLike<{ data: unknown; error: DbError | null }> {
   }
 
   private match(): Row[] {
-    return this.db.rows(this.table).filter((r) => this.filters.every((f) => f(r)));
+    const rows = this.db.rows(this.table).filter((r) => this.filters.every((f) => f(r)));
+    if (this.orders.length === 0) return rows;
+    return [...rows].sort((a, b) => {
+      for (const o of this.orders) {
+        const x = a[o.col] as string | number;
+        const y = b[o.col] as string | number;
+        if (x === y) continue;
+        return (x < y ? -1 : 1) * (o.ascending ? 1 : -1);
+      }
+      return 0;
+    });
   }
 
   private shape(rows: Row[]): { data: unknown; error: DbError | null } {
@@ -202,7 +225,18 @@ class Query implements PromiseLike<{ data: unknown; error: DbError | null }> {
 // ---------------------------------------------------------------------------
 
 export type PdProductFixture = { id: number; name: string; code: string | null; is_linkable: boolean; prices: { price: number; currency: string }[] };
-export type DealLine = { id: number; product_id: number; item_price: number; quantity: number; comments: string | null };
+export type DealLine = {
+  id: number;
+  product_id: number;
+  item_price: number;
+  quantity: number;
+  comments: string | null;
+  // Step 6: the gate's fingerprint reads these too.
+  sum?: number | null;
+  discount?: number | null;
+  discount_type?: string | null;
+  order_nr?: number | null;
+};
 export type PostFault = "refuse" | "server-error" | "no-response" | "rate-limited" | "written-then-no-response";
 export type Call = { method: string; path: string; body: unknown };
 
@@ -221,6 +255,10 @@ export class FakePipedrive {
   dealFields: { field_code: string; field_name: string }[] = [{ field_code: "abc123projectfield", field_name: "arxys_project_id" }];
   deals = new Map<number, { body: Record<string, unknown>; lines: DealLine[] }>();
   calls: Call[] = [];
+  // Step 6: page deal lines this many at a time (null: one page).
+  linePageSize: number | null = null;
+  // Step 6: called before every GET; return a status to fail it.
+  onGet: (path: string) => number | null = () => null;
   // Called before every POST; return a fault to inject one.
   onPost: (path: string, body: unknown) => PostFault | null = () => null;
   private nextDeal = 501;
@@ -251,6 +289,8 @@ export class FakePipedrive {
 
   private route(method: string, path: string, url: URL, body: unknown): Response {
     if (method === "GET") {
+      const failStatus = this.onGet(path);
+      if (failStatus) return this.json(failStatus, { success: false, error: "Injected failure" });
       if (path === "/v2/products") return this.list(this.products);
       if (path === "/v2/pipelines") return this.list(this.pipelines);
       if (path === "/v2/stages") {
@@ -259,7 +299,17 @@ export class FakePipedrive {
       }
       if (path === "/v2/dealFields") return this.list(this.dealFields);
       const lines = /^\/v2\/deals\/(\d+)\/products$/.exec(path);
-      if (lines) return this.list(this.deals.get(Number(lines[1]))?.lines ?? []);
+      if (lines) {
+        const all = this.deals.get(Number(lines[1]))?.lines ?? [];
+        if (!this.linePageSize) return this.list(all);
+        const start = Number(url.searchParams.get("cursor") ?? 0);
+        const end = start + this.linePageSize;
+        return this.json(200, {
+          success: true,
+          data: all.slice(start, end),
+          additional_data: { next_cursor: end < all.length ? String(end) : null },
+        });
+      }
       // Partner path (v1), used by resolveOwnerId and resolveStageId.
       if (path === "/v1/users") return this.json(200, { success: true, data: [{ id: 999, name: "Andy Newbom" }] });
       if (path === "/v1/stages") {

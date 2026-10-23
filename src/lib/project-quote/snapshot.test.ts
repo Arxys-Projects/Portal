@@ -379,6 +379,41 @@ describe("buildProjectQuoteSnapshot", () => {
     assert.equal(row.snapshot.showcase.length, 1); // the V800 line resolves to a card
   });
 
+  // Step 6 (ADRs 0176, 0177): the project's "Prepared for" and the gate's
+  // confirmation are frozen only when present, so a legacy snapshot keeps
+  // exactly its old keys.
+  it("freezes preparedFor and pricingGate only when given", () => {
+    const legacy = buildOk(0);
+    assert.ok(legacy.ok);
+    assert.deepEqual(Object.keys(legacy.row.snapshot).sort(), ["commercial", "generation", "showcase", "sizing", "snapshotVersion", "terms"]);
+    const preparedFor = {
+      projectId: "p-1",
+      companyId: "c-1",
+      companyName: "Cornerstone Detention - HQ",
+      contactId: "k-1",
+      contactName: "Ken Fuller",
+      contactEmail: "ken@example.com",
+      contactActive: true,
+    };
+    const pricingGate = { confirmationId: 7, fingerprint: [] };
+    const project = buildProjectQuoteSnapshot({
+      submissionId: "sub-1",
+      dealResult: { ok: true, deal },
+      sizing,
+      catalogBySku: catalog,
+      terms,
+      existingMaxVersion: 0,
+      generatedAt: new Date("2026-06-16T12:00:00Z"),
+      generatedByUserId: "user-internal-1",
+      validityDays: 7,
+      preparedFor,
+      pricingGate,
+    });
+    assert.ok(project.ok);
+    assert.deepEqual(project.row.snapshot.preparedFor, preparedFor);
+    assert.deepEqual(project.row.snapshot.pricingGate, pricingGate);
+  });
+
   it("increments version as max+1 (and starts at 1 with no prior rows)", () => {
     const a = buildOk(2);
     const b = buildOk(null);

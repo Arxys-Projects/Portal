@@ -4,6 +4,46 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-10-23 - Project Portal backend, Step 6 Phase B: pricing gate, Prepared for, Quote ready email
+
+### Work done
+
+- Phase B gate met first: Andy generated a real Project Quote on the applied pin trigger.
+- The pricing gate (ADR 0176, behind `PROJECT_QUOTE_GATE`): `confirmDealPricing` and the check in
+  Project Quote generation. For a portal-built deal the lines are read once (v2, every page) and
+  the quote is built from that read.
+- "Prepared for" from the project's company and contact, by id (ADR 0177, not flagged).
+- The Quote ready email and its send log flow (ADR 0177, behind `PROJECT_QUOTE_EMAIL`), Andy's clear
+  script, and the Phase C live script.
+- Carry-ins: the admin delete message names the real blocker; the Step 4 A-5 decision is in ADR 0177.
+- Full suite 1163/1163; `tsc` and lint clean; the Step 4 snapshot harness and golden unchanged.
+
+### Detours & fixes
+
+- **The v1 line read had no paging and the gate needed discount and role.** The quote reader took
+  one v1 call. Gated deals now read v2 (every page) and hand those lines to `getDealForQuote`. The
+  Step 5 fingerprint lacked discount and role; a new gate fingerprint adds them alongside, leaving
+  the Step 5 preview and the cache untouched.
+- **"Latest confirmation" ordering:** the prompt said `created_at`, but the table has
+  `confirmed_at`; the code orders by `confirmed_at desc, id desc`.
+- **Confirm against which calc:** diffing a deal against the calc that built it would block every
+  revised deal (ADR 0173), so confirm uses the deal's current calc, the newest linked revision.
+- **Review gate pass 1 found the gate keyed only on the deal** (A-1): a confirmation made for one
+  revision passed a quote of another. The gate now requires the confirmation to be for the quoted
+  calc.
+- **Pass 1 also found the email trusted a forgeable snapshot** (S-1): an internal session can still
+  insert a quote row with any snapshot (ADR 0174). The email now checks the snapshot against live
+  rows before sending; the root fix (service-role INSERT) is left for Andy before the email is on.
+- **Blank strings broke the email's line check** (pass 2): the fingerprint turned "" into null and
+  the quote kept "". Both now normalize the same way, with a test through the real chain.
+- **`server-only` in `npm test`:** a test importing `pricing-gate.ts` failed because the suite does
+  not stub `server-only`; `toQuoteLines` and `sameQuotedLines` are pure and moved to `deal-lines.ts`.
+
+### Decisions captured
+
+- [`0176-portal-built-deals-quote-only-from-confirmed-pricing-read-once.md`](./decisions/0176-portal-built-deals-quote-only-from-confirmed-pricing-read-once.md)
+- [`0177-project-quotes-name-the-project-contact-and-email-them-once.md`](./decisions/0177-project-quotes-name-the-project-contact-and-email-them-once.md)
+
 ## 2026-10-23 - Project Portal backend, Step 6 Phase A: quote pin, send log, confirmations lockdown
 
 ### Work done
