@@ -4,7 +4,7 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
-## 2026-10-23 - Project Portal backend, Step 5 Phase B: the live-test script (ADR 0172; not run yet)
+## 2026-10-23 - Project Portal backend, Step 5 Phase B: live end-to-end test passed on deal #5589 (ADR 0172)
 
 ### Work done
 
@@ -27,9 +27,18 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
   deal #5562. Andy chose the existing "Project Pipeline" / "New Lead" and accepted a second
   Escambia deal. `PROJECT_PIPELINE_NAME` and `PROJECT_STAGE_NAME` changed accordingly; ADR 0170
   amended.
+- **The live run (Andy, each write confirmed):** created the `arxys_project_id` field (varchar);
+  the project "Escambia Men's Prison" under Cornerstone Detention - HQ with Ken Fuller (no portal
+  login); the project calc `b13830ef` (BOM 18 × V800-864 recorder, 9 × V800-864 failover,
+  1 × V250-MGM); then deal #5589 with 3 lines. `verify`: diff clean, header right, role in every
+  comment, ledger matches the deal, prices equal the products' USD prices, deal value
+  $3,174,478 equals Pipedrive's line sums, the calc is linked, and search and the org's deal list
+  show the project id. **VERIFY PASSED.** The flag stays off in production.
+- Two operator slips cost nothing: a lowercase `confirm` wrote nothing (the prompt wants
+  `CONFIRM`), and a pasted `<project-id>` placeholder failed in the shell before the script ran.
 - Pure checks in `src/lib/projects/phase-b.ts` (10 tests). Full suite 1107/1107, `tsc` and lint
   clean, `--self-test` passes (the module mocks reach the action's account gate). No step has run
-  against production.
+  against production before Andy's run.
 
 ### Detours & fixes
 
