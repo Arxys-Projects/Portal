@@ -174,8 +174,8 @@ describe("createProjectDeal", () => {
       owner_id: 13,
       org_id: 101,
       person_id: 201,
-      pipeline_id: 7,
-      stage_id: 71,
+      pipeline_id: 1,
+      stage_id: 11,
       currency: "USD",
       custom_fields: { abc123projectfield: PROJECT },
     });
@@ -247,12 +247,12 @@ describe("createProjectDeal", () => {
     assert.equal(!r.ok && r.reason, "no-project-field");
 
     seed();
-    pipedrive.pipelines = pipedrive.pipelines.filter((p) => p.name !== "Partner Projects");
+    pipedrive.pipelines = pipedrive.pipelines.filter((p) => p.name !== "Project Pipeline");
     r = await pd.createProjectDeal(deps, S1, fingerprint, ANDY);
     assert.equal(!r.ok && r.reason, "no-pipeline");
 
     seed();
-    pipedrive.stages = pipedrive.stages.filter((s) => s.name !== "New Deal");
+    pipedrive.stages = pipedrive.stages.filter((s) => s.name !== "New Lead");
     r = await pd.createProjectDeal(deps, S1, fingerprint, ANDY);
     assert.equal(!r.ok && r.reason, "no-stage");
 

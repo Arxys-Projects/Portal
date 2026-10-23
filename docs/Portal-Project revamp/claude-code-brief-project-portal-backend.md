@@ -241,6 +241,8 @@ All tables are internal-only (policies gated on `is_internal(auth.uid()) OR is_a
   - A-7: keep it. A retry after a Pipedrive price change posts the price the rep confirmed and warns.
   - A-6: `PIPEDRIVE_DEAL_OWNER_ID` is set in Vercel production, so an actor with no Pipedrive user id gets that owner with no v1 lookup.
   - Phase B: `arxys_project_id` is created as `varchar` (the prompt said "text"); the test calc and deal are made as Andy.
+  - Pipeline: project deals go into "Project Pipeline" / "New Lead", the partner path's, since no "Partner Projects" pipeline exists (Andy, after the Phase B check). ADR 0170 amended.
+  - A second Escambia deal is fine for the test; the legacy calc already has deal #5562.
 - **Open:** A-5 (Step 6 screen work): the admin delete message maps every 23503 to "a quote has been generated", and a calc with a deal claim now raises it too.
 - **Unverified until Phase B:** that v2 returns each line's `comments` as sent (retry matching and the diff depend on it); the `/dealFields` property names; that the deal search and the org deal list return `arxys_project_id`; that the deal value is computed from the lines; and the exact pipeline and stage names.
 

@@ -210,11 +210,12 @@ export class FakePipedrive {
   products: PdProductFixture[] = [];
   pipelines = [
     { id: 1, name: "Project Pipeline" },
-    { id: 7, name: "Partner Projects" },
+    // A second pipeline whose stage names must not be picked up.
+    { id: 7, name: "JCT pipeline" },
   ];
   stages = [
     { id: 11, name: "New Lead", pipeline_id: 1 },
-    { id: 71, name: "New Deal", pipeline_id: 7 },
+    { id: 71, name: "New Lead", pipeline_id: 7 },
     { id: 72, name: "Quoted", pipeline_id: 7 },
   ];
   dealFields: { field_code: string; field_name: string }[] = [{ field_code: "abc123projectfield", field_name: "arxys_project_id" }];

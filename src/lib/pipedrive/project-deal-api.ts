@@ -13,13 +13,15 @@
 //   * GET /api/v2/dealFields, /pipelines and /stages are cursor-paged lists.
 //
 // Pipeline and stage resolve by exact name on every call, uncached and apart
-// from lookups.ts: resolveStageId there caches one stage id for the partner
-// path's "Project Pipeline", whatever pipeline it is asked about.
+// from lookups.ts. Project deals go into the same "Project Pipeline" / "New
+// Lead" the partner path uses (Andy, 2026-10-23: there is no separate project
+// pipeline), but they never touch resolveStageId's cache, which holds one stage
+// id whatever pipeline it is asked about.
 
 import { listAllV2, postJsonV2 } from "./company-api";
 
-export const PROJECT_PIPELINE_NAME = "Partner Projects";
-export const PROJECT_STAGE_NAME = "New Deal";
+export const PROJECT_PIPELINE_NAME = "Project Pipeline";
+export const PROJECT_STAGE_NAME = "New Lead";
 // Created once, by hand, in Step 5 Phase B. Deliberately NOT in CUSTOM_FIELDS
 // (lookups.ts), which would create it on the partner path's next deal write.
 export const PROJECT_ID_FIELD_NAME = "arxys_project_id";

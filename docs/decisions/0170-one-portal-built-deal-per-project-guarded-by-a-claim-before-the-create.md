@@ -2,6 +2,9 @@
 
 - **Status**: Accepted
 - **Date**: 2026-10-23
+- **Amended**: 2026-10-23, before any live deal: the Phase B check found no "Partner Projects"
+  pipeline, and Andy chose the existing "Project Pipeline" / "New Lead" (the partner path's) over
+  creating one. The project path still resolves them on its own, uncached.
 - **Related**: 0093 (revision lineage), 0098 (value locked by attached products), 0118 (owner per creator), 0155 (deal-line ledger), 0165 (banked design), 0167 (server-only deal link), 0169 (project calcs make no Pipedrive call)
 
 ## Context
@@ -55,8 +58,8 @@ Options and phases (several calcs and deals per project) are out of scope for th
   `partners.pipedrive_user_id` gets the existing default: `PIPEDRIVE_DEAL_OWNER_ID` when set, else a
   v1 `/users` search for "Andy Newbom". That fallback is the one v1 call on this path, reused as
   Andy decided rather than added. `org_id` and `person_id` from the
-  project's company and active primary contact (no name-based upsert), pipeline "Partner Projects"
-  and stage "New Deal" resolved by exact name on every call (apart from `lookups.ts`, whose stage
+  project's company and active primary contact (no name-based upsert), pipeline "Project Pipeline"
+  and stage "New Lead" resolved by exact name on every call (apart from `lookups.ts`, whose stage
   cache belongs to the partner path), `currency: "USD"`, never `value`, and the project id in
   `custom_fields` under the `arxys_project_id` field's code. A missing field refuses; the code never
   creates it, and it is not in `CUSTOM_FIELDS`.

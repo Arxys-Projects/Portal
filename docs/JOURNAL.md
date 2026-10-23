@@ -21,6 +21,12 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
   `arxys_project_id`), the ledger against the deal, each line's price, the deal value against
   Pipedrive's own line sums and the calc's deal link, and reports whether the deal search and the
   org's deal list show the project id.
+- **First `check` run (Andy, read-only):** his row is active and internal with a Pipedrive user id;
+  `/api/v2/dealFields` uses `field_name`, `field_code`, `field_type` (an open Phase A question,
+  now verified); no "Partner Projects" pipeline exists, and the Escambia legacy calc already has
+  deal #5562. Andy chose the existing "Project Pipeline" / "New Lead" and accepted a second
+  Escambia deal. `PROJECT_PIPELINE_NAME` and `PROJECT_STAGE_NAME` changed accordingly; ADR 0170
+  amended.
 - Pure checks in `src/lib/projects/phase-b.ts` (10 tests). Full suite 1107/1107, `tsc` and lint
   clean, `--self-test` passes (the module mocks reach the action's account gate). No step has run
   against production.
