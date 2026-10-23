@@ -4,6 +4,47 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-10-23 - Project Portal backend, Step 5 Phase B: the live-test script (ADR 0172; not run yet)
+
+### Work done
+
+- `scripts/project-deal-phase-b.mts`: one step per run, reads by default, each write behind
+  `--apply` and a typed CONFIRM. Steps: `check`, `create-field` (`arxys_project_id`, varchar),
+  `create-project`, `save-calc`, `preview`, `create-deal`, `retry-lines`, `verify`, `--self-test`.
+- **The test calc.** Escambia (`59b730df`) is a legacy calc, which a project calc cannot revise, and
+  nothing creates projects yet. So the script adds one project row for its company and the contact
+  Andy names, then saves a fresh project calc with the same groups through the real
+  `submitCalculation`, as Andy. It signs in with a one-time magic-link token minted by the service
+  role and exchanged in memory (no password), so RLS and the submissions guard apply as in the
+  browser (ADR 0172). The save renders the PDF and emails sales.
+- `verify` checks the diff, the deal header (pipeline, stage, org, person, owner, USD,
+  `arxys_project_id`), the ledger against the deal, each line's price, the deal value against
+  Pipedrive's own line sums and the calc's deal link, and reports whether the deal search and the
+  org's deal list show the project id.
+- Pure checks in `src/lib/projects/phase-b.ts` (10 tests). Full suite 1107/1107, `tsc` and lint
+  clean, `--self-test` passes (the module mocks reach the action's account gate). No step has run
+  against production.
+
+### Detours & fixes
+
+- **Review gate, first pass FIX BEFORE COMMIT.** A-1 / S-1 (Must): the script accepted an admin who
+  is not internal, whom `submitCalculation` would save as a partner calc with a deal made by name;
+  now `is_internal` is required and a result that is not a project calc is a failure. Also fixed:
+  no duplicate guard on `save-calc` (A-2), `verify` missed the header and ledger (A-3), dry runs hid
+  the visibility grantee, the legacy add-ons and the deal header (A-4, A-5), no retry step (A-6), a
+  duplicate or mistyped deal field (A-7), `--as` could sign in as a colleague (S-2, now refused),
+  sign-out gaps (S-3).
+- **Second pass PASS WITH NOTES** from both; fixed anyway: rows a failed save created are found by
+  id, not by comparing clocks (A-8); `verify` carries on when the expected header cannot be worked
+  out (A-9); `--design` is required so recorders-only is a choice (A-10); Ctrl-C during the save says
+  what to check (A-11); the PII note covers login ids (S-5).
+
+### Decisions captured
+
+- [`0172-phase-b-script-saves-the-test-calc-as-the-rep-through-a-one-time-sign-in.md`](./decisions/0172-phase-b-script-saves-the-test-calc-as-the-rep-through-a-one-time-sign-in.md)
+
+---
+
 ## 2026-10-23 - Project Portal backend, Step 5 Phase A: deal with product lines, library and mocked tests (ADRs 0170, 0171)
 
 ### Work done
