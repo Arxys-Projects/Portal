@@ -3,6 +3,7 @@
 - **Status**: Accepted (written, not yet applied; Step 1 of [the brief](../Portal-Project%20revamp/claude-code-brief-project-portal-backend.md))
 - **Date**: 2026-10-16
 - **Amended by**: [0171](./0171-deal-lines-sync-one-at-a-time-through-a-claimed-ledger-and-retry-reads-the-deal-first.md) (2026-10-23): the ledger gains a `sending` status, and internal sessions lose INSERT and UPDATE on it; only server code writes it.
+- **Amended by**: [0175](./0175-quote-email-send-log-and-pricing-confirmations-are-server-written.md) (2026-10-23): internal sessions lose INSERT on `quote_pricing_confirmations`, which gains `deal_lines`; only server code writes it.
 - **Related**: 0150 (Pipedrive products, `is_linkable`), 0098 (revisions vs attached deal products), 0093 (revision lineage shares a deal)
 
 ## Context

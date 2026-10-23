@@ -4,6 +4,44 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-10-23 - Project Portal backend, Step 6 Phase A: quote pin, send log, confirmations lockdown
+
+### Work done
+
+- Started on `876bd44`, tree clean apart from untracked files from other work. Ran from
+  `docs/Portal-Project revamp/claude-code-prompt-step-6-quote-gate-and-email.md`.
+- `20261023000002_project_quotes_pin.sql` (ADR 0174): a BEFORE INSERT trigger on `project_quotes`
+  pins the deal id to the submission's deal and the version to max+1 for the submission. Closes
+  baseline row B1-S-4 once applied (the backlog is local only, `.git/info/exclude`).
+- `20261023000003_quote_email_sends_and_confirmations_lockdown.sql` (ADR 0175, amends 0155): the
+  `quote_email_sends` log for the Phase B "Quote ready" email, and `quote_pricing_confirmations`
+  made server-written only, with a new `deal_lines` column.
+- Three rollbacks and an apply note (`docs/apply-notes/0174-quote-pin-and-send-log.md`).
+- `scripts/test-rls.ts`: 19i, 27, 27a, 27b added; the section 19 seed and 24f changed to match.
+  Written, not run.
+- PGlite on the real migrations (scratchpad `pglite/step6-check.mjs`, reusing the Step 5 base
+  schema): 55/55. Full suite 1113/1113, `tsc` and lint clean.
+
+### Detours & fixes
+
+- **The prompt's first draft pinned the version per deal**, and said the unique key was on (deal
+  id, version). The real key is `unique (submission_id, version)`, and revisions share their
+  source's deal (ADRs 0040, 0173), so a per-deal count would have refused every revision's first
+  quote. The prompt was corrected before the run; the trigger counts per submission.
+- **A plain "wrong version" error would have broken the race retry.** Under READ COMMITTED, a
+  generate that loses the race after the winner commits reaches the trigger, which sees the new
+  max. Raising 23514 there would skip `generate.ts`'s 23505 retry and show "could not be saved".
+  The trigger answers 23505 for a taken version and 23514 only for a skipped one.
+- **The existing section 19 RLS seed would fail on the trigger**: it inserts a quote with deal
+  4822 on a submission with no deal. The seed now stamps the deal first, as service role.
+- **24f confirmed pricing as an internal session**, which the lockdown now refuses. The confirm step
+  moved to 27b as a refusal.
+
+### Decisions captured
+
+- [`0174-a-new-project-quote-carries-its-submissions-deal-and-the-next-version.md`](./decisions/0174-a-new-project-quote-carries-its-submissions-deal-and-the-next-version.md)
+- [`0175-quote-email-send-log-and-pricing-confirmations-are-server-written.md`](./decisions/0175-quote-email-send-log-and-pricing-confirmations-are-server-written.md)
+
 ## 2026-10-23 - Project calc revisions save and quote from the plain calculator (ADR 0173)
 
 ### Work done

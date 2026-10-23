@@ -871,6 +871,9 @@ async function run() {
     // (ADR 0059 / 0060 / 0061). adminPersona was reactivated at 12g.
     {
       const quoteSubmissionId = await seedSubmission(b.id, "open");
+      // Step 6 (ADR 0174): a quote must carry its submission's deal, so the
+      // seeded submission gets one (service_role may stamp it, ADR 0167).
+      await admin.from("submissions").update({ pipedrive_deal_id: 4822 }).eq("id", quoteSubmissionId);
       const baseQuoteRow = {
         submission_id: quoteSubmissionId,
         pipedrive_deal_id: 4822,
@@ -1002,6 +1005,41 @@ async function run() {
           "19h: project_quotes DELETE is blocked for everyone (immutable)",
           (data?.length ?? 0) === 0 && count === 1,
           error ? `blocked: ${error.message}` : `affected=${data?.length} remaining=${count}`,
+        );
+      }
+
+      // Test 19i: the pin trigger (Step 6, ADR 0174, B1-S-4). Versions 1 and 2
+      // exist, so the next is 3. Internal and admin are refused a wrong deal id
+      // or a skipped version (23514); a taken version answers 23505, which
+      // generate.ts retries on. Admin then inserts version 3 legitimately.
+      {
+        const probes: [string, Persona, Record<string, unknown>, string][] = [
+          ["internal wrong deal", internalPersona, { pipedrive_deal_id: 4823, version: 3 }, "23514"],
+          ["internal skipped version", internalPersona, { version: 5 }, "23514"],
+          ["internal taken version", internalPersona, { version: 2 }, "23505"],
+          ["admin wrong deal", adminPersona, { pipedrive_deal_id: 4823, version: 3 }, "23514"],
+          ["admin skipped version", adminPersona, { version: 5 }, "23514"],
+        ];
+        const wrong: string[] = [];
+        for (const [label, p, override, code] of probes) {
+          const { error } = await p.client
+            .from("project_quotes")
+            .insert({ ...baseQuoteRow, generated_by: p.id, ...override });
+          if (error?.code !== code) wrong.push(`${label}: ${error ? error.code : "INSERTED"}`);
+        }
+        const legit = await adminPersona.client
+          .from("project_quotes")
+          .insert({ ...baseQuoteRow, version: 3, generated_by: adminPersona.id })
+          .select("version");
+        if (legit.error || legit.data?.[0]?.version !== 3) wrong.push(`admin max+1: ${legit.error?.message ?? "no row"}`);
+        const { count } = await admin
+          .from("project_quotes")
+          .select("id", { count: "exact", head: true })
+          .eq("submission_id", quoteSubmissionId);
+        record(
+          "19i: pin trigger refuses a wrong deal id or skipped version for internal and admin; max+1 passes",
+          wrong.length === 0 && count === 3,
+          wrong.length ? wrong.join("; ") : `rows=${count}`,
         );
       }
 
@@ -2249,17 +2287,16 @@ async function run() {
           );
         }
 
-        // 24f: internal can attach a submission, link a login and confirm
-        // pricing, each attributed to themselves. (Ledger lines are server-only
-        // since Step 5, ADR 0171: see 24g.)
+        // 24f: internal can attach a submission and link a login, each
+        // attributed to themselves. (Ledger lines are server-only since Step 5,
+        // ADR 0171, see 24g; pricing confirmations since Step 6, ADR 0175, see 27b.)
         {
           const steps = [
             ["attach", (await internalPersona.client.from("project_submissions").insert({ submission_id: looseSub, project_id: projectId, linked_by: internalPersona.id })).error],
             ["link", (await internalPersona.client.from("partner_contact_links").insert({ partner_id: a.id, contact_id: contactId, company_id: companyId, linked_by: internalPersona.id })).error],
-            ["confirm", (await internalPersona.client.from("quote_pricing_confirmations").insert({ pipedrive_deal_id: dealId, confirmed_by: internalPersona.id, deal_lines_fingerprint: [] })).error],
           ] as const;
           const failed = steps.filter(([, e]) => e).map(([n, e]) => `${n}: ${e!.message}`);
-          record("24f: internal can attach a calc, link a login, confirm pricing", failed.length === 0, failed.join("; "));
+          record("24f: internal can attach a calc and link a login", failed.length === 0, failed.join("; "));
         }
 
         // 24g: internal limits: no forged attribution, no sync-owned writes,
@@ -2664,6 +2701,90 @@ async function run() {
         }
       } finally {
         if (intRows.length > 0) await admin.from("submissions").delete().in("id", intRows);
+      }
+    }
+    // =========================================================================
+    // Section 27: Step 6 (ADR 0175, migration 20261023000003). The "Quote
+    // ready" send log and pricing confirmations are written by server code as
+    // service_role only. Internal and admin read both; partners and anon read
+    // neither. The pin trigger (ADR 0174, 20261023000002) is 19i.
+    // =========================================================================
+    {
+      const tag = Date.now();
+      const dealId = 980_000_000 + (tag % 1_000_000);
+      const sub = await seedSubmission(internalPersona.id, "open");
+      let quoteId: string | null = null;
+      try {
+        const stamp = await admin.from("submissions").update({ pipedrive_deal_id: dealId }).eq("id", sub);
+        const quote = await admin
+          .from("project_quotes")
+          .insert({
+            submission_id: sub, pipedrive_deal_id: dealId, version: 1, snapshot: { marker: "rls-test-27" },
+            terms_version: "v-rls-test", validity_days: 7, generated_by: internalPersona.id,
+          })
+          .select("id")
+          .single();
+        quoteId = quote.data?.id ?? null;
+        const seedSend = await admin
+          .from("quote_email_sends")
+          .insert({ project_quote_id: quoteId, to_email: `rls-27-${tag}@arxys-rls-test.invalid`, sent_by: internalPersona.id, status: "sent" });
+        record("27: seed a quote and a send (service-role)", !stamp.error && !quote.error && !seedSend.error,
+          [stamp.error?.message, quote.error?.message, seedSend.error?.message].filter(Boolean).join("; "));
+
+        // 27a: no session writes the send log; partners and anon read nothing,
+        // internal and admin read it.
+        {
+          const wrong: string[] = [];
+          for (const [label, p] of [["partner", a], ["internal", internalPersona], ["admin", adminPersona]] as const) {
+            const ins = await p.client
+              .from("quote_email_sends")
+              .insert({ project_quote_id: quoteId, to_email: `rls-27-${label}-${tag}@arxys-rls-test.invalid`, sent_by: p.id });
+            // A unique-key or CHECK error would hide a lost grant: require 42501.
+            if (ins.error?.code !== "42501") wrong.push(`${label} insert: ${ins.error?.code ?? "INSERTED"}`);
+            const upd = await p.client.from("quote_email_sends").update({ status: "failed" }).eq("project_quote_id", quoteId!).select("id");
+            if (!upd.error && (upd.data?.length ?? 0) > 0) wrong.push(`${label} update went through`);
+            const del = await p.client.from("quote_email_sends").delete().eq("project_quote_id", quoteId!).select("id");
+            if (!del.error && (del.data?.length ?? 0) > 0) wrong.push(`${label} delete went through`);
+          }
+          const anonClient = createClient(supabaseUrl, anonKey, { auth: { persistSession: false, autoRefreshToken: false } });
+          for (const [label, client] of [["partner", a.client], ["anon", anonClient]] as const) {
+            const { data } = await client.from("quote_email_sends").select("id").eq("project_quote_id", quoteId!);
+            if ((data?.length ?? 0) > 0) wrong.push(`${label} reads ${data!.length}`);
+          }
+          for (const [label, p] of [["internal", internalPersona], ["admin", adminPersona]] as const) {
+            const { data, error } = await p.client.from("quote_email_sends").select("id, status").eq("project_quote_id", quoteId!);
+            if (error || data?.length !== 1 || data[0].status !== "sent") wrong.push(`${label} read: ${error?.message ?? `${data?.length} rows, ${data?.[0]?.status}`}`);
+          }
+          record("27a: the send log is server-written; internal and admin read it, partners and anon do not",
+            wrong.length === 0, wrong.length ? wrong.join("; ") : "as expected");
+        }
+
+        // 27b: no session inserts a pricing confirmation (the gate's bypass,
+        // ADR 0175); the server can, with its lines; internal still reads.
+        {
+          const wrong: string[] = [];
+          for (const [label, p] of [["internal", internalPersona], ["admin", adminPersona], ["partner", a]] as const) {
+            const { error } = await p.client
+              .from("quote_pricing_confirmations")
+              .insert({ pipedrive_deal_id: dealId, confirmed_by: p.id, deal_lines_fingerprint: [{ product_id: 1 }] });
+            if (error?.code !== "42501") wrong.push(`${label} insert: ${error?.code ?? "INSERTED"}`);
+          }
+          const server = await admin
+            .from("quote_pricing_confirmations")
+            .insert({ pipedrive_deal_id: dealId, submission_id: sub, confirmed_by: internalPersona.id, deal_lines_fingerprint: [], deal_lines: [] });
+          if (server.error) wrong.push(`service_role insert: ${server.error.message}`);
+          const read = await internalPersona.client.from("quote_pricing_confirmations").select("id, deal_lines").eq("pipedrive_deal_id", dealId);
+          if (read.error || read.data?.length !== 1) wrong.push(`internal read: ${read.error?.message ?? read.data?.length}`);
+          record("27b: no session inserts a pricing confirmation; service_role does; internal reads it",
+            wrong.length === 0, wrong.length ? wrong.join("; ") : "as expected");
+        }
+      } finally {
+        // Children first: sends restrict quote deletes; quotes and
+        // confirmations restrict the submission delete in teardownPersona.
+        if (quoteId) await admin.from("quote_email_sends").delete().eq("project_quote_id", quoteId);
+        await admin.from("quote_pricing_confirmations").delete().eq("pipedrive_deal_id", dealId);
+        await admin.from("project_quotes").delete().eq("submission_id", sub);
+        await admin.from("submissions").delete().eq("id", sub);
       }
     }
   } finally {
