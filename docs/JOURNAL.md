@@ -62,6 +62,13 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 - The test fixture for a "fresh" sending row became stale when the window dropped to 8 minutes;
   the fixture time was moved, not the rule.
 
+### Applied
+
+- Andy applied `20261023000001_project_deal_claims.sql` in the SQL editor the same day ("Success. No
+  rows returned") and ran `scripts/test-rls.ts`: all pass, including 24d (partner cannot insert a
+  claim), 24f, 24g (internal ledger insert and update blocked) and 24j (claims server-written, one
+  per project; the server sets `sending`).
+
 ### Decisions captured
 
 - [`0170-one-portal-built-deal-per-project-guarded-by-a-claim-before-the-create.md`](./decisions/0170-one-portal-built-deal-per-project-guarded-by-a-claim-before-the-create.md)
