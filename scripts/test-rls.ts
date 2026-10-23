@@ -2116,6 +2116,7 @@ async function run() {
         "deal_line_syncs",
         "quote_pricing_confirmations",
         "company_sync_includes",
+        "project_deal_claims",
       ];
       const tag = Date.now();
       const orgId = 900_000_000 + (tag % 1_000_000);
@@ -2167,6 +2168,11 @@ async function run() {
             pipedrive_deal_id: dealId, submission_id: linkedSub, confirmed_by: internalPersona.id, deal_lines_fingerprint: [],
           })).error,
           (await admin.from("company_sync_includes").insert({ pipedrive_org_id: orgId, reason: "RLS test include" })).error,
+          // Step 5 (ADR 0170): a claim with no deal id, so the finally can delete it.
+          (await admin.from("project_deal_claims").insert({
+            project_id: projectId, lineage_root_submission_id: linkedSub, submission_id: linkedSub,
+            confirmed_fingerprint: [], claimed_by: internalPersona.id,
+          })).error,
         ].filter(Boolean);
         record("24: seed project tables (service-role)", seedErrors.length === 0, seedErrors.map((e) => e?.message).join("; "));
 
@@ -2207,11 +2213,14 @@ async function run() {
             ["deal_line_syncs", { pipedrive_deal_id: dealId, submission_id: looseSub, sku: "VX5-GPU-A1000", role: "failover", qty: 1, pipedrive_product_id: 1416, item_price_sent: 1706, created_by: a.id }],
             ["quote_pricing_confirmations", { pipedrive_deal_id: dealId, confirmed_by: a.id, deal_lines_fingerprint: [] }],
             ["company_sync_includes", { pipedrive_org_id: orgId + 3, reason: "partner include" }],
+            ["project_deal_claims", { project_id: projectId, lineage_root_submission_id: looseSub, submission_id: looseSub, confirmed_fingerprint: [], claimed_by: a.id }],
           ];
           const wentThrough: string[] = [];
           for (const [t, row] of inserts) {
             const { error } = await a.client.from(t).insert(row);
-            if (!error) wentThrough.push(`insert ${t}`);
+            // The claim probe reuses the seed's project, so a unique-key error
+            // (23505) would hide a lost grant: require the permission error.
+            if (!error || (t === "project_deal_claims" && error.code !== "42501")) wentThrough.push(`insert ${t}`);
           }
           const upd = await a.client.from("project_submissions").update({ calc_role: "option" }).eq("submission_id", linkedSub).select("submission_id");
           if ((upd.data?.length ?? 0) > 0) wentThrough.push("update project_submissions");
@@ -2240,17 +2249,17 @@ async function run() {
           );
         }
 
-        // 24f: internal can attach a submission, link a login, add a line and
-        // confirm pricing, each attributed to themselves.
+        // 24f: internal can attach a submission, link a login and confirm
+        // pricing, each attributed to themselves. (Ledger lines are server-only
+        // since Step 5, ADR 0171: see 24g.)
         {
           const steps = [
             ["attach", (await internalPersona.client.from("project_submissions").insert({ submission_id: looseSub, project_id: projectId, linked_by: internalPersona.id })).error],
             ["link", (await internalPersona.client.from("partner_contact_links").insert({ partner_id: a.id, contact_id: contactId, company_id: companyId, linked_by: internalPersona.id })).error],
-            ["line", (await internalPersona.client.from("deal_line_syncs").insert({ pipedrive_deal_id: dealId, submission_id: looseSub, sku: "VX5-GPU-A1000", role: "failover", qty: 1, pipedrive_product_id: 1416, item_price_sent: 1706, created_by: internalPersona.id })).error],
             ["confirm", (await internalPersona.client.from("quote_pricing_confirmations").insert({ pipedrive_deal_id: dealId, confirmed_by: internalPersona.id, deal_lines_fingerprint: [] })).error],
           ] as const;
           const failed = steps.filter(([, e]) => e).map(([n, e]) => `${n}: ${e!.message}`);
-          record("24f: internal can attach a calc, link a login, add a deal line, confirm pricing", failed.length === 0, failed.join("; "));
+          record("24f: internal can attach a calc, link a login, confirm pricing", failed.length === 0, failed.join("; "));
         }
 
         // 24g: internal limits: no forged attribution, no sync-owned writes,
@@ -2267,10 +2276,16 @@ async function run() {
           blocked.push(["deal_line_syncs delete", Boolean(dl.error) || (dl.data?.length ?? 0) === 0]);
           const qc = await internalPersona.client.from("quote_pricing_confirmations").delete().eq("pipedrive_deal_id", dealId).select("id");
           blocked.push(["confirmation delete", Boolean(qc.error) || (qc.data?.length ?? 0) === 0]);
-          const dup = await internalPersona.client.from("deal_line_syncs").insert({ pipedrive_deal_id: dealId, submission_id: looseSub, sku: "VX5-GPU-A1000", role: "recorder", qty: 1, pipedrive_product_id: 1416, item_price_sent: 1706, created_by: internalPersona.id });
+          // Step 5 (ADR 0171, review gate S-1): the ledger is server-written only.
+          const li = await internalPersona.client.from("deal_line_syncs").insert({ pipedrive_deal_id: dealId, submission_id: looseSub, sku: "VX5-GPU-A1000", role: "failover", qty: 1, pipedrive_product_id: 1416, item_price_sent: 1706, created_by: internalPersona.id });
+          blocked.push(["deal_line_syncs insert", Boolean(li.error)]);
+          const lu = await internalPersona.client.from("deal_line_syncs").update({ qty: 999 }).eq("pipedrive_deal_id", dealId).select("id");
+          blocked.push(["deal_line_syncs update", Boolean(lu.error) || (lu.data?.length ?? 0) === 0]);
+          // The key still holds for the server: the same (deal, sku, role) twice.
+          const dup = await admin.from("deal_line_syncs").insert({ pipedrive_deal_id: dealId, submission_id: looseSub, sku: "VX5-GPU-A1000", role: "recorder", qty: 1, pipedrive_product_id: 1416, item_price_sent: 1706, created_by: internalPersona.id });
           blocked.push(["same (deal, sku, role) twice", dup.error?.code === "23505"]);
           const notBlocked = blocked.filter(([, ok]) => !ok).map(([n]) => n);
-          record("24g: internal is blocked from forging, sync-owned writes, rule edits, ledger deletes, duplicate lines", notBlocked.length === 0, notBlocked.length ? `not blocked: ${notBlocked.join(", ")}` : "all blocked");
+          record("24g: internal is blocked from forging, sync-owned writes, rule edits, ledger writes, duplicate lines", notBlocked.length === 0, notBlocked.length ? `not blocked: ${notBlocked.join(", ")}` : "all blocked");
         }
 
         // 24h: admin edits a throwaway rule; updated_by is stamped, the audit
@@ -2307,9 +2322,35 @@ async function run() {
               `forged=${forged.error ? "blocked" : "WENT THROUGH"}`, `admin add=${add.error?.message ?? "ok"}`, `admin delete=${del.data?.length ?? del.error?.message}`].join("; "),
           );
         }
+        // 24j: project_deal_claims (Step 5, ADR 0170). Internal and admin read
+        // it (24e); no session writes it; the ledger takes 'sending' from the
+        // server. The trigger that keeps a recorded deal id is proven in PGlite
+        // only: a claim holding a deal id cannot be deleted, so this run never
+        // records one on the live table.
+        {
+          const blocked: [string, boolean][] = [];
+          const ins = await internalPersona.client.from("project_deal_claims").insert({ project_id: projectId, lineage_root_submission_id: looseSub, submission_id: looseSub, confirmed_fingerprint: [], claimed_by: internalPersona.id });
+          // Same project as the seed claim: only a permission error proves the grant is gone.
+          blocked.push(["internal insert", ins.error?.code === "42501"]);
+          // A no-op write: tests the missing grant alone, and if it ever went
+          // through, the row stays deletable (a recorded deal id never is).
+          const upd = await internalPersona.client.from("project_deal_claims").update({ submission_id: linkedSub }).eq("project_id", projectId!).select("id");
+          blocked.push(["internal update", Boolean(upd.error) || (upd.data?.length ?? 0) === 0]);
+          const del = await internalPersona.client.from("project_deal_claims").delete().eq("project_id", projectId!).select("id");
+          blocked.push(["internal delete", Boolean(del.error) || (del.data?.length ?? 0) === 0]);
+          const adminRead = await adminPersona.client.from("project_deal_claims").select("id").eq("project_id", projectId!);
+          blocked.push(["admin reads the claim", !adminRead.error && (adminRead.data?.length ?? 0) === 1]);
+          const second = await admin.from("project_deal_claims").insert({ project_id: projectId, lineage_root_submission_id: looseSub, submission_id: looseSub, confirmed_fingerprint: [], claimed_by: internalPersona.id });
+          blocked.push(["second claim for the project", second.error?.code === "23505"]);
+          const sending = await admin.from("deal_line_syncs").update({ status: "sending" }).eq("pipedrive_deal_id", dealId).eq("sku", "VX5-GPU-A1000").eq("role", "recorder").select("status");
+          blocked.push(["server sets sending", !sending.error && sending.data?.[0]?.status === "sending"]);
+          const notOk = blocked.filter(([, ok]) => !ok).map(([n]) => n);
+          record("24j: project_deal_claims is server-written, one per project; the ledger takes sending", notOk.length === 0, notOk.length ? `failed: ${notOk.join(", ")}` : "all as expected");
+        }
       } finally {
-        // Children first: the ledger and confirmations restrict submission and
-        // partner deletes, and projects restrict company deletes.
+        // Children first: the claim, the ledger and confirmations restrict
+        // submission and partner deletes, and projects restrict company deletes.
+        if (projectId) await admin.from("project_deal_claims").delete().eq("project_id", projectId).is("pipedrive_deal_id", null);
         await admin.from("deal_line_syncs").delete().eq("pipedrive_deal_id", dealId);
         await admin.from("quote_pricing_confirmations").delete().eq("pipedrive_deal_id", dealId);
         await admin.from("partner_contact_links").delete().in("partner_id", [a.id, b.id]);

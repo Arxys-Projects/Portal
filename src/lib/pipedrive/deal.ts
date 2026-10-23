@@ -89,7 +89,7 @@ export type DealSubmissionInput = {
 
 // Strip characters illegal in filenames / deal titles and collapse whitespace.
 // Mirrors the sanitizeFilenamePart helper in project-quote/render.ts.
-function sanitizeTitlePart(value: string): string {
+export function sanitizeTitlePart(value: string): string {
   return value
     .replace(/[\\/:*?"<>|]/g, "")
     .replace(/\s+/g, " ")

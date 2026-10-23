@@ -4,6 +4,72 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-10-23 - Project Portal backend, Step 5 Phase A: deal with product lines, library and mocked tests (ADRs 0170, 0171)
+
+### Work done
+
+- Started at `41cdbdc` on `main` (the Step 5 prompt, revised after a quick architect pass on the
+  plan: lineage split, read-first retry, fingerprint shape, stuck-claim recovery, claim RLS, leaf
+  check, a blocked dry run). Andy approved one portal-built deal per project.
+- **Pipedrive v2 docs checked:** `POST /api/v2/deals` takes `owner_id` and a `custom_fields` object;
+  `POST /api/v2/deals/{id}/products` requires `product_id`, `item_price` and `quantity`, and
+  `item_price` has no default, so the product's own price is always sent; the role goes in
+  `comments`; `GET /api/v2/deals/{id}/products` is cursor-paged.
+- **Library** (`src/lib/projects/project-deal.ts`, pure `deal-lines.ts`, `src/lib/pipedrive/project-deal-api.ts`),
+  all behind `PROJECT_DEAL_PRODUCTS`, each function checking its actor:
+  - `previewDealLines` reads the banked BOM, resolves each SKU by exact code from one full product
+    read, and refuses the whole set listing every offender (missing, shared code, off the picker,
+    no USD price, $0, `[MKT]`, `[CFQ]`). The price is the product's, verbatim. The fingerprint is
+    `DealLineFingerprint[]` with `line_amount` null.
+  - `createProjectDeal` re-runs the preview and refuses on a changed fingerprint, takes the claim,
+    creates the deal by Pipedrive id (owner per ADR 0118, org and person from the project, pipeline
+    "Partner Projects", stage "New Deal", USD, no `value`, `arxys_project_id`), records the deal on
+    the claim and the calc, writes the ledger as pending, adds the lines, reads the deal back and diffs it.
+  - `retryMissingLines` and `diffDealLines` as ADR 0171 describes.
+- **Migration** `20261023000001_project_deal_claims.sql` plus rollback (not applied): the claim
+  table, the ledger's `sending` status, and the ledger made server-written only. PGlite in the
+  scratchpad on the real migrations: 35/35, including a deleted middle revision, the trigger, the
+  revoke, and the rollback refusing while a row is `sending`.
+- `scripts/resolve-project-deal-claim.mts` for a stuck claim (dry run by default, typed CONFIRM).
+  `scripts/test-rls.ts` section 24 updated (24d, 24f, 24g, new 24j); not run.
+- **Checked, no change:** no project calc reaches the ADR 0098 note (calculator returns before the
+  Pipedrive block; relink refuses project calcs). The `current_products` columns the catalog reads
+  exist in the view (`20260818000002`).
+- **Tests:** 62 new (pure lines, diff and claim rules; the four functions against an in-memory
+  database and a fake Pipedrive, covering every case in the prompt). Full suite 1097/1097, partner
+  snapshot harness and golden unchanged, `tsc` and lint clean.
+
+### Detours & fixes
+
+- **Review gate, first pass FIX BEFORE COMMIT.** Security S-1 (Medium): Step 1 let internal
+  sessions insert and update ledger rows, and a retry posted each row's product and quantity, so a
+  rep could put another product or quantity on a deal over REST. Fixed by revoking those writes in
+  this migration and by checking every row against the confirmed lines before posting. Architect A-1:
+  the retry read the deal before claiming rows, and a stale takeover had no fence; now claim, then
+  read, then post, with a fence on every write. A-2 and S-5: releasing a stuck claim trusted a
+  lagging search with no age guard, and a double-click loser was told to ask Andy; now a 15-minute
+  minimum age, a direct read of the org's deals, and a "being created right now" message. Also S-2
+  (a contact's planted child row blocked the leaf check), S-4 (trigger locks), S-6 (bounded
+  fingerprint, uuid check before the filter string), A-3, A-4.
+- **Second pass PASS WITH NOTES** from both. Fixed anyway: A-8 (a slow run's later rows could go
+  stale before their POST; the fence is now renewed right before each POST, so the takeover window
+  covers one post and dropped from 15 to 8 minutes), A-9 (ADRs out of step with the code), A-10, A-11,
+  and test-rls notes N-1 and N-2.
+- **Third, narrow pass PASS WITH NOTES** from both. Its notes were also fixed: the two claim insert
+  probes in `test-rls.ts` now require a permission error (a unique-key error could hide a lost
+  grant), and syncLines no longer tells the rep "another call" holds a row this call left behind
+  (A-12). Left as optional: A-13, a test that ages a slow run's row past the window with two real calls.
+- The test fixture for a "fresh" sending row became stale when the window dropped to 8 minutes;
+  the fixture time was moved, not the rule.
+
+### Decisions captured
+
+- [`0170-one-portal-built-deal-per-project-guarded-by-a-claim-before-the-create.md`](./decisions/0170-one-portal-built-deal-per-project-guarded-by-a-claim-before-the-create.md)
+- [`0171-deal-lines-sync-one-at-a-time-through-a-claimed-ledger-and-retry-reads-the-deal-first.md`](./decisions/0171-deal-lines-sync-one-at-a-time-through-a-claimed-ledger-and-retry-reads-the-deal-first.md)
+- ADR 0155 marked "Amended by 0171".
+
+---
+
 ## 2026-10-22 - Project Portal backend, Step 4 Phase B: project calcs save through submitCalculation (ADRs 0168, 0169)
 
 ### Work done

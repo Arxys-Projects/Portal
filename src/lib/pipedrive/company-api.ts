@@ -1,8 +1,10 @@
 // Pipedrive v2 reads for the company sync (scripts/sync-pipedrive-companies.mts,
-// Project Portal brief Step 2). Read-only: nothing here writes to Pipedrive.
+// Project Portal brief Step 2). The sync only reads. postJsonV2 is the one
+// write path, added for Step 5's project deals (project-deal-api.ts) so both
+// share the 429 handling below.
 //
-// Like product-api.ts, the token is a parameter so the script stays the only
-// place that loads credentials. Not used by the portal app.
+// Like product-api.ts, the token is a parameter so the caller decides where
+// credentials come from.
 //
 // Step 0 findings this follows (brief, "Step 0 results" item 1):
 //   * GET /api/v2/organizations has no label filter (label_id / label_ids → 400),
@@ -71,7 +73,7 @@ async function getJson<T>(token: string, url: URL): Promise<T> {
   }
 }
 
-async function listAllV2<T>(token: string, path: string, params: Record<string, string> = {}): Promise<T[]> {
+export async function listAllV2<T>(token: string, path: string, params: Record<string, string> = {}): Promise<T[]> {
   const out: T[] = [];
   let cursor: string | null = null;
   for (;;) {
@@ -83,6 +85,60 @@ async function listAllV2<T>(token: string, path: string, params: Record<string, 
     out.push(...(json.data ?? []));
     cursor = json.additional_data?.next_cursor ?? null;
     if (!cursor) return out;
+  }
+}
+
+// A v2 POST that did not succeed. `ambiguous` is true when Pipedrive may have
+// processed it anyway (no response, a timeout, a 5xx), so the caller must not
+// repeat it blindly; false when Pipedrive answered with a refusal (4xx, or a
+// 429 that outlasted the retries), so nothing was written.
+export class PipedriveWriteError extends Error {
+  readonly status: number | null;
+  readonly ambiguous: boolean;
+  constructor(message: string, status: number | null, ambiguous: boolean) {
+    super(message);
+    this.name = "PipedriveWriteError";
+    this.status = status;
+    this.ambiguous = ambiguous;
+  }
+}
+
+const POST_TIMEOUT_MS = 30_000;
+
+// POST to a v2 endpoint (Project Portal Step 5's deal writes). Retrying after a
+// 429 is safe: the request was not processed. Nothing else is retried here.
+// The error body may be Cloudflare HTML after repeated 429s, so JSON is optional.
+export async function postJsonV2<T>(token: string, path: string, body: unknown): Promise<T> {
+  for (let attempt = 0; ; attempt++) {
+    let res: Response;
+    try {
+      res = await fetch(`${PD_V2_BASE}${path}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-api-token": token },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(POST_TIMEOUT_MS),
+      });
+    } catch (err) {
+      const reason = err instanceof Error ? err.message : String(err);
+      throw new PipedriveWriteError(`Pipedrive POST ${path}: no response (${reason})`, null, true);
+    }
+    if (res.status === 429 && attempt < MAX_429_RETRIES) {
+      await sleep(waitMsFor429(res.headers.get("x-ratelimit-reset")));
+      continue;
+    }
+    let json: { success?: boolean; error?: string; data?: T } | null = null;
+    try {
+      json = (await res.json()) as { success?: boolean; error?: string; data?: T };
+    } catch {
+      json = null;
+    }
+    if (res.ok && json?.success !== false && json?.data !== undefined) return json.data as T;
+    const ambiguous = res.ok || res.status >= 500;
+    throw new PipedriveWriteError(
+      `Pipedrive POST ${path} failed (${res.status})${json?.error ? `: ${json.error}` : ""}`,
+      res.status,
+      ambiguous,
+    );
   }
 }
 
