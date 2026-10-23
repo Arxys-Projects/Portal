@@ -237,10 +237,11 @@ All tables are internal-only (policies gated on `is_internal(auth.uid()) OR is_a
   - `item_price` is required by v2 with no default (docs checked 2026-10-23), so the product's own price is always sent. Andy expected Pipedrive to fill it; the docs say it does not, so there is no option to leave it out.
   - ADR 0098 note: no project calc reaches `updateDealFromRevision`; the note is unchanged (ADR 0170).
   - The `current_products` columns the catalog reads (`sku`, `product_group`, `active`, `hidden_from_catalog`, `sort_order`) exist in the view's latest definition (`20260818000002`). The Step 4 assumption is verified.
-- **Open for Andy:**
-  - A-7: a retry after a Pipedrive price change posts the price the rep confirmed and warns. The alternative is to refuse and send the rep back to preview.
-  - A-6: whether `PIPEDRIVE_DEAL_OWNER_ID` is set in Vercel production. Without it, an actor with no Pipedrive user id gets the default owner through a v1 `/users` search.
-  - A-5 (Step 6 screen work): the admin delete message maps every 23503 to "a quote has been generated", and a calc with a deal claim now raises it too.
+- **Andy's decisions (2026-10-23, after Phase A):**
+  - A-7: keep it. A retry after a Pipedrive price change posts the price the rep confirmed and warns.
+  - A-6: `PIPEDRIVE_DEAL_OWNER_ID` is set in Vercel production, so an actor with no Pipedrive user id gets that owner with no v1 lookup.
+  - Phase B: `arxys_project_id` is created as `varchar` (the prompt said "text"); the test calc and deal are made as Andy.
+- **Open:** A-5 (Step 6 screen work): the admin delete message maps every 23503 to "a quote has been generated", and a calc with a deal claim now raises it too.
 - **Unverified until Phase B:** that v2 returns each line's `comments` as sent (retry matching and the diff depend on it); the `/dealFields` property names; that the deal search and the org deal list return `arxys_project_id`; that the deal value is computed from the lines; and the exact pipeline and stage names.
 
 ## Step 6: Quote gate and notification

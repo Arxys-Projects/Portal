@@ -68,6 +68,8 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
   rows returned") and ran `scripts/test-rls.ts`: all pass, including 24d (partner cannot insert a
   claim), 24f, 24g (internal ledger insert and update blocked) and 24j (claims server-written, one
   per project; the server sets `sending`).
+- Andy's answers: keep the retry price rule (post the confirmed price and warn);
+  `PIPEDRIVE_DEAL_OWNER_ID` is set in production; `arxys_project_id` will be `varchar`; Phase B runs as Andy.
 
 ### Decisions captured
 
