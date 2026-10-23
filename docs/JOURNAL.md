@@ -33,7 +33,8 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
   1 × V250-MGM); then deal #5589 with 3 lines. `verify`: diff clean, header right, role in every
   comment, ledger matches the deal, prices equal the products' USD prices, deal value
   $3,174,478 equals Pipedrive's line sums, the calc is linked, and search and the org's deal list
-  show the project id. **VERIFY PASSED.** The flag stays off in production.
+  show the project id. **VERIFY PASSED.** Andy confirmed the sales email with the PDF arrived.
+  The flag stays off in production until Andy sets it in Vercel.
 - Two operator slips cost nothing: a lowercase `confirm` wrote nothing (the prompt wants
   `CONFIRM`), and a pasted `<project-id>` placeholder failed in the shell before the script ran.
 - Pure checks in `src/lib/projects/phase-b.ts` (10 tests). Full suite 1107/1107, `tsc` and lint
