@@ -1,6 +1,6 @@
 # 0167 - A guard trigger on submissions lets partners change only status and is_preferred
 
-- **Status**: Accepted (written 2026-10-22, not yet applied; see the [apply note](../apply-notes/0167-submissions-guard-writes.md))
+- **Status**: Accepted (applied by Andy 2026-10-22 after the deploy; live RLS suite passes in full, 26a to 26g; see the [apply note](../apply-notes/0167-submissions-guard-writes.md))
 - **Date**: 2026-10-22
 - **Related**: 0151 (the pattern), 0152 (on-behalf FK as the Project Portal grant), 0037 / 0081 (status and the delete guard), 0093 (revision lineage), 0164 (`is_internal()` requires active), 0166 (snapshot re-baseline)
 

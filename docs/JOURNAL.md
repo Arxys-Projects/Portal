@@ -4,6 +4,24 @@ Chronological narrative of work on the Arxys Partner Portal. Newest entry at top
 
 ---
 
+## 2026-10-23 - Project Portal backend, Step 7: docs audit; the backend brief is complete
+
+### Work done
+
+- Mapped each decision the brief's Step 7 lists to its ADR. All were written when made (0151 to
+  0177), so no new ADR was needed. The map is in the brief's "Step 7 results".
+- Corrected stale ADR Status lines (0153, 0154, 0155, 0167, 0174, 0175 still said "not yet
+  applied"), recorded the live test in 0176 and 0177, and linked 0152 to 0177.
+- RUNBOOK: the Project Portal environment flags and deal owner (section 2), the 2026-10 migrations
+  with their ADRs and apply notes (section 6), and a new section 6c for the company sync and the
+  `arxys_project_id` deal field.
+- Step 6 was pushed and deployed first (`876bd44..a2bf9b5`, Vercel success).
+
+### Detours & fixes
+
+- **A broken ADR link:** 0175's "Amends 0155" pointed at a file name 0155 never had. Fixed, and
+  every relative link in the RUNBOOK and ADRs 0150 to 0177 now resolves (checked by script).
+
 ## 2026-10-23 - Project Portal backend, Step 6 Phase C: live test on deal #5589; Step 6 done
 
 ### Work done

@@ -1,6 +1,6 @@
 # 0176 - A portal-built deal is quoted only from confirmed pricing, read once
 
-- **Status**: Accepted (code behind `PROJECT_QUOTE_GATE`, default off; Step 6 Phase B of [the brief](../Portal-Project%20revamp/claude-code-brief-project-portal-backend.md))
+- **Status**: Accepted (code behind `PROJECT_QUOTE_GATE`, default off; Step 6 Phase B of [the brief](../Portal-Project%20revamp/claude-code-brief-project-portal-backend.md); live test passed on deal #5589 2026-10-23, deployed with the flag off)
 - **Date**: 2026-10-23
 - **Related**: 0155 / 0175 (confirmations, server-written), 0170 / 0171 (claim and ledger), 0173 (revisions keep their deal), 0174 (quote pin), 0060 (a quote renders from its snapshot)
 

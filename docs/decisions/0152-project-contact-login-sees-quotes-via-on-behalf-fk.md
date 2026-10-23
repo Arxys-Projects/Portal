@@ -2,7 +2,7 @@
 
 - **Status**: Accepted (decided by Andy 2026-10-16, at the Project Portal backend Step 0 gate). Built in Step 4 of [the brief](../Portal-Project%20revamp/claude-code-brief-project-portal-backend.md).
 - **Date**: 2026-10-16
-- **Related**: 0045 / 0054 (the on-behalf columns and the per-user grant), 0083 (partner download of own Project Quotes), 0099 (company grouping), 0055 (the consolidated SELECT policy)
+- **Related**: 0045 / 0054 (the on-behalf columns and the per-user grant), 0083 (partner download of own Project Quotes), 0099 (company grouping), 0055 (the consolidated SELECT policy), [0177](./0177-project-quotes-name-the-project-contact-and-email-them-once.md) (a project calc's quote names the project's company and contact, not the on-behalf partner; the Quote ready email uses this ADR's rule for its portal link)
 
 ## Context
 

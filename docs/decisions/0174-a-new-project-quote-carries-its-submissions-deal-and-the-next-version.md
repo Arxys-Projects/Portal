@@ -1,6 +1,6 @@
 # 0174 - A new Project Quote carries its submission's deal and the next version
 
-- **Status**: Accepted (written, not yet applied; Step 6 Phase A of [the brief](../Portal-Project%20revamp/claude-code-brief-project-portal-backend.md))
+- **Status**: Accepted (Step 6 Phase A of [the brief](../Portal-Project%20revamp/claude-code-brief-project-portal-backend.md); applied by Andy 2026-10-23, live RLS suite passes including 19i, and a real generate works on it)
 - **Date**: 2026-10-23
 - **Related**: 0059 / 0061 (Project Quote snapshot and per-submission versioning), 0083 (the partner downloads the latest version), 0040 and 0173 (revisions share their source's deal), 0167 (only server code sets a submission's deal)
 

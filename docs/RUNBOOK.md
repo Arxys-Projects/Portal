@@ -50,6 +50,20 @@ SMTP_FROM=noreply@arxys.com
 INTERNAL_NOTIFICATION_EMAIL=sales@arxys.com
 ```
 
+Optional, for the Project Portal backend. Unset means off. Production values as of 2026-10-23 in the comments:
+
+```env
+# Pipedrive user who owns a portal-built deal when the rep has no Pipedrive user id (set in production)
+PIPEDRIVE_DEAL_OWNER_ID=<pipedrive user id>
+# Portal-built project deals with product lines, ADR 0170 (production: true)
+PROJECT_DEAL_PRODUCTS=true
+# Pricing gate on Project Quotes for portal-built deals, ADR 0176 (production: off)
+PROJECT_QUOTE_GATE=false
+# Quote ready email to the project contact, ADR 0177 (production: off). Turn on only after the
+# project_quotes INSERT is server-only (ADR 0177, "When to revisit").
+PROJECT_QUOTE_EMAIL=false
+```
+
 The startup validator at [`src/lib/env.ts`](../src/lib/env.ts) is *lazy* — each variable is only read when something uses it, so a missing var doesn't crash the deploy but does crash the first request that touches it. **Every var above must also be set in Vercel** (Settings → Environment Variables → Production) — `.env.local` covers local dev only. Add new vars to env.ts's `REQUIRED_VARS` array.
 
 ## 3. Verify local build
@@ -94,7 +108,7 @@ Using `--token` bypasses the browser-based login flow, which has been unreliable
 
 ## 6. Supabase: apply the schema
 
-The migrations live in `supabase/migrations/` (40 files as of 2026-08-17; applied in timestamp order by `db push`):
+The migrations live in `supabase/migrations/` (57 files as of 2026-10-23; applied in timestamp order by `db push`):
 
 > **On a FRESH project, `db push` applies all of them and this section is the whole
 > story.** On the **existing cloud project** it is not: several later migrations were
@@ -115,6 +129,17 @@ The migrations live in `supabase/migrations/` (40 files as of 2026-08-17; applie
 **Phase 10 — Project Quote (2026-06-16)**
 - `20260616000001_phase10_camera_search_rpc.sql` — `camera_aliases_text` immutable helper + `search_camera_specs` SECURITY INVOKER RPC + trigram indexes; powers the calculator camera-model picker.
 - `20260616000002_phase10_project_quotes.sql` — `project_quotes` table (immutable snapshot store); RLS: partner SELECT/INSERT blocked, internal/admin SELECT allowed, internal INSERT-for-self allowed, UPDATE/DELETE blocked for everyone. Paired with the 19a–19h `test-rls.ts` block. **Applied to cloud 2026-06-16; confirmed applied in the Step 6 stop-and-flag.**
+
+**Project Portal backend (2026-10)**. Every file here was applied to the cloud project by hand in the SQL editor (stop-and-flag), so none is in the remote migration history. Check the apply notes before any `db push` against an existing project.
+- `20261016000001_partners_guard_self_update.sql`: partners can no longer change their own role, `is_internal` and other admin columns ([ADR 0151](./decisions/0151-partners-self-update-guard-trigger.md), [apply note](./apply-notes/0151-partners-guard-self-update.md)).
+- `20261016000002` to `20261016000005`: companies, contacts, login links, projects, the project link side table, the design and BOM rules, the deal-line ledger and pricing confirmations ([ADRs 0153 to 0155](./decisions/0153-project-companies-contacts-and-project-link-tables.md), [apply note](./apply-notes/0153-project-portal-schema.md)).
+- `20261016000006_company_sync_includes.sql`: the company include list for unlabeled orgs ([ADR 0156](./decisions/0156-company-sync-include-list-for-unlabeled-orgs.md)).
+- `20261019000001_failover_days_default_longest_retention.sql`: failover days default to the longest retention ([ADR 0162](./decisions/0162-failover-days-default-to-the-longest-retention.md)).
+- `20261019000002_is_internal_requires_active.sql`: a suspended internal user loses internal reads ([ADR 0164](./decisions/0164-suspension-bans-the-auth-user-and-every-entry-point-requires-an-active-partner.md), [apply note](./apply-notes/0164-is-internal-requires-active.md)).
+- `20261022000001_submission_system_designs.sql`: the banked system design side table ([ADR 0165](./decisions/0165-a-project-calcs-system-design-is-banked-once-in-a-server-written-side-table.md), [apply note](./apply-notes/0165-submission-system-designs.md)).
+- `20261022000002_submissions_guard_writes.sql`: the `submissions` write guard. Deploy the app first, then apply ([ADR 0167](./decisions/0167-submissions-write-guard-partners-change-only-status-and-preferred.md), [apply note](./apply-notes/0167-submissions-guard-writes.md)).
+- `20261023000001_project_deal_claims.sql`: one portal-built deal per project; the ledger becomes server-written ([ADRs 0170, 0171](./decisions/0170-one-portal-built-deal-per-project-guarded-by-a-claim-before-the-create.md)).
+- `20261023000002_project_quotes_pin.sql` and `20261023000003_quote_email_sends_and_confirmations_lockdown.sql`: the Project Quote deal and version pin, the Quote ready send log, and server-written confirmations ([ADRs 0174, 0175](./decisions/0174-a-new-project-quote-carries-its-submissions-deal-and-the-next-version.md), [apply note](./apply-notes/0174-quote-pin-and-send-log.md)).
 
 Apply them to a fresh project:
 
@@ -219,6 +244,32 @@ done
 ```
 
 Expected on a fresh project: 214 single-sensor rows then 46 multisensor rows, 260 total (Axis 37, Hanwha 193, Avigilon 30). A re-run reports `0 new` with the file's row count as updates.
+
+## 6c. Project Portal: companies, contacts and the project deal field
+
+One-time data setup for the Project Portal backend. Run it after the 2026-10 migrations and before any project calc. Neither step below writes to Pipedrive except the deal field.
+
+1. Sync companies and contacts from Pipedrive. Companies are orgs labeled "Arxys Security Partner", plus any org listed in `company_sync_includes` ([ADRs 0156, 0157](./decisions/0157-company-sync-reads-v2-and-applies-a-reviewed-mapping-file.md)). The dry run writes a proposed mapping file under `backups/` (it holds contact names and emails; never commit it):
+
+```bash
+node --env-file=.env.local --import tsx scripts/sync-pipedrive-companies.mts
+```
+
+```bash
+node --env-file=.env.local --import tsx scripts/sync-pipedrive-companies.mts --execute
+```
+
+   Review the mapping file and remove anything not approved, then write the aliases and login links:
+
+```bash
+node --env-file=.env.local --import tsx scripts/sync-pipedrive-companies.mts --apply-mapping=backups/<the reviewed file>.json
+```
+
+2. The `arxys_project_id` deal field (varchar) must exist in Pipedrive before a portal-built deal is created. It exists in the production Pipedrive account. Only a new account needs this ([ADR 0172](./decisions/0172-phase-b-script-saves-the-test-calc-as-the-rep-through-a-one-time-sign-in.md)):
+
+```bash
+node --env-file=.env.local --experimental-test-module-mocks --import tsx scripts/project-deal-phase-b.mts create-field --apply
+```
 
 ## 7. Supabase: verify RLS
 

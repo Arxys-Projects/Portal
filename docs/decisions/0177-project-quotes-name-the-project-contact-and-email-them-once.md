@@ -1,6 +1,6 @@
 # 0177 - A project's quote names the project's company and contact, and emails that contact once
 
-- **Status**: Accepted (email behind `PROJECT_QUOTE_EMAIL`, default off; Step 6 Phase B of [the brief](../Portal-Project%20revamp/claude-code-brief-project-portal-backend.md))
+- **Status**: Accepted (email behind `PROJECT_QUOTE_EMAIL`, default off; Step 6 Phase B of [the brief](../Portal-Project%20revamp/claude-code-brief-project-portal-backend.md); live test passed 2026-10-23; "Prepared for" is live, the email flag is off)
 - **Date**: 2026-10-23
 - **Related**: 0018 (partner emails BCC the SMTP mailbox), 0152 (how a contact's login sees project quotes), 0169 (the save-time sales email), 0174 (quote pin), 0175 (send log), 0176 (pricing gate)
 

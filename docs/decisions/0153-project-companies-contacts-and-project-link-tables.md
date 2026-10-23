@@ -1,6 +1,6 @@
 # 0153 — Companies, contacts and projects are internal-only tables keyed by Pipedrive id; the calc link is a side table
 
-- **Status**: Accepted (written, not yet applied; Step 1 of [the brief](../Portal-Project%20revamp/claude-code-brief-project-portal-backend.md))
+- **Status**: Accepted (Step 1 of [the brief](../Portal-Project%20revamp/claude-code-brief-project-portal-backend.md); migrations 20261016000002 to 000005 applied by Andy 2026-10-16, live RLS suite all pass)
 - **Date**: 2026-10-16
 - **Related**: 0112 (side table instead of a `submissions` column), 0151 (partners self-update guard), 0152 (how a contact's login sees quotes), 0055 (policy wrapping)
 

@@ -1,6 +1,6 @@
 # 0154 — System design and BOM rules are admin-edited tables with one audit trail and no delete
 
-- **Status**: Accepted (written, not yet applied; Step 1 of [the brief](../Portal-Project%20revamp/claude-code-brief-project-portal-backend.md))
+- **Status**: Accepted (Step 1 of [the brief](../Portal-Project%20revamp/claude-code-brief-project-portal-backend.md); applied by Andy 2026-10-16, live RLS suite all pass)
 - **Date**: 2026-10-16
 - **Related**: 0096 / 0097 (admin-editable reference tables with stamp and audit triggers), 0094 (a missing spec row silently drops a SKU), 0076 (append-only `products`)
 

@@ -1,8 +1,8 @@
 # 0175 - The Quote ready send log and pricing confirmations are written by server code only
 
-- **Status**: Accepted (written, not yet applied; Step 6 Phase A of [the brief](../Portal-Project%20revamp/claude-code-brief-project-portal-backend.md))
+- **Status**: Accepted (Step 6 Phase A of [the brief](../Portal-Project%20revamp/claude-code-brief-project-portal-backend.md); applied by Andy 2026-10-23, live RLS suite passes including 27 to 27b)
 - **Date**: 2026-10-23
-- **Amends**: [0155](./0155-deal-lines-go-through-a-unique-keyed-ledger-pricing-confirmations-are-insert-only.md) (internal sessions lose INSERT on `quote_pricing_confirmations`)
+- **Amends**: [0155](./0155-deal-line-ledger-and-insert-only-pricing-confirmations.md) (internal sessions lose INSERT on `quote_pricing_confirmations`)
 - **Related**: 0170 (the deal claim and Andy's resolve script), 0171 (the ledger made server-written), 0152 (how a contact's login sees project quotes)
 
 ## Context
