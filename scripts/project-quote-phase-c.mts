@@ -187,15 +187,19 @@ async function compareV1V2(dealId: number, v2Lines: import("../src/lib/pipedrive
   if (!v1.ok || !v2.ok) return console.log("v1/v2 comparison: a read failed.", v1.ok ? "" : v1.error, v2.ok ? "" : v2.error);
   const key = (l: (typeof v1.deal.lineItems)[number]) =>
     JSON.stringify([l.productId, l.productName, l.quantity, l.unitPrice, l.discount, l.discountType, l.lineAmount, l.currency, l.orderNr]);
-  // In array order: the gated PDF prints v2's order_nr order, the preview v1's.
-  const a = v1.deal.lineItems.map(key);
-  const b = v2.deal.lineItems.map(key);
+  // In printed order: both PDF line tables sort by orderNr before printing
+  // (sortLineItemsByOrderNr), and v1 returns lines in another order (seen on
+  // #5589, 2026-10-23: 2, 1, 0, 3, 4). Arrival order only reaches the Generate
+  // dialog preview, which predates Step 6.
+  const { sortLineItemsByOrderNr } = await import("../src/lib/project-quote/ProjectQuotePdf");
+  const a = sortLineItemsByOrderNr(v1.deal.lineItems).map(key);
+  const b = sortLineItemsByOrderNr(v2.deal.lineItems).map(key);
   const sameSet = a.length === b.length && [...a].sort().every((k, i) => k === [...b].sort()[i]);
   const sameOrder = sameSet && a.every((k, i) => k === b[i]);
   // The check the email makes later: the quote's lines against the fingerprint.
   const { fingerprintGateLines, sameQuotedLines } = await import("../src/lib/projects/deal-lines");
   const emailOk = sameQuotedLines(v2.deal.lineItems, fingerprintGateLines(v2Lines));
-  console.log(`v1/v2 comparison: lines ${sameSet ? "identical" : "DIFFERENT"}; order ${sameOrder ? "identical" : "DIFFERENT"}; email line check ${emailOk ? "passes" : "FAILS"}.`);
+  console.log(`v1/v2 comparison: lines ${sameSet ? "identical" : "DIFFERENT"}; printed order ${sameOrder ? "identical" : "DIFFERENT"}; email line check ${emailOk ? "passes" : "FAILS"}.`);
   if (sameOrder && emailOk) return;
   process.exitCode = 1;
   console.log("Do not generate a gated quote until this is understood.");

@@ -69,8 +69,10 @@ A discount, price, quantity, role, name or currency edit after confirmation is c
 **Negative:** the deal header (value, currency, people) still comes from a separate v1 read and is
 not in the fingerprint (review gate S-2, Medium). Pipedrive computes the value from the lines
 (verified in Step 5 Phase B), so a mismatch needs an edit between two reads a moment apart.
-The v2 response field names for discount, currency, sum and order are taken from the request
-schema and are unverified until the Phase C `check` step compares the v1 and v2 builds of #5589.
+The v2 response field names were verified on deal #5589 (2026-10-23): each line carries
+`discount`, `discount_type`, `sum`, `currency`, `order_nr` and `comments`, and the v1 and v2 builds
+of its quote lines are identical. v1 returns lines out of `order_nr` sequence; both PDF line tables
+sort by `order_nr`, so the printed order is the same.
 Every confirm reads the full product list.
 
 **When to revisit:** if a header field starts carrying pricing (a deal-level discount), or when
